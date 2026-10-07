@@ -190,6 +190,8 @@ if (propertyBool('use_access_transformer')) {
 
 processResources {
 
+    filteringCharset = 'UTF-8'
+
     inputs.property 'mod_id', propertyString('mod_id')
     inputs.property 'mod_name', propertyString('mod_name')
     inputs.property 'mod_version', propertyString('mod_version')
