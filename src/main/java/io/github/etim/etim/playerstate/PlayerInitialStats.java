@@ -32,14 +32,7 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 @Mod.EventBusSubscriber(modid = Tags.MOD_ID)
 public final class PlayerInitialStats {
 
-    /** Starting health in HP points (3 hearts). */
-    public static final float STARTING_HEALTH = 6.0F;
-    /** Starting hunger in food points (3 shanks on the hunger bar). */
-    public static final int STARTING_HUNGER = 6;
-    /** Starting saturation, mirroring MITE's full "satiation" slot. */
-    public static final float STARTING_SATURATION = 6.0F;
-
-    /** Key of the init flag inside the player's persisted NBT ({@link EntityPlayer#PERSISTED_NBT_TAG}). */
+    /** Key of the init flag inside the player's persisted NBT. */
     private static final String FLAG_INITIAL_STATS_APPLIED = "etim:initial_stats_applied";
 
     private PlayerInitialStats() {
@@ -77,10 +70,13 @@ public final class PlayerInitialStats {
     }
 
     private static void applyStartingStats(EntityPlayer player) {
-        player.setHealth(STARTING_HEALTH);
+        // Full caps of the current level (R196 semantics); the level-scaled
+        // caps themselves are applied by PlayerCapApplier (task 1.2).
+        int cap = PlayerStatLimits.getHealthFoodCap(player.experienceLevel);
+        player.setHealth(cap);
         FoodStats food = player.getFoodStats();
-        food.setFoodLevel(STARTING_HUNGER);
-        food.setFoodSaturationLevel(STARTING_SATURATION);
+        food.setFoodLevel(cap);
+        food.setFoodSaturationLevel(cap);
     }
 
     private static boolean isInitialised(EntityPlayer player) {
