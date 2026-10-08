@@ -2,7 +2,6 @@ package io.github.etim.etim.playerstate;
 
 import io.github.etim.etim.Tags;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.FoodStats;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -80,19 +79,10 @@ public final class PlayerInitialStats {
     }
 
     private static boolean isInitialised(EntityPlayer player) {
-        return getPersistedData(player).hasKey(FLAG_INITIAL_STATS_APPLIED);
+        return PlayerPersistedValues.getBoolean(player, FLAG_INITIAL_STATS_APPLIED);
     }
 
     private static void markInitialised(EntityPlayer player) {
-        NBTTagCompound entityData = player.getEntityData();
-        // getCompoundTag returns a detached compound for a missing key,
-        // so it must be written back to the entity data explicitly.
-        NBTTagCompound persisted = entityData.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
-        persisted.setBoolean(FLAG_INITIAL_STATS_APPLIED, true);
-        entityData.setTag(EntityPlayer.PERSISTED_NBT_TAG, persisted);
-    }
-
-    private static NBTTagCompound getPersistedData(EntityPlayer player) {
-        return player.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
+        PlayerPersistedValues.setBoolean(player, FLAG_INITIAL_STATS_APPLIED, true);
     }
 }

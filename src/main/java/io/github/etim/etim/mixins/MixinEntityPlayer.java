@@ -1,14 +1,13 @@
 package io.github.etim.etim.mixins;
 
-import io.github.etim.etim.playerstate.PlayerStatLimits;
+import io.github.etim.etim.ETIMConfig;
 import net.minecraft.entity.player.EntityPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 /**
- * Hard level cap (task 1.2): player levels stop at
- * {@link PlayerStatLimits#LEVEL_CAP}.
+ * Hard level cap (task 1.2): player levels stop at {@code ETIMConfig.levelCap}.
  *
  * <p>{@code addExperienceLevel} is the single funnel through which every
  * level increase flows: {@code addExperience} (XP points) loops
@@ -25,7 +24,7 @@ public abstract class MixinEntityPlayer {
             return levels;
         }
         EntityPlayer self = (EntityPlayer) (Object) this;
-        int allowed = PlayerStatLimits.LEVEL_CAP - self.experienceLevel;
+        int allowed = ETIMConfig.levelCap - self.experienceLevel;
         return Math.min(levels, Math.max(0, allowed));
     }
 }

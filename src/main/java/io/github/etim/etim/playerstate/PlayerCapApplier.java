@@ -45,7 +45,21 @@ public final class PlayerCapApplier {
 
         // MAX_HEALTH drives the HUD heart count on the client
         // (GuiIngameForge derives healthRows from it).
-        player.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(cap);
+        IAttributeInstance attribute = player.getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH);
+        double previous = attribute.getBaseValue();
+        if (previous != cap) {
+            attribute.setBaseValue(cap);
+            // MITE: a raised limit grants the growth as immediate HP
+            // (R196 EntityPlayer heals the difference on level-up).
+            if (cap > previous) {
+                player.heal((float) (cap - previous));
+            }
+        }
+        // A level drop (enchanting; future death penalty) can shrink the cap
+        // below the current health — vanilla does not clamp on its own.
+        if (player.getHealth() > cap) {
+            player.setHealth(cap);
+        }
         clampFood(player);
     }
 

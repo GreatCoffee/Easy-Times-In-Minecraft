@@ -30,6 +30,7 @@ public final class ETIM {
      */
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        ETIMConfig.init(event);
         LOGGER.info("Hello From {}!", Tags.MOD_NAME);
     }
 

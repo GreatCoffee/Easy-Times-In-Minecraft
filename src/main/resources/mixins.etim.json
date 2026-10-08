@@ -1,1 +1,1 @@
-﻿{"package": "io.github.etim.etim.mixins", "required": true, "refmap": "mixins.etim.refmap.json", "target": "@env(DEFAULT)", "minVersion": "0.8.5", "compatibilityLevel": "JAVA_8", "mixins": ["MixinEntityPlayer"], "server": [], "client": ["MixinGuiIngameForge"]}
+﻿{"package": "io.github.etim.etim.mixins", "required": true, "refmap": "mixins.etim.refmap.json", "target": "@env(DEFAULT)", "minVersion": "0.8.5", "compatibilityLevel": "JAVA_8", "mixins": ["MixinEntityPlayer", "MixinFoodStats"], "server": ["MixinWorldServer"], "client": ["MixinGuiIngameForge"]}
