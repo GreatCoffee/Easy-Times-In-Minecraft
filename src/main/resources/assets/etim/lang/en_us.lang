@@ -1,0 +1,13 @@
+commands.state.usage=/state (view ETIM nutrient status)
+commands.state.no_player=Only players can use /state.
+commands.state.not_attached=ETIM nutrient data is not attached to this player.
+etim.state.protein=Protein
+etim.state.fats=Essential Fats
+etim.state.phytonutrients=Phytonutrients
+etim.state.insulin=Insulin Resistance
+etim.state.level.none=None
+etim.state.level.mild=Mild
+etim.state.level.moderate=Moderate
+etim.state.level.severe=Severe
+etim.state.malnourished= (malnourished)
+etim.state.sugar_discount= (sugar satiation discounted)

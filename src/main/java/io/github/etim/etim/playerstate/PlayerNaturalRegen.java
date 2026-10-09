@@ -7,6 +7,8 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import io.github.etim.etim.nutrition.NutritionSystem;
+
 /**
  * MITE-style slow natural regeneration (task 1.3).
  *
@@ -52,7 +54,8 @@ public final class PlayerNaturalRegen {
 
         float nutrition = player.getFoodStats().getFoodLevel();
         float rate = (ETIMConfig.regenBasePerTick + nutrition * ETIMConfig.regenPerFoodPerTick)
-                * (player.isPlayerSleeping() ? ETIMConfig.bedRegenFactor : 1.0F);
+                * (player.isPlayerSleeping() ? ETIMConfig.bedRegenFactor : 1.0F)
+                * (NutritionSystem.isMalnourished(player) ? ETIMConfig.malnourishedRegenFactor : 1.0F);
 
         float progress = PlayerPersistedValues.getFloat(player, KEY_REGEN_PROGRESS) + rate;
         if (progress >= 1.0F) {

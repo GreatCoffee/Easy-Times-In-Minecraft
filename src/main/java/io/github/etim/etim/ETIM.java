@@ -1,7 +1,11 @@
 package io.github.etim.etim;
 
+import io.github.etim.etim.commands.CommandState;
+import io.github.etim.etim.nutrition.NutritionNetwork;
+import io.github.etim.etim.nutrition.NutritionSystem;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,8 +34,15 @@ public final class ETIM {
      */
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        NutritionSystem.register();
+        NutritionNetwork.registerMessages();
         ETIMConfig.init(event);
         LOGGER.info("Hello From {}!", Tags.MOD_NAME);
+    }
+
+    @Mod.EventHandler
+    public void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new CommandState());
     }
 
 }

@@ -1,5 +1,7 @@
 # ETIM — Easy Times In Minecraft（轻松时光）
 
+[English](README.md) | [中文](README.zh-CN.md) — both versions are kept in sync（中英两版内容同步维护）。
+
 A Minecraft **1.12.2 Forge** mod that reimplements the core gameplay mechanics of
 **MITE (Minecraft Is Too Easy)** from the ground up. ETIM is a from-scratch homage —
 not a code port — built on modern tooling.

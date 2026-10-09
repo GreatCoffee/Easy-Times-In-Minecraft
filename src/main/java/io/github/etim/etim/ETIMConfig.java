@@ -49,6 +49,23 @@ public final class ETIMConfig {
     /** Exhaustion charged per healed HP. */
     public static float exhaustionPerHealedHp = 1.0F;
 
+    // nutrition ---------------------------------------------------
+    /** Full pool size, in ticks (R196: 160000 = 20 nutrition points worth). */
+    public static int nutritionPoolMax = 160000;
+    /** Pool tick gain per food nutrition point (R196: 8000). */
+    public static int nutritionTicksPerPoint = 8000;
+    /** Sugar content → insulin response conversion (R196 MITEConstant 4.8). */
+    public static float sugarToInsulin = 4.8F;
+    /** Insulin resistance cap (R196 MITEConstant: 192000). */
+    public static int insulinCap = 192000;
+    /** Insulin resistance level thresholds (R196: 48000/96000/144000). */
+    public static int insulinThresholdMild = 48000;
+    public static int insulinThresholdModerate = 96000;
+    public static int insulinThresholdSevere = 144000;
+    /** Regen rate factor while malnourished (R196: 0.25). */
+    public static float malnourishedRegenFactor = 0.25F;
+
+
     private static boolean chinese;
 
     private ETIMConfig() {
@@ -91,6 +108,31 @@ public final class ETIMConfig {
                 comment("Exhaustion charged per healed HP",
                         "每回1点生命累积的消耗（4.0=消耗1点饥饿值）"));
 
+        nutritionPoolMax = config.getInt("nutritionPoolMax", "nutrition", nutritionPoolMax, 1000, 10000000,
+                comment("Full nutrient pool size, in ticks (R196: 160000 = 20 nutrition points)",
+                        "营养池容量（tick），R196 为 160000 = 20 点营养"));
+        nutritionTicksPerPoint = config.getInt("nutritionTicksPerPoint", "nutrition", nutritionTicksPerPoint, 1, 1000000,
+                comment("Pool tick gain per food nutrition point (R196: 8000)",
+                        "每点营养为营养池带来的 tick 增益（R196 为 8000）"));
+        sugarToInsulin = config.getFloat("sugarToInsulin", "nutrition", sugarToInsulin, 0.0F, 100.0F,
+                comment("Sugar content → insulin response conversion (R196: 4.8)",
+                        "糖含量→胰岛素响应的换算系数（R196 为 4.8）"));
+        insulinCap = config.getInt("insulinCap", "nutrition", insulinCap, 1000, 10000000,
+                comment("Insulin resistance cap (R196: 192000)",
+                        "胰岛素抵抗上限（R196 为 192000）"));
+        insulinThresholdMild = config.getInt("insulinThresholdMild", "nutrition", insulinThresholdMild, 0, 10000000,
+                comment("Insulin resistance threshold for the mild level (R196: 48000)",
+                        "轻度胰岛素抵抗阈值（R196 为 48000）"));
+        insulinThresholdModerate = config.getInt("insulinThresholdModerate", "nutrition", insulinThresholdModerate, 0, 10000000,
+                comment("Insulin resistance threshold for the moderate level (R196: 96000); moderate/severe cannot eat sugars",
+                        "中度胰岛素抵抗阈值（R196 为 96000）；中度及以上不能再吃含糖食物"));
+        insulinThresholdSevere = config.getInt("insulinThresholdSevere", "nutrition", insulinThresholdSevere, 0, 10000000,
+                comment("Insulin resistance threshold for the severe level (R196: 144000)",
+                        "重度胰岛素抵抗阈值（R196 为 144000）"));
+        malnourishedRegenFactor = config.getFloat("malnourishedRegenFactor", "nutrition", malnourishedRegenFactor, 0.0F, 1.0F,
+                comment("Regen rate factor while malnourished (R196: 0.25 = a quarter speed)",
+                        "营养不良时的回血倍率（R196 为 0.25 = 1/4 速度）"));
+
         if (config.hasChanged()) {
             config.save();
         }
@@ -103,9 +145,18 @@ public final class ETIMConfig {
             throw new IllegalStateException("[ETIM] Invalid config: playerCaps.capAtLevel0 (" + capAtLevel0
                     + ") exceeds playerCaps.capMaximum (" + capMaximum + ")");
         }
+        if (insulinThresholdMild > insulinThresholdModerate
+                || insulinThresholdModerate > insulinThresholdSevere
+                || insulinThresholdSevere > insulinCap) {
+            throw new IllegalStateException("[ETIM] Invalid config: nutrition.insulin* thresholds must ascend "
+                    + "mild(" + insulinThresholdMild + ") <= moderate(" + insulinThresholdModerate
+                    + ") <= severe(" + insulinThresholdSevere + ") <= cap(" + insulinCap + ") (file "
+                    + config.getConfigFile().getAbsolutePath() + ")");
+        }
         if (Float.isNaN(miningSpeedPerLevel) || Float.isNaN(meleeDamagePerLevel)
                 || Float.isNaN(regenBasePerTick) || Float.isNaN(regenPerFoodPerTick)
-                || Float.isNaN(bedRegenFactor) || Float.isNaN(exhaustionPerHealedHp)) {
+                || Float.isNaN(bedRegenFactor) || Float.isNaN(exhaustionPerHealedHp)
+                || Float.isNaN(sugarToInsulin) || Float.isNaN(malnourishedRegenFactor)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }

@@ -1,0 +1,13 @@
+commands.state.usage=/state（查看 ETIM 营养状态）
+commands.state.no_player=只有玩家可以使用 /state 命令。
+commands.state.not_attached=该玩家未挂载 ETIM 营养数据。
+etim.state.protein=蛋白质
+etim.state.fats=必需脂肪
+etim.state.phytonutrients=植物营养
+etim.state.insulin=胰岛素抵抗
+etim.state.level.none=无
+etim.state.level.mild=轻度
+etim.state.level.moderate=中度
+etim.state.level.severe=重度
+etim.state.malnourished=（营养不良）
+etim.state.sugar_discount=（糖类饱食收益打折）

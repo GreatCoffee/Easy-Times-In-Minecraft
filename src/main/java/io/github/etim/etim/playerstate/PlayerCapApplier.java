@@ -1,5 +1,6 @@
 package io.github.etim.etim.playerstate;
 
+import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.FoodStats;
