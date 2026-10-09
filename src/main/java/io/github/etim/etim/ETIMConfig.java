@@ -65,6 +65,27 @@ public final class ETIMConfig {
     /** Regen rate factor while malnourished (R196: 0.25). */
     public static float malnourishedRegenFactor = 0.25F;
 
+    // reach ---------------------------------------------------------
+    /** Block selection/breaking reach with a bare hand (R196 EntityPlayer:2179 = 2.75). */
+    public static float blockReachBase = 2.75F;
+    /** Bare-hand melee attack reach; held weapons add their bonus (R196 EntityPlayer:2207 = 1.5). */
+    public static float meleeReachBase = 1.5F;
+    /** Entity interaction (right-click) reach (R196 EntityPlayer:2210-2213 = 2.5). */
+    public static float interactionReachBase = 2.5F;
+    /** Extended 5.0 reach while in creative mode (R196 hasExtendedReach). */
+    public static float creativeReach = 5.0F;
+    /** Reach bonus of generic tools/weapons — swords, pickaxes, axes, shovels
+     * (R196 ItemTool base class, ItemSword extends it: 0.75). */
+    public static float reachBonusTool = 0.75F;
+    /** Reach bonus of stick/bone and shears (R196 Item.java:33/188 + ItemShears.java:8 = 0.5). */
+    public static float reachBonusSmall = 0.5F;
+    /** Server-side validation headroom against lag and metric differences. */
+    public static float reachServerTolerance = 0.25F;
+    /** Chat feedback when the server rejects a reach-denied action (debug/test data channel). */
+    public static boolean reachDenialFeedback = true;
+    /** Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay). */
+    public static float debugRayLength = 8.0F;
+
 
     private static boolean chinese;
 
@@ -133,6 +154,34 @@ public final class ETIMConfig {
                 comment("Regen rate factor while malnourished (R196: 0.25 = a quarter speed)",
                         "营养不良时的回血倍率（R196 为 0.25 = 1/4 速度）"));
 
+        blockReachBase = config.getFloat("blockReachBase", "reach", blockReachBase, 0.1F, 32.0F,
+                comment("Block reach with a bare hand (R196: 2.75); tools effective against the block add their bonus",
+                        "空手可触及方块的直线距离（R196 为 2.75）；工具对联类方块生效时加其加成"));
+        meleeReachBase = config.getFloat("meleeReachBase", "reach", meleeReachBase, 0.1F, 32.0F,
+                comment("Bare-hand melee attack reach with ±1 elevation advantage (R196: 1.5); weapons add their bonus",
+                        "空手近战攻击距离，附加高低差 ±1（R196 为 1.5）；持武器加其加成"));
+        interactionReachBase = config.getFloat("interactionReachBase", "reach", interactionReachBase, 0.1F, 32.0F,
+                comment("Entity interaction (right-click) reach with the elevation advantage (R196: 2.5)",
+                        "对实体的交互（右键）距离，附加高低差（R196 为 2.5）"));
+        creativeReach = config.getFloat("creativeReach", "reach", creativeReach, 0.1F, 64.0F,
+                comment("Extended reach while in creative mode (R196: 5.0)",
+                        "创造模式的加长触及距离（R196 为 5.0）"));
+        reachBonusTool = config.getFloat("reachBonusTool", "reach", reachBonusTool, 0.0F, 32.0F,
+                comment("Reach bonus of swords/pickaxes/axes/shovels (R196 ItemTool: 0.75)",
+                        "剑/镐/斧/铲的触及加成（R196 ItemTool 为 0.75）"));
+        reachBonusSmall = config.getFloat("reachBonusSmall", "reach", reachBonusSmall, 0.0F, 32.0F,
+                comment("Reach bonus of stick/bone and shears (R196: 0.5)",
+                        "木棍/骨头与剪刀的触及加成（R196 为 0.5）"));
+        reachServerTolerance = config.getFloat("reachServerTolerance", "reach", reachServerTolerance, 0.0F, 2.0F,
+                comment("Server-side validation headroom (lag tolerance)",
+                        "服务端校验的宽松余量（网络延迟容差）"));
+        reachDenialFeedback = config.getBoolean("reachDenialFeedback", "reach", true,
+                comment("Chat feedback when the server rejects an action for being out of reach (dev/test data channel)",
+                        "服务端拒绝超出触及的动作时发送聊天反馈（开发/测试数据通道）"));
+        debugRayLength = config.getFloat("debugRayLength", "reach", debugRayLength, 1.0F, 64.0F,
+                comment("Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay)",
+                        "调试覆盖显示用的射线长度（不影响游戏判定）"));
+
         if (config.hasChanged()) {
             config.save();
         }
@@ -156,8 +205,17 @@ public final class ETIMConfig {
         if (Float.isNaN(miningSpeedPerLevel) || Float.isNaN(meleeDamagePerLevel)
                 || Float.isNaN(regenBasePerTick) || Float.isNaN(regenPerFoodPerTick)
                 || Float.isNaN(bedRegenFactor) || Float.isNaN(exhaustionPerHealedHp)
-                || Float.isNaN(sugarToInsulin) || Float.isNaN(malnourishedRegenFactor)) {
+                || Float.isNaN(sugarToInsulin) || Float.isNaN(malnourishedRegenFactor)
+                || Float.isNaN(blockReachBase) || Float.isNaN(meleeReachBase)
+                || Float.isNaN(interactionReachBase) || Float.isNaN(creativeReach)
+                || Float.isNaN(reachBonusTool) || Float.isNaN(reachBonusSmall)
+                || Float.isNaN(reachServerTolerance)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
+                    + config.getConfigFile().getAbsolutePath() + ")");
+        }
+        if (blockReachBase > creativeReach) {
+            throw new IllegalStateException("[ETIM] Invalid config: reach.blockReachBase (" + blockReachBase
+                    + ") exceeds reach.creativeReach (" + creativeReach + ") — creative reach may not be weaker (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }
     }
