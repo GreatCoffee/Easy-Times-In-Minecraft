@@ -3,6 +3,8 @@ package io.github.etim.etim.client;
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.mining.ETIMMining;
+import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.reach.ETIMReach;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -10,6 +12,7 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -48,11 +51,11 @@ public final class ETIMDebugOverlay {
     private static boolean visible = false;
 
     private static final KeyBinding TOGGLE_KEY =
-            new KeyBinding("key.etim.debug", Keyboard.KEY_NONE, "key.categories.misc");
+            new KeyBinding("key.etim.debug", Keyboard.KEY_GRAVE, "key.categories.misc");
 
     static {
         ClientRegistry.registerKeyBinding(TOGGLE_KEY);
-        ETIM.LOGGER.info("ETIMDebugOverlay static init ok (key unbound by default)");
+        ETIM.LOGGER.info("ETIMDebugOverlay static init ok (toggle default = GRAVE)");
     }
 
     private ETIMDebugOverlay() {
@@ -95,6 +98,10 @@ public final class ETIMDebugOverlay {
     private static List<String> buildLines(Minecraft mc) {
         List<String> lines = new ArrayList<String>();
         lines.add(I18n.format("etim.debug.header"));
+        // Hunger diagnostic row (development facility): server-original
+        // food / saturation / exhaustion mirrored through FoodDebugNetwork.
+        lines.add(I18n.format("etim.debug.food",
+                FoodDebugNetwork.foodLevel, fmt(FoodDebugNetwork.saturation), fmt(FoodDebugNetwork.exhaustion)));
         RayTraceResult target = mc.objectMouseOver;
         if (target != null && target.typeOfHit == RayTraceResult.Type.ENTITY) {
             appendEntityPanel(lines, mc, (Entity) mc.objectMouseOver.entityHit, false);
@@ -129,20 +136,46 @@ public final class ETIMDebugOverlay {
         IBlockState state = mc.world.getBlockState(pos);
         int metadata = state.getBlock().getMetaFromState(state);
         // Verdict ≡ server: body point → block center vs reach + lag tolerance.
+        // Verdict + client latch: body point → block center vs the R196
+        // reach, EXACT — no server lag tolerance. The latch filter
+        // (MixinEntityRenderer) is what actually decides "can I reach", so
+        // the HUD mirrors it, not the looser server validation.
         double bodyDistance = ETIMReach.getBodyCenterDistance(mc.player, pos);
-        double threshold = ETIMReach.getBlockReach(mc.player, state.getBlock(), metadata) + ETIMConfig.reachServerTolerance;
+        double threshold = ETIMReach.getBlockReach(mc.player, state.getBlock(), metadata);
         lines.add(I18n.format("etim.debug.body_center", fmt(bodyDistance)));
         lines.add(I18n.format("etim.debug.reach_block", fmt(threshold), verdict(bodyDistance <= threshold)));
+        appendMiningPanel(lines, mc, state, pos);
+    }
+
+    /**
+     * Display-only readout of the task-2.2 mining formula chain (real values
+     * through {@link io.github.etim.etim.mining.ETIMMining}, never mutating
+     * gameplay): effective tool / str / per-tick progress / ticks to break /
+     * portable / gating (block min vs the held tool's grade).
+     */
+    private static void appendMiningPanel(List<String> lines, Minecraft mc, IBlockState state, BlockPos pos) {
+        ItemStack held = mc.player.getHeldItemMainhand();
+        boolean effective = ETIMMining.isEffectiveAgainstBlock(held, state);
+        boolean portable = ETIMMining.isPortable(state);
+        boolean requiresTool = ETIMMining.requiresTool(state);
+        float str = ETIMMining.getCurrentPlayerStrVsBlock(mc.player, state, mc.world, pos, true);
+        float progress = ETIMMining.getProgressPerTick(mc.player, state, mc.world, pos);
+        int ticksToBreak = progress >= 1.0F ? 0 : (int) Math.ceil(1.0F / progress);
+        lines.add(I18n.format("etim.debug.mining",
+                verdict(effective), fmt(str), fmt(progress), ticksToBreak > 0 ? String.valueOf(ticksToBreak) : "-"));
+        lines.add(I18n.format("etim.debug.mining_gate",
+                verdict(portable), verdict(requiresTool), ETIMMining.getMinHarvestLevel(state),
+                held.isEmpty() ? null : held.getItem().getRegistryName().toString()));
     }
 
     private static void appendEntityPanel(List<String> lines, Minecraft mc, Entity entity, boolean displayOnly) {
         lines.add(I18n.format(displayOnly ? "etim.debug.entity_far" : "etim.debug.entity", entity.getName()));
-        double surface = ETIMReach.getEyeSurfaceDistance(mc.player, entity);
-        lines.add(I18n.format("etim.debug.surface", fmt(surface)));
+        double rayDistance = ETIMReach.getEntityRayDistance(mc.player, entity);
+        lines.add(I18n.format("etim.debug.raycast", fmt(rayDistance)));
         double melee = ETIMReach.getMeleeReach(mc.player, entity) + ETIMConfig.reachServerTolerance;
         double interact = ETIMReach.getInteractionReach(mc.player, entity) + ETIMConfig.reachServerTolerance;
-        lines.add(I18n.format("etim.debug.reach_melee", fmt(melee), verdict(surface <= melee)));
-        lines.add(I18n.format("etim.debug.reach_interact", fmt(interact), verdict(surface <= interact)));
+        lines.add(I18n.format("etim.debug.reach_melee", fmt(melee), verdict(rayDistance <= melee)));
+        lines.add(I18n.format("etim.debug.reach_interact", fmt(interact), verdict(rayDistance <= interact)));
     }
 
     /** Entity looking at along the crosshair view vector via the slab entry test. */
@@ -154,7 +187,7 @@ public final class ETIMDebugOverlay {
         List<Entity> candidates = mc.player.world.getEntitiesWithinAABBExcludingEntity(
                 mc.player, mc.player.getEntityBoundingBox().grow(ETIMConfig.debugRayLength + 2.0D));
         for (Entity candidate : candidates) {
-            AxisAlignedBB box = candidate.getEntityBoundingBox().grow(0.3D);
+            AxisAlignedBB box = ETIMReach.getEffectiveHitbox(mc.player, candidate);
             double entry = ETIMReach.getRayBoxEntryDistance(origin, direction, box);
             if (entry < bestEntry) {
                 bestEntry = entry;

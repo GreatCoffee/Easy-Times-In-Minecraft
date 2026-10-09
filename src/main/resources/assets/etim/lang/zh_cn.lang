@@ -12,16 +12,20 @@ etim.state.level.severe=重度
 etim.state.malnourished=（营养不良）
 etim.state.sugar_discount=（糖类饱食收益打折）
 key.etim.debug=ETIM 调试覆盖（2.1 触及数据）
-etim.debug.header=ETIM 调试（按控制键开关）
+etim.debug.header=ETIM 调试（按 ~ 键开关，可在按键设置更改）
 etim.debug.far_none=显示射线 %s 米内没有方块或实体（只用于显示，不影响游戏判定）
 etim.debug.block_far=目标（显示射线）：方块 @%s, %s, %s
 etim.debug.entity_far=目标（显示射线）：实体 %s
 etim.debug.block=目标：方块 @%s, %s, %s
 etim.debug.entity=目标：实体 %s
 etim.debug.eye_hit=眼-命中点距离：%s
-etim.debug.surface=眼-表面距离：%s
+enchantment.etim_tree_felling=树木连根
+etim.debug.raycast=眼-命中盒进入点距离：%s
+etim.debug.food=饥饿诊断：食物=%s 饱和度=%s 疲劳=%s
+etim.debug.mining=挖掘：有效工具：✓/✗ %s  str=%s  进度/刻=%s  剩余刻=%s
+etim.debug.mining_gate=便携块：✓/✗ %s  需工具：✓/✗ %s  块等级=%s  手持=%s
 etim.debug.body_center=体点-方块中心距离（双原点取近）：%s
-etim.debug.reach_block=方块触及（含工具加成与容差）：%s → %s
+etim.debug.reach_block=方块触及（含工具加成）：%s → %s
 etim.debug.reach_melee=近战触及（含容差）：%s → %s
 etim.debug.reach_interact=交互触及（含容差）：%s → %s
 etim.reach.deny_block=触及不足：方块过远（%s > %s），已拒绝

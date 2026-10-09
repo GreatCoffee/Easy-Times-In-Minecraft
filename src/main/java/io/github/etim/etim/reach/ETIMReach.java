@@ -4,12 +4,15 @@ import io.github.etim.etim.ETIMConfig;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityHanging;
 import net.minecraft.entity.item.EntityBoat;
+import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.entity.projectile.EntityFireball;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemShears;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -32,10 +35,11 @@ import net.minecraft.util.math.Vec3d;
  * here via vanilla {@code Item.canHarvestBlock}; task 2.2 replaces this with
  * the real MITE effectiveness chain.</p>
  *
- * <p>Not ported yet: the R196 note "sneaking = +0.5 down / −0.5 up"
- * (MC百科 1849) — no sneak hook exists anywhere in the R196 reach code chain
- * found so far; pending the bytecode verdict from the pre-verification
- * session.</p>
+ * <p>Sneaking (final verdict, R196实体触及几何裁决.md + R196潜行触及裁决.md): the
+ * reach formula has zero sneak branches — sneaking only lowers the ray origin
+ * through {@code getEyePosY} ({@code posY − 0.2385}, EntityPlayer.java:1071).
+ * Vanilla 1.12 already moves the eye when sneaking via {@code getPositionEyes},
+ * so no extra hook exists here.</p>
  */
 public final class ETIMReach {
 
@@ -62,11 +66,13 @@ public final class ETIMReach {
 
     /** Per-item melee bonus mapping for the vanilla set (R196 clinit values). */
     public static float getReachBonus(net.minecraft.item.Item item) {
-        if (item instanceof ItemTool) { // sword/pickaxe/axe/shovel extend ItemTool in vanilla too
-            return ETIMConfig.reachBonusTool;
-        }
         if (item instanceof ItemShears || item == Items.STICK || item == Items.BONE) {
             return ETIMConfig.reachBonusSmall;
+        }
+        // R196 ItemSword extends ItemTool (clinit 0.75) — vanilla 1.12's
+        // ItemSword does NOT extend ItemTool, so it needs its own branch.
+        if (item instanceof ItemSword || item instanceof ItemTool) {
+            return ETIMConfig.reachBonusTool;
         }
         return 0.0F;
     }
@@ -85,7 +91,14 @@ public final class ETIMReach {
         ItemStack held = player.getHeldItemMainhand();
         if (held != null && !held.isEmpty()) {
             IBlockState state = block.getStateFromMeta(MathHelper.clamp(metadata, 0, 15));
-            if (held.getItem().canHarvestBlock(state)) {
+            // R196 Item.getReachBonus (Item.java:1277-1279): the bonus applies
+            // only while the tool is EFFECTIVE against the block
+            // (isEffectiveAgainstBlock). The 1.12 equivalence is
+            // getDestroySpeed > 1.0F (ItemTool honors both the forge tool-class
+            // registry and its own effective set); canHarvestBlock never fires
+            // for vanilla tools — ItemTool does not override it (the base Item
+            // method is a constant false).
+            if (held.getItem().getDestroySpeed(held, state) > 1.0F) {
                 reach += getReachBonus(held.getItem());
             }
         }
@@ -123,29 +136,59 @@ public final class ETIMReach {
         return ETIMConfig.interactionReachBase + getHeightAdvantage(player, target) + getHeldReachBonus(player.getHeldItemMainhand());
     }
 
-    /** Eye distance to the closest point of the target's unexpanded AABB. */
-    public static double getEyeSurfaceDistance(EntityPlayer player, Entity entity) {
-        return getNearestBoxDistance(player.getPositionEyes(1.0F), entity.getEntityBoundingBox());
+    /**
+     * R196 effective hit-test box: {@code boundingBox.expand(cbs)} on all three
+     * axes (Raycast.java:313-314), plus the two rider hooks
+     * (Entity.java:3059-3063 box −0.5 Y / EntityHorse.java:261-262 box ×0.5
+     * when the viewer rides the target). cbs = {@link #getCollisionBorderSize}.
+     */
+    public static AxisAlignedBB getEffectiveHitbox(EntityPlayer viewer, Entity entity) {
+        AxisAlignedBB box = entity.getEntityBoundingBox().grow(getCollisionBorderSize(entity));
+        if (viewer.getRidingEntity() == entity) {
+            if (entity instanceof EntityHorse) {
+                double cx = (box.minX + box.maxX) * 0.5D;
+                double cy = (box.minY + box.maxY) * 0.5D;
+                double cz = (box.minZ + box.maxZ) * 0.5D;
+                box = new AxisAlignedBB(
+                        cx + (box.minX - cx) * 0.5D, cy + (box.minY - cy) * 0.5D, cz + (box.minZ - cz) * 0.5D,
+                        cx + (box.maxX - cx) * 0.5D, cy + (box.maxY - cy) * 0.5D, cz + (box.maxZ - cz) * 0.5D);
+            } else {
+                box = box.offset(0.0D, -0.5D, 0.0D);
+            }
+        }
+        return box;
     }
 
     /**
-     * Eye distance to the closest point of the full cube [pos, pos+1]. Used by
-     * server validation so it can never deny a legitimate selection: the
-     * vanilla client ray measures eye → ray-surface, which is always ≥ the
-     * box-nearest distance (this eliminated the "ghost block" denials of the
-     * earlier center-based metric).
+     * R196 cbs table (Entity.java:2151-2157 + overrides). As the target of a
+     * player ray the projectile-viewer 0.3F branch never applies (the viewer
+     * is a player, not a projectile): fireballs were hit at 1.0F
+     * (EntityFireball.java:255-262), hanging objects at exactly 0.0F, regular
+     * entities at the configurable default (R196 0.1F).
      */
-    public static double getBlockSurfaceDistance(EntityPlayer player, BlockPos pos) {
-        return getNearestBoxDistance(player.getPositionEyes(1.0F),
-                new AxisAlignedBB(pos, pos.add(1, 1, 1)));
+    public static float getCollisionBorderSize(Entity entity) {
+        if (entity instanceof EntityFireball) {
+            return 1.0F;
+        }
+        if (entity instanceof EntityHanging) {
+            return 0.0F;
+        }
+        return ETIMConfig.entityHitboxExpansion;
     }
 
-    /** Euclidean eye distance to the closest point of a box (0 when inside). */
-    public static double getNearestBoxDistance(Vec3d eye, AxisAlignedBB box) {
-        double dx = eye.x - MathHelper.clamp(eye.x, box.minX, box.maxX);
-        double dy = eye.y - MathHelper.clamp(eye.y, box.minY, box.maxY);
-        double dz = eye.z - MathHelper.clamp(eye.z, box.minZ, box.maxZ);
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    /**
+     * THE entity reach distance — server validation and HUD verdict use the
+     * same function. R196 metric: eye → entry point of the effective hitbox
+     * along the look ray (slab method, Raycast.java:320-322); 0 when the eye
+     * is already inside the hitbox (Raycast.java:317-318).
+     */
+    public static double getEntityRayDistance(EntityPlayer player, Entity entity) {
+        Vec3d origin = player.getPositionEyes(1.0F);
+        AxisAlignedBB box = getEffectiveHitbox(player, entity);
+        if (box.contains(origin)) {
+            return 0.0D;
+        }
+        return getRayBoxEntryDistance(origin, player.getLook(1.0F), box);
     }
 
     /** R196 getBlockReachFromPoints origins (EntityPlayer:2220-2226): eye −0.25 and eye −0.625. */
@@ -166,15 +209,6 @@ public final class ETIMReach {
             best = Math.min(best, point.distanceTo(center));
         }
         return best;
-    }
-
-    /** Eye distance to a block's CENTER (R196 compares body points to block centers, Raycast.java:517-518). */
-    public static double getEyeCenterDistance(EntityPlayer player, BlockPos pos) {
-        Vec3d eye = player.getPositionEyes(1.0F);
-        double dx = eye.x - (pos.getX() + 0.5D);
-        double dy = eye.y - (pos.getY() + 0.5D);
-        double dz = eye.z - (pos.getZ() + 0.5D);
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     /**

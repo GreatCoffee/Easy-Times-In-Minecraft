@@ -21,11 +21,11 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  * interaction 2.5 (+adv/bonus), block actions 2.75 (+ tool bonus), each plus
  * the configurable lag tolerance.
  *
- * <p>Metric discipline (ghost-block fix, tested 2026-10-09): the server
- * measures eye → nearest point of the target's box. The vanilla client only
- * selects targets whose eye → ray-surface distance fits in the selection ray,
- * and the surface point lies ON the box, so box-nearest ≤ surface distance
- * always — the server can never reject a legitimate (non-hacked) action.</p>
+ * <p>Metric discipline v3 (R196裁决验证 R196实体触及几何裁决.md): the server
+ * measures eye → entry point of the target's EXPANDED hitbox (cbs grow,
+ * slab method) along the look ray — the same quantity the client selection
+ * ray reports, so the server can never reject a legitimate (non-hacked)
+ * action. Eye inside the hitbox counts as 0 (R196 Raycast.java:317-318).</p>
  *
  * <p>Denied actions optionally report to the acting player and the server log
  * ({@code reachDenialFeedback}) — that is the observable data channel for
@@ -44,7 +44,7 @@ public final class ETIMReachEvents {
         if (player.world.isRemote || player.capabilities.isCreativeMode) {
             return;
         }
-        double distance = ETIMReach.getEyeSurfaceDistance(player, event.getTarget());
+        double distance = ETIMReach.getEntityRayDistance(player, event.getTarget());
         double reach = ETIMReach.getMeleeReach(player, event.getTarget());
         if (distance > reach + ETIMConfig.reachServerTolerance) {
             event.setCanceled(true);
@@ -59,7 +59,7 @@ public final class ETIMReachEvents {
         if (event.getWorld().isRemote || player.capabilities.isCreativeMode) {
             return;
         }
-        double distance = ETIMReach.getEyeSurfaceDistance(player, event.getTarget());
+        double distance = ETIMReach.getEntityRayDistance(player, event.getTarget());
         double reach = ETIMReach.getInteractionReach(player, event.getTarget());
         if (distance > reach + ETIMConfig.reachServerTolerance) {
             event.setCanceled(true);

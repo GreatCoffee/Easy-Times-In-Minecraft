@@ -1,6 +1,7 @@
 package io.github.etim.etim.playerstate;
 
 import io.github.etim.etim.Tags;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -38,6 +39,11 @@ public final class PlayerLevelEvents {
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && event.player.world != null && !event.player.world.isRemote) {
             PlayerCapApplier.onServerPlayerTick(event.player);
+            // Hunger diagnostic sync (development facility, display-only) every
+            // half second so the HUD row shows the server-original truth.
+            if (event.player instanceof EntityPlayerMP && event.player.ticksExisted % 10 == 0) {
+                FoodDebugNetwork.sync((EntityPlayerMP) event.player);
+            }
         }
     }
 

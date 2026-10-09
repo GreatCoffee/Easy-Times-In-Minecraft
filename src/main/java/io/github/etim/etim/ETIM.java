@@ -1,9 +1,13 @@
 package io.github.etim.etim;
 
 import io.github.etim.etim.commands.CommandState;
+import io.github.etim.etim.mining.ETIMEnchantments;
+import io.github.etim.etim.mining.ETIMToolDurability;
 import io.github.etim.etim.nutrition.NutritionNetwork;
 import io.github.etim.etim.nutrition.NutritionSystem;
+import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import org.apache.logging.log4j.LogManager;
@@ -36,8 +40,16 @@ public final class ETIM {
     public void preInit(FMLPreInitializationEvent event) {
         NutritionSystem.register();
         NutritionNetwork.registerMessages();
+        FoodDebugNetwork.registerMessages();
+        ETIMEnchantments.register();
         ETIMConfig.init(event);
         LOGGER.info("Hello From {}!", Tags.MOD_NAME);
+    }
+
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event) {
+        // Vanilla tools carry R196 material durability (task 2.2 ToolSuite).
+        ETIMToolDurability.apply();
     }
 
     @Mod.EventHandler

@@ -19,9 +19,13 @@ etim.debug.entity_far=Target (display ray): entity %s
 etim.debug.block=Target: block @%s, %s, %s
 etim.debug.entity=Target: entity %s
 etim.debug.eye_hit=Eye hit point distance: %s
-etim.debug.surface=Eye surface distance: %s
+enchantment.etim_tree_felling=Tree Felling
+etim.debug.raycast=Eye to hitbox entry distance: %s
+etim.debug.food=Hunger: food=%s saturation=%s exhaustion=%s
+etim.debug.mining=Mining: effective %s  str=%s  progress/tick=%s  ticks left=%s
+etim.debug.mining_gate=Portable %s  requiresTool %s  block level=%s  held item=%s
 etim.debug.body_center=Body point to block center (best of two origins): %s
-etim.debug.reach_block=Block reach (tool bonus + tolerance): %s -> %s
+etim.debug.reach_block=Block reach (tool bonus): %s -> %s
 etim.debug.reach_melee=Melee reach (with tolerance): %s -> %s
 etim.debug.reach_interact=Interaction reach (with tolerance): %s -> %s
 etim.reach.deny_block=Reach denied: block too far (%s > %s)

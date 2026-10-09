@@ -81,8 +81,17 @@ public final class ETIMConfig {
     public static float reachBonusSmall = 0.5F;
     /** Server-side validation headroom against lag and metric differences. */
     public static float reachServerTolerance = 0.25F;
+
+    /** Entity raycast hit-test expansion: origins hit the AABB grown by this border (R196 Entity.getCollisionBorderSize default = 0.1). */
+    public static float entityHitboxExpansion = 0.1F;
     /** Chat feedback when the server rejects a reach-denied action (debug/test data channel). */
     public static boolean reachDenialFeedback = true;
+
+    /** Master switch of the task-2.2 mining reform (progress formula + drop gate). */
+    public static boolean miningReform = true;
+
+    /** Maximum level of the tree-felling enchant (ToolSuite audit: level per-log recursion depth). */
+    public static int treeFellingMaxLevel = 10;
     /** Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay). */
     public static float debugRayLength = 8.0F;
 
@@ -175,12 +184,21 @@ public final class ETIMConfig {
         reachServerTolerance = config.getFloat("reachServerTolerance", "reach", reachServerTolerance, 0.0F, 2.0F,
                 comment("Server-side validation headroom (lag tolerance)",
                         "服务端校验的宽松余量（网络延迟容差）"));
+        entityHitboxExpansion = config.getFloat("entityHitboxExpansion", "reach", entityHitboxExpansion, 0.0F, 2.0F,
+                comment("Entity hit-test box expansion for ray reach (R196 collision border size default = 0.1)",
+                        "实体触及射线判定的命中盒外扩量（R196 碰撞边界默认 0.1）"));
         reachDenialFeedback = config.getBoolean("reachDenialFeedback", "reach", true,
                 comment("Chat feedback when the server rejects an action for being out of reach (dev/test data channel)",
                         "服务端拒绝超出触及的动作时发送聊天反馈（开发/测试数据通道）"));
         debugRayLength = config.getFloat("debugRayLength", "reach", debugRayLength, 1.0F, 64.0F,
                 comment("Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay)",
                         "调试覆盖显示用的射线长度（不影响游戏判定）"));
+        miningReform = config.getBoolean("miningReform", "mining", true,
+                comment("R196 mining reform (task 2.2): MITE dig-progress formula, tool-level gating and hardness table",
+                        "R196 挖掘改革（任务 2.2）：MITE 挖掘进度公式、工具等级门控与硬度表"));
+        treeFellingMaxLevel = config.getInt("treeFellingMaxLevel", "mining", treeFellingMaxLevel, 1, 20,
+                comment("Maximum level of the tree-felling enchant (each level fells one further wood log)",
+                        "树木连根附魔的最大等级（每级向上多伐一根原木）"));
 
         if (config.hasChanged()) {
             config.save();
@@ -209,7 +227,7 @@ public final class ETIMConfig {
                 || Float.isNaN(blockReachBase) || Float.isNaN(meleeReachBase)
                 || Float.isNaN(interactionReachBase) || Float.isNaN(creativeReach)
                 || Float.isNaN(reachBonusTool) || Float.isNaN(reachBonusSmall)
-                || Float.isNaN(reachServerTolerance)) {
+                || Float.isNaN(reachServerTolerance) || Float.isNaN(entityHitboxExpansion)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }
