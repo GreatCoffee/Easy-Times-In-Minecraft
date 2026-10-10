@@ -2,6 +2,7 @@ package io.github.etim.etim.nutrition;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.hunger.ETIMFoodStats;
 import net.minecraft.block.BlockCake;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -15,7 +16,6 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 /**
  * Capability lifecycle and food hooks for {@link NutritionSystem} (task 1.4).
@@ -56,13 +56,8 @@ public final class ETIMNutritionEvents {
         event.addCapability(NutritionSystem.NUTRITION_CAPABILITY_KEY, new NutritionSystem.Provider());
     }
 
-    /** Per-tick drain (server only; creative players exempt, R196 same). */
-    @SubscribeEvent
-    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase == TickEvent.Phase.END && !event.player.world.isRemote) {
-            NutritionSystem.tick(event.player);
-        }
-    }
+    /** Per-tick drain moved to {@link io.github.etim.etim.hunger.ETIMFoodStatsEvents}
+     *  (task 1.5) so the drain-before-pool-loop ordering is deterministic. */
 
     /** Client learns the current values on login (server-authoritative). */
     @SubscribeEvent
@@ -106,19 +101,22 @@ public final class ETIMNutritionEvents {
         }
         NutritionSystem.FoodValue value = NutritionSystem.getFoodValue(event.getItem());
         if (value == null) {
-            return; // only R196-registered foods carry nutrient values
+            return; // only R196-registered foods carry food values
         }
-        NutritionSystem.applyFood((EntityPlayer) event.getEntityLiving(), value);
+        ETIMFoodStats.applyFoodValue((EntityPlayer) event.getEntityLiving(), value,
+                event.getItem().getItem().getRegistryName() == null
+                        ? event.getItem().getItem().getClass().getSimpleName()
+                        : event.getItem().getItem().getRegistryName().toString());
         if (event.getEntityLiving() instanceof EntityPlayerMP) {
             syncTo((EntityPlayerMP) event.getEntityLiving());
         }
     }
 
     /**
-     * Vanilla cake right-click: one slice per successful activation. R196
-     * canIngest refuses eating at a full hunger bar — canceled there.
-     * (Placing a cake is unaffected: the instanceof check targets the block
-     * state, not the held item.)
+     * Vanilla cake right-click: one slice per successful activation, charged
+     * by the same five-arg ingest gate as regular food (R196 BlockCake:80
+     * path canIngest(cake_slice, 0)). (Placing a cake is unaffected: the
+     * instanceof check targets the block state, not the held item.)
      */
     @SubscribeEvent
     public static void onEatCakeBlock(PlayerInteractEvent.RightClickBlock event) {
@@ -128,11 +126,15 @@ public final class ETIMNutritionEvents {
         if (!(event.getWorld().getBlockState(event.getPos()).getBlock() instanceof BlockCake)) {
             return;
         }
-        if (event.getEntityPlayer().getFoodStats().getFoodLevel() >= 20) {
-            event.setCanceled(true); // R196 canIngest refuses at a full bar
-            return;
+        if (ETIMConfig.foodModel) {
+            if (!ETIMFoodStats.canIngest(event.getEntityPlayer(), NutritionSystem.cakeSliceValue())) {
+                event.setCanceled(true); // R196 canIngest refuses — silent, as at the five-arg gate
+                return;
+            }
+        } else if (event.getEntityPlayer().getFoodStats().getFoodLevel() >= 20) {
+            event.setCanceled(true); // vanilla-styled full-bar refusal under the legacy food model
         }
-        NutritionSystem.eatCakeSlice(event.getEntityPlayer());
+        ETIMFoodStats.applyFoodValue(event.getEntityPlayer(), NutritionSystem.cakeSliceValue(), "cake_slice");
         if (event.getEntityPlayer() instanceof EntityPlayerMP) {
             syncTo((EntityPlayerMP) event.getEntityPlayer());
         }

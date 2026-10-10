@@ -2,11 +2,14 @@ package io.github.etim.etim;
 
 import io.github.etim.etim.commands.CommandDevTest;
 import io.github.etim.etim.commands.CommandState;
+import io.github.etim.etim.hunger.ETIMFoodStats;
+import io.github.etim.etim.hunger.ETIMFoodStatsEvents;
 import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.mining.ETIMToolDurability;
 import io.github.etim.etim.nutrition.NutritionNetwork;
 import io.github.etim.etim.nutrition.NutritionSystem;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -42,8 +45,12 @@ public final class ETIM {
         NutritionSystem.register();
         NutritionNetwork.registerMessages();
         FoodDebugNetwork.registerMessages();
+        ETIMFoodStats.register();
         ETIMEnchantments.register();
         ETIMConfig.init(event);
+        // Manual registration for deterministic order against the 1.4 tick
+        // drain (see ETIMFoodStatsEvents' class javadoc).
+        MinecraftForge.EVENT_BUS.register(ETIMFoodStatsEvents.class);
         LOGGER.info("Hello From {}!", Tags.MOD_NAME);
     }
 

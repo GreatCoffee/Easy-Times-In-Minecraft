@@ -1,6 +1,8 @@
 package io.github.etim.etim.playerstate;
 
+import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.hunger.ETIMFoodStats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.FoodStats;
 import net.minecraftforge.fml.common.Mod;
@@ -8,17 +10,14 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 
 /**
- * MITE-style starting stats for players (task 1.1).
+ * MITE-style starting stats for players (task 1.1, amended by 1.5).
  *
  * <p>In MITE R196 a player starts each life at the FULL caps of the current
- * level, which for level 0 are 6 HP (3 hearts) and 6 food points (3 shanks)
- * plus 6 saturation (MITE's "satiation" slot, the hidden buffer behind the
- * hunger bar). Level 0 caps are 6 because the cap formula is
- * {@code clamp(6 + level/5*2, 6, 20)} (task 1.2 will implement it).</p>
- *
- * <p>Note: the task doc's "3 点饥饿值" reads "3 格" as 3 points, but by the
- * same conversion the doc uses for health (3 hearts = 6 HP), 3 hunger shanks
- * = 6 food points. R196 sources confirm the 6.</p>
+ * level. For health that is {@code clamp(6 + level/5*2, 6, 20)} HP (task
+ * 1.2 applies the attribute). For food the R196 model (task 1.5) fills BOTH
+ * pools — satiation and nutrition — to that same level limit each, so a
+ * level-0 player carries 12 pool points total (the vanilla bar shows the
+ * sum, clamped to 20).</p>
  *
  * <p>Handled purely with server-side Forge events, no Mixin required:
  * vanilla recreates the player entity with full health/food on death respawn
@@ -69,13 +68,19 @@ public final class PlayerInitialStats {
     }
 
     private static void applyStartingStats(EntityPlayer player) {
-        // Full caps of the current level (R196 semantics); the level-scaled
-        // caps themselves are applied by PlayerCapApplier (task 1.2).
+        // Full caps of the current level (R196 semantics); the health cap
+        // itself is applied by PlayerCapApplier (task 1.2).
         int cap = PlayerStatLimits.getHealthFoodCap(player.experienceLevel);
         player.setHealth(cap);
-        FoodStats food = player.getFoodStats();
-        food.setFoodLevel(cap);
-        food.setFoodSaturationLevel(cap);
+        if (ETIMConfig.foodModel) {
+            // Task 1.5: both pools full every life (R196 FoodStats ctor :15).
+            ETIMFoodStats.initFull(player);
+        } else {
+            // Legacy food model (task 1.1): full shared-cap bar.
+            FoodStats food = player.getFoodStats();
+            food.setFoodLevel(cap);
+            food.setFoodSaturationLevel(cap);
+        }
     }
 
     private static boolean isInitialised(EntityPlayer player) {

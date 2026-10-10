@@ -11,7 +11,6 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.FoodStats;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.capabilities.Capability;
@@ -243,11 +242,14 @@ public final class NutritionSystem {
     }
 
     /**
-     * Applies a food's full R196 addFoodValue semantics (FoodStats.java:18-25):
-     * nutrient pools by flags, then — for sugary food — the satiation discount
-     * at moderate+ resistance and the insulin response with side effects.
+     * Applies the R196 addFoodValue nutrient half (FoodStats.java:21-24):
+     * the nutrient pools by flags, then the insulin response with its side
+     * effects. The satiation/nutrition dual-pool half of addFoodValue lives
+     * in {@code ETIMFoodStats.applyFoodValue} (task 1.5), including the
+     * sugary-food satiation discount this method used to charge against the
+     * vanilla bar.
      */
-    public static void applyFood(EntityPlayer player, FoodValue value) {
+    public static void applyFoodValue(EntityPlayer player, FoodValue value) {
         INutrition capsule = get(player);
         if (capsule == null) {
             return;
@@ -258,15 +260,19 @@ public final class NutritionSystem {
         if (value.phyto) capsule.setPhytonutrients(capsule.getPhytonutrients() + gain);
 
         if (value.sugarContent > 0) {
-            // Satiation discount from the PRE-eat state (R196: addSatiation uses
-            // item.getSatiation(player) before addInsulinResistance).
-            if (capsule.getInsulinLevel() >= LEVEL_MODERATE) {
-                int discount = value.sugarContent < 1000 ? 1 : value.sugarContent / 1000;
-                FoodStats foodStats = player.getFoodStats();
-                foodStats.setFoodLevel(Math.max(0, foodStats.getFoodLevel() - discount));
-            }
             applyInsulinResponse(player, (int) (value.sugarContent * ETIMConfig.sugarToInsulin));
         }
+    }
+
+    /**
+     * R196 {@code EntityPlayer.canMetabolizeFoodSugars} (EntityPlayer.java:2889-2891
+     * + EnumInsulinResistanceLevel:94-95): only the mild band (or none) can
+     * still metabolize sugars — foods with sugar then give discounted
+     * satiation.
+     */
+    public static boolean canMetabolizeFoodSugars(EntityPlayer player) {
+        INutrition capsule = get(player);
+        return capsule != null && capsule.getInsulinLevel() <= LEVEL_MILD;
     }
 
     /**
@@ -292,10 +298,9 @@ public final class NutritionSystem {
         }
     }
 
-    /** Vanilla cake right-click: one slice = nutrition 2 protein, sugar 1000/6 (R196 BlockCake:80). */
-    public static void eatCakeSlice(EntityPlayer player) {
-        FoodValue slice = new FoodValue(2, 1000 / 6, true, false, false);
-        applyFood(player, slice);
+    /** Vanilla cake right-click: one slice = satiation 2, nutrition 2 protein, sugar 1000/6 (R196 BlockCake:80). */
+    public static FoodValue cakeSliceValue() {
+        return new FoodValue(2, 2, 1000 / 6, true, false, false);
     }
 
     // +-------------------------------+
@@ -303,17 +308,16 @@ public final class NutritionSystem {
     // +-------------------------------+
 
     /**
-     * Per-R196 food values for every vanilla 1.12 item that MITE registered;
-     * anything unlisted (and the clownfish/pufferfish fish variants) provides
-     * no nutrient gains and keeps vanilla behavior. Satiation stays vanilla —
-     * the vanilla FoodStats reform (fullness/nutrition conversion) is a later
-     * subsystem.
+     * Per-R196 food values for the vanilla 1.12 items that MITE registered
+     * (audit table {@code mite-src\R196 食物判定值总表.md} task B); anything
+     * unlisted (and the clownfish/pufferfish fish variants) provides no food
+     * gains and keeps vanilla behavior.
      *
-     * <p>Notes: MITE eats wheat/pumpkin/melon seeds and raw eggs, but those
-     * items are not edible in 1.12, so they are not registered. MITE-only items
-     * (cheese, worms, large fish handled via the salmon metadata below) are
-     * covered when ETIM ships its own items. Vitally: only FISH carries the
-     * essential-fats flag in R196; all other cooked meats do not.</p>
+     * <p>Since task 1.5, satiation (the audit table's "sat" column) is part
+     * of the entry and feeds the dual-pool model; before it fed the vanilla
+     * bar. MITE-only items (cheese, worms, bowl soups…) ship with ETIM's own
+     * items later; seeds are eaten in MITE but not in 1.12, so they stay
+     * unregistered. Only FISH carries the essential-fats flag in R196.</p>
      */
     @Nullable
     public static FoodValue getFoodValue(ItemStack stack) {
@@ -327,60 +331,62 @@ public final class NutritionSystem {
     private static final Map<String, FoodValue> REGISTERED_FOODS = new HashMap<String, FoodValue>();
 
     static {
-        add("apple", 1, 1000, false, false, true);
-        add("golden_apple", 1, 1000, false, false, true);
-        add("enchanted_golden_apple", 1, 1000, false, false, true);
-        add("bread", 2, 0, false, false, false);
-        add("sugar", 0, 1000, false, false, false);
-        add("cookie", 1, 250, false, false, false);
-        add("melon", 1, 1000, false, false, true);
-        add("carrot", 2, 0, false, false, true);
-        add("potato", 1, 0, false, false, false);
-        add("baked_potato", 2, 0, false, false, false);
-        add("poisonous_potato", 0, 0, false, false, false);
-        add("golden_carrot", 2, 0, false, false, true);
-        add("pumpkin_pie", 6, 1000, true, false, true);
-        add("porkchop", 4, 0, true, false, false);
-        add("cooked_porkchop", 8, 0, true, false, false);
-        add("beef", 5, 0, true, false, false);
-        add("cooked_beef", 10, 0, true, false, false);
-        add("chicken", 3, 0, true, false, false);
-        add("cooked_chicken", 6, 0, true, false, false);
-        add("rotten_flesh", 1, 0, true, false, false);
-        add("spider_eye", 1, 0, true, false, false);
-        add("mushroom_stew", 4, 0, false, false, false);
-        add("milk_bucket", 4, 0, true, false, false);
-        addFish(0, 3, true, true);   // cod raw  (MITE fishRaw)
-        addFish(1, 5, true, true);   // salmon raw (MITE fishLargeRaw)
-        addCookedFish(0, 6, true, true);   // cod cooked (MITE fishCooked)
-        addCookedFish(1, 10, true, true);  // salmon cooked (MITE fishLargeCooked)
+        add("apple", 2, 1, 1000, false, false, true);
+        add("golden_apple", 2, 1, 1000, false, false, true);
+        add("enchanted_golden_apple", 2, 1, 1000, false, false, true);
+        add("bread", 8, 2, 0, false, false, false);
+        add("sugar", 1, 0, 1000, false, false, false);
+        add("cookie", 3, 1, 250, false, false, false);
+        add("melon", 1, 1, 1000, false, false, true);
+        add("carrot", 1, 2, 0, false, false, true);
+        add("potato", 3, 1, 0, false, false, false);
+        add("baked_potato", 6, 2, 0, false, false, false);
+        add("poisonous_potato", 2, 0, 0, false, false, false);
+        add("golden_carrot", 1, 2, 0, false, false, true);
+        add("pumpkin_pie", 10, 6, 1000, true, false, true);
+        add("porkchop", 4, 4, 0, true, false, false);
+        add("cooked_porkchop", 8, 8, 0, true, false, false);
+        add("beef", 5, 5, 0, true, false, false);
+        add("cooked_beef", 10, 10, 0, true, false, false);
+        add("chicken", 3, 3, 0, true, false, false);
+        add("cooked_chicken", 6, 6, 0, true, false, false);
+        add("rotten_flesh", 2, 1, 0, true, false, false);
+        add("spider_eye", 0, 1, 0, true, false, false);
+        add("mushroom_stew", 2, 4, 0, false, false, false);
+        add("milk_bucket", 0, 4, 0, true, false, false);
+        addFish(0, 3, 3, true, true);   // cod raw  (MITE fishRaw)
+        addFish(1, 5, 5, true, true);   // salmon raw (MITE fishLargeRaw)
+        addCookedFish(0, 6, 6, true, true);   // cod cooked (MITE fishCooked)
+        addCookedFish(1, 10, 10, true, true);  // salmon cooked (MITE fishLargeCooked)
         // fish meta 2 (clownfish) / 3 (pufferfish): no MITE counterpart → unregistered
     }
 
-    private static void add(String item, int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto) {
+    private static void add(String item, int satiation, int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto) {
         REGISTERED_FOODS.put(new ResourceLocation("minecraft", item).toString() + "@0",
-                new FoodValue(nutrition, sugarContent, protein, fats, phyto));
+                new FoodValue(satiation, nutrition, sugarContent, protein, fats, phyto));
     }
 
-    private static void addFish(int meta, int nutrition, boolean protein, boolean fats) {
+    private static void addFish(int meta, int satiation, int nutrition, boolean protein, boolean fats) {
         REGISTERED_FOODS.put(new ResourceLocation("minecraft", "fish").toString() + "@" + meta,
-                new FoodValue(nutrition, 0, protein, fats, false));
+                new FoodValue(satiation, nutrition, 0, protein, fats, false));
     }
 
-    private static void addCookedFish(int meta, int nutrition, boolean protein, boolean fats) {
+    private static void addCookedFish(int meta, int satiation, int nutrition, boolean protein, boolean fats) {
         REGISTERED_FOODS.put(new ResourceLocation("minecraft", "cooked_fish").toString() + "@" + meta,
-                new FoodValue(nutrition, 0, protein, fats, false));
+                new FoodValue(satiation, nutrition, 0, protein, fats, false));
     }
 
-    /** Per-food nutrient trajectory (nutrition, sugar and the three pool flags). */
+    /** Per-food trajectory (satiation, nutrition, sugar and the three pool flags). */
     public static final class FoodValue {
+        public final int satiation;
         public final int nutrition;
         public final int sugarContent;
         public final boolean protein;
         public final boolean fats;
         public final boolean phyto;
 
-        FoodValue(int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto) {
+        FoodValue(int satiation, int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto) {
+            this.satiation = satiation;
             this.nutrition = nutrition;
             this.sugarContent = sugarContent;
             this.protein = protein;

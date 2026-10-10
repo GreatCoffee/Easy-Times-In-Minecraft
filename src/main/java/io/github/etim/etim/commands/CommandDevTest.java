@@ -1,7 +1,8 @@
 package io.github.etim.etim.commands;
 
 import io.github.etim.etim.ETIMConfig;
-import io.github.etim.etim.mixins.FoodStatsAccessor;
+import io.github.etim.etim.hunger.ETIMFoodStats;
+import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.playerstate.PlayerStatLimits;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -24,9 +25,10 @@ import net.minecraft.util.text.TextFormatting;
  * to it in-game:
  *
  * <ul>
- *   <li>{@code /etest food <points> [saturation] [exhaustion]} — food
- *       bar/saturation/exhaustion, clamped to the level-scaled cap
- *       ({@code 0} starves the player for the task-2.3 gates).</li>
+ *   <li>{@code /etest food <satiation> [nutrition]} — the dual pools
+ *       (task 1.5), clamped to the per-pool limit; {@code 0 0} starves the
+ *       player for the 2.3 gates. Under the legacy food model:
+ *       {@code /etest food <points> [saturation]}.</li>
  *   <li>{@code /etest health <points>} — health, clamped to the cap.</li>
  *   <li>{@code /etest level <number>} — XP level (task-1.2 cap applies).</li>
  * </ul>
@@ -75,21 +77,33 @@ public class CommandDevTest extends CommandBase {
     }
 
     private static void executeFood(EntityPlayerMP player, String[] args) throws CommandException {
-        int cap = PlayerStatLimits.getHealthFoodCap(player.experienceLevel);
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");
         }
-        int level = CommandBase.parseInt(args[1], 0, cap);
-        float saturation = args.length >= 3 ? (float) parseDouble(args[2], 0.0D, cap) : 0.0F;
-        float exhaustion = args.length >= 4 ? (float) parseDouble(args[3], 0.0D, 100.0D) : 0.0F;
-
-        FoodStats stats = player.getFoodStats();
-        stats.setFoodLevel(level);
-        stats.setFoodSaturationLevel(saturation); // vanilla clamps saturation to the food level
-        ((FoodStatsAccessor) stats).etim$setFoodExhaustion(exhaustion);
-
-        respond(player, "commands.etest.food_set",
-                level, stats.getSaturationLevel(), ((FoodStatsAccessor) stats).etim$getFoodExhaustion(), cap);
+        if (ETIMConfig.foodModel) {
+            // Task 1.5 pools: /etest food <satiation> <nutrition>
+            int limit = ETIMFoodStats.getLimit(player);
+            int satiation = CommandBase.parseInt(args[1], 0, limit);
+            int nutrition = args.length >= 3 ? CommandBase.parseInt(args[2], 0, limit) : satiation;
+            ETIMFoodStats.IFoodState state = ETIMFoodStats.get(player);
+            if (state == null) {
+                return;
+            }
+            state.setSatiation(satiation);
+            state.setNutrition(nutrition);
+            ETIMFoodStats.syncVanillaFoodLevel(player);
+            respond(player, "commands.etest.food_set_pool", satiation, nutrition, limit);
+        } else {
+            // Legacy model: /etest food <points> [saturation]
+            int cap = PlayerStatLimits.getHealthFoodCap(player.experienceLevel);
+            int level = CommandBase.parseInt(args[1], 0, cap);
+            float saturation = args.length >= 3 ? (float) parseDouble(args[2], 0.0D, cap) : 0.0F;
+            FoodStats stats = player.getFoodStats();
+            stats.setFoodLevel(level);
+            stats.setFoodSaturationLevel(saturation); // vanilla clamps saturation to the food level
+            respond(player, "commands.etest.food_set_bar", level, stats.getSaturationLevel(), cap);
+        }
+        FoodDebugNetwork.sync(player);
     }
 
     private static void executeHealth(EntityPlayerMP player, String[] args) throws CommandException {

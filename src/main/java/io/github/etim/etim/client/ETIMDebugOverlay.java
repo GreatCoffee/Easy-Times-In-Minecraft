@@ -103,6 +103,9 @@ public final class ETIMDebugOverlay {
         // food / saturation / exhaustion mirrored through FoodDebugNetwork.
         lines.add(I18n.format("etim.debug.food",
                 FoodDebugNetwork.foodLevel, fmt(FoodDebugNetwork.saturation), fmt(FoodDebugNetwork.exhaustion)));
+        // Task-1.5 dual pools (server truth, display only).
+        lines.add(I18n.format("etim.debug.food_pools",
+                FoodDebugNetwork.satiation, FoodDebugNetwork.nutrition, fmt(FoodDebugNetwork.hungerPool)));
         // Task-2.3 hunger gate mirrors (display only — verdicts the gates use).
         boolean fed = ETIMHunger.hasFoodEnergy(mc.player);
         lines.add(I18n.format("etim.debug.hunger_gate",

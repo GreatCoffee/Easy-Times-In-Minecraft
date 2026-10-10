@@ -1,6 +1,7 @@
 package io.github.etim.etim.commands;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.nutrition.NutritionSystem;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -59,6 +60,21 @@ public class CommandState extends CommandBase {
         player.sendMessage(poolLine("etim.state.fats", capsule.getEssentialFats(), false));
         player.sendMessage(poolLine("etim.state.phytonutrients", capsule.getPhytonutrients(), true));
         player.sendMessage(insulinLine(capsule));
+        if (ETIMConfig.foodModel) {
+            ETIMFoodStats.IFoodState food = ETIMFoodStats.get(player);
+            if (food != null) {
+                int limit = ETIMFoodStats.getLimit(player);
+                player.sendMessage(valueLine("etim.state.satiation", food.getSatiation() + " / " + limit, food.getSatiation() == 0));
+                player.sendMessage(valueLine("etim.state.nutrition", food.getNutrition() + " / " + limit, food.getNutrition() == 0));
+                player.sendMessage(valueLine("etim.state.hungerPool", String.format("%.3f / %.1f", food.getHungerPool(), ETIMConfig.hungerPoolCap), false));
+            }
+        }
+    }
+
+    /** One food-pool line (amber label, red value when empty). */
+    private static ITextComponent valueLine(String labelKey, String value, boolean empty) {
+        return label(labelKey)
+                .appendSibling(new TextComponentString(value).setStyle(style(empty ? TextFormatting.RED : TextFormatting.WHITE)));
     }
 
     /**

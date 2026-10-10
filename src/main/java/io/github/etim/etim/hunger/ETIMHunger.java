@@ -12,15 +12,14 @@ import net.minecraft.util.text.TextComponentTranslation;
 
 /**
  * R196 hunger penetration checks (task 2.3), pulled out of the phase-2.2
- * mining helper so every penalty reads ONE predicate (stage 1.5 will swap
- * the vanilla stand-in for the R196 satiation/nutrition model in this
- * single place).
+ * mining helper so every penalty reads ONE predicate. Since task 1.5 the
+ * predicate reads the R196 dual-pool model ({@code ETIMFoodStats}; the
+ * vanilla bar is only its client mirror).
  *
  * <p>R196 source (decompile):
  * <ul>
  *   <li>{@code EntityPlayer.hasFoodEnergy()} = satiation + nutrition &gt; 0
- *       (EntityPlayer.java:1928-1929). The vanilla bridge below reads the
- *       food bar; on the R196 model the two coincide (no bars = no energy).</li>
+ *       (EntityPlayer.java:1928-1929).</li>
  *   <li>Weak strike: {@code EntityPlayer.canOnlyPerformWeakStrike()}
  *       (EntityPlayer.java:2789-2791) — bare hands only, and health below
  *       2.0 or no food energy triggers it.</li>
@@ -33,10 +32,15 @@ import net.minecraft.util.text.TextComponentTranslation;
 public final class ETIMHunger {
 
     /**
-     * R196 {@code hasFoodEnergy} — stage-1.5 bridge: the vanilla food bar
-     * stands in for satiation+nutrition until the R196 FoodStats lands.
+     * R196 {@code hasFoodEnergy} — reads the dual pools on the server, the
+     * vanilla mirror on the client (see {@link ETIMFoodStats#hasFoodEnergy}).
+     * With {@code ETIMConfig.foodModel} off this is the vanilla bar itself,
+     * the pre-1.5 standing.
      */
     public static boolean hasFoodEnergy(EntityPlayer player) {
+        if (ETIMConfig.foodModel) {
+            return ETIMFoodStats.hasFoodEnergy(player);
+        }
         return player.getFoodStats().getFoodLevel() > 0
                 || player.getFoodStats().getSaturationLevel() > 0;
     }

@@ -1,9 +1,9 @@
 package io.github.etim.etim.playerstate;
 
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mixins.FoodStatsAccessor;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.FoodStats;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -14,9 +14,10 @@ import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 
 /**
- * Development-facility sync of the vanilla hunger chain (server-original) so
- * the HUD hunger row can show the server truth. Display only; nothing here
- * mutates gameplay.
+ * Development-facility sync of the food-model side (server-original) so the
+ * HUD hunger row can show the server truth. Display only; nothing here
+ * mutates gameplay. Since task 1.5 the packet carries the dual pools and the
+ * hunger pool alongside the vanilla bar triple.
  */
 public final class FoodDebugNetwork {
 
@@ -29,6 +30,9 @@ public final class FoodDebugNetwork {
     public static volatile int foodLevel;
     public static volatile float saturation;
     public static volatile float exhaustion;
+    public static volatile int satiation;
+    public static volatile int nutrition;
+    public static volatile float hungerPool;
 
     private FoodDebugNetwork() {
     }
@@ -38,11 +42,9 @@ public final class FoodDebugNetwork {
         CHANNEL.registerMessage(SyncHandler.class, PacketFoodDebug.class, PACKET_FOOD_DEBUG, Side.CLIENT);
     }
 
-    /** Server → client push of the food/saturation/exhaustion triple. */
+    /** Server → client push of the food-model readout. */
     public static void sync(EntityPlayerMP player) {
-        FoodStats stats = player.getFoodStats();
-        float exhausted = ((FoodStatsAccessor) (Object) stats).etim$getFoodExhaustion();
-        CHANNEL.sendTo(new PacketFoodDebug(stats.getFoodLevel(), stats.getSaturationLevel(), exhausted), player);
+        CHANNEL.sendTo(new PacketFoodDebug(player), player);
     }
 
     /** The diagnostic packet. */
@@ -50,14 +52,21 @@ public final class FoodDebugNetwork {
         int food;
         float saturation;
         float exhaustion;
+        int satiation;
+        int nutrition;
+        float hungerPool;
 
         public PacketFoodDebug() {
         }
 
-        public PacketFoodDebug(int food, float saturation, float exhaustion) {
-            this.food = food;
-            this.saturation = saturation;
-            this.exhaustion = exhaustion;
+        PacketFoodDebug(EntityPlayerMP player) {
+            this.food = player.getFoodStats().getFoodLevel();
+            this.saturation = player.getFoodStats().getSaturationLevel();
+            this.exhaustion = ((FoodStatsAccessor) (Object) player.getFoodStats()).etim$getFoodExhaustion();
+            ETIMFoodStats.IFoodState state = ETIMFoodStats.get(player);
+            this.satiation = state != null ? state.getSatiation() : 0;
+            this.nutrition = state != null ? state.getNutrition() : 0;
+            this.hungerPool = state != null ? state.getHungerPool() : 0.0F;
         }
 
         @Override
@@ -65,6 +74,9 @@ public final class FoodDebugNetwork {
             food = buf.readInt();
             saturation = buf.readFloat();
             exhaustion = buf.readFloat();
+            satiation = buf.readInt();
+            nutrition = buf.readInt();
+            hungerPool = buf.readFloat();
         }
 
         @Override
@@ -72,6 +84,9 @@ public final class FoodDebugNetwork {
             buf.writeInt(food);
             buf.writeFloat(saturation);
             buf.writeFloat(exhaustion);
+            buf.writeInt(satiation);
+            buf.writeInt(nutrition);
+            buf.writeFloat(hungerPool);
         }
     }
 
@@ -85,6 +100,9 @@ public final class FoodDebugNetwork {
             foodLevel = message.food;
             saturation = message.saturation;
             exhaustion = message.exhaustion;
+            satiation = message.satiation;
+            nutrition = message.nutrition;
+            hungerPool = message.hungerPool;
             return null;
         }
     }

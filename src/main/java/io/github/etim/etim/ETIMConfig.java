@@ -37,17 +37,70 @@ public final class ETIMConfig {
     /** Melee damage bonus fraction per level. */
     public static float meleeDamagePerLevel = 0.005F;
 
-    // regen ---------------------------------------------------------
-    /** Heal progress (1.0 = one healed HP) accumulated per tick. */
-    public static float regenBasePerTick = 0.0004F;
-    /** Additional heal progress per tick per food point. */
-    public static float regenPerFoodPerTick = 0.00002F;
+    // regen (sleep/bed side of the food model) ---------------------
     /** Heal rate multiplier while LYING IN A BED (R196: 4x, any time of day). */
     public static float bedRegenFactor = 4.0F;
     /** Allow lying in a bed during the day purely for the regen boost (MITE behavior). */
     public static boolean allowDayBedRegen = true;
-    /** Exhaustion charged per healed HP. */
-    public static float exhaustionPerHealedHp = 1.0F;
+
+    // food (task 1.5 R196 dual-pool model) ---------------------------
+    /** Master switch: R196 satiation/nutrition dual-pool model (false = vanilla food bar system). */
+    public static boolean foodModel = true;
+    /** Hunger pool accrual per tick (R196 FoodStats.getHungerPerTick 0.002). */
+    public static float hungerGainPerTick = 0.002F;
+    /** Hunger pool units per consumed food point (R196 getHungerPerFoodUnit 4.0). */
+    public static float hungerPerFoodUnit = 4.0F;
+    /** The nutrition-only accumulator accrual factor (R196 :43 = 0.002×0.25 per tick). */
+    public static float hungerNutritionOnlyFactor = 0.25F;
+    /** Hunger pool cap (R196 addHunger clamp 40.0). */
+    public static float hungerPoolCap = 40.0F;
+    /** Starve progress accrual per tick at nutrition 0 (R196 :64 = 0.002). */
+    public static float starveGainPerTick = 0.002F;
+    /** Health above which starving players take no starve damage (R196 :66 = 10.0). */
+    public static float starveHealthCeiling = 10.0F;
+    /** Heal progress base per tick (R196 :77 = 4.0E-4). */
+    public static float healBasePerTick = 0.0004F;
+    /** Additional heal progress per tick per nutrition point (R196 :77 = 2.0E-5). */
+    public static float healPerNutritionPerTick = 0.00002F;
+    /** Hunger pool charge per damage event taken while lying in a bed (R196 :58-60 ≈ 0.04). */
+    public static float inBedHitListHunger = 0.04F;
+    /** Hungrover sleepers are woken with a message (R196 EntityPlayer:421-429; nutrition == 0). */
+    public static boolean hungerSleepDeny = true;
+    /** TEST compression: hunger accrual and starve progress ×5 (burn a unit every 20 s, a starve strike every 5 s). */
+    public static boolean foodTestMode = false;
+    /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). */
+    public static boolean foodDebugLog = true;
+    /** TEST-mode multipliers of the R196 pacing (hunger accrual + starve progress ×5). */
+    private static final float TEST_MODE_MULTIPLIER = 5.0F;
+
+    /** Hunger accrual actually in effect (test compression multiplies it). */
+    public static float effectiveHungerGainPerTick() {
+        return hungerGainPerTick * (foodTestMode ? TEST_MODE_MULTIPLIER : 1.0F);
+    }
+
+    /** Starve progress accrual actually in effect (test compression multiplies it). */
+    public static float effectiveStarveGainPerTick() {
+        return starveGainPerTick * (foodTestMode ? TEST_MODE_MULTIPLIER : 1.0F);
+    }
+
+    /** Hunger rate factor while malnourished (R196 ServerPlayer:1845 = 0.5; the regen factor is the 0.25 in nutrition). */
+    public static float malnourishedHungerFactor = 0.5F;
+    /** Wetness factor for standing in (light) rain (R196 ServerPlayer:1830 = 0.25). */
+    public static float wetnessRainLight = 0.25F;
+    /** Wetness factor for standing in a thunderstorm's rain (R196 ServerPlayer:1830 = 0.5). */
+    public static float wetnessRainThunder = 0.5F;
+    /** Wetness factor when the head's block is water (R196 ServerPlayer:1831-1832 = 0.5). */
+    public static float wetnessImmerseAbove = 0.5F;
+    /** Wetness factor when the feet's block is water (R196 ServerPlayer:1833 = 0.25). */
+    public static float wetnessImmerseBelow = 0.25F;
+    /** Extra wetness for light rain + feet-only immersion combo (R196 ServerPlayer:1836 = 0.125). */
+    public static float wetnessCombo = 0.125F;
+    /** Multiplier when the biome is freezing (R196 ServerPlayer:1840 = 2.0). */
+    public static float wetnessFreezingMultiplier = 2.0F;
+    /** Biome temperature at or below which the freeze multiplier applies (≈ R196 isBiomeFreezing). */
+    public static float wetnessFreezingTemperature = 0.15F;
+    /** Biome temperature at or above which wetness is washed out entirely (≈ R196 desertRiver rule). */
+    public static float wetnessHotExemptTemperature = 1.0F;
 
     // nutrition ---------------------------------------------------
     /** Full pool size, in ticks (R196: 160000 = 20 nutrition points worth). */
@@ -143,21 +196,79 @@ public final class ETIMConfig {
         meleeDamagePerLevel = config.getFloat("meleeDamagePerLevel", "leveling", meleeDamagePerLevel, 0.0F, 10.0F,
                 comment("Melee damage bonus fraction per level", "每级近战伤害加成（0.005=0.5%）"));
 
-        regenBasePerTick = config.getFloat("regenBasePerTick", "regen", regenBasePerTick, 0.0F, 0.1F,
-                comment("Heal progress per tick, 1 HP per 1.0 accumulated",
-                        "每tick累积的回血进度，满1.0回1点生命"));
-        regenPerFoodPerTick = config.getFloat("regenPerFoodPerTick", "regen", regenPerFoodPerTick, 0.0F, 0.1F,
-                comment("Additional heal progress per tick per food point",
-                        "每tick每点饥饿值额外累积的回血进度"));
         bedRegenFactor = config.getFloat("bedRegenFactor", "regen", bedRegenFactor, 1.0F, 100.0F,
                 comment("Heal rate multiplier while lying in a bed (MITE R196: 4x)",
                         "躺在床上的回血倍率（MITE R196 为4倍）"));
         allowDayBedRegen = config.getBoolean("allowDayBedRegen", "regen", true,
                 comment("Allow lying in a bed during the day purely for the regen boost (MITE behavior)",
                         "允许白天躺床来获得回血加速（MITE 行为），关闭则白天不能上床"));
-        exhaustionPerHealedHp = config.getFloat("exhaustionPerHealedHp", "regen", exhaustionPerHealedHp, 0.0F, 40.0F,
-                comment("Exhaustion charged per healed HP",
-                        "每回1点生命累积的消耗（4.0=消耗1点饥饿值）"));
+
+        foodModel = config.getBoolean("foodModel", "food", true,
+                comment("R196 dual-pool food model (task 1.5): satiation+nutrition pools, wetness hunger, starve/heal rules. Off = vanilla hunger bar",
+                        "R196 双池食物模型（任务 1.5）：饱食+营养双池、湿冷饥饿、饿伤/回血规则。关闭则回到原版饥饿条"));
+        hungerGainPerTick = config.getFloat("hungerGainPerTick", "food", hungerGainPerTick, 0.0F, 1.0F,
+                comment("Hunger pool accrual per tick (R196: 0.002; multiplied by the wetness factor)",
+                        "每tick饥饿池积攒量（R196 为 0.002；再乘湿冷系数）"));
+        hungerPerFoodUnit = config.getFloat("hungerPerFoodUnit", "food", hungerPerFoodUnit, 0.1F, 100.0F,
+                comment("Hunger pool units per consumed food point (R196: 4.0)",
+                        "每消耗1点食物所需消耗的饥饿池单位（R196 为 4.0）"));
+        hungerNutritionOnlyFactor = config.getFloat("hungerNutritionOnlyFactor", "food", hungerNutritionOnlyFactor, 0.0F, 1.0F,
+                comment("Accrual factor of the nutrition-only accumulator (R196: 0.002×0.25 per tick); a full accumulator makes the next eaten point come from nutrition",
+                        "营养独占积分器的积攒系数（R196 为每tick 0.002×0.25）；积满后下一个被吃的点取自营养池"));
+        hungerPoolCap = config.getFloat("hungerPoolCap", "food", hungerPoolCap, 1.0F, 1000.0F,
+                comment("Hunger pool cap (R196: 40.0)",
+                        "饥饿池上限（R196 为 40.0）"));
+        starveGainPerTick = config.getFloat("starveGainPerTick", "food", starveGainPerTick, 0.0F, 1.0F,
+                comment("Starve progress accrual per tick while nutrition == 0 (R196: 0.002, one strike per 500 ticks = 25 s)",
+                        "营养为0时每tick饿伤进度（R196 为 0.002，即每500tick=25秒掉一次"));
+        starveHealthCeiling = config.getFloat("starveHealthCeiling", "food", starveHealthCeiling, 0.0F, 2000.0F,
+                comment("Health above which starving players are immune (R196: 10.0); difficulty ≥ 3 or health > 1 && difficulty ≥ 2 also allow the strike",
+                        "生命高于该值时饿伤免疫（R196 为 10.0）；难度≥3 或 生命>1 且难度≥2 时照样挨打"));
+        healBasePerTick = config.getFloat("healBasePerTick", "food", healBasePerTick, 0.0F, 0.1F,
+                comment("Heal progress base per tick (R196: 4.0E-4), full 1.0 = one HP",
+                        "每tick基础回血进度（R196 为 4.0E-4），满 1.0 回1点生命"));
+        healPerNutritionPerTick = config.getFloat("healPerNutritionPerTick", "food", healPerNutritionPerTick, 0.0F, 0.1F,
+                comment("Additional heal progress per tick per nutrition point (R196: 2.0E-5)",
+                        "每tick每点营养额外回血进度（R196 为 2.0E-5）"));
+        inBedHitListHunger = config.getFloat("inBedHitListHunger", "food", inBedHitListHunger, 0.0F, 10.0F,
+                comment("Hunger pool charge per damage taken while lying in a bed (R196 FoodStats:58-60 ≈ 0.04/tick on its hit-list; ETIM charges per damage event)",
+                        "躺床时每次被打收取的饥饿（R196 FoodStats:58-60 每tick约0.04；ETIM 改为每次受击计一次）"));
+        hungerSleepDeny = config.getBoolean("hungerSleepDeny", "food", true,
+                comment("Players with nutrition == 0 cannot sleep: lie-down is refused / sleepers are woken (R196 EntityPlayer:421-429, tile.bed.wakeHungry/tooHungry)",
+                        "营养为0时无法睡觉：已躺下的会被踢醒（R196 EntityPlayer:421-429，wakeHungry/tooHungry 语义）"));
+        foodTestMode = config.getBoolean("foodTestMode", "food", false,
+                comment("TEST compression: hunger accrual and starve progress ×5 (a food unit burns every 20 s, a starve strike every 5 s)",
+                        "测试压缩：饥饿积累与饿伤进度×5（每20秒烧掉1点食物、每5秒掉一次饿伤）"));
+        foodDebugLog = config.getBoolean("foodDebugLog", "food", true,
+                comment("Server log [FoodLog] lines for eats, pool consumption, starve strikes and bed events (dev channel)",
+                        "服务端日志 [FoodLog] 行：进食、池消耗、饿伤判定与床事件（开发通道）"));
+        malnourishedHungerFactor = config.getFloat("malnourishedHungerFactor", "food", malnourishedHungerFactor, 0.0F, 10.0F,
+                comment("Hunger rate factor while malnourished (R196: 0.5 added to the multiplier)",
+                        "营养不良时的饥饿消耗附加系数（R196 为 0.5，加在倍率上）"));
+        wetnessRainLight = config.getFloat("wetnessRainLight", "food", wetnessRainLight, 0.0F, 10.0F,
+                comment("Wetness factor for standing in light rain (R196: 0.25)",
+                        "雨中站立的湿冷系数（R196 为 0.25）"));
+        wetnessRainThunder = config.getFloat("wetnessRainThunder", "food", wetnessRainThunder, 0.0F, 10.0F,
+                comment("Wetness factor for standing in a thunderstorm (R196: 0.5)",
+                        "雷暴中站立的湿冷系数（R196 为 0.5）"));
+        wetnessImmerseAbove = config.getFloat("wetnessImmerseAbove", "food", wetnessImmerseAbove, 0.0F, 10.0F,
+                comment("Wetness factor when the head's block is water (R196: 0.5)",
+                        "头部方块为水时的湿冷系数（R196 为 0.5）"));
+        wetnessImmerseBelow = config.getFloat("wetnessImmerseBelow", "food", wetnessImmerseBelow, 0.0F, 10.0F,
+                comment("Wetness factor when only the feet's block is water (R196: 0.25)",
+                        "仅脚部方块为水时的湿冷系数（R196 为 0.25）"));
+        wetnessCombo = config.getFloat("wetnessCombo", "food", wetnessCombo, 0.0F, 10.0F,
+                comment("Extra wetness for light rain + feet-only immersion (R196: 0.125)",
+                        "小雨+仅脚部浸水的附加湿冷（R196 为 0.125）"));
+        wetnessFreezingMultiplier = config.getFloat("wetnessFreezingMultiplier", "food", wetnessFreezingMultiplier, 1.0F, 100.0F,
+                comment("Multiplier when the biome is freezing (R196: 2.0)",
+                        "寒冷群系时湿冷倍率（R196 为 2.0）"));
+        wetnessFreezingTemperature = config.getFloat("wetnessFreezingTemperature", "food", wetnessFreezingTemperature, -2.0F, 2.0F,
+                comment("Biome temperature at or below which the freeze multiplier applies (≈ R196 isBiomeFreezing)",
+                        "群系温度低于该值时按寒冷处理（≈ R196 isBiomeFreezing）"));
+        wetnessHotExemptTemperature = config.getFloat("wetnessHotExemptTemperature", "food", wetnessHotExemptTemperature, 0.0F, 5.0F,
+                comment("Biome temperature at or above which wetness is washed out entirely (≈ R196 desertRiver rule)",
+                        "群系温度高于该值时湿冷全部免除（≈ R196 沙漠河规则）"));
 
         nutritionPoolMax = config.getInt("nutritionPoolMax", "nutrition", nutritionPoolMax, 1000, 10000000,
                 comment("Full nutrient pool size, in ticks (R196: 160000 = 20 nutrition points)",
@@ -270,8 +381,17 @@ public final class ETIMConfig {
                     + config.getConfigFile().getAbsolutePath() + ")");
         }
         if (Float.isNaN(miningSpeedPerLevel) || Float.isNaN(meleeDamagePerLevel)
-                || Float.isNaN(regenBasePerTick) || Float.isNaN(regenPerFoodPerTick)
-                || Float.isNaN(bedRegenFactor) || Float.isNaN(exhaustionPerHealedHp)
+                || Float.isNaN(bedRegenFactor)
+                || Float.isNaN(hungerGainPerTick) || Float.isNaN(hungerPerFoodUnit)
+                || Float.isNaN(hungerNutritionOnlyFactor) || Float.isNaN(hungerPoolCap)
+                || Float.isNaN(starveGainPerTick) || Float.isNaN(starveHealthCeiling)
+                || Float.isNaN(healBasePerTick) || Float.isNaN(healPerNutritionPerTick)
+                || Float.isNaN(inBedHitListHunger)
+                || Float.isNaN(malnourishedHungerFactor)
+                || Float.isNaN(wetnessRainLight) || Float.isNaN(wetnessRainThunder)
+                || Float.isNaN(wetnessImmerseAbove) || Float.isNaN(wetnessImmerseBelow)
+                || Float.isNaN(wetnessCombo) || Float.isNaN(wetnessFreezingMultiplier)
+                || Float.isNaN(wetnessFreezingTemperature) || Float.isNaN(wetnessHotExemptTemperature)
                 || Float.isNaN(sugarToInsulin) || Float.isNaN(malnourishedRegenFactor)
                 || Float.isNaN(blockReachBase) || Float.isNaN(meleeReachBase)
                 || Float.isNaN(interactionReachBase) || Float.isNaN(creativeReach)
