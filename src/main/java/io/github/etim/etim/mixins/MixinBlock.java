@@ -11,6 +11,7 @@ import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -44,5 +45,22 @@ public abstract class MixinBlock {
             return;
         }
         cir.setReturnValue(ETIMMining.getProgressPerTick(player, state, world, pos));
+    }
+
+    /**
+     * Task 2.4 diagnosis workbench: raw probe on cake placement (the vanilla
+     * funnel every placement path ends in). Both sides run it, so a placement
+     * executed locally (prediction) still shows up as its own [client] line.
+     */
+    @Inject(
+            method = "onBlockAdded(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)V",
+            at = @At("HEAD")
+    )
+    private void etim$cakePlacedProbe(World world, BlockPos pos, IBlockState state, CallbackInfo ci) {
+        if (!ETIMConfig.ingestDebugLog || !(state.getBlock() instanceof net.minecraft.block.BlockCake)) {
+            return;
+        }
+        io.github.etim.etim.ETIM.LOGGER.info("[IngestLog] cake PLACED {} bites=0 pos={}",
+                world.isRemote ? "[client]" : "[server]", pos);
     }
 }

@@ -70,6 +70,13 @@ public final class ETIMConfig {
     public static boolean foodTestMode = false;
     /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). */
     public static boolean foodDebugLog = true;
+
+    /** Task 2.4 (ingestion): use duration for all R196-ingestible items (R196 §四: every
+     *  eating/drinking family runs 32 ticks — ItemFood/ItemBowl/ItemPotion/ItemBucketMilk). */
+    public static int ingestUseDurationTicks = 32;
+
+    /** Task 2.4 (ingestion): [IngestLog] server dev channel for routing/refusal decisions. */
+    public static boolean ingestDebugLog = true;
     /** TEST-mode multipliers of the R196 pacing (hunger accrual + starve progress ×5). */
     private static final float TEST_MODE_MULTIPLIER = 5.0F;
 
@@ -242,6 +249,12 @@ public final class ETIMConfig {
         foodDebugLog = config.getBoolean("foodDebugLog", "food", true,
                 comment("Server log [FoodLog] lines for eats, pool consumption, starve strikes and bed events (dev channel)",
                         "服务端日志 [FoodLog] 行：进食、池消耗、饿伤判定与床事件（开发通道）"));
+        ingestUseDurationTicks = config.getInt("ingestUseDurationTicks", "food", ingestUseDurationTicks, 1, 200,
+                comment("Use duration in ticks for the R196-ingestible items added by the ingestion task (sugar / mushrooms / egg). R196 runs every eating/drinking family at 32 ticks",
+                        "可食化任务新增件（糖/蘑菇/蛋）的食用时长（tick）。R196 全部吃/喝家族固定 32 tick"));
+        ingestDebugLog = config.getBoolean("ingestDebugLog", "food", true,
+                comment("Server log [IngestLog] lines for ingestion routing: what starts eating, what is refused, egg eat/throw fork (dev channel)",
+                        "服务端日志 [IngestLog] 行：可食化路由——开吃、拒绝与蛋的吃/掷分叉（开发通道）"));
         malnourishedHungerFactor = config.getFloat("malnourishedHungerFactor", "food", malnourishedHungerFactor, 0.0F, 10.0F,
                 comment("Hunger rate factor while malnourished (R196: 0.5 added to the multiplier)",
                         "营养不良时的饥饿消耗附加系数（R196 为 0.5，加在倍率上）"));

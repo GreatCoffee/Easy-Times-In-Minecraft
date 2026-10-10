@@ -3,16 +3,13 @@ package io.github.etim.etim.nutrition;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
 import io.github.etim.etim.hunger.ETIMFoodStats;
-import net.minecraft.block.BlockCake;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
@@ -33,9 +30,8 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
  *
  * <p>Eating hooks: {@code Finish} applies a registered food's R196 values
  * (nutrient pools, satiation discount and insulin side effects — server
- * authority). Vanilla cake is a BLOCK in 1.12 and never reaches the item-use
- * pipeline, so per-slice values are hooked directly (R196 BlockCake:80:
- * protein 2, sugar 1000/6; the MITE egg-fats flag is false, so no fat gain).</p>
+ * authority). Vanilla cake slice handling moved to the inside-of-activation
+ * gate in MixinBlockCake (task 2.4).</p>
  */
 @Mod.EventBusSubscriber(modid = Tags.MOD_ID)
 public final class ETIMNutritionEvents {
@@ -113,32 +109,12 @@ public final class ETIMNutritionEvents {
     }
 
     /**
-     * Vanilla cake right-click: one slice per successful activation, charged
-     * by the same five-arg ingest gate as regular food (R196 BlockCake:80
-     * path canIngest(cake_slice, 0)). (Placing a cake is unaffected: the
-     * instanceof check targets the block state, not the held item.)
+     * Vanilla cake right-click: per-slice handling moved entirely into
+     * {@link io.github.etim.etim.mixins.MixinBlockCake} (task 2.4) — the gate,
+     * the value grant and the logs live inside
+     * {@code BlockCake.onBlockActivated} now, so this hook is gone. Vanilla's
+     * own {@code canEat} gate handles the legacy food model itself.
      */
-    @SubscribeEvent
-    public static void onEatCakeBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getWorld().isRemote || event.getHand() != EnumHand.MAIN_HAND) {
-            return;
-        }
-        if (!(event.getWorld().getBlockState(event.getPos()).getBlock() instanceof BlockCake)) {
-            return;
-        }
-        if (ETIMConfig.foodModel) {
-            if (!ETIMFoodStats.canIngest(event.getEntityPlayer(), NutritionSystem.cakeSliceValue())) {
-                event.setCanceled(true); // R196 canIngest refuses — silent, as at the five-arg gate
-                return;
-            }
-        } else if (event.getEntityPlayer().getFoodStats().getFoodLevel() >= 20) {
-            event.setCanceled(true); // vanilla-styled full-bar refusal under the legacy food model
-        }
-        ETIMFoodStats.applyFoodValue(event.getEntityPlayer(), NutritionSystem.cakeSliceValue(), "cake_slice");
-        if (event.getEntityPlayer() instanceof EntityPlayerMP) {
-            syncTo((EntityPlayerMP) event.getEntityPlayer());
-        }
-    }
 
     /** Sends the current nutrition values to the owner's client. */
     private static void syncTo(EntityPlayerMP player) {

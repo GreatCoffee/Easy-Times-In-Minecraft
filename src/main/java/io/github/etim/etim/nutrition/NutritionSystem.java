@@ -300,7 +300,7 @@ public final class NutritionSystem {
 
     /** Vanilla cake right-click: one slice = satiation 2, nutrition 2 protein, sugar 1000/6 (R196 BlockCake:80). */
     public static FoodValue cakeSliceValue() {
-        return new FoodValue(2, 2, 1000 / 6, true, false, false);
+        return new FoodValue(2, 2, 1000 / 6, true, false, false, true);
     }
 
     // +-------------------------------+
@@ -315,9 +315,14 @@ public final class NutritionSystem {
      *
      * <p>Since task 1.5, satiation (the audit table's "sat" column) is part
      * of the entry and feeds the dual-pool model; before it fed the vanilla
-     * bar. MITE-only items (cheese, worms, bowl soups…) ship with ETIM's own
-     * items later; seeds are eaten in MITE but not in 1.12, so they stay
-     * unregistered. Only FISH carries the essential-fats flag in R196.</p>
+     * bar. Items marked {@code eatable == false} keep their R196 domain values
+     * but have NO eating path (R196 {@code hasIngestionPriority=false}:
+     * carrot 135 / potato 136 are ItemSeedFood in the audit {@code mite-src\
+     * R196 食物可食化机关终审.md §1.2}, and the four seeds 39/105/106/116 are
+     * outside this registry solely because vanilla ItemSeeds never reaches the
+     * food pipeline at all — same verdict: plant-only). Baked/poisonous potato
+     * and golden carrot have no R196 verdict, so they keep the vanilla eating
+     * path. Only FISH carries the essential-fats flag in R196.</p>
      */
     @Nullable
     public static FoodValue getFoodValue(ItemStack stack) {
@@ -354,6 +359,17 @@ public final class NutritionSystem {
         add("spider_eye", 0, 1, 0, true, false, false);
         add("mushroom_stew", 2, 4, 0, false, false, false);
         add("milk_bucket", 0, 4, 0, true, false, false);
+        // Task 2.4 (audit 8 §1.1): block-produced foods — mushrooms carry their
+        // Item.itemsList values (Block.java:3399-3400) and the egg its ItemEgg
+        // ctor values (ItemEgg.java:5, fats = MITEConstant.egg_has_essential_fats
+        // = false). Eating is wired by the ingestion task's mixins.
+        add("brown_mushroom", 1, 1, 0, false, false, false);
+        add("red_mushroom", 1, 1, 0, false, false, false);
+        add("egg", 1, 3, 0, true, false, false);
+        // R196 §1.2: carrot 135 / potato 136 are ItemSeedFood — values sit in
+        // the domain (1.4 verdict table) but the eating path does not exist.
+        addPlantOnly("carrot", 1, 2, 0, false, false, true);
+        addPlantOnly("potato", 3, 1, 0, false, false, false);
         addFish(0, 3, 3, true, true);   // cod raw  (MITE fishRaw)
         addFish(1, 5, 5, true, true);   // salmon raw (MITE fishLargeRaw)
         addCookedFish(0, 6, 6, true, true);   // cod cooked (MITE fishCooked)
@@ -363,20 +379,32 @@ public final class NutritionSystem {
 
     private static void add(String item, int satiation, int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto) {
         REGISTERED_FOODS.put(new ResourceLocation("minecraft", item).toString() + "@0",
-                new FoodValue(satiation, nutrition, sugarContent, protein, fats, phyto));
+                new FoodValue(satiation, nutrition, sugarContent, protein, fats, phyto, true));
+    }
+
+    /** R196 ItemSeedFood-style entry: values in the domain, eating path closed (ingestion audit §1.2). */
+    private static void addPlantOnly(String item, int satiation, int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto) {
+        REGISTERED_FOODS.put(new ResourceLocation("minecraft", item).toString() + "@0",
+                new FoodValue(satiation, nutrition, sugarContent, protein, fats, phyto, false));
     }
 
     private static void addFish(int meta, int satiation, int nutrition, boolean protein, boolean fats) {
         REGISTERED_FOODS.put(new ResourceLocation("minecraft", "fish").toString() + "@" + meta,
-                new FoodValue(satiation, nutrition, 0, protein, fats, false));
+                new FoodValue(satiation, nutrition, 0, protein, fats, false, true));
     }
 
     private static void addCookedFish(int meta, int satiation, int nutrition, boolean protein, boolean fats) {
         REGISTERED_FOODS.put(new ResourceLocation("minecraft", "cooked_fish").toString() + "@" + meta,
-                new FoodValue(satiation, nutrition, 0, protein, fats, false));
+                new FoodValue(satiation, nutrition, 0, protein, fats, false, true));
     }
 
-    /** Per-food trajectory (satiation, nutrition, sugar and the three pool flags). */
+    /**
+     * Per-food trajectory (satiation, nutrition, sugar and the three pool
+     * flags). {@code eatable == false} marks the R196 seed-food family: the
+     * values exist in the per-item domain, but the item has no eating path
+     * (the five-arg gate's outer {@code isIngestable(item, subtype)} layer
+     * returns false before them — EntityPlayer.java:1940-1952).
+     */
     public static final class FoodValue {
         public final int satiation;
         public final int nutrition;
@@ -384,14 +412,16 @@ public final class NutritionSystem {
         public final boolean protein;
         public final boolean fats;
         public final boolean phyto;
+        public final boolean eatable;
 
-        FoodValue(int satiation, int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto) {
+        FoodValue(int satiation, int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto, boolean eatable) {
             this.satiation = satiation;
             this.nutrition = nutrition;
             this.sugarContent = sugarContent;
             this.protein = protein;
             this.fats = fats;
             this.phyto = phyto;
+            this.eatable = eatable;
         }
     }
 

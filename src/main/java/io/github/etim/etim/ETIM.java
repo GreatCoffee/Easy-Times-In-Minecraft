@@ -44,6 +44,7 @@ public final class ETIM {
     public void preInit(FMLPreInitializationEvent event) {
         NutritionSystem.register();
         NutritionNetwork.registerMessages();
+        io.github.etim.etim.ingest.ETIMIngestNetwork.registerMessages();
         FoodDebugNetwork.registerMessages();
         ETIMFoodStats.register();
         ETIMEnchantments.register();

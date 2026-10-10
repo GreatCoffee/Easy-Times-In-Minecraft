@@ -4,8 +4,10 @@ import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
 import io.github.etim.etim.nutrition.NutritionSystem;
+import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.playerstate.PlayerStatLimits;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.MobEffects;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
@@ -214,6 +216,7 @@ public final class ETIMFoodStats {
         state.setHealProgress(0.0F);
         state.setStarveProgress(0.0F);
         syncVanillaFoodLevel(player);
+        pushMirror(player);
     }
 
     /**
@@ -270,9 +273,21 @@ public final class ETIMFoodStats {
         }
         NutritionSystem.applyFoodValue(player, value);
         syncVanillaFoodLevel(player);
+        // Push the display mirror NOW: the canIngest client prediction reads
+        // it, and a 20-tick-periodic refresh leaves the client accepting
+        // pools-stale clicks right after an actual change (the cake ghost
+        // slice window found in task 2.4 testing).
+        pushMirror(player);
         logFood(player, "eat " + source + " satiationGain=" + satiation + " nutritionGain=" + value.nutrition
                 + " sugar=" + value.sugarContent + " (pools " + state.getSatiation() + "/" + limit
                 + " " + state.getNutrition() + "/" + limit + " hungerPool=" + state.getHungerPool() + ")");
+    }
+
+    /** Immediate mirror refresh for the client-side canIngest prediction (push-on-change). */
+    private static void pushMirror(EntityPlayer player) {
+        if (player instanceof EntityPlayerMP) {
+            FoodDebugNetwork.sync((EntityPlayerMP) player);
+        }
     }
 
     private static void logFood(EntityPlayer player, String line) {
@@ -340,6 +355,7 @@ public final class ETIMFoodStats {
                             + limit + " " + state.getNutrition() + "/" + limit + ") hungerPool="
                             + state.getHungerPool());
                 }
+                pushMirror(player);
             }
         }
 
@@ -426,9 +442,20 @@ public final class ETIMFoodStats {
      * curse layer is not ported (ETIM has no curses); always-edible items are
      * exempt in the caller ({@code MixinItemFood}), same as R196's
      * {@code canIngest(item, subtype)} two-arg path.
+     *
+     * <p>Task 2.4 also ports the two-arg chain's outermost layers here:
+     * {@link NutritionSystem.FoodValue#eatable} {@code == false} reproduces
+     * the {@code isIngestable(item, subtype) == false} refusal (R196
+     * ItemSeedFood — carrot/potato: values in the domain, no eating path), and
+     * the unregistered {@code null} stays rule (a), the all-zero freely
+     * ingested case.</p>
      */
     public static boolean canIngest(EntityPlayer player, @Nullable NutritionSystem.FoodValue value) {
         if (!canEatAndDrink(player)) {
+            return false;
+        }
+        // isIngestable(item, subtype) layer (EntityPlayer.java:1940-1952 chain)
+        if (value != null && !value.eatable) {
             return false;
         }
         if (value == null) {
@@ -452,18 +479,30 @@ public final class ETIMFoodStats {
                 return true;
             }
         }
+        // Pool reads are side-aware: the client has no synced capability copy —
+        // it uses the mirrors instead (satiation via the FoodDebugNetwork
+        // channel refreshed every 20 ticks; nutrition via the write-through
+        // vanilla bar, SPacketUpdateHealth-synced on change). The server keeps
+        // reading its own state: still fully authoritative.
+        boolean remote = player.world.isRemote;
+        int satiation = remote
+                ? io.github.etim.etim.playerstate.FoodDebugNetwork.satiation
+                : state.getSatiation();
+        int nutrition = remote
+                ? player.getFoodStats().getFoodLevel()
+                : state.getNutrition();
         int limit = getLimit(player);
-        if (state.getSatiation() < limit) {
+        if (satiation < limit) {
             if (value.satiation > 0) {
                 return true;
             }
-            if (state.getNutrition() >= limit) {
+            if (nutrition >= limit) {
                 return false;
             }
-        } else if (value.satiation > 0 && state.getNutrition() > 0) {
+        } else if (value.satiation > 0 && nutrition > 0) {
             return false;
         }
-        return value.nutrition > 0 && state.getNutrition() < limit;
+        return value.nutrition > 0 && nutrition < limit;
     }
 
     /** R196 {@code canEatAndDrink} (EntityPlayer.java:1890-1892). */
