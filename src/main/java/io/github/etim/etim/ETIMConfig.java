@@ -90,6 +90,27 @@ public final class ETIMConfig {
     /** Master switch of the task-2.2 mining reform (progress formula + drop gate). */
     public static boolean miningReform = true;
 
+    // hunger (task 2.3) ----------------------------------------------
+    /** Crafting output can't be taken while hungry (R196 freezes the craft timer: MITEContainerCrafting:96). */
+    public static boolean hungerCraftDeny = true;
+    /** Blocks with hardness > 0 can't be placed while hungry (R196 Block.java:2822; hardness-0 blocks stay placeable). */
+    public static boolean hungerPlaceDeny = true;
+    /** Walk AND air movement multiplier while hungry (R196: 0.75, PlayerCapabilities.java:57 + EntityPlayer.java:693). */
+    public static float hungerMoveFactor = 0.75F;
+    /** Sprint start/continue requires food energy (R196 ClientPlayer.java:129). */
+    public static boolean hungerSprintDeny = true;
+    /** Bare-hand melee turns into a weak strike (zero damage) when hungry (R196 EntityPlayer.java:2789). */
+    public static boolean hungerWeakStrike = true;
+    /** Weak-strike knockback as a fraction of the normal knockback (R196 EntityLivingBase:706 = 0.6 of 1.0). */
+    public static float weakStrikeKnockbackFactor = 0.6F;
+    /** Player health below which strikes are weak even when fed (R196 EntityPlayer.java:2791 = 2.0). */
+    public static float weakStrikeHealthThreshold = 2.0F;
+    /** Dig strength divisor while hungry (R196 EntityPlayer.java:938-940 = ÷5). */
+    public static float hungerDigStrDivisor = 5.0F;
+    /** Chat/action-bar feedback when a hunger gate denies an action (dev/test channel). */
+    public static boolean hungerDenialFeedback = true;
+
+
     /** Maximum level of the tree-felling enchant (ToolSuite audit: level per-log recursion depth). */
     public static int treeFellingMaxLevel = 10;
     /** Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay). */
@@ -200,6 +221,34 @@ public final class ETIMConfig {
                 comment("Maximum level of the tree-felling enchant (each level fells one further wood log)",
                         "树木连根附魔的最大等级（每级向上多伐一根原木）"));
 
+        hungerCraftDeny = config.getBoolean("hungerCraftDeny", "hunger", true,
+                comment("Crafting output cannot be taken while hungry (R196 MITEContainerCrafting:96 freezes the craft timer)",
+                        "饥饿时无法取出合成产物（R196 MITEContainerCrafting:96 冻结合成计时）"));
+        hungerPlaceDeny = config.getBoolean("hungerPlaceDeny", "hunger", true,
+                comment("Blocks with hardness > 0 cannot be placed while hungry; hardness-0 blocks (torch etc.) stay placeable (R196 Block.java:2822)",
+                        "饥饿时不能放置硬度>0 的方块；硬度为0的方块（火把等）仍可放置（R196 Block.java:2822）"));
+        hungerMoveFactor = config.getFloat("hungerMoveFactor", "hunger", hungerMoveFactor, 0.0F, 1.0F,
+                comment("Walk AND air movement multiplier while hungry (R196: 0.75)",
+                        "饥饿时的走路/空中移动倍率（R196 为 0.75）"));
+        hungerSprintDeny = config.getBoolean("hungerSprintDeny", "hunger", true,
+                comment("Sprint start/continue requires food energy (R196 ClientPlayer.java:129)",
+                        "冲刺的启动/维持需要身上还有食物能量（R196 ClientPlayer.java:129）"));
+        hungerWeakStrike = config.getBoolean("hungerWeakStrike", "hunger", true,
+                comment("Bare-hand melee turns into a weak strike (zero damage) when hungry (R196 EntityPlayer.java:2789)",
+                        "饥饿时空手近战变为弱击（零伤害）（R196 EntityPlayer.java:2789）"));
+        weakStrikeKnockbackFactor = config.getFloat("weakStrikeKnockbackFactor", "hunger", weakStrikeKnockbackFactor, 0.0F, 10.0F,
+                comment("Weak-strike knockback as a fraction of normal knockback (R196 0.6)",
+                        "弱击的击退强度占正常击退的比例（R196 为 0.6）"));
+        weakStrikeHealthThreshold = config.getFloat("weakStrikeHealthThreshold", "hunger", weakStrikeHealthThreshold, 0.0F, 2000.0F,
+                comment("Player health below which strikes are weak even when fed (R196: 2.0 = one heart)",
+                        "生命低于该值时即使吃饱也弱击（R196 为 2.0 = 一心）"));
+        hungerDigStrDivisor = config.getFloat("hungerDigStrDivisor", "hunger", hungerDigStrDivisor, 1.0F, 100.0F,
+                comment("Dig strength divisor while hungry (R196: 5.0 = dig 5x slower)",
+                        "饥饿时挖掘强度除数（R196 为 5.0 = 挖掘变慢5倍）"));
+        hungerDenialFeedback = config.getBoolean("hungerDenialFeedback", "hunger", true,
+                comment("Action-bar feedback when a hunger gate denies an action (dev/test channel)",
+                        "饥饿门拒绝动作时发送动作栏反馈（开发/测试通道）"));
+
         if (config.hasChanged()) {
             config.save();
         }
@@ -227,7 +276,9 @@ public final class ETIMConfig {
                 || Float.isNaN(blockReachBase) || Float.isNaN(meleeReachBase)
                 || Float.isNaN(interactionReachBase) || Float.isNaN(creativeReach)
                 || Float.isNaN(reachBonusTool) || Float.isNaN(reachBonusSmall)
-                || Float.isNaN(reachServerTolerance) || Float.isNaN(entityHitboxExpansion)) {
+                || Float.isNaN(reachServerTolerance) || Float.isNaN(entityHitboxExpansion)
+                || Float.isNaN(hungerMoveFactor) || Float.isNaN(weakStrikeKnockbackFactor)
+                || Float.isNaN(weakStrikeHealthThreshold) || Float.isNaN(hungerDigStrDivisor)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }

@@ -1,7 +1,6 @@
 commands.state.usage=/state（查看 ETIM 营养状态）
 commands.state.no_player=只有玩家可以使用 /state 命令。
-commands.state.not_attached=该玩家未挂载 ETIM 营养数据。
-etim.state.protein=蛋白质
+commands.state.not_attached=该玩家未挂载 ETIM 营养数据。etim.state.protein=蛋白质
 etim.state.fats=必需脂肪
 etim.state.phytonutrients=植物营养
 etim.state.insulin=胰岛素抵抗
@@ -22,6 +21,7 @@ etim.debug.eye_hit=眼-命中点距离：%s
 enchantment.etim_tree_felling=树木连根
 etim.debug.raycast=眼-命中盒进入点距离：%s
 etim.debug.food=饥饿诊断：食物=%s 饱和度=%s 疲劳=%s
+etim.debug.hunger_gate=饥饿门：合成%s 放置%s 冲刺%s 空手%s
 etim.debug.mining=挖掘：有效工具：✓/✗ %s  str=%s  进度/刻=%s  剩余刻=%s
 etim.debug.mining_gate=便携块：✓/✗ %s  需工具：✓/✗ %s  块等级=%s  手持=%s
 etim.debug.body_center=体点-方块中心距离（双原点取近）：%s
@@ -31,3 +31,11 @@ etim.debug.reach_interact=交互触及（含容差）：%s → %s
 etim.reach.deny_block=触及不足：方块过远（%s > %s），已拒绝
 etim.reach.deny_attack=攻击超出触及（%s > %s），未生效
 etim.reach.deny_interact=交互超出触及（%s > %s），未生效
+etim.hunger.craftDeny=太饿了，合成不出来
+etim.hunger.placeDeny=太饿了，放不下硬方块
+etim.hunger.weakStrike=太饿了，空手打不动
+commands.etest.usage=/etest food <点数> [饱和度] [疲劳] /etest health <点数> /etest level <等级>
+commands.etest.food_set=已设：饥饿值=%s 饱和度=%s 疲劳=%s（上限 %s 点）
+commands.etest.health_set=已设：生命=%s（上限 %s 点）
+commands.etest.level_set=已设：等级=%s
+

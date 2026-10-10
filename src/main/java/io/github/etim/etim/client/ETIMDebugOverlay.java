@@ -3,6 +3,7 @@ package io.github.etim.etim.client;
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.hunger.ETIMHunger;
 import io.github.etim.etim.mining.ETIMMining;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.reach.ETIMReach;
@@ -102,6 +103,13 @@ public final class ETIMDebugOverlay {
         // food / saturation / exhaustion mirrored through FoodDebugNetwork.
         lines.add(I18n.format("etim.debug.food",
                 FoodDebugNetwork.foodLevel, fmt(FoodDebugNetwork.saturation), fmt(FoodDebugNetwork.exhaustion)));
+        // Task-2.3 hunger gate mirrors (display only — verdicts the gates use).
+        boolean fed = ETIMHunger.hasFoodEnergy(mc.player);
+        lines.add(I18n.format("etim.debug.hunger_gate",
+                verdict(!(ETIMConfig.hungerCraftDeny && !fed)),
+                verdict(!(ETIMConfig.hungerPlaceDeny && !fed)),
+                verdict(fed || !ETIMConfig.hungerSprintDeny),
+                verdict(!(ETIMConfig.hungerWeakStrike && ETIMHunger.canOnlyPerformWeakStrike(mc.player)))));
         RayTraceResult target = mc.objectMouseOver;
         if (target != null && target.typeOfHit == RayTraceResult.Type.ENTITY) {
             appendEntityPanel(lines, mc, (Entity) mc.objectMouseOver.entityHit, false);

@@ -1,5 +1,6 @@
 package io.github.etim.etim;
 
+import io.github.etim.etim.commands.CommandDevTest;
 import io.github.etim.etim.commands.CommandState;
 import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.mining.ETIMToolDurability;
@@ -55,6 +56,7 @@ public final class ETIM {
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new CommandState());
+        event.registerServerCommand(new CommandDevTest());
     }
 
 }

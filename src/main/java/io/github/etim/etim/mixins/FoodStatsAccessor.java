@@ -6,11 +6,15 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
  * Exposes the private {@code FoodStats.foodExhaustionLevel} (vanilla 1.12 has
- * no exhaustion getter) for the HUD hunger diagnostic row.
+ * no exhaustion getter) for the HUD hunger diagnostic row and the
+ * {@code /etest} dev-state command.
  */
 @Mixin(FoodStats.class)
 public interface FoodStatsAccessor {
 
     @Accessor("foodExhaustionLevel")
     float etim$getFoodExhaustion();
+
+    @Accessor("foodExhaustionLevel")
+    void etim$setFoodExhaustion(float exhaustion);
 }

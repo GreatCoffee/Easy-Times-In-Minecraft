@@ -22,12 +22,21 @@ etim.debug.eye_hit=Eye hit point distance: %s
 enchantment.etim_tree_felling=Tree Felling
 etim.debug.raycast=Eye to hitbox entry distance: %s
 etim.debug.food=Hunger: food=%s saturation=%s exhaustion=%s
+etim.debug.hunger_gate=Hunger gates: craft%s place%s sprint%s barehands%s
 etim.debug.mining=Mining: effective %s  str=%s  progress/tick=%s  ticks left=%s
 etim.debug.mining_gate=Portable %s  requiresTool %s  block level=%s  held item=%s
-etim.debug.body_center=Body point to block center (best of two origins): %s
-etim.debug.reach_block=Block reach (tool bonus): %s -> %s
+etim.debug.body_center=Body point to block center (best of two origins): %setim.debug.reach_block=Block reach (tool bonus): %s -> %s
 etim.debug.reach_melee=Melee reach (with tolerance): %s -> %s
 etim.debug.reach_interact=Interaction reach (with tolerance): %s -> %s
-etim.reach.deny_block=Reach denied: block too far (%s > %s)
-etim.reach.deny_attack=Attack out of reach (%s > %s), not applied
+etim.reach.deny_block=Reach denied: block too far (%s > %s)etim.reach.deny_attack=Attack out of reach (%s > %s), not applied
 etim.reach.deny_interact=Interaction out of reach (%s > %s), not applied
+commands.etest.usage=/etest food <points> [saturation] [exhaustion] | /etest health <points> | /etest level <number>
+commands.etest.food_set=Set: food=%s saturation=%s exhaustion=%s (cap %s)
+commands.etest.health_set=Set: health=%s (cap %s)
+commands.etest.level_set=Set: level=%s
+etim.hunger.craftDeny=Too hungry to craft
+etim.hunger.placeDeny=Too hungry to place hard blocks
+etim.hunger.weakStrike=Too hungry to hurt anything with bare handsetim.hunger.craftDeny=Too hungry to craft
+etim.hunger.placeDeny=Too hungry to place hard blocks
+etim.hunger.weakStrike=Too hungry to hurt anything with bare hands
+

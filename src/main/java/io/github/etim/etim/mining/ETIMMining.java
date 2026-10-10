@@ -61,7 +61,7 @@ public final class ETIMMining {
     /** Cobweb multiplier without an effective tool (EntityPlayer:889-905). */
     private static final float WEB_FACTOR = 0.2F;
 
-    /** Water / airborne / hungry divisor (EntityPlayer:907-925). */
+    /** Water / airborne divisor (EntityPlayer:907-925); the hungry divisor is configurable (ETIMConfig.hungerDigStrDivisor). */
     private static final float ENVIRONMENT_PENALTY = 5.0F;
 
     /** Str of any effective tool before material efficiency (ItemTool). */
@@ -196,7 +196,7 @@ public final class ETIMMining {
             str /= ENVIRONMENT_PENALTY;
         }
         if (!hasFoodEnergy(player)) {
-            str /= ENVIRONMENT_PENALTY;
+            str /= ETIMConfig.hungerDigStrDivisor;
         }
         str *= 1.0F + player.experienceLevel * ETIMConfig.miningSpeedPerLevel;
         return Math.max(str, floor);
@@ -356,12 +356,11 @@ public final class ETIMMining {
     }
 
     /**
-     * MITE hasFoodEnergy (satiation/nutrition); the 1.4nutrition system does
-     * not expose a unified check yet, so the vanilla food bar stands in —
-     * flagged for the stage-1.5 satiation reform.
+     * MITE hasFoodEnergy (satiation/nutrition); delegates to the shared
+     * task-2.3 predicate so stage 1.5 has ONE swap point.
      */
     private static boolean hasFoodEnergy(EntityPlayer player) {
-        return player.getFoodStats().getFoodLevel() > 0 || player.getFoodStats().getSaturationLevel() > 0;
+        return io.github.etim.etim.hunger.ETIMHunger.hasFoodEnergy(player);
     }
 
     private ETIMMining() {
