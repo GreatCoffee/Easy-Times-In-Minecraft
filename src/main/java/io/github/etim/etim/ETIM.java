@@ -49,12 +49,17 @@ public final class ETIM {
         FoodDebugNetwork.registerMessages();
         ETIMFoodStats.register();
         io.github.etim.etim.death.ETIMDeathXp.register();
+        io.github.etim.etim.mob.ETIMLivestock.register();
         io.github.etim.etim.furnace.FurnaceHeat.addJudgedRecipes();
         ETIMEnchantments.register();
         ETIMConfig.init(event);
         // Manual registration for deterministic order against the 1.4 tick
         // drain (see ETIMFoodStatsEvents' class javadoc).
         MinecraftForge.EVENT_BUS.register(ETIMFoodStatsEvents.class);
+        // Stage 5: R196 despawn chain + per-class attribute rows (+ livestock
+        // wellness v1) — all judged from [AILog].
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.mob.ETIMMobStats.class);
+        io.github.etim.etim.mob.ETIMLivestockEvents.register();
         if (event.getSide().isClient()) {
             // Furnace slot heat tooltip row (top-of-tips prepend, F round):
             // ItemTooltipEvent originates client-side only; the handler reads

@@ -41,6 +41,7 @@ commands.etest.usage=/etest food <饱食> [营养] /etest health <生命> /etest
 commands.etest.food_set_pool=已设双池：饱食=%s 营养=%s（上限 %s 点）
 commands.etest.food_set_bar=已设：饥饿=%s 饱和度=%s（上限 %s 点）
 etim.debug.food_pools=双池：饱食=%s 营养=%s 饥饿池=%s
+etim.debug.xp=经验：总量=%s 等级=%s（负债=%s）
 tile.bed.wakeHungry=饿醒了：营养耗尽，无法继续睡觉
 tile.bed.tooHungry=太饿了，无法睡觉
 etim.state.satiation=饱食

@@ -111,6 +111,11 @@ public final class ETIMDebugOverlay {
         // Task-1.5 dual pools (server truth, display only).
         lines.add(I18n.format("etim.debug.food_pools",
                 FoodDebugNetwork.satiation, FoodDebugNetwork.nutrition, fmt(FoodDebugNetwork.hungerPool)));
+        // E4b display-only debt row: vanilla XP state (level gone negative =
+        // the vanilla bar vanishing judgment, E4b 用户判项的观察替身).
+        lines.add(I18n.format("etim.debug.xp",
+                mc.player.experienceTotal, mc.player.experienceLevel,
+                mc.player.experienceLevel < 0 ? mc.player.experienceLevel : 0));
         // Task-2.3 hunger gate mirrors (display only — verdicts the gates use).
         boolean fed = ETIMHunger.hasFoodEnergy(mc.player);
         lines.add(I18n.format("etim.debug.hunger_gate",

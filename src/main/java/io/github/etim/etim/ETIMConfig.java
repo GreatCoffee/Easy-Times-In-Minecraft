@@ -245,6 +245,16 @@ public final class ETIMConfig {
     /** Server-log [DeathLog] lines for the death chain (dev channel). */
     public static boolean deathDebugLog = true;
 
+    // mobs (stage 5 slice 1: R196 despawn chain) ------------------------------
+    /** Master switch of the R196 despawn chain (audit 11 §2.1): view-resets, mob-path hold, animal walls, zombie-villager hold, hour-of-grace dy and the counter≥200 kill pass. Off = vanilla 1.12 despawn. */
+    public static boolean mobDespawnR196 = true;
+    /** Master switch of the R196 per-class mob attribute table (audit 11 §3.1): skeleton 6 hp/4 atk/32 follow, zombie 5 atk/32 follow/0 armor, pigman 8 atk, spider 12 hp/4 atk/28 follow. Off = vanilla 1.12 attributes. */
+    public static boolean mobStatsR196 = true;
+    /** Master switch of the R196 livestock wellness pipeline (audit 11 §2.2 v1: needs floats + supervision, production comes later). Off = vanilla livestock carries nothing. */
+    public static boolean livestockNeedsR196 = true;
+    /** Server-log [AILog] lines for despawn kills, holds and rerolls (dev channel). */
+    public static boolean mobDebugLog = true;
+
     // compat group: interop switches (rule 2 — player-perceivable, configurable)
     /** Crafting Tweaks rightClickCraftsStack auto-disable (see CraftingTweaksCompat). */
     public static boolean compatCraftingTweaksFix = true;
@@ -540,6 +550,19 @@ public final class ETIMConfig {
         deathDebugLog = config.getBoolean("deathDebugLog", "death", true,
                 comment("Server log [DeathLog] lines: orb dumps, settle results and respawn rewrites (dev test channel)",
                         "服务端日志 [DeathLog] 行：经验球掉落、结算结果与重生效写（开发测试通道）"));
+
+        mobDespawnR196 = config.getBoolean("mobDespawnR196", "mobs", true,
+                comment("R196 despawn chain (audit 11 §2.1): LOS view-resets (-400/-9600), the mob 48-path hold (-1200), animal walls (counter 800/2400, 1024-radius player, ±16 fence), zombie-villager holds, the hour-of-grace dy doubling and the counter>=200 kill pass at >16 blocks. Off = vanilla 1.12 despawn rules",
+                        "R196 消散链（审计 11 §2.1）：视线重置（-400/-9600）、怪类 48 格寻路挽留（-1200）、动物三重墙（计数 800/2400、1024 半径玩家、±16 围栏）、僵尸村民不消散、非天亮整点的 y 折倍、计数≥200 且距离>16 格的击杀判定。关闭则回到原版 1.12 消散规则"));
+        mobDebugLog = config.getBoolean("mobDebugLog", "mobs", true,
+                comment("Server log [AILog] lines: despawn kills, holds and counter rerolls (dev channel)",
+                        "服务端日志 [AILog] 行：消散击杀、挽留判定与计数重掷（开发通道）"));
+        mobStatsR196 = config.getBoolean("mobStatsR196", "mobs", true,
+                comment("R196 per-class mob attribute rows (audit 11 §3.1, vanilla-faithful classes only): skeleton 6 hp / 4 attack / 32 follow, zombie 5 attack / 32 follow / 0 armor, zombie pigman 8 attack / 32 follow, spider 12 hp / 4 attack / 28 follow. Off = vanilla 1.12 attributes",
+                        "R196 怪物逐类属性表（审计 11 §3.1，仅原版等价类）：骷髅 6 血/4 攻/32 视距，僵尸 5 攻/32 视距/0 护甲，猪人 8 攻/32 视距，蜘蛛 12 血/4 攻/28 视距。关闭则回到原版 1.12 属性"));
+        livestockNeedsR196 = config.getBoolean("livestockNeedsR196", "mobs", true,
+                comment("R196 livestock wellness pipeline v1 (audit 11 §2.2): food/water/freedom needs on cow/sheep/pig/chicken (0.8+rand*0.2 start, +0.1/-0.005 every 100 ticks at a 9/10 roll), near-grass food (cow eats 1% of found grass), near-water/rain fallback, crowd/freedom rules, NBT persistence. Production/milk/egg gates come in a later slice. Off = vanilla carries nothing",
+                        "R196 家畜需求管线 v1（审计 11 §2.2）：牛/羊/猪/鸡带食物/饮水/自由三需求（初始 0.8+随机0.2，每 100 tick 以 9/10 概率 +0.1/-0.005），草为食（牛 1% 概率吃掉发现草块），水/雨回退，拥挤/自由规则，NBT 持久化。产出（奶/蛋/羽等）门控留后续切片。关闭则回到原版家畜无需求"));
         compatCraftingTweaksFix = config.getBoolean("compatCraftingTweaksFix", "compat", true,
                 comment("With CraftingTweaks installed, auto-disable its rightClickCraftsStack (right-click = craft full stack) so ETIM's R196 quality picker keeps the result-slot right-click; also rewrites craftingtweaks.cfg",
                         "检测到 Crafting Tweaks 时自动停用其『右击产物=成组合成』，把产物槽右击归还给 ETIM 的 R196 品质选择器；同时回写 craftingtweaks.cfg"));

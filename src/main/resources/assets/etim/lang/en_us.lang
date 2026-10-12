@@ -41,6 +41,7 @@ commands.etest.usage=/etest food <satiation> [nutrition] /etest health <health> 
 commands.etest.food_set_pool=Set pools: satiation=%s nutrition=%s (limit %s points)
 commands.etest.food_set_bar=Set: food=%s saturation=%s (cap %s points)
 etim.debug.food_pools=Pools: satiation=%s nutrition=%s hunger pool=%s
+etim.debug.xp=XP: total=%s level=%s (debt=%s)
 tile.bed.wakeHungry=Woken up: too hungry to keep sleeping
 tile.bed.tooHungry=Too hungry to sleep
 etim.state.satiation=Satiation
