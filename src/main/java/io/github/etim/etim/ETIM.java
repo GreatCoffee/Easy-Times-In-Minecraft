@@ -43,16 +43,23 @@ public final class ETIM {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         NutritionSystem.register();
-        NutritionNetwork.registerMessages();
         io.github.etim.etim.ingest.ETIMIngestNetwork.registerMessages();
-        io.github.etim.etim.crafting.CraftingProgressNetwork.registerMessages();
         FoodDebugNetwork.registerMessages();
+        io.github.etim.etim.crafting.CraftingProgressNetwork.registerServerShard();
+        io.github.etim.etim.nutrition.NutritionNetwork.registerMessages();
         ETIMFoodStats.register();
         io.github.etim.etim.death.ETIMDeathXp.register();
         io.github.etim.etim.mob.ETIMLivestock.register();
         io.github.etim.etim.furnace.FurnaceHeat.addJudgedRecipes();
         ETIMEnchantments.register();
         ETIMConfig.init(event);
+        // The nutrition-mirror and crafting-progress handlers carry
+        // net.minecraft.client.* bodies; the 1.12 registerMessage path
+        // instantiates the handler class, so those two register ONLY on the
+        // CLIENT side (see client/ClientNetworkHooks for both sides' story).
+        if (event.getSide().isClient()) {
+            io.github.etim.etim.client.ClientNetworkHooks.register();
+        }
         // Manual registration for deterministic order against the 1.4 tick
         // drain (see ETIMFoodStatsEvents' class javadoc).
         MinecraftForge.EVENT_BUS.register(ETIMFoodStatsEvents.class);

@@ -23,8 +23,13 @@ public abstract class MixinEntity {
             at = @At("TAIL"))
     private void etim$writeDespawnCounter(NBTTagCompound tag,
                                           CallbackInfoReturnable<NBTTagCompound> cir) {
-        // unconditional, like MITE :1801 (even 0)
-        tag.setInteger("despawn_counter", ((EntityLivingBaseAccessor) (Object) this).etim$getIdleTime());
+        // unconditional 0-storage for LIVING entities, like MITE :1801 — but
+        // items/minecarts are NOT living entities (the EntityLivingBase
+        // accessor cast would raise), so gate on the type
+        if (((Object) this) instanceof net.minecraft.entity.EntityLivingBase) {
+            tag.setInteger("despawn_counter",
+                    ((EntityLivingBaseAccessor) (Object) this).etim$getIdleTime());
+        }
     }
 
     @Inject(method = "readFromNBT", at = @At("TAIL"))

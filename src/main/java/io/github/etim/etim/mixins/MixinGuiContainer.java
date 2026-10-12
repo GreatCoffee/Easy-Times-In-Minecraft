@@ -108,7 +108,7 @@ public abstract class MixinGuiContainer {
         } else {
             return;
         }
-        float fraction = CraftingProgressNetwork.fraction(inventorySlots.windowId);
+        float fraction = io.github.etim.etim.client.ClientNetworkHooks.fraction(inventorySlots.windowId);
         if (fraction <= 0.0F) {
             return;
         }

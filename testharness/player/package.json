@@ -1,0 +1,17 @@
+{
+  "name": "etim-testharness-player",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ETIM test harness fake-player channel (mineflayer + FML|HS handshake). Owned by harness session 7; server-side config is owned by the main session.",
+  "scripts": {
+    "handshake": "node connect-dev.js",
+    "a2": "node a2-despawn.js"
+  },
+  "engines": {
+    "node": ">=22.18 <25"
+  },
+  "dependencies": {
+    "mineflayer": "^4.20.1",
+    "minecraft-protocol-forge": "^1.0.0"
+  }
+}

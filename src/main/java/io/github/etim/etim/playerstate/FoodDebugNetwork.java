@@ -21,10 +21,10 @@ import io.netty.buffer.ByteBuf;
  */
 public final class FoodDebugNetwork {
 
-    private static final SimpleNetworkWrapper CHANNEL =
+    public static final SimpleNetworkWrapper CHANNEL =
             NetworkRegistry.INSTANCE.newSimpleChannel(new ResourceLocation(Tags.MOD_ID, "food_debug").toString());
 
-    private static final byte PACKET_FOOD_DEBUG = 0;
+    public static final byte PACKET_FOOD_DEBUG = 0;
 
     /** Server-authoritative readout mirrored on the client for display. */
     public static volatile int foodLevel;
@@ -39,7 +39,13 @@ public final class FoodDebugNetwork {
 
     /** Registers the network message (call from mod preInit, once). */
     public static void registerMessages() {
-        CHANNEL.registerMessage(SyncHandler.class, PacketFoodDebug.class, PACKET_FOOD_DEBUG, Side.CLIENT);
+        // BOTH SIDES register the discriminator (the 1.12 codec encodes by
+        // discriminator table on whichever JVM renders the packet; a missed
+        // SERVER registration torpedoes the login sync — run27 17:27).
+        // The server-side HANDLER is a no-op shard (never invoked — the
+        // packet is client-target); its body must stay client-free so the
+        // dedicated server can load it at SimpleNetworkWrapper.instantiate.
+        CHANNEL.registerMessage(ServerNoopHandler.class, PacketFoodDebug.class, PACKET_FOOD_DEBUG, Side.SERVER);
     }
 
     /** Server → client push of the food-model readout. */
@@ -49,12 +55,12 @@ public final class FoodDebugNetwork {
 
     /** The diagnostic packet. */
     public static class PacketFoodDebug implements IMessage {
-        int food;
-        float saturation;
-        float exhaustion;
-        int satiation;
-        int nutrition;
-        float hungerPool;
+        public int food;
+        public float saturation;
+        public float exhaustion;
+        public int satiation;
+        public int nutrition;
+        public float hungerPool;
 
         public PacketFoodDebug() {
         }
@@ -87,6 +93,14 @@ public final class FoodDebugNetwork {
             buf.writeInt(satiation);
             buf.writeInt(nutrition);
             buf.writeFloat(hungerPool);
+        }
+    }
+
+    /** Server-side no-op handler: never invoked (client-target packet); body stays client-free. */
+    public static class ServerNoopHandler implements IMessageHandler<PacketFoodDebug, IMessage> {
+        @Override
+        public IMessage onMessage(PacketFoodDebug message, MessageContext ctx) {
+            return null;
         }
     }
 

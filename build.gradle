@@ -419,6 +419,50 @@ tasks.register('restoreCompatMods') {
     }
 }
 
+// ETIM test harness: after restoreCompatMods repopulates the obf mods
+// folder, a runObfServer round must NOT carry the client-only/coremod
+// jars (OptiFine/SmoothFont/rebind coremods and client-only mods crash
+// a dedicated server). Hook a hinge task after the restore that stashes
+// them into testharness/mods-hold — only when the launched task is
+// runObfServer (client rounds keep the full compatibility set).
+tasks.register('etimTestServerModsHold') {
+    onlyIf { gradle.startParameter.taskNames.any { it == 'runObfServer' } }
+    doLast {
+        def holdDir = file('testharness/mods-hold')
+        def obfDir = file('run/obfuscated/mods')
+        holdDir.mkdirs()
+        ['OptiFine_1.12.2_HD_U_G5.jar', 'SmoothFont-mc1.12.2-2.1.4.jar',
+         'rebind-1.12.2-2.7.5-0.jar', 'journeymap-forge-1.12.2-6.0.10.jar',
+         'rad-1.12-1.1.0.jar', 'StepUp-1.0.2-mc1.10-1.12.jar',
+         'MouseTweaks-2.10.1-mc1.12.2.jar', 'jecharacters-1.12.0-3.7.3.jar',
+         'osxnarratorblocker-1.0.jar', 'fencejumper-1.12-1.0.5.jar',
+         // the project's own release-style jar double-loads on the server
+         // (classpath container + mods copy = the same file scanned twice):
+         // runObfServer loads etim from the classpath alone.
+         'etim-1.0.0.jar'].each { n ->
+            def f = new File(obfDir, n)
+            if (f.exists()) {
+                f.renameTo(new File(holdDir, n))
+            }
+        }
+        println '[etim-harness] server mods hold complete'
+    }
+}
+tasks.named('restoreCompatMods') { finalizedBy 'etimTestServerModsHold' }
+
+// ETIM test harness: dump the runObfServer javaexec launch line (runner-driven
+// server execu; invoke via `gradlew etimDumpServerExec`)
+tasks.register('etimDumpServerExec') {
+    doLast {
+        def je = tasks.named('runObfServer').get() as org.gradle.api.tasks.JavaExec
+        try { println '[etim-harness] mainClass=' + je.mainClass.get() } catch (Throwable t) { println '[etim-harness] mainClass=? ' + t.message }
+        try { println '[etim-harness] classpath=' + je.classpath.asPath } catch (Throwable t) { println '[etim-harness] classpath=?' }
+        try { println '[etim-harness] jvmArgs=' + je.jvmArgs } catch (Throwable t) {}
+        try { println '[etim-harness] args=' + je.args } catch (Throwable t) {}
+        try { println '[etim-harness] allJvmArgs=' + je.allJvmArgs } catch (Throwable t) {}
+    }
+}
+
 idea.project.settings {
     taskTriggers {
         afterSync 'cleanroomAfterSync'

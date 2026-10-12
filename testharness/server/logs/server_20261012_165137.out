@@ -1,0 +1,102 @@
+2026-10-12 16:51:38,295 main WARN Disabling terminal, you're running in an unsupported environment.
+[16:51:38] [main/INFO] [LaunchWrapper]: Loading tweak class name net.minecraftforge.fml.common.launcher.FMLServerTweaker
+[16:51:38] [main/INFO] [LaunchWrapper]: Using primary tweak class name net.minecraftforge.fml.common.launcher.FMLServerTweaker
+[16:51:38] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.common.launcher.FMLServerTweaker
+[16:51:38] [main/INFO] [FML]: Forge Mod Loader version 14.23.5.2847 for Minecraft 1.12.2 loading
+[16:51:38] [main/INFO] [FML]: Java is OpenJDK 64-Bit Server VM, version 1.8.0_504, running on Windows 10:amd64:10.0, installed at C:\Users\GreatCoffee\.gradle\jdks\azul_systems__inc_-8-amd64-windows.2\jre
+[16:51:38] [main/ERROR] [FML]: Apache Maven library folder was not in the format expected. Using default libraries directory.
+[16:51:38] [main/ERROR] [FML]: Full: C:\Users\GreatCoffee\.gradle\caches\modules-2\files-2.1\org.apache.maven\maven-artifact\3.5.3\7dc72b6d6d8a6dced3d294ed54c2cc3515ade9f4\maven-artifact-3.5.3.jar
+[16:51:38] [main/ERROR] [FML]: Trimmed: c:/users/greatcoffee/.gradle/caches/modules-2/files-2.1/org.apache.maven/maven-artifact/3.5.3/
+[16:51:38] [main/WARN] [FML]: The coremod FMLCorePlugin (net.minecraftforge.fml.relauncher.FMLCorePlugin) is not signed!
+[16:51:38] [main/WARN] [FML]: The coremod FMLForgePlugin (net.minecraftforge.classloading.FMLForgePlugin) is not signed!
+[16:51:38] [main/INFO] [FML]: Searching D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\run\obfuscated\.\mods for mods
+[16:51:38] [main/WARN] [FML]: The coremod zone.rong.mixinbooter.MixinBooterPlugin does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[16:51:38] [main/WARN] [FML]: The coremod MixinBooter (zone.rong.mixinbooter.MixinBooterPlugin) is not signed!
+[16:51:38] [main/INFO] [CleanMix]: SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/D:/OpenCodeWorkspace/Easy%20Times%20In%20Minecraft/git-workspace/etim/run/obfuscated/./mods/!mixinbooter-11.13.jar Service=MixinBooter Env=SERVER
+[16:51:38] [main/INFO] [FML]: Searching D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\run\obfuscated\.\mods for mods
+[16:51:38] [main/WARN] [MixinBooter]: journeymap-forge-1.12.2-6.0.10.jar bundles its own Mixins and this may cause issues. It should depend on MixinBooter instead.
+[16:51:40] [main/INFO] [MixinBooter]: Finished gathering 15 mods, took 1787 ms.
+[16:51:40] [main/WARN] [FML]: Found FMLCorePluginContainsFMLMod marker in jecharacters-1.12.0-3.7.3.jar. This is not recommended, @Mods should be in a separate jar from the coremod.
+[16:51:40] [main/INFO] [MixinBooter]: Initializing MixinExtras...
+[16:51:40] [main/WARN] [FML]: The coremod me.towdium.jecharacters.core.JechCore does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[16:51:40] [main/WARN] [FML]: The coremod JechCore (me.towdium.jecharacters.core.JechCore) is not signed!
+[16:51:40] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from journeymap-forge-1.12.2-6.0.10.jar
+[16:51:40] [main/INFO] [FML]: Loading tweaker optifine.OptiFineForgeTweaker from OptiFine_1.12.2_HD_U_G5.jar
+[16:51:40] [main/WARN] [FML]: Found FMLCorePluginContainsFMLMod marker in osxnarratorblocker-1.0.jar. This is not recommended, @Mods should be in a separate jar from the coremod.
+[16:51:40] [main/WARN] [FML]: The coremod com.cleanroommc.osxnarratorblocker.OSXNarratorBlocker does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[16:51:40] [main/WARN] [FML]: The coremod OSXNarratorBlocker (com.cleanroommc.osxnarratorblocker.OSXNarratorBlocker) is not signed!
+[16:51:40] [main/WARN] [FML]: Found FMLCorePluginContainsFMLMod marker in rebind-1.12.2-2.7.5-0.jar. This is not recommended, @Mods should be in a separate jar from the coremod.
+[16:51:40] [main/WARN] [FML]: Found FMLCorePluginContainsFMLMod marker in SmoothFont-mc1.12.2-2.1.4.jar. This is not recommended, @Mods should be in a separate jar from the coremod.
+[16:51:40] [main/WARN] [FML]: The coremod bre.smoothfont.asm.CorePlugin does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[16:51:40] [main/WARN] [FML]: The coremod CorePlugin (bre.smoothfont.asm.CorePlugin) is not signed!
+[16:51:40] [main/WARN] [FML]: The coremod com.cleanroommc.stripforgereq.StripLatestForgeRequirements does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[16:51:40] [main/WARN] [FML]: The coremod StripLatestForgeRequirements (com.cleanroommc.stripforgereq.StripLatestForgeRequirements) is not signed!
+[16:51:40] [main/INFO] [LaunchWrapper]: Loading tweak class name zone.rong.mixinbooter.service.CoremodsRescuer
+[16:51:40] [main/INFO] [LaunchWrapper]: Loading tweak class name net.minecraftforge.fml.common.launcher.FMLInjectionAndSortingTweaker
+[16:51:40] [main/INFO] [LaunchWrapper]: Loading tweak class name org.spongepowered.asm.mixin.EnvironmentStateTweaker
+[16:51:40] [main/INFO] [LaunchWrapper]: Loading tweak class name org.spongepowered.asm.launch.MixinTweaker
+[16:51:40] [main/INFO] [LaunchWrapper]: Loading tweak class name optifine.OptiFineForgeTweaker
+[16:51:40] [main/INFO] [LaunchWrapper]: Loading tweak class name net.minecraftforge.fml.common.launcher.FMLDeobfTweaker
+[16:51:40] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.common.launcher.FMLInjectionAndSortingTweaker
+[16:51:40] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.common.launcher.FMLInjectionAndSortingTweaker
+[16:51:40] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[16:51:40] [main/INFO] [MixinBooter]: Loading early loader com.cleanroommc.osxnarratorblocker.OSXNarratorBlocker for its mixins.
+[16:51:40] [main/INFO] [MixinBooter]: Adding [mixins.osxnarratorblocker.json] mixin configuration.
+[16:51:40] [main/INFO] [MixinBooter]: Loading early loader com.cleanroommc.stripforgereq.StripLatestForgeRequirements for its mixins.
+[16:51:40] [main/INFO] [MixinBooter]: Adding [mixins.striplatestforgerequirements.json] mixin configuration.
+[16:51:40] [main/INFO] [MixinBooter]: Added etim-1.0.0.jar to the classloader to process its mixin manifest attributes.
+[16:51:40] [main/INFO] [CleanMix]: Successfully loaded Mixin Connector [journeymap.forge.bootstrap.JourneymapMixinConnector]
+[16:51:40] [main/INFO] [LaunchWrapper]: Calling tweak class optifine.OptiFineForgeTweaker
+[16:51:40] [main/INFO] [STDOUT]: [optifine.OptiFineForgeTweaker:dbg:56]: OptiFineForgeTweaker: acceptOptions
+[16:51:40] [main/INFO] [STDOUT]: [optifine.OptiFineForgeTweaker:dbg:56]: OptiFineForgeTweaker: Forge server detected, skipping class transformer
+[16:51:40] [main/INFO] [LaunchWrapper]: Calling tweak class zone.rong.mixinbooter.service.CoremodsRescuer
+[16:51:40] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[16:51:41] [main/ERROR] [FML]: FML appears to be missing any signature data. This is not a good thing
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[16:51:41] [main/INFO] [ReBind Core]: External config up-to-date!
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[16:51:41] [main/INFO] [SmoothFontCore ASM]: OptiFine was detected.
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class org.spongepowered.asm.mixin.EnvironmentStateTweaker
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class org.spongepowered.asm.launch.MixinTweaker
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.common.launcher.FMLDeobfTweaker
+[16:51:41] [main/INFO] [LaunchWrapper]: Loading tweak class name net.minecraftforge.fml.common.launcher.TerminalTweaker
+[16:51:41] [main/INFO] [LaunchWrapper]: Calling tweak class net.minecraftforge.fml.common.launcher.TerminalTweaker
+[16:51:41] [main/INFO] [STDOUT]: [optifine.OptiFineForgeTweaker:dbg:56]: OptiFineForgeTweaker: getLaunchArguments
+[16:51:41] [main/INFO] [MixinExtras|Service]: Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.5.5).
+[16:51:41] [main/INFO] [LaunchWrapper]: Launching wrapped minecraft {net.minecraft.server.MinecraftServer}
+[16:51:43] [Server thread/INFO] [minecraft/DedicatedServer]: Starting minecraft server version 1.12.2
+[16:51:43] [Server thread/INFO] [FML]: MinecraftForge v14.23.5.2847 Initialized
+[16:51:43] [Server thread/INFO] [FML]: Starts to replace vanilla recipe ingredients with ore ingredients.
+[16:51:43] [Server thread/INFO] [FML]: Invalid recipe found with multiple oredict ingredients in the same ingredient...
+[16:51:43] [Server thread/INFO] [FML]: Replaced 1227 ore ingredients
+[16:51:43] [Server thread/INFO] [FML]: Searching D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\run\obfuscated\.\mods for mods
+[16:51:45] [Server thread/WARN] [FML]: Mod craftingtweaks is missing the required element 'version' and a version.properties file could not be found. Falling back to metadata version 8.1.9
+[16:51:45] [Server thread/INFO] [FML]: Disabling mod mousetweaks it is client side only.
+[16:51:45] [Server thread/INFO] [FML]: Disabling mod rad it is client side only.
+[16:51:45] [Server thread/INFO] [FML]: Disabling mod smoothfont it is client side only.
+[16:51:45] [Server thread/FATAL] [FML]: Found a duplicate mod etim at [D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\run\obfuscated\.\mods\etim-1.0.0.jar, .\mods\etim-1.0.0.jar]
+[16:51:45] [Server thread/ERROR] [minecraft/MinecraftServer]: Encountered an unexpected exception
+net.minecraftforge.fml.common.DuplicateModsFoundException: 
+Duplicate Mods:
+	etim : D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\run\obfuscated\.\mods\etim-1.0.0.jar
+	etim : D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\run\obfuscated\.\mods\etim-1.0.0.jar
+
+
+	at net.minecraftforge.fml.common.Loader.identifyDuplicates(Loader.java:466) ~[Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:428) ~[Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:568) ~[Loader.class:?]
+	at net.minecraftforge.fml.server.FMLServerHandler.beginServerLoading(FMLServerHandler.java:98) ~[FMLServerHandler.class:?]
+	at net.minecraftforge.fml.common.FMLCommonHandler.onServerStart(FMLCommonHandler.java:333) ~[FMLCommonHandler.class:?]
+	at net.minecraft.server.dedicated.DedicatedServer.func_71197_b(DedicatedServer.java:125) ~[nz.class:?]
+	at net.minecraft.server.MinecraftServer.run(MinecraftServer.java:486) [MinecraftServer.class:?]
+	at java.lang.Thread.run(Thread.java:750) [?:1.8.0_504]
+[16:51:45] [Server thread/ERROR] [minecraft/MinecraftServer]: This crash report has been saved to: D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\run\obfuscated\.\crash-reports\crash-2026-10-12_16.51.45-server.txt
+[16:51:45] [Server thread/INFO] [minecraft/MinecraftServer]: Stopping server
+[16:51:45] [Server thread/INFO] [minecraft/MinecraftServer]: Saving worlds
+[16:51:45] [Server thread/INFO] [FML]: The state engine was in incorrect state CONSTRUCTING and forced into state SERVER_STOPPED. Errors may have been discarded.
+[16:51:45] [Server Shutdown Thread/INFO] [minecraft/MinecraftServer]: Stopping server
+[16:51:45] [Server Shutdown Thread/INFO] [minecraft/MinecraftServer]: Saving worlds
