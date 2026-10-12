@@ -283,17 +283,17 @@ public final class DespawnRules {
         // markCounterRestored (readFromNBT).
         if (e instanceof EntityWaterMob && !SEEDED.contains(e)) {
             SEEDED.add(e);
-            if (!isCounterRestored(e)) {
+            boolean wasRestored = isCounterRestored(e);
+            if (!wasRestored) {
                 ((EntityLivingBaseAccessor) e).etim$setIdleTime(RESET_IN_VIEW_WATER);
-                // one-shot trace for A1b judging: names age/counter at seed time
-                // (A9B evidence: pool-summoned squid survived, a natural pond
-                // spawn #1178 still died at counter=200 — this row tells which
-                // spawn side missed the seed and why)
-                if (ETIMConfig.mobDebugLog) {
-                    io.github.etim.etim.ETIM.LOGGER.info("[AILog] mob despawn water-seed age=" + e.ticksExisted
-                            + " counter=" + ((EntityLivingBaseAccessor) e).etim$getIdleTime()
-                            + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
-                }
+            }
+            // A9C 定谳行：整永远打印（A9B 曾出现天然落池鱿鱼被杀而无 this row 的反例
+            // ——若 restored=true 则 markCounterRestored 的进入面就是根因）
+            if (ETIMConfig.mobDebugLog) {
+                io.github.etim.etim.ETIM.LOGGER.info("[AILog] mob despawn water-seed restored=" + wasRestored
+                        + " age=" + e.ticksExisted
+                        + " counter=" + ((EntityLivingBaseAccessor) e).etim$getIdleTime()
+                        + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
             }
         }
         if (((EntityLivingAccessor) e).etim$isPersistenceRequired()) {
