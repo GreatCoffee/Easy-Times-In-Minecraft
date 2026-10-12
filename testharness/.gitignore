@@ -2,3 +2,5 @@
 modshold/
 mods-hold/
 server/logs/
+player/err.txt
+player/out.txt
