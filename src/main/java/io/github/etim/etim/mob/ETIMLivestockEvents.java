@@ -109,6 +109,17 @@ public final class ETIMLivestockEvents {
         if (e.ticksExisted % 100 == 0 && e.getRNG().nextInt(10) > 0) {
             updateWellness(e, s, e instanceof EntityCow);
         }
+        // value trace (run27 C3/C4/C5 判据面): one full-readout row per
+        // ~60 s of entity age, gated per entity — the glyph-flip dedup hides
+        // the absolute values between flips, and C4 needs rain-vs-dry
+        // trajectories (the C4B window read zero rows because nothing flipped)
+        if (e.ticksExisted % 1200 == 0 && ETIMConfig.mobDebugLog) {
+            ETIM.LOGGER.info("[AILog] livestock-value food=" + String.format("%.2f", s.getFood())
+                    + String.format(" water=%.2f", s.getWater())
+                    + String.format(" freedom=%.2f", s.getFreedom())
+                    + " age=" + e.ticksExisted
+                    + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+        }
     }
 
     /** R196 updateWellness :215-239 — the benefit/penalty pass. */
