@@ -35,12 +35,19 @@ public abstract class MixinEntity {
     @Inject(method = "readFromNBT", at = @At("TAIL"))
     private void etim$readDespawnCounter(NBTTagCompound tag, CallbackInfo ci) {
         // missing key → getInteger returns 0 — the MITE read semantics for
-        // legacy entities (:1899)
+        // legacy entities (:1899). BUT the marker must fire ONLY when the
+        // key is actually present: vanilla /summon (and some spawn paths)
+        // still route readFromNBT with an empty tag, and an unconditional
+        // mark flagged FRESH entities as restored — their water seed was
+        // then skipped and they died at counter=200 (C4 window 20:25:22
+        // EntitySquid#957 restored=true age=1 — root cause registered).
         ((EntityLivingBaseAccessor) (Object) this).etim$setIdleTime(tag.getInteger("despawn_counter"));
-        Object self = this;
-        if (self instanceof net.minecraft.entity.EntityLiving) {
-            io.github.etim.etim.mob.DespawnRules.markCounterRestored(
-                    (net.minecraft.entity.EntityLiving) self);
+        if (tag.hasKey("despawn_counter")) {
+            Object self = this;
+            if (self instanceof net.minecraft.entity.EntityLiving) {
+                io.github.etim.etim.mob.DespawnRules.markCounterRestored(
+                        (net.minecraft.entity.EntityLiving) self);
+            }
         }
     }
 }

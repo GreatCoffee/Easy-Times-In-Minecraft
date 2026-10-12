@@ -147,6 +147,9 @@ public final class DespawnRules {
     /** Entities already traced at the ocelot chain gate (one row per cat). */
     private static final java.util.Set<EntityLiving> OCELOT_TRACED =
             java.util.Collections.newSetFromMap(new WeakHashMap<EntityLiving, Boolean>());
+    /** Last metered counter value per entity (the +200 growth cadence row). */
+    private static final java.util.Map<EntityLiving, Integer> COUNTER_METER =
+            new java.util.WeakHashMap<EntityLiving, Integer>();
 
     /** Called by MixinEntity when "despawn_counter" was present in NBT. */
     public static void markCounterRestored(EntityLiving e) {
@@ -203,8 +206,7 @@ public final class DespawnRules {
             net.minecraft.entity.passive.EntityOcelot o =
                     (net.minecraft.entity.passive.EntityOcelot) e;
             if (!OCELOT_TRACED.contains(e)) {
-                OCELOT_TRACED.add(e);
-                // one-shot trace row: names the gate state at the ocelot's
+                OCELOT_TRACED.add(e);                // one-shot trace row: names the gate state at the ocelot's
                 // first chain pass (A9A5 window 19:33-19:41 saw a wild cat
                 // survive 480 s past its 2400 age with zero kill rows —
                 // this row tells whether the gate itself ever ran)
@@ -272,6 +274,23 @@ public final class DespawnRules {
         if (w0.isRemote) {
             clientEntryProbe(e);
             return true;
+        }
+        // counter cadence meter (A5X 定谳遗留): every +200 growth logs one row
+        // (per entity, monotone since the rerolls re-touch small values — the
+        // meter directly measures whether offline-boot windows ticked the
+        // counters at all; A5X evidence: boot+158 s rows showed NBT-carried
+        // counters with no visible offline growth)
+        {
+            int cg = ((EntityLivingBaseAccessor) e).etim$getIdleTime();
+            Integer lastMeter = COUNTER_METER.get(e);
+            if (cg >= 0 && (lastMeter == null || cg - lastMeter >= 200)) {
+                COUNTER_METER.put(e, cg);
+                if (ETIMConfig.mobDebugLog) {
+                    io.github.etim.etim.ETIM.LOGGER.info("[AILog] mob despawn counter-meter counter=" + cg
+                            + " age=" + e.ticksExisted
+                            + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+                }
+            }
         }
         // R196 SpawnerAnimals:664-666 — water mobs spawn with the long
         // −9600 counter; seed at the FIRST despawn pass of any fresh water
