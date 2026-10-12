@@ -140,10 +140,10 @@ public final class DespawnRules {
      * spawning pass, SpawnerAnimals:664-666).
      */
     private static final java.util.Set<EntityLiving> COUNTER_RESTORED =
-            java.util.Collections.newSetFromMap(new WeakHashMap<EntityLiving, Object>());
+            java.util.Collections.newSetFromMap(new WeakHashMap<EntityLiving, Boolean>());
     /** Entities already processed by the seed check (one pass only). */
     private static final java.util.Set<EntityLiving> SEEDED =
-            java.util.Collections.newSetFromMap(new WeakHashMap<EntityLiving, Object>());
+            java.util.Collections.newSetFromMap(new WeakHashMap<EntityLiving, Boolean>());
 
     /** Called by MixinEntity when "despawn_counter" was present in NBT. */
     public static void markCounterRestored(EntityLiving e) {

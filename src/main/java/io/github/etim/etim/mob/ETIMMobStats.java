@@ -138,6 +138,6 @@ public final class ETIMMobStats {
         if (attribute == SharedMonsterAttributes.ATTACK_DAMAGE) return "attackDamage";
         if (attribute == SharedMonsterAttributes.FOLLOW_RANGE) return "followRange";
         if (attribute == SharedMonsterAttributes.ARMOR) return "armor";
-        return attribute.getAttributeName();
+        return attribute.getName();
     }
 }

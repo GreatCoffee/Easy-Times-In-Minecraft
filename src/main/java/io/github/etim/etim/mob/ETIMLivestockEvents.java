@@ -80,7 +80,7 @@ public final class ETIMLivestockEvents {
     }
 
     @SubscribeEvent
-    public static void onAttachCapabilities(AttachCapabilitiesEvent.Entity event) {
+    public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
         Entity e = event.getObject();
         if (e instanceof EntityCow || e instanceof EntitySheep
                 || e instanceof EntityPig || e instanceof EntityChicken) {

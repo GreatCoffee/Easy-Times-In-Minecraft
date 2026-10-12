@@ -32,8 +32,10 @@ public abstract class MixinEntity {
         // missing key → getInteger returns 0 — the MITE read semantics for
         // legacy entities (:1899)
         ((EntityLivingBaseAccessor) (Object) this).etim$setIdleTime(tag.getInteger("despawn_counter"));
-        if (this instanceof net.minecraft.entity.EntityLiving) {
-            io.github.etim.etim.mob.DespawnRules.markCounterRestored((net.minecraft.entity.EntityLiving) (Object) this);
+        Object self = this;
+        if (self instanceof net.minecraft.entity.EntityLiving) {
+            io.github.etim.etim.mob.DespawnRules.markCounterRestored(
+                    (net.minecraft.entity.EntityLiving) self);
         }
     }
 }
