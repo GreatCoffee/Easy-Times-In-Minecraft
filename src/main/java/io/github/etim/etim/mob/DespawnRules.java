@@ -221,6 +221,17 @@ public final class DespawnRules {
      * happened when this runs, matching MITE's world-update increment.
      */
     public static boolean tryDespawn(EntityLiving e) {
+        // Hard server gate: the despawn chain must never run client-side.
+        // Evidence (run27 16:07-16:08 log): 35 reroll rows tagged [client] on
+        // five entities over ~1 minute — the vanilla sole call site
+        // (EntityLiving:833 inside updateEntityActionState) should never be
+        // reached with isRemote=true, so log one stack per entity to name
+        // the offender, then stand down.
+        World w0 = ((EntityAccessor) e).etim$getWorld();
+        if (w0.isRemote) {
+            clientEntryProbe(e);
+            return true;
+        }
         // R196 SpawnerAnimals:664-666 — water mobs spawn with the long
         // −9600 counter; the seed fires once, at the first despawn pass of
         // a freshly constructed (not NBT-restored) water mob
@@ -257,7 +268,9 @@ public final class DespawnRules {
         } else {
             int reroll = (int) (Math.random() * REROLL_RANGE) - REROLL_RANGE / 2;
             ((EntityLivingBaseAccessor) e).etim$setIdleTime(reroll);
-            log(e, "reroll counter_new=" + reroll);
+            // [AILog] reroll row retired (run27 noise review): one row per
+            // ~8-12 s per far entity read as 1374 rows over 70 s with zero
+            // judgment value — the kill/hold lines carry every A-item.
         }
         return true;
     }
@@ -347,6 +360,41 @@ public final class DespawnRules {
             acc.etim$setIdleTime(value);
             log(e, "hold=in-view reset=" + value);
         }
+    }
+
+    // ------------------------------------------------------------------ client probe
+
+    /**
+     * One stack per entity on the client-entry lane — names the hidden
+     * caller that reaches the despawn chain outside the vanilla
+     * server-only path (mixed in with the [AILog] judgment rows).
+     */
+    private static void clientEntryProbe(EntityLiving e) {
+        String key = "client-entry";
+        String prev = LAST.get(e);
+        if (key.equals(prev)) {
+            return;
+        }
+        LAST.put(e, key);
+        if (!ETIMConfig.mobDebugLog) {
+            return;
+        }
+        StackTraceElement[] frames = Thread.currentThread().getStackTrace();
+        StringBuilder sb = new StringBuilder("[AILog] mob despawn client-entry entity="
+                + e.getClass().getSimpleName() + "#" + e.getEntityId()
+                + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]") + " STACK:");
+        int logged = 0;
+        for (StackTraceElement f : frames) {
+            String s = f.getClassName() + "." + f.getMethodName() + ":" + f.getLineNumber();
+            if (s.startsWith("java.") || s.startsWith("sun.")) {
+                continue;
+            }
+            if (logged++ == 8) {
+                break;
+            }
+            sb.append(" <- ").append(s);
+        }
+        ETIM.LOGGER.info(sb.toString());
     }
 
     private static void logKill(EntityLiving e, int counter, double distSq) {
