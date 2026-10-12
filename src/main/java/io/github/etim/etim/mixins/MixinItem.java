@@ -107,4 +107,8 @@ public abstract class MixinItem {
         ((EntityPlayer) entityLiving).addStat(StatList.getObjectUseStats(stack.getItem()));
         cir.setReturnValue(stack);
     }
+    // The batch-3 quality durability write-through lives in
+    // {@link MixinItemStack#getMaxDamage} — the forge-patch overload
+    // Item.getMaxDamage(ItemStack) has no MCP-stable obf mapping, so the
+    // ItemStack gate is the port spot (see that class's javadoc).
 }

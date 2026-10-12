@@ -22,10 +22,13 @@ public final class PlayerStatLimits {
 
     /**
      * Returns the health AND hunger cap (in points, 2 points per icon) for a level.
+     * The band is floored at the level-0 cap: R196's cap formula clamps
+     * {@code max(level-0 cap, min(growth cap, capMaximum))} (§6.2 one-hand — the
+     * negative-level death debt DROPS the growth, never the base 6-point).
      */
     public static int getHealthFoodCap(int level) {
-        int cap = ETIMConfig.capAtLevel0 + level / 5 * ETIMConfig.capGrowthPerFiveLevels;
-        return Math.min(cap, ETIMConfig.capMaximum);
+        int scaled = ETIMConfig.capAtLevel0 + level / 5 * ETIMConfig.capGrowthPerFiveLevels;
+        return Math.min(Math.max(scaled, ETIMConfig.capAtLevel0), ETIMConfig.capMaximum);
     }
 
     /** Number of icons a HUD bar shows for a level (cap/2). */

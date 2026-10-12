@@ -32,14 +32,12 @@ etim.debug.reach_interact=Interaction reach (with tolerance): %s -> %s
 etim.reach.deny_block=Reach denied: block too far (%s > %s)
 etim.reach.deny_attack=Attack out of reach (%s > %s), not applied
 etim.reach.deny_interact=Interaction out of reach (%s > %s), not applied
-
 commands.etest.health_set=Set: health=%s (cap %s)
 commands.etest.level_set=Set: level=%s
 etim.hunger.craftDeny=Too hungry to craft
 etim.hunger.placeDeny=Too hungry to place hard blocks
 etim.hunger.weakStrike=Too hungry to hurt anything with bare hands
-
-commands.etest.usage=/etest food <satiation> [nutrition] /etest health <health> /etest level <level> (legacy food model: /etest food <points> [saturation])
+commands.etest.usage=/etest food <satiation> [nutrition] /etest health <health> /etest level <level> /etest debt <0..40> (legacy food model: /etest food <points> [saturation])
 commands.etest.food_set_pool=Set pools: satiation=%s nutrition=%s (limit %s points)
 commands.etest.food_set_bar=Set: food=%s saturation=%s (cap %s points)
 etim.debug.food_pools=Pools: satiation=%s nutrition=%s hunger pool=%s
@@ -48,3 +46,24 @@ tile.bed.tooHungry=Too hungry to sleep
 etim.state.satiation=Satiation
 etim.state.nutrition=Nutrition
 etim.state.hungerPool=Hunger Pool
+etim.crafting.completed=Crafting completed: %s
+etim.crafting.started=Crafting started: time %s to finish
+etim.quality.wretched=Wretched Quality
+etim.quality.poor=Poor Quality
+etim.quality.average=Average Quality
+etim.quality.fine=Fine Quality
+etim.quality.excellent=Excellent Quality
+etim.quality.superb=Superb Quality
+etim.quality.masterwork=Masterwork Quality
+etim.quality.legendary=Legendary Quality
+etim.quality.durability_penalty=Durability penalty -%s%%
+etim.quality.durability_bonus=Durability bonus +%s%%
+etim.crafting.quality=Quality rung: %s (XP cost %s points)
+etim.crafting.paid=Quality charged: -%s XP points
+commands.etest.debt_set=Staged debt: level %s (total %s)
+etim.furnace.cantSmelt=No smelting recipe for that item
+etim.furnace.notFuel=Not a fuel
+etim.furnace.tooHot=Too hot for this furnace
+etim.furnace.needed=This recipe needs heat >= %s
+etim.furnace.curheat=Fuel heat %s (furnace cap %s)
+etim.state.deathXp=Death settle

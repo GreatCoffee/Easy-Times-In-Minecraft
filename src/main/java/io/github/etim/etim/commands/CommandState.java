@@ -69,6 +69,17 @@ public class CommandState extends CommandBase {
                 player.sendMessage(valueLine("etim.state.hungerPool", String.format("%.3f / %.1f", food.getHungerPool(), ETIMConfig.hungerPoolCap), false));
             }
         }
+        // Stage 4C: the death-chain numbers (stale respawn total + a pending
+        // settle readout) for the E-group test rounds.
+        io.github.etim.etim.death.ETIMDeathXp.IState deathXp =
+                io.github.etim.etim.death.ETIMDeathXp.get(player);
+        if (deathXp != null) {
+            player.sendMessage(valueLine("etim.state.deathXp",
+                    String.format("total=%d stale=%d pending=%s", player.experienceTotal,
+                            deathXp.getRespawnTotal(),
+                            deathXp.getPendingSettle() == Integer.MIN_VALUE ? "none" : Integer.toString(deathXp.getPendingSettle())),
+                    player.experienceTotal < 0));
+        }
     }
 
     /** One food-pool line (amber label, red value when empty). */

@@ -1,5 +1,9 @@
 package io.github.etim.etim;
 
+import io.github.etim.etim.crafting.CraftingDifficulty;
+import io.github.etim.etim.furnace.FurnaceHeat;
+import io.github.etim.etim.furnace.FurnaceXpRewards;
+import io.github.etim.etim.quality.ETIMQuality;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -176,6 +180,81 @@ public final class ETIMConfig {
     /** Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay). */
     public static float debugRayLength = 8.0F;
 
+
+    // crafting (stage 3, batch 1: server-authoritative craft timer) --------------
+    /** Master switch of the R196 crafting timer (false = vanilla instant crafting). */
+    public static boolean craftingTimer = true;
+    /** Creative players keep vanilla instant crafting (test convenience switch). */
+    public static boolean craftingSkipCreative = true;
+    /** Crafting speed bonus fraction per level (R196 getLevelModifier CRAFTING = 0.02). */
+    public static float craftingSpeedPerLevel = 0.02F;
+    /** Bench speed modifier of the vanilla crafting table (R196 lowest bench tier = 0.2). */
+    public static float craftingBenchModifier = 0.2F;
+    /** Minimum crafting period in ticks (R196 floor = 25). */
+    public static int craftingPeriodFloor = 25;
+    /** Exponent of the difficulty>100 period curve (R196 pow(d−100, 0.8)+100). */
+    public static float craftingCurveExponent = 0.8F;
+    /** Difficulty of unlisted generic ingredients (R196 §4.1 one-family = 25). */
+    public static float craftingGenericDifficulty = 25.0F;
+    /** Craft progress in ticks lost per whole damage point taken (R196 = 50 = 2.5 s). */
+    public static int craftingDamagePenaltyPerDamagePoint = 50;
+    /** Chat line when a craft completes (dev/test feedback channel). */
+    public static boolean craftingCompleteFeedback = true;
+    /** Chat line when a craft starts, with the expected duration (dev/test feedback channel). */
+    public static boolean craftingStartFeedback = true;
+    /** Fill the crafting arrow with white progress (MITE GUI look). */
+    public static boolean craftingProgressArrow = true;
+    /** Server-log [CraftingLog] lines for period sets, starts, penalties and completions (dev channel). */
+    public static boolean craftingDebugLog = true;
+    /** Batch-3 master switch of the R196 quality ladder (false = vanilla-no-quality v1). */
+    public static boolean qualitySystem = true;
+    /** Batch-3: chat line when the right-click quality cycling changes the rung (dev/test channel). */
+    public static boolean craftingQualityFeedback = true;
+    /** Batch-3: max quality rung (0..7) for items with no mapped material (R196 material rows only for knowns). */
+    public static int qualityDefaultMax = 5;
+    /** Batch-3: per-item max-quality overrides as "registryName=0..7" CSV, beating the material mapping. */
+    public static String qualityMaxOverrides = "";
+    /** Batch-3: crafting freezes when the player's upper body is inside a spider web (R196 SlotCrafting:155-157). */
+    public static boolean craftingWebDeny = true;
+    /** Batch-3: any damaged item in the crafting grid freezes the craft (R196 MITEContainerCrafting:178-181). */
+    public static boolean craftingDamagedDeny = true;
+    /** Batch-3: completion effect — level-up sound + witch sparkles (user-named dot, off until picked). */
+    public static boolean craftingFx = false;
+
+    // furnace (stage 4 batch A: heat gate on the vanilla furnace) -------------
+    /** Master switch of the R196 heat ladder on the vanilla furnace tier. */
+    public static boolean furnaceHeatSystem = true;
+    /** Vanilla furnace cap (R196 cobblestone tier). */
+    public static int furnaceVanillaMaxHeat = 2;
+    /** Server-log [FurnaceLog] lines for heat denials (dev channel). */
+    public static boolean furnaceDebugLog = true;
+    /** Batch-B: R196 fuel burn times replace vanilla where they differ (audit 9 §2.2). */
+    public static boolean furnaceBurnTimeR196 = true;
+    /** Batch-C: furnace take pays the R196 per-item reward as one orb (audit 9 §1.4). */
+    public static boolean furnaceXpRewards = true;
+    /** Batch-B GUI hints: gold noSmelt/notFuel/tooHot text when a carried item is refused by a furnace slot. */
+    public static boolean furnaceGuiHints = true;
+
+    public static boolean furnaceInputRecipeGate = true;
+
+    // death (stage 4 batch C: death chain / 8.3) ------------------------------
+    /** Death drops total/3 as XP orbs at the death spot (R196 xp/3 verdict). */
+    public static boolean deathXpOrbs = true;
+    /** Death settles the XP balance (orb drop aside, R196 deposit/refill verdict: respawn = total − 20 sub-1, stale above). */
+    public static boolean deathXpSettle = true;
+    /** Server-log [DeathLog] lines for the death chain (dev channel). */
+    public static boolean deathDebugLog = true;
+
+    // compat group: interop switches (rule 2 — player-perceivable, configurable)
+    /** Crafting Tweaks rightClickCraftsStack auto-disable (see CraftingTweaksCompat). */
+    public static boolean compatCraftingTweaksFix = true;
+
+    // devtools ----------------------------------------------------
+    /** Master switch of the DEV TEST FACILITIES: the GRAVE-key debug HUD
+     * (ETIMDebugOverlay) and the /etest state command. Off = player-facing
+     * release behaves as if they never existed (no overlay, command not
+     * registered). Requires a restart (like every other key). */
+    public static boolean devTools = true;
 
     private static boolean chinese;
 
@@ -373,9 +452,110 @@ public final class ETIMConfig {
                 comment("Action-bar feedback when a hunger gate denies an action (dev/test channel)",
                         "饥饿门拒绝动作时发送动作栏反馈（开发/测试通道）"));
 
+        craftingTimer = config.getBoolean("craftingTimer", "crafting", true,
+                comment("R196 crafting timer (stage 3): recipes take difficulty ticks; off = vanilla instant crafting",
+                        "R196 合成计时（阶段三）：配方需要难度 tick 数才完成；关闭则回到原版瞬时合成"));
+        craftingSkipCreative = config.getBoolean("craftingSkipCreative", "crafting", true,
+                comment("Creative players keep vanilla instant crafting",
+                        "创造模式玩家保留原版瞬时合成"));
+        craftingSpeedPerLevel = config.getFloat("craftingSpeedPerLevel", "crafting", craftingSpeedPerLevel, 0.0F, 10.0F,
+                comment("Crafting speed bonus fraction per level (R196 CRAFTING skill: 0.02 = 2%)",
+                        "每级合成速度加成（R196 合成技能为 0.02，即每级 2%）"));
+        craftingBenchModifier = config.getFloat("craftingBenchModifier", "crafting", craftingBenchModifier, 0.0F, 10.0F,
+                comment("Bench speed modifier of the vanilla crafting table (R196 lowest bench tier: 0.2); the 2x2 inventory grid counts as no bench (0)",
+                        "合成台的提速系数（R196 最低档台面为 0.2）；2x2 随身网格视作无台面（0）"));
+        craftingPeriodFloor = config.getInt("craftingPeriodFloor", "crafting", craftingPeriodFloor, 1, 1000000,
+                comment("Minimum crafting period in ticks (R196: 25)",
+                        "合成周期下限（tick），R196 为 25"));
+        craftingCurveExponent = config.getFloat("craftingCurveExponent", "crafting", craftingCurveExponent, 0.1F, 2.0F,
+                comment("Exponent of the difficulty>100 period curve (R196: pow(d−100, 0.8)+100)",
+                        "难度>100 时的周期曲线指数（R196 为 pow(d−100, 0.8)+100）"));
+        craftingGenericDifficulty = config.getFloat("craftingGenericDifficulty", "crafting", craftingGenericDifficulty, 0.0F, 100000.0F,
+                comment("Difficulty of unlisted generic ingredients (R196 §4.1 one-family: 25)",
+                        "未列名普通配料的合成难度（R196 §4.1 统一档为 25）"));
+        craftingDamagePenaltyPerDamagePoint = config.getInt("craftingDamagePenaltyPerDamagePoint", "crafting", craftingDamagePenaltyPerDamagePoint, 0, 100000,
+                comment("Craft progress in ticks lost per whole damage point taken while crafting (R196: 50 ticks = 2.5 s)",
+                        "合成进行中每受 1 点伤害损失的进度（tick），R196 为 50 tick = 2.5 秒"));
+        craftingCompleteFeedback = config.getBoolean("craftingCompleteFeedback", "crafting", true,
+                comment("Chat line when a craft completes (dev/test feedback channel)",
+                        "合成完成时的聊天提示（开发/测试反馈通道）"));
+        craftingStartFeedback = config.getBoolean("craftingStartFeedback", "crafting", true,
+                comment("Chat line when a craft starts, with the expected duration",
+                        "开始合成时的聊天提示，附带预计耗时"));
+        craftingProgressArrow = config.getBoolean("craftingProgressArrow", "crafting", true,
+                comment("Fill the crafting GUI arrow with white progress (the arrow between grid and result slot)",
+                        "合成界面的箭头以白色进度填充（网格与产物槽之间的箭头）"));
+        craftingDebugLog = config.getBoolean("craftingDebugLog", "crafting", true,
+                comment("Server log [CraftingLog] lines: period sets, starts, damage penalties and completions (dev channel)",
+                        "服务端日志 [CraftingLog] 行：周期设定、开表、受击扣进度与完成（开发通道）"));
+        qualitySystem = config.getBoolean("qualitySystem", "crafting", true,
+                comment("R196 quality ladder (batch 3): right-click the result slot to cycle the rung; higher rungs cost XP and lengthen the period. Off = vanilla, no quality",
+                        "R196 品质阶梯（批三）：右击产物槽循环档位；高档消耗经验并延长周期。关闭则回到原版无品质"));
+        craftingQualityFeedback = config.getBoolean("craftingQualityFeedback", "crafting", true,
+                comment("Chat line when right-click quality cycling changes the rung (dev/test feedback channel)",
+                        "右击循环档位时的聊天提示（开发/测试反馈通道）"));
+        qualityDefaultMax = config.getInt("qualityDefaultMax", "crafting", qualityDefaultMax, 0, 7,
+                comment("Max quality rung for items with no mapped vanilla material: 0=wretched 1=poor 2=average 3=fine 4=excellent 5=superb 6=masterwork 7=legendary (R196 §2.4 material rows used for known materials)",
+                        "无对应原版材质的物品最高品质档：0=劣质 1=贫瘠 2=普通 3=精良 4=优秀 5=华丽 6=大师之作 7=传奇（对应原版材质按 R196 §2.4 材质表取值）"));
+        qualityMaxOverrides = config.getString("qualityMaxOverrides", "crafting", qualityMaxOverrides,
+                comment("Per-item max-quality overrides beating the material mapping, format 'minecraft:iron_sword=6,minecraft:diamond_pickaxe=7' (empty = none)",
+                        "逐物品最高品质覆盖（优先于材质映射），格式『minecraft:iron_sword=6,minecraft:diamond_pickaxe=7』（留空=无覆盖）"));
+        craftingWebDeny = config.getBoolean("craftingWebDeny", "crafting", true,
+                comment("Crafting freezes when the player's upper body is inside a spider web (R196 SlotCrafting:155-157); progress clears, it does not freeze",
+                        "玩家上身陷在蜘蛛网内时合成清零（R196 SlotCrafting:155-157）；进度清零而非冻结"));
+        craftingDamagedDeny = config.getBoolean("craftingDamagedDeny", "crafting", true,
+                comment("Any damaged item placed in the crafting grid freezes the craft (R196 MITEContainerCrafting:178-181); progress clears, it does not freeze",
+                        "合成格内有任何受损物品时合成清零（R196 MITEContainerCrafting:178-181）；进度清零而非冻结"));
+        craftingFx = config.getBoolean("craftingFx", "crafting", false,
+                comment("Completion effect: level-up sound + witch sparkles at the crafter (user-named preset; off until a visual/audio plan is picked)",
+                        "合成完成特效：升级音效+巫师粒子（待裁方案暂凑；用户点名后可换）"));
+
+        furnaceHeatSystem = config.getBoolean("furnaceHeatSystem", "furnace", true,
+                comment("R196 heat ladder (stage 4 batch A): fuels carry heat levels and recipes require a minimum; lower-than-required heat = the furnace refuses to smelt (R196 getSmeltingResult null, no derating). Off = vanilla furnace",
+                        "R196 热量阶梯（阶段四批A）：燃料带热度档、配方要求最低热度；热度不足时熔炉拒绝冶炼（R196 getSmeltingResult 返回 null，不降档）。关闭则回到原版熔炉"));
+        furnaceVanillaMaxHeat = config.getInt("furnaceVanillaMaxHeat", "furnace", furnaceVanillaMaxHeat, 1, 4,
+                comment("Max heat the vanilla furnace accepts (R196 cobblestone furnace cap = 2; the extra tiers come with batch B)",
+                        "原版熔炉可承受的最高热度（R196 圆石炉 cap 为 2；其余炉型随批 B 落地）"));
+        furnaceDebugLog = config.getBoolean("furnaceDebugLog", "furnace", true,
+                comment("Server log [FurnaceLog] lines: smelt blocks and fuel admittance denials (dev channel)",
+                        "服务端日志 [FurnaceLog] 行：熔炼拒绝与燃料准入拒绝（开发通道）"));
+        furnaceBurnTimeR196 = config.getBoolean("furnaceBurnTimeR196", "furnace", true,
+                comment("R196 fuel burn durations replace vanilla where they differ (audit 9 §2.2: log 1600, planks 400, torch 800, lava bucket 3200, coal block 16000, blaze rod 2400, ...)",
+                        "燃料燃烧时长按 R196 判值替换与原版有差异的项（审计 9 §2.2：原木 1600、木板 400、火把 800、熔岩桶 3200、煤炭块 16000、烈焰棒 2400 等）"));
+        furnaceXpRewards = config.getBoolean("furnaceXpRewards", "furnace", true,                comment("Take pays the R196 per-item XP reward as one orb at the player (audit 9 §1.4: iron 10 / gold 20 / diamond 30 / emerald 20 / quartz 10; batch-B metals keep their judged numbers), replacing the vanilla random split; creative pays identical",
+                        "取产物时按 R196 逐物品经验表结算一次（审计 9 §1.4：铁 10/金 20/钻石 30/绿宝石 20/石英 10；批 B 金属照判值），替换原版随机分配；创造不豁免"));
+        furnaceGuiHints = config.getBoolean("furnaceGuiHints", "furnace", true,
+                comment("Gold no-smelt / not-fuel / too-hot text when the cursor's carried item is refused by a furnace slot (R196 GuiFurnace:47-85)",
+                        "光标持有物被熔炉槽拒绝时的金字提示：不可熔/非燃料/过热（R196 GuiFurnace:47-85）"));
+        furnaceInputRecipeGate = config.getBoolean("furnaceInputRecipeGate", "furnace", true,
+                comment("Furnace input slot only admits items that HAVE a smelting recipe (R196 TileEntityFurnace:360-368 — GUI drag and hopper alike); off = vanilla open-input acceptance",
+                        "熔炉输入槽只收有熔炼配方的物品（R196 TileEntityFurnace:360-368 — GUI 拖放与漏斗同门）；关闭则回到原版输入槽全部放行"));
+
+        deathXpOrbs = config.getBoolean("deathXpOrbs", "death", true,
+                comment("Death drops total/3 as XP orbs at the death spot (R196 EntityPlayer:2032-2035); keepInventory suppresses it in both games",
+                        "死亡掉落 total/3 成经验球于死亡点（R196 EntityPlayer:2032-2035）；keepInventory 规则下双方都不生效"));
+        deathXpSettle = config.getBoolean("deathXpSettle", "death", true,
+                comment("Death settles the XP balance: below-1-total deaths subtract 20 points (floor −800); higher deaths restore the stale respawn value (R196 ServerPlayer:953-957). Off = vanilla XP carryover",
+                        "死亡结算经验：总量低于 1 级线（20 点）时扣 20 点（下限 −800）；更高时重生继承上次结算值（R196 ServerPlayer:953-957）。关闭则回到原版经验全保留"));
+        deathDebugLog = config.getBoolean("deathDebugLog", "death", true,
+                comment("Server log [DeathLog] lines: orb dumps, settle results and respawn rewrites (dev test channel)",
+                        "服务端日志 [DeathLog] 行：经验球掉落、结算结果与重生效写（开发测试通道）"));
+        compatCraftingTweaksFix = config.getBoolean("compatCraftingTweaksFix", "compat", true,
+                comment("With CraftingTweaks installed, auto-disable its rightClickCraftsStack (right-click = craft full stack) so ETIM's R196 quality picker keeps the result-slot right-click; also rewrites craftingtweaks.cfg",
+                        "检测到 Crafting Tweaks 时自动停用其『右击产物=成组合成』，把产物槽右击归还给 ETIM 的 R196 品质选择器；同时回写 craftingtweaks.cfg"));
+
+        devTools = config.getBoolean("devTools", "devtools", true,
+                comment("DEV TEST FACILITIES master switch: the GRAVE-key left-top debug HUD (reach/mining/hunger readout) and the /etest state command. Off = both disabled (release behavior); needs restart like every key",
+                        "开发测试设施总开关：GRAVE 键左上角调试 HUD（触及/挖掘/饥饿读数）与 /etest 状态指令。关闭则两者一并停用（发布形态）；与其他键一样需重启生效"));
+
         if (config.hasChanged()) {
             config.save();
         }
+        CraftingDifficulty.setGenericDifficulty(craftingGenericDifficulty);
+        ETIMQuality.setOverrides(qualityMaxOverrides);
+        FurnaceHeat.setEnabled(furnaceHeatSystem);
+        FurnaceHeat.setVanillaCap(furnaceVanillaMaxHeat);
+        FurnaceXpRewards.setEnabled(furnaceXpRewards);
         validate(config);
     }
 
@@ -392,6 +572,11 @@ public final class ETIMConfig {
                     + "mild(" + insulinThresholdMild + ") <= moderate(" + insulinThresholdModerate
                     + ") <= severe(" + insulinThresholdSevere + ") <= cap(" + insulinCap + ") (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
+        }
+        if (craftingDamagePenaltyPerDamagePoint % 10 != 0) {
+            throw new IllegalStateException("[ETIM] Invalid config: crafting.craftingDamagePenaltyPerDamagePoint ("
+                    + craftingDamagePenaltyPerDamagePoint + ") must be a multiple of 10 (R196 protocol: ×10 packet × N ticks)"
+                    + " (file " + config.getConfigFile().getAbsolutePath() + ")");
         }
         if (Float.isNaN(miningSpeedPerLevel) || Float.isNaN(meleeDamagePerLevel)
                 || Float.isNaN(bedRegenFactor)
@@ -411,7 +596,9 @@ public final class ETIMConfig {
                 || Float.isNaN(reachBonusTool) || Float.isNaN(reachBonusSmall)
                 || Float.isNaN(reachServerTolerance) || Float.isNaN(entityHitboxExpansion)
                 || Float.isNaN(hungerMoveFactor) || Float.isNaN(weakStrikeKnockbackFactor)
-                || Float.isNaN(weakStrikeHealthThreshold) || Float.isNaN(hungerDigStrDivisor)) {
+                || Float.isNaN(weakStrikeHealthThreshold) || Float.isNaN(hungerDigStrDivisor)
+                || Float.isNaN(craftingSpeedPerLevel) || Float.isNaN(craftingBenchModifier)
+                || Float.isNaN(craftingCurveExponent) || Float.isNaN(craftingGenericDifficulty)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }

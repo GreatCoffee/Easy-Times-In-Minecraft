@@ -71,6 +71,9 @@ public class CommandDevTest extends CommandBase {
             case "level":
                 executeLevel(player, args);
                 break;
+            case "debt":
+                executeDebt(player, args);
+                break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
         }
@@ -121,14 +124,43 @@ public class CommandDevTest extends CommandBase {
             throw new WrongUsageException("commands.etest.usage");
         }
         int target = CommandBase.parseInt(args[1], 0, ETIMConfig.levelCap);
-        int delta = target - player.experienceLevel;
-        if (delta != 0) {
-            player.addExperienceLevel(delta);
+        // R196: the LEVEL derives from POINTS (cost budget §53-56 reads
+        // experienceTotal). A legit level-N player owns exactly curve(N)
+        // points — set the trio via the curve helper so the HUD, the
+        // death-chain settle arithmetic and the quality budget all agree
+        // (run26 157-round report).
+        io.github.etim.etim.playerstate.ETIMXp.applyTotal(player,
+                io.github.etim.etim.playerstate.ETIMXp.pointsForLevel(target));
+        respond(player, "commands.etest.level_set", player.experienceLevel);
+    }
+
+    /** Vanilla 1.12.2 XP-to-reach-level curve ({@code XpToReachLevelNumber}). */
+    private static int experiencePointsForLevel(int level) {
+        if (level <= 16) {
+            return level * level + 6 * level;
+        } else if (level <= 30) {
+            return (int) Math.floor(2.5 * level * level - 40.5 * level + 360);
         }
-        // addExperienceLevel relies on the periodic XP packet; push one now.
+        return (int) Math.floor(4.5 * level * level - 162.5 * level + 2220);
+    }
+
+    /**
+     * {@code /etest debt <levels>} — stages the R196 death-debt state directly
+     * (negative level, linear total −20·L) without grinding deaths; the same
+     * shape the respawn settle writes (death/ETIMDeathXp linear negative
+     * half). Unlimited to 0..40 (= R196 xp(−40) floor).
+     */
+    private static void executeDebt(EntityPlayerMP player, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        int debt = CommandBase.parseInt(args[1], 0, 40);
+        player.experienceLevel = -debt;
+        player.experienceTotal = -20 * debt;
+        player.experience = 0.0F;
         player.connection.sendPacket(new SPacketSetExperience(
                 player.experience, player.experienceTotal, player.experienceLevel));
-        respond(player, "commands.etest.level_set", player.experienceLevel);
+        respond(player, "commands.etest.debt_set", -debt, player.experienceTotal);
     }
 
     private static void respond(EntityPlayerMP player, String key, Object... params) {

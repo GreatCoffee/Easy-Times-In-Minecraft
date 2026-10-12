@@ -64,6 +64,9 @@ public final class ETIMDebugOverlay {
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (!ETIMConfig.devTools) {
+            return;
+        }
         if (event.phase == TickEvent.Phase.END && TOGGLE_KEY.isPressed()) {
             visible = !visible;
             ETIM.LOGGER.info("ETIMDebugOverlay toggled to " + visible);
@@ -72,7 +75,9 @@ public final class ETIMDebugOverlay {
 
     @SubscribeEvent
     public static void onOverlay(RenderGameOverlayEvent.Post event) {
-        if (!visible || event.getType() != RenderGameOverlayEvent.ElementType.ALL) {
+        if (!ETIMConfig.devTools
+                || !visible
+                || event.getType() != RenderGameOverlayEvent.ElementType.ALL) {
             return;
         }
         try {

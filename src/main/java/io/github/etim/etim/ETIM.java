@@ -45,13 +45,22 @@ public final class ETIM {
         NutritionSystem.register();
         NutritionNetwork.registerMessages();
         io.github.etim.etim.ingest.ETIMIngestNetwork.registerMessages();
+        io.github.etim.etim.crafting.CraftingProgressNetwork.registerMessages();
         FoodDebugNetwork.registerMessages();
         ETIMFoodStats.register();
+        io.github.etim.etim.death.ETIMDeathXp.register();
+        io.github.etim.etim.furnace.FurnaceHeat.addJudgedRecipes();
         ETIMEnchantments.register();
         ETIMConfig.init(event);
         // Manual registration for deterministic order against the 1.4 tick
         // drain (see ETIMFoodStatsEvents' class javadoc).
         MinecraftForge.EVENT_BUS.register(ETIMFoodStatsEvents.class);
+        if (event.getSide().isClient()) {
+            // Furnace slot heat tooltip row (top-of-tips prepend, F round):
+            // ItemTooltipEvent originates client-side only; the handler reads
+            // client API (uses I18n) so keep it off the server bus entirely.
+            MinecraftForge.EVENT_BUS.register(io.github.etim.etim.client.FurnaceTooltipHints.class);
+        }
         LOGGER.info("Hello From {}!", Tags.MOD_NAME);
     }
 
@@ -59,12 +68,16 @@ public final class ETIM {
     public void init(FMLInitializationEvent event) {
         // Vanilla tools carry R196 material durability (task 2.2 ToolSuite).
         ETIMToolDurability.apply();
+        // All preInits complete by here: CT's config load covered (compat fix).
+        io.github.etim.etim.compat.CraftingTweaksCompat.apply();
     }
 
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new CommandState());
-        event.registerServerCommand(new CommandDevTest());
+        if (ETIMConfig.devTools) {
+            event.registerServerCommand(new CommandDevTest());
+        }
     }
 
 }

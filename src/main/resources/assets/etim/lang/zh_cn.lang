@@ -35,17 +35,35 @@ etim.reach.deny_interact=交互超出触及（%s > %s），未生效
 etim.hunger.craftDeny=太饿了，合成不出来
 etim.hunger.placeDeny=太饿了，放不下硬方块
 etim.hunger.weakStrike=太饿了，空手打不动
-
 commands.etest.health_set=已设：生命=%s（上限 %s 点）
 commands.etest.level_set=已设：等级=%s
-
-commands.etest.usage=/etest food <饱食> [营养] /etest health <生命> /etest level <等级>（旧版食物模型：/etest food <点数> [饱和度]）
+commands.etest.usage=/etest food <饱食> [营养] /etest health <生命> /etest level <等级> /etest debt <0..40>（旧模型：/etest food <点数> [饱和]）
 commands.etest.food_set_pool=已设双池：饱食=%s 营养=%s（上限 %s 点）
 commands.etest.food_set_bar=已设：饥饿=%s 饱和度=%s（上限 %s 点）
 etim.debug.food_pools=双池：饱食=%s 营养=%s 饥饿池=%s
 tile.bed.wakeHungry=饿醒了：营养耗尽，无法继续睡觉
 tile.bed.tooHungry=太饿了，无法睡觉
-
 etim.state.satiation=饱食
 etim.state.nutrition=营养
 etim.state.hungerPool=饥饿池
+etim.crafting.completed=%s
+etim.crafting.started=开始合成：约 %s 完成
+etim.quality.wretched=劣质品质
+etim.quality.poor=贫瘠品质
+etim.quality.average=普通品质
+etim.quality.fine=精良品质
+etim.quality.excellent=优秀品质
+etim.quality.superb=卓越品质
+etim.quality.masterwork=大师之作
+etim.quality.legendary=传奇品质
+etim.quality.durability_penalty=耐久惩罚 -%s%%
+etim.quality.durability_bonus=耐久加成 +%s%%
+etim.crafting.quality=品质已选档：%s（需 %s 点经验）
+etim.crafting.paid=已消耗 %s 点经验
+commands.etest.debt_set=已设负债等级：%s（累计 %s 点）
+etim.furnace.cantSmelt=该物品没有可熔炼配方
+etim.furnace.notFuel=这不是燃料
+etim.furnace.tooHot=对这座熔炉太热
+etim.furnace.needed=本配方需要热度 ≥ %s
+etim.furnace.curheat=燃料热度 %s（熔炉上限 %s）
+etim.state.deathXp=死亡结算
