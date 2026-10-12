@@ -19,16 +19,17 @@
 const { createHarnBot, log } = require('./fmlbot');
 
 function parseArgs(argv) {
-  const o = { host: 'localhost', port: 25565, username: 'ETIM_Harn01', wait: 150 };
+  const o = { host: 'localhost', port: 25565, username: 'ETIM_Harn01', wait: 150, cmds: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tp') {
       const [x, y, z] = argv.splice(i + 1, 3).map(Number);
       if ([x, y, z].some(v => Number.isNaN(v))) throw new Error('--tp needs x y z numbers');
-      o.tp = [x, y, z]; i = i + 3;
+      o.tp = [x, y, z];  // splice 已把三个数字移出 argv；不要额外推进 i（for 自增会带走）
     } else if (a === '--wait') { o.wait = Number(argv[i + 1]); i++; }
+    else if (a === '--cmd') { o.cmds.push(argv[i + 1]); i++; }  // 入世即发指令（op 前置态），逐条 900ms 间隔
     else if (!o.hostSeen) { o.host = a; o.hostSeen = true; }
-    else if (!o.portSeen) { o.port = Number(a); o.portSeen = true; }
+    else if (!o.portSeen) { o.port = Number(argv[i + 1]); o.portSeen = true; i++; }
     else { o.username = a; }
   }
   return o;
@@ -49,17 +50,30 @@ async function main() {
   });
   log('a2', `spawned at ${fmt(bot.entity.position)}`);
 
-  // op 探测：/tp 成功的判据 = 位置真的到了落点（±0.1）
+  // 入世即发指令（op 前置态）：防护/免刷敌等编排先行，必须在 tp 之前
+  // （先给抗性再 tp，窒息伤害也被抗性吸收——麻辣「tp 进石头」不再致死）
+  for (const c of o.cmds) {
+    bot.chat(c);
+    await new Promise((r) => setTimeout(r, 900));
+    log('a2', `cmd> ${c}`);
+  }
+
+  // op 探测：/tp 成功的判据 = 位置真的到了落点（±0.1）。mineflayer 的
+  // 位置包可能晚到数秒（首帧常停在 0,0,0），故 6 轮 × 1.5s 重试。
+  let tpPoint = null;
   let hasOp = false;
   if (o.tp) {
     const [x, y, z] = o.tp;
     bot.chat(`/tp ${o.username} ${x} ${y} ${z}`);
-    await new Promise((r) => setTimeout(r, 3000));
-    const p = bot.entity && bot.entity.position;
-    hasOp = !!p && Math.abs(p.x - x) < 0.1 && Math.abs(p.y - y) < 0.1 && Math.abs(p.z - z) < 0.1;
+    for (let t = 0; t < 6 && !hasOp; t++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const p = bot.entity && bot.entity.position;
+      if (p && Math.abs(p.x - x) < 0.1 && Math.abs(p.y - y) < 0.1 && Math.abs(p.z - z) < 0.1) hasOp = true;
+    }
+    tpPoint = bot.entity && bot.entity.position;
     log('a2', hasOp
-      ? `tp OK，落点 ${fmt(p)}（≥16 格 + 视线遮断由落点保证）`
-      : 'tp FAILED（无 op 或落点未到）— 降级：仅标记+保持，判读时须注明降级');
+      ? `tp OK，落点 ${fmt(tpPoint)}（≥16 格 + 视线遮断由落点保证）`
+      : `tp FAILED（6 轮探测未见落点 ${fmt(tpPoint)}）— 降级：仅标记+保持，判读时须注明降级`);
   }
 
   mark(`[HarnMark] A2 begin ts=${Date.now()} tp=${hasOp ? o.tp.join(',') : 'none'}`, hasOp);

@@ -197,7 +197,7 @@ public final class DespawnRules {
         }
         // LOS view-reset gate — the base layer (MITE EntityLiving:752-758)
         if (isConsideredInViewOfAnyPlayer(e, w)) {
-            refresh(e, e instanceof EntityWaterMob ? RESET_IN_VIEW_WATER : RESET_IN_VIEW);
+            refresh(e, e instanceof EntityWaterMob ? RESET_IN_VIEW_WATER : RESET_IN_VIEW, "in-view");
             return false;
         }
         // mob layer — AFTER the LOS gate (MITE EntityMob:259-269)
@@ -205,7 +205,7 @@ public final class DespawnRules {
             EntityPlayer p = w.getClosestPlayer(e.posX, e.posY, e.posZ, MOB_PATH_RADIUS, false);
             if (p != null && p.isEntityAlive()
                     && e.getNavigator().getPathToEntityLiving(p) != null) {
-                refresh(e, RESET_PATH);
+                refresh(e, RESET_PATH, null);
                 log(e, "hold=mob-path-within48");
                 return false;
             }
@@ -353,12 +353,18 @@ public final class DespawnRules {
      * MITE Entity.refreshDespawnCounter: {@code if (counter > value)
      * counter = value} — a one-way downward refresh, never raises.
      */
-    private static void refresh(EntityLiving e, int value) {
+    private static void refresh(EntityLiving e, int value, String reason) {
         EntityLivingBaseAccessor acc = (EntityLivingBaseAccessor) e;
         int c = acc.etim$getIdleTime();
         if (c > value) {
             acc.etim$setIdleTime(value);
-            log(e, "hold=in-view reset=" + value);
+            // label carries the calling layer's reason: the in-view sight reset
+            // keeps its distinctive key; the mob-layer path hold has its own
+            // dedicated row below (exact test-book wording "mob-path-within48"),
+            // so a null reason silences this generic line for that call site.
+            if (reason != null) {
+                log(e, "hold=" + reason + " reset=" + value);
+            }
         }
     }
 
