@@ -178,6 +178,17 @@ public final class DespawnRules {
             return false;
         }
         World w = ((EntityAccessor) e).etim$getWorld();
+        // vanilla original-authority exemption — the chain replaced despawnEntity
+        // wholesale, so the WINDOW-canDespawn overrides never consult themselves
+        // (EntityVillager.canDespawn=false by hand in 1.12; A8B window evidence
+        // 18:58:28 EntityVillager#18918 kill counter=200 distSq=1427158). The
+        // audit's "Golem/Villager consistent on both sides" intent requires an
+        // explicit gate here; the wither/dragon own-despawn paths are unaffected
+        // (their despawnEntity never routes here).
+        if (e instanceof net.minecraft.entity.passive.EntityVillager
+                || e instanceof net.minecraft.entity.monster.EntityIronGolem) {
+            return false;
+        }
         // animal layer — three walls, checked BEFORE the LOS gate (MITE :237-255)
         if (e instanceof EntityAnimal) {
             int c = ((EntityLivingBaseAccessor) e).etim$getIdleTime();

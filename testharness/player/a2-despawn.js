@@ -5,34 +5,55 @@
  * 然后原地保持存活至窗口结束。`mob despawn kill counter=… distSq>256` 行的判读
  * 由主会话判读器读服务端 latest.log 完成——本脚本只负责动作与对齐标记。
  *
- * 前置（主会话措置，二选一）：
- *   - RCON/控制台先执行 `/op <username>`（/tp 需要权限级 2）；本脚本自动用
- *     「落点位置变化」做 op 探测，无 op 自动降级为「不 tp，仅标记 + 保持」。
+ * op/tp 判定（修订·台账 185）：**以服务端系统 chat 回执为唯一凭据**——
+ * 匹配 translate `commands.tp.success.*`（文本 /Teleported/）或拒绝文案；
+ * 不再依赖 entity.position（位置包可能迟到 >9s，首帧停 0,0,0）。
+ * 回执成功 → [HarnMark] begin/end 走 /say 落进服务端 latest.log。
  *
  * 用法：
- *   & D:\Documents\Softwares\Node\22.22.2\node.exe a2-despawn.js [host] [port] [username] [--tp x y z] [--wait SEC]
+ *   & D:\Documents\Softwares\Node\22.22.2\node.exe a2-despawn.js [host] [port] [username] [--tp x y z | --tp-rel dx dy dz] [--wait SEC]
  * 默认：localhost 25565 ETIM_Harn01，wait 150s（任务书：每项窗口 ≥90s）
- * 判读对齐标记：进服后 `[HarnMark] A2 begin`，结束 `[HarnMark] A2 end`；
- * 有 op 时两条标记经 /say 落进服务端日志（latest.log 可 grep），无 op 仅 stdout。
+ * 判读对齐标记：`[HarnMark] A2 begin ts=… tp=…` → `[HarnMark] A2 end ts=… stayed=…s`
  */
 'use strict';
 const { createHarnBot, log } = require('./fmlbot');
 
 function parseArgs(argv) {
-  const o = { host: 'localhost', port: 25565, username: 'ETIM_Harn01', wait: 150, cmds: [] };
+  const o = { host: 'localhost', port: 25565, username: 'ETIM_Harn01', wait: 150 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tp') {
-      const [x, y, z] = argv.splice(i + 1, 3).map(Number);
-      if ([x, y, z].some(v => Number.isNaN(v))) throw new Error('--tp needs x y z numbers');
-      o.tp = [x, y, z];  // splice 已把三个数字移出 argv；不要额外推进 i（for 自增会带走）
+      const v = argv.splice(i + 1, 3).map(Number);
+      if (v.some(x => Number.isNaN(x))) throw new Error('--tp needs x y z numbers');
+      o.tp = v; o.tpRel = false; // splice 已移除 flag 后 3 值，循环自然 ++ 正落下一个 token
+    } else if (a === '--tp-rel') {
+      const v = argv.splice(i + 1, 3).map(String); // 支持 ~
+      if (v.length !== 3) throw new Error('--tp-rel needs dx dy dz');
+      o.tp = v; o.tpRel = true;
     } else if (a === '--wait') { o.wait = Number(argv[i + 1]); i++; }
-    else if (a === '--cmd') { o.cmds.push(argv[i + 1]); i++; }  // 入世即发指令（op 前置态），逐条 900ms 间隔
     else if (!o.hostSeen) { o.host = a; o.hostSeen = true; }
-    else if (!o.portSeen) { o.port = Number(argv[i + 1]); o.portSeen = true; i++; }
+    else if (!o.portSeen) { o.port = Number(a); o.portSeen = true; }
     else { o.username = a; }
   }
   return o;
+}
+
+/** 等服务端对 /tp 的下一个回执（成功/拒绝/未知），10s 兜底超时 */
+function awaitTpReceipt(bot) {
+  return new Promise((resolve) => {
+    const done = (result) => { clearTimeout(timer); off(); resolve(result); };
+    const timer = setTimeout(() => done({ kind: 'timeout' }), 10000);
+    const handler = (msg) => {
+      const json = (msg && msg.json) || null;
+      const translate = (msg && msg.translate) || (json && json.translate) || '';
+      const text = msg.toString();
+      if (/^commands\.tp\.success/.test(translate)) return done({ kind: 'ok', text, translate, json });
+      if (/^Teleported /i.test(text)) return done({ kind: 'ok', text, translate, json });
+      if (/permission to use this command|Unknown command/i.test(text)) return done({ kind: 'denied', text });
+    };
+    bot.on('message', handler);
+    const off = () => bot.off('message', handler);
+  });
 }
 
 const fmt = (p) => p ? `${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}` : '(unknown)';
@@ -40,40 +61,27 @@ const fmt = (p) => p ? `${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}` :
 async function main() {
   const o = parseArgs(process.argv.slice(2));
   const bot = await createHarnBot({ host: o.host, port: o.port, username: o.username });
-  const mark = (line, useSay) => { if (useSay) bot.chat(`/say ${line}`); log('a2', line); };
+  const mark = (line, useSay) => { log('a2', line); if (useSay) bot.chat(`/say ${line}`); };
 
-  // 等 spawn：登录后首个 position 更新（或 20s 兜底）
+  // 等 spawn：登录后首个 position 更新（或 20s 兜底）——仅作参考展示，不是任何判定凭据
   await new Promise((resolve) => {
     if (bot.entity && bot.entity.position) return resolve();
     bot.once('move', resolve);
     setTimeout(resolve, 20000);
   });
-  log('a2', `spawned at ${fmt(bot.entity.position)}`);
+  log('a2', `spawned (client-side view) at ${fmt(bot.entity.position)}`);
 
-  // 入世即发指令（op 前置态）：防护/免刷敌等编排先行，必须在 tp 之前
-  // （先给抗性再 tp，窒息伤害也被抗性吸收——麻辣「tp 进石头」不再致死）
-  for (const c of o.cmds) {
-    bot.chat(c);
-    await new Promise((r) => setTimeout(r, 900));
-    log('a2', `cmd> ${c}`);
-  }
-
-  // op 探测：/tp 成功的判据 = 位置真的到了落点（±0.1）。mineflayer 的
-  // 位置包可能晚到数秒（首帧常停在 0,0,0），故 6 轮 × 1.5s 重试。
-  let tpPoint = null;
-  let hasOp = false;
+  // /tp 判定：以服务端回执为凭据
+  let hasOp = false, tpText = 'none';
   if (o.tp) {
-    const [x, y, z] = o.tp;
-    bot.chat(`/tp ${o.username} ${x} ${y} ${z}`);
-    for (let t = 0; t < 6 && !hasOp; t++) {
-      await new Promise((r) => setTimeout(r, 1500));
-      const p = bot.entity && bot.entity.position;
-      if (p && Math.abs(p.x - x) < 0.1 && Math.abs(p.y - y) < 0.1 && Math.abs(p.z - z) < 0.1) hasOp = true;
-    }
-    tpPoint = bot.entity && bot.entity.position;
+    const target = o.tpRel ? o.tp.join(' ') : o.tp.join(' ');
+    bot.chat(`/tp ${o.username} ${target}`);
+    const receipt = await awaitTpReceipt(bot);
+    hasOp = receipt.kind === 'ok';
+    if (hasOp) tpText = `${o.tp.join(',')}（回执：${receipt.text}）`;
     log('a2', hasOp
-      ? `tp OK，落点 ${fmt(tpPoint)}（≥16 格 + 视线遮断由落点保证）`
-      : `tp FAILED（6 轮探测未见落点 ${fmt(tpPoint)}）— 降级：仅标记+保持，判读时须注明降级`);
+      ? `tp OK（服务端回执凭据）${tpText}——≥16 格 + 视线遮断由落点保证`
+      : `tp ${receipt.kind}（回执：${receipt.text || '(no receipt)'}）— 降级：仅标记+保持，判读时须注明降级`);
   }
 
   mark(`[HarnMark] A2 begin ts=${Date.now()} tp=${hasOp ? o.tp.join(',') : 'none'}`, hasOp);
@@ -81,6 +89,10 @@ async function main() {
   const heart = setInterval(() => {
     if (bot.entity) log('a2', `heartbeat pos=${fmt(bot.entity.position)} health=${bot.health} food=${bot.food}`);
   }, 15000);
+
+  // 连接断开后速断；总保险：wait+15s 无论挂在哪里（已知 bot.quit() 有挂起案例，台账 185 后续）都强退
+  bot.on('end', () => setTimeout(() => process.exit(0), 500));
+  setTimeout(() => { log('a2', 'HARD EXIT (quit hang guard)'); process.exit(1); }, (o.wait + 15) * 1000);
 
   await new Promise((r) => setTimeout(r, o.wait * 1000));
   clearInterval(heart);

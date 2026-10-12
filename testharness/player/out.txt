@@ -1,0 +1,11 @@
+[10:45:59.738] [ping] FMLSrvMods: minecraft@1.12.2, mcp@9.42, mixinbooter@11.13, FML@8.0.99.99, forge@14.23.5.2847, jecharacters@1.12.0-3.7.3, smoothfontcore@mc1.12.2-2.1.4, etim@1.0.0, craftingtweaks@8.1.9, fencejumper@1.0.5, inventorysorter@1.13.3+57, jei@4.22.0.1034, journeymap@1.12.2-6.0.10, rebind@2.7.5, stepup@1.0.2-mc1.10-1.12.2, theoneprobe@1.4.28
+[10:45:59.919] [fmlhs] disc=0(HELLO_SERVER) len=6
+[10:45:59.920] [fmlhs] disc=2(MOD_LIST) len=311
+[10:45:59.923] [fmlhs] disc=255(ACK) len=2
+[10:45:59.924] [fmlhs] disc=255(ACK) len=2
+[10:45:59.950] [bot] LOGIN OK as ETIM_Harn04 — FML|HS 握手成功，registry_data 帧=11
+[10:45:59.950] [a2] spawned (client-side view) at 0.0 0.0 0.0
+[10:46:00.193] [chat] You do not have permission to use this command
+[10:46:00.194] [a2] tp denied（回执：You do not have permission to use this command）— 降级：仅标记+保持，判读时须注明降级
+[10:46:00.194] [a2] [HarnMark] A2 begin ts=1791801960194 tp=none
+[10:46:15.194] [a2] heartbeat pos=-68.5 66.0 243.5 health=6 food=6
