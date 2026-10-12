@@ -144,6 +144,9 @@ public final class DespawnRules {
     /** Entities already processed by the seed check (one pass only). */
     private static final java.util.Set<EntityLiving> SEEDED =
             java.util.Collections.newSetFromMap(new WeakHashMap<EntityLiving, Boolean>());
+    /** Entities already traced at the ocelot chain gate (one row per cat). */
+    private static final java.util.Set<EntityLiving> OCELOT_TRACED =
+            java.util.Collections.newSetFromMap(new WeakHashMap<EntityLiving, Boolean>());
 
     /** Called by MixinEntity when "despawn_counter" was present in NBT. */
     public static void markCounterRestored(EntityLiving e) {
@@ -183,11 +186,38 @@ public final class DespawnRules {
         // (EntityVillager.canDespawn=false by hand in 1.12; A8B window evidence
         // 18:58:28 EntityVillager#18918 kill counter=200 distSq=1427158). The
         // audit's "Golem/Villager consistent on both sides" intent requires an
-        // explicit gate here; the wither/dragon own-despawn paths are unaffected
-        // (their despawnEntity never routes here).
+        // explicit gate here — EntityGolem base covers iron AND snow golems
+        // (both inherit the vanilla false). The wither/dragon own-despawn paths
+        // are unaffected (their despawnEntity never routes here).
         if (e instanceof net.minecraft.entity.passive.EntityVillager
-                || e instanceof net.minecraft.entity.monster.EntityIronGolem) {
+                || e instanceof net.minecraft.entity.monster.EntityGolem) {
             return false;
+        }
+        // R196 ocelot gate (EntityOcelot:53-55) — vanilla 1.12 overrides flat
+        // (!tamed && ticksExisted>2400) WITHOUT calling super, and the replaced
+        // despawn body never consulted vanilla bodies anyway, so the gate sits
+        // at the head of the chain (the @Inject on vanilla canDespawn only
+        // serves the switch-off path). Tamed cats take the tame-exempt below;
+        // wild cats need the age gate before the chain act.
+        if (e instanceof net.minecraft.entity.passive.EntityOcelot) {
+            net.minecraft.entity.passive.EntityOcelot o =
+                    (net.minecraft.entity.passive.EntityOcelot) e;
+            if (!OCELOT_TRACED.contains(e)) {
+                OCELOT_TRACED.add(e);
+                // one-shot trace row: names the gate state at the ocelot's
+                // first chain pass (A9A5 window 19:33-19:41 saw a wild cat
+                // survive 480 s past its 2400 age with zero kill rows —
+                // this row tells whether the gate itself ever ran)
+                if (ETIMConfig.mobDebugLog) {
+                    io.github.etim.etim.ETIM.LOGGER.info("[AILog] mob despawn ocelot-gate tamed=" + o.isTamed()
+                            + " age=" + o.ticksExisted
+                            + " counter=" + ((EntityLivingBaseAccessor) e).etim$getIdleTime()
+                            + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+                }
+            }
+            if (o.isTamed() || o.ticksExisted <= 2400) {
+                return false;
+            }
         }
         // animal layer — three walls, checked BEFORE the LOS gate (MITE :237-255)
         if (e instanceof EntityAnimal) {
@@ -244,12 +274,26 @@ public final class DespawnRules {
             return true;
         }
         // R196 SpawnerAnimals:664-666 — water mobs spawn with the long
-        // −9600 counter; the seed fires once, at the first despawn pass of
-        // a freshly constructed (not NBT-restored) water mob
+        // −9600 counter; seed at the FIRST despawn pass of any fresh water
+        // mob. The tick<=1 early gate was removed after the A9A5 window
+        // caught a pool squid killed at counter=200 (19:33:30
+        // EntitySquid#1158 distSq=1406505) — the first tryDespawn pass fell
+        // at ticksExisted>1 (summon/chunk-tick batching), so the seed
+        // bypassed by design. NBT-restored saves still exempt via
+        // markCounterRestored (readFromNBT).
         if (e instanceof EntityWaterMob && !SEEDED.contains(e)) {
             SEEDED.add(e);
-            if (e.ticksExisted <= 1 && !isCounterRestored(e)) {
+            if (!isCounterRestored(e)) {
                 ((EntityLivingBaseAccessor) e).etim$setIdleTime(RESET_IN_VIEW_WATER);
+                // one-shot trace for A1b judging: names age/counter at seed time
+                // (A9B evidence: pool-summoned squid survived, a natural pond
+                // spawn #1178 still died at counter=200 — this row tells which
+                // spawn side missed the seed and why)
+                if (ETIMConfig.mobDebugLog) {
+                    io.github.etim.etim.ETIM.LOGGER.info("[AILog] mob despawn water-seed age=" + e.ticksExisted
+                            + " counter=" + ((EntityLivingBaseAccessor) e).etim$getIdleTime()
+                            + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+                }
             }
         }
         if (((EntityLivingAccessor) e).etim$isPersistenceRequired()) {

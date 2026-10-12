@@ -6,6 +6,12 @@
  * 存活时长，stdout 逐秒序列——不落盘（主会话判读器吃 latest.log，此件是
  * 对照观察面）。
  *
+ * ⚠ 分源纪律（A8B 窗追加，判读面）：entityGone 事件无 despawn/死亡/出视距
+ * 三种语义之别——死亡实体移除与 despawn 移除在客户端同帧 destroy；本件存活
+ * 时长统计会把 combat 击杀一并计入。A5/A9 判读一律以 [AILog] mob despawn
+ * kill 行内 entity= 为据，[chat] combat 死亡消息是噪声不是判据；本件仅供
+ * 对照观察，不作判定来源。
+ *
  * 用法：
  *   & D:\Documents\Softwares\Node\22.22.2\node.exe observe-entities.js [host] [port] [username] [--wait SEC]
  * 默认：localhost 25565 ETIM_Harn01，wait 60s

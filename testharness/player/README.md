@@ -9,7 +9,9 @@ mineflayer + FML|HS 握手，连主会话起好的 runServer（etim 已装）。
 ## 前置（主会话措置）
 
 1. runServer 起好、etim jar 就位、`online-mode=false`；
-2. A2 需要 tp 权限：RCON/控制台先 `/op ETIM_Harn01`（脚本以「落点位置变化」作 op 探测，无 op 自动降级）。
+2. op 已授三端点（ops.json level 4，boost 起服即生效）：ETIM_Harn01、ETIM_Harn03（Harn03/Harn04 为会话七并行端点，Harn01 主会话占）。
+3. tp 回执凭据判定：`/tp` 成功以服务端回执（`Teleported …` / `commands.tp.success.*`）为据，位置包迟到不可作判。
+4. 分源纪律（判读面）：`[chat]` combat 死亡消息是噪声不是判据；despawn 判以 `[AILog] mob despawn kill` 行内 entity=；observe-entities 只作对照观察。
 
 ## 命令
 
