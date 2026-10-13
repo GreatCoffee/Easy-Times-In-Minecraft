@@ -612,6 +612,21 @@ public final class ETIMConfig {
 
     /** Rejected configurations stop the load instead of using defaults. */
     private static void validate(Configuration config) {
+        // moonStateOverride accepts only the documented set; any other value
+        // must stop the load (same contract as every numeric threshold here),
+        // not silently fall back to the vanilla clock.
+        switch (moonStateOverride) {
+            case "":
+            case "blue":
+            case "blood":
+            case "full":
+            case "new":
+                break;
+            default:
+                throw new IllegalStateException("[ETIM] Invalid config: mobs.moonStateOverride ('"
+                        + moonStateOverride + "') must be one of '', 'blue', 'blood', 'full', 'new' (file "
+                        + config.getConfigFile().getPath() + ")");
+        }
         if (capAtLevel0 > capMaximum) {
             throw new IllegalStateException("[ETIM] Invalid config: playerCaps.capAtLevel0 (" + capAtLevel0
                     + ") exceeds playerCaps.capMaximum (" + capMaximum + ")");
