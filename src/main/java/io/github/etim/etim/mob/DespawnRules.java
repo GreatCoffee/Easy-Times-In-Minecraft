@@ -150,6 +150,9 @@ public final class DespawnRules {
     /** Last metered counter value per entity (the +200 growth cadence row). */
     private static final java.util.Map<EntityLiving, Integer> COUNTER_METER =
             new java.util.WeakHashMap<EntityLiving, Integer>();
+    /** Kill-pass trace throttle (A5 final-window instrument, ~1 row / 2 s). */
+    private static final java.util.Map<EntityLiving, Long> PASS_TRACE =
+            new java.util.WeakHashMap<EntityLiving, Long>();
 
     /** Called by MixinEntity when "despawn_counter" was present in NBT. */
     public static void markCounterRestored(EntityLiving e) {
@@ -336,6 +339,38 @@ public final class DespawnRules {
             dy *= 2.0;
         }
         double distSq = dx * dx + dy * dy + dz * dz;
+        // A5 final-window instrument (run27 2026-10-13): the kill-pass gate
+        // (p exists && c≥200) opens silently when canDespawn == false and the
+        // retired reroll row made the cycle unreadable (A5FIN 窗三面归零之谜).
+        // One row per entity per ~2 s names the pass state: c / distSq /
+        // canDespawn verdict + the wall branch hit (radius/fence/quiet/kill).
+        if (ETIMConfig.mobDebugLog) {
+            Long lastTrace = PASS_TRACE.get(e);
+            boolean isAnimal = e instanceof EntityAnimal;
+            if (isAnimal && (lastTrace == null || System.currentTimeMillis() - lastTrace >= 2000)) {
+                PASS_TRACE.put(e, System.currentTimeMillis());
+                String wall = null;
+                if (isAnimal) {
+                    int cc = ((EntityLivingBaseAccessor) e).etim$getIdleTime();
+                    if (cc < ANIMAL_QUIET) {
+                        wall = "quiet<800";
+                    } else if (w.getClosestPlayer(e.posX, e.posY, e.posZ, ANIMAL_PLAYER_RADIUS, false) != null) {
+                        wall = "player<=1024";
+                    } else if (hasFenceNearby(w, e)) {
+                        wall = "fence";
+                    } else if (cc <= ANIMAL_KILL) {
+                        wall = "kill<=2400";
+                    } else if (isConsideredInViewOfAnyPlayer(e, w)) {
+                        wall = "los-in-view";
+                    }
+                }
+                int cap = ((EntityLivingBaseAccessor) e).etim$getIdleTime();
+                ETIM.LOGGER.info("[AILog] mob despawn pass-state c=" + cap
+                        + String.format(" distSq=%.0f", distSq)
+                        + " wall=" + (wall == null ? "none" : wall)
+                        + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+            }
+        }
         if (distSq > KILL_DIST_SQ && canDespawn(e)) {
             logKill(e, c, distSq);
             e.setDead();
