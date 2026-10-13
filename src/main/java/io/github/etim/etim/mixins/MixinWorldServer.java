@@ -1,7 +1,9 @@
 package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.playerstate.PlayerBedEvents;
+import io.github.etim.etim.mob.ETIMSpawnCycle;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.WorldEntitySpawner;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -26,5 +28,21 @@ public abstract class MixinWorldServer {
     )
     private boolean etim$noSkipForDayLiers(WorldServer self) {
         return self.areAllPlayersAsleep() && !PlayerBedEvents.hasAnyDayLiar(self);
+    }
+
+    /**
+     * Stage 5 batch 4 — the R196 spawn cycle (audit 11 §4 + audit 14)
+     * replaces the vanilla world-entity spawner call wholesale; the cycle
+     * itself lives in ETIMSpawnCycle (config-off = vanilla passthrough).
+     */
+    @Redirect(
+            method = "tick",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/WorldEntitySpawner;findChunksForSpawning(Lnet/minecraft/world/WorldServer;ZZZ)I"),
+            require = 1
+    )
+    private int etim$spawnCycle(WorldEntitySpawner spawner, WorldServer world, boolean spawnHostileMobs,
+            boolean spawnPeacefulMobs, boolean spawnOnSetTickRate) {
+        return ETIMSpawnCycle.findChunksForSpawning(world, spawnHostileMobs, spawnPeacefulMobs, spawnOnSetTickRate);
     }
 }

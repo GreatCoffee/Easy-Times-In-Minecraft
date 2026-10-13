@@ -254,6 +254,13 @@ public final class ETIMConfig {
     public static boolean livestockNeedsR196 = true;
     /** Server-log [AILog] lines for despawn kills, holds and rerolls (dev channel). */
     public static boolean mobDebugLog = true;
+    /** Master switch of the R196 spawn cycle (audit 11 §4 + audit 14): cap table 50/10/5/5 over /256, hostile dual probability rings, the modifier four events and the admission fine print. Off = vanilla 1.12 world-entity spawner. */
+    public static boolean mobSpawnR196 = true;
+    /** R196 spawn caps per creature type (audit 14 §2.1/§2.2): monster 50, animal 10, ambient 5, aquatic 5 — before the ×chunks/256 conversion. */
+    public static int spawnCapMonster = 50;
+    public static int spawnCapAnimal = 10;
+    public static int spawnCapAmbient = 5;
+    public static int spawnCapAquatic = 5;
 
     // compat group: interop switches (rule 2 — player-perceivable, configurable)
     /** Crafting Tweaks rightClickCraftsStack auto-disable (see CraftingTweaksCompat). */
@@ -557,6 +564,21 @@ public final class ETIMConfig {
         mobDebugLog = config.getBoolean("mobDebugLog", "mobs", true,
                 comment("Server log [AILog] lines: despawn kills, holds and counter rerolls (dev channel)",
                         "服务端日志 [AILog] 行：消散击杀、挽留判定与计数重掷（开发通道）"));
+        mobSpawnR196 = config.getBoolean("mobSpawnR196", "mobs", true,
+                comment("R196 spawn cycle (audit 11 §4 + audit 14): creature caps 50/10/5/5 over /256 chunks with the deep doubling, hostile dual probability rings 0.10 (under y60) / 0.17 (surface) times the modifier events (decreased x0.5 / increased x2 / no-spawn windows, blood-moon and thunder restore only reduced mods), the %-400 peaceful windows with blue-moon animal gating, night moon rejection rates and the dual-light close branch. Off = vanilla 1.12 spawning",
+                        "R196 生成周期（审计 11 §4 + 审计 14）：物种上限 50/10/5/5 ×区块数/256（深处加倍）、敌怪双概率环（y60 下 0.10/地表 0.17）×调制事件（缩减×0.5/翻倍×2/停发窗口，血月与雷雨只还原缩减类）、%400 温驯窗口（动物加蓝月门）、夜间月亮拒率与双光照近距离准入。关闭则回到原版 1.12 生成"));
+        spawnCapMonster = config.getInt("spawnCapMonster", "mobs", spawnCapMonster, 0, 500,
+                comment("R196 monster spawn cap before the chunk conversion (audit 14: 50; vanilla 1.12 = 70)",
+                        "敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）"));
+        spawnCapAnimal = config.getInt("spawnCapAnimal", "mobs", spawnCapAnimal, 0, 500,
+                comment("R196 animal spawn cap before the chunk conversion (audit 14: 10)",
+                        "动物生成上限（区块换算前）（审计 14：10）"));
+        spawnCapAmbient = config.getInt("spawnCapAmbient", "mobs", spawnCapAmbient, 0, 500,
+                comment("R196 ambient spawn cap before the chunk conversion (audit 14: 5; vanilla 1.12 = 15)",
+                        "环境生物生成上限（区块换算前）（审计 14：5；原版 1.12 为 15）"));
+        spawnCapAquatic = config.getInt("spawnCapAquatic", "mobs", spawnCapAquatic, 0, 500,
+                comment("R196 aquatic spawn cap before the chunk conversion (audit 14: 5; vanilla 1.12 = 15)",
+                        "水生生物生成上限（区块换算前）（审计 14：5；原版 1.12 为 15）"));
         mobStatsR196 = config.getBoolean("mobStatsR196", "mobs", true,
                 comment("R196 per-class mob attribute rows (audit 11 §3.1, vanilla-faithful classes only): skeleton 6 hp / 4 attack / 32 follow, zombie 5 attack / 32 follow / 0 armor, zombie pigman 8 attack / 32 follow, spider 12 hp / 4 attack / 28 follow. Off = vanilla 1.12 attributes",
                         "R196 怪物逐类属性表（审计 11 §3.1，仅原版等价类）：骷髅 6 血/4 攻/32 视距，僵尸 5 攻/32 视距/0 护甲，猪人 8 攻/32 视距，蜘蛛 12 血/4 攻/28 视距。关闭则回到原版 1.12 属性"));
