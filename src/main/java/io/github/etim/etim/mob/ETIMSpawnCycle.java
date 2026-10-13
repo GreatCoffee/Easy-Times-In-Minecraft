@@ -429,8 +429,11 @@ public final class ETIMSpawnCycle {
     private static int[] countMonstersByHeight(WorldServer w) {
         int under = 0;
         int over = 0;
+        // Count only the IMob layer: livestock/animals live outside the
+        // monster cap and were inflating the bucket counter, hard-locking
+        // every surface pass at the cap (boot 20:30 evidence).
         for (net.minecraft.entity.Entity e : w.loadedEntityList) {
-            if (e instanceof EntityLiving && ((EntityLiving) e).isEntityAlive()) {
+            if (e instanceof net.minecraft.entity.monster.IMob && e.isEntityAlive()) {
                 if (e.posY < 60.0D) {
                     ++under;
                 } else {

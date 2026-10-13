@@ -41,6 +41,12 @@ public abstract class MixinEntity {
         // mark flagged FRESH entities as restored — their water seed was
         // then skipped and they died at counter=200 (C4 window 20:25:22
         // EntitySquid#957 restored=true age=1 — root cause registered).
+        // Non-living carriers (items, minecarts, ...) have no idle field —
+        // skip them the same way the write side does (boot 20:24:35
+        // ClassCastException on EntityItem, four counts, world load).
+        if (!(((Object) this) instanceof net.minecraft.entity.EntityLivingBase)) {
+            return;
+        }
         ((EntityLivingBaseAccessor) (Object) this).etim$setIdleTime(tag.getInteger("despawn_counter"));
         if (tag.hasKey("despawn_counter")) {
             Object self = this;
