@@ -6,6 +6,16 @@ A Minecraft **1.12.2 Forge** mod that reimplements the core gameplay mechanics o
 **MITE (Minecraft Is Too Easy)** from the ground up. ETIM is a from-scratch homage —
 not a code port — built on modern tooling.
 
+> [!WARNING]
+> **Entirely AI-implemented — use at your own risk（本项目完全由 AI 实现，风险自担）.**
+> This project was written end-to-end by the AI model **GLM-5.3-Flash** (Z.ai).
+> The repository owner does not read or write code, and **no qualified person has
+> reviewed this code for safety, correctness, or security**. It is provided for
+> archiving and study purposes only. **Using it in any situation is not
+> recommended**: it may crash your game, corrupt your worlds and saves, contain
+> undisclosed exploitable behavior, or otherwise misbehave. Back up everything
+> before letting it near a world you care about — and even then, don't.
+
 - **Mod ID:** `etim`
 - **Full name:** Easy Times In Minecraft（轻松时光）
 - **Code root package:** `io.github.etim`
