@@ -58,6 +58,29 @@ $env:JAVA_HOME = "C:\Users\GreatCoffee\tools\jdk-25.0.4.1+1"
 | `gradle/scripts/dependencies.gradle` | Runtime/compile dependencies (e.g. `rfg.deobf(...)`) |
 | `gradle/scripts/publishing.gradle` | CurseForge / Modrinth / Maven publishing |
 | `src/main/resources/mixins.etim.json` | Mixin configuration (refmap + package root) |
+| `testharness/` | Dev-only automated test drivers (fake players); **not** included in the release jar |
+
+## Implemented systems
+
+ETIM reimplements MITE mechanics system by system. Every value is driven by
+first-hand R196 (MITE 1.6.4) bytecode judgments (javap double-source audit),
+and each slice is validated by log-based automated testing (fake-player
+harness reading server-side `[AILog]` judgment channels — client HUD is never
+a basis for judgment).
+
+Implemented and verified (as of 2026-10):
+
+| System | What it covers |
+|---|---|
+| Player state | Initial stats, XP/leveling, per-level mining & melee bonuses, stat caps, bed regen |
+| Hunger & food | MITE food model, starvation rules, nutrition-driven healing, ingest use-timings, wetness |
+| Mining & tools | Harvest gating, mining speed, tool durability, tree felling (+ felling enchantment), undermine, reach |
+| Crafting | Difficulty tiers with timed crafting progress |
+| Furnace | Heat model, fuel slot rework, smelting XP rewards |
+| Item quality | Quality rolls with tooltips |
+| Death | Death events and XP payout rules |
+| Mobs | R196 despawn chain (idle counters, animal/ocelot gates, holds & exemptions), mob attribute stats, livestock needs v1 (food/water/rain) |
+| Dev/test tooling | Config-gated `[AILog]` judgment channels, dev overlay, mineflayer test harness |
 
 ## Compatibility goals
 

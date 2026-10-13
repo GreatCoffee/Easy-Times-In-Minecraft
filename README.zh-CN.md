@@ -58,6 +58,27 @@ $env:JAVA_HOME = "C:\Users\GreatCoffee\tools\jdk-25.0.4.1+1"
 | `gradle/scripts/dependencies.gradle` | 运行时/编译依赖（如 `rfg.deobf(...)`） |
 | `gradle/scripts/publishing.gradle` | CurseForge / Modrinth / Maven 发布 |
 | `src/main/resources/mixins.etim.json` | Mixin 配置（refmap + 包根） |
+| `testharness/` | 仅开发的自动化测试驱动（假玩家）；**不**进发布 jar |
+
+## 已落地机制
+
+ETIM 按系统逐块重现 MITE 机制。每个数值都以 R196（MITE 1.6.4）一手字节码判决
+（javap 双源审计）为据，每个切片都经基于日志的自动化测试验证（假玩家 harness
+读取服务端 `[AILog]` 判定通道——客户端 HUD 一律不作依据）。
+
+已实现并验证（截至 2026-10）：
+
+| 系统 | 覆盖内容 |
+|---|---|
+| 玩家状态 | 初始属性、经验/等级、逐级挖掘与近战加成、属性上限、床铺回血 |
+| 饥饿与进食 | MITE 食物模型、饥饿惩罚、营养驱动的回血、进食用时、身体湿润度 |
+| 挖掘与工具 | 采集门控、挖掘速度、工具耐久、整树砍伐（含附魔）、误采风险（undermine）、触及距离 |
+| 合成 | 难度分级与合成耗时进度 |
+| 熔炉 | 热量模型、燃料槽改造、熔炼经验回报 |
+| 物品品质 | 品质掷取与提示 |
+| 死亡 | 死亡事件与经验回报规则 |
+| 生物 | R196 消散链（闲置计数、动物/豹猫门、挽留与豁免）、生物属性表、家畜需求 v1（食/水/雨） |
+| 开发/测试工具 | 配置门控的 `[AILog]` 判定通道、开发覆盖层、mineflayer 测试 harness |
 
 ## 兼容目标
 
