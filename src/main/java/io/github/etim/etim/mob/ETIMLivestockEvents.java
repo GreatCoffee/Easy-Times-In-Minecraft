@@ -122,9 +122,28 @@ public final class ETIMLivestockEvents {
         }
     }
 
+    private static final java.util.Map<EntityLivingBase, Long> RAIN_TRACE =
+            new java.util.WeakHashMap<EntityLivingBase, Long>();
+
     /** R196 updateWellness :215-239 — the benefit/penalty pass. */
     private static void updateWellness(EntityLivingBase e, ETIMLivestock.IState s, boolean cow) {
         World w = e.world;
+        // C4-d instrument (run27 2026-10-13): one row per entity per ~2 s on
+        // each updateWellness pass — names the verdict inputs directly
+        // (nearWater / rainingAt per-block / global isRaining) so the
+        // roof-vs-rain fork (C4C window: the roofed cow held water=1.00
+        // against expectations) reads from the log instead of inference.
+        if (ETIMConfig.mobDebugLog) {
+            Long last = RAIN_TRACE.get(e);
+            if (last == null || System.currentTimeMillis() - last >= 2000) {
+                RAIN_TRACE.put(e, System.currentTimeMillis());
+                ETIM.LOGGER.info("[AILog] livestock-raincheck pos=(" + Math.floor(e.posX) + "," + Math.floor(e.posY) + "," + Math.floor(e.posZ)
+                        + ") nearWater=" + isNearWaterSource(w, e)
+                        + " rainingAt=" + w.isRainingAt(new net.minecraft.util.math.BlockPos(e.posX, e.posY, e.posZ))
+                        + " isRaining=" + w.isRaining()
+                        + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+            }
+        }
         if (isNearFood(w, e, cow ? COW_DESTROY_CHANCE : 0.0F)) {
             s.setFood(s.getFood() + BENEFIT);
         } else {
