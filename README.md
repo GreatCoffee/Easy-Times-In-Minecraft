@@ -100,10 +100,11 @@ RAD (Reload Audio Drivers), Step Up, and The One Probe.
 
 ## Credits
 
-- [Morgana-Chris](https://github.com/Minecraft-Is-Too-Easy) — MITE
-- FalsePattern — FAKEMITE
-- X86_64 — My-mods-are-outdated (MMO)
+- Avernite — Minecraft Is Too Easy (MITE)（1.6.4 original, R196）
+- [Modded MITE Community](https://github.com/MinecraftIsTooEasy) — MITE revival & community mods
 - [CleanroomMC](https://github.com/CleanroomMC) — ForgeDevEnv template (MIT)
+- [GTNewHorizons](https://github.com/GTNewHorizons/RetroFuturaGradle) — RetroFuturaGradle
+- [FalsePattern](https://github.com/falsepattern) — MITF (MITE-IsTooFalse, R196 testbed; public-implementation reference)
 
 ## License
 

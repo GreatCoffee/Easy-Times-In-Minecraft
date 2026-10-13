@@ -96,10 +96,11 @@ Drivers）、Step Up 和 The One Probe。
 
 ## 致谢
 
-- [Morgana-Chris](https://github.com/Minecraft-Is-Too-Easy) — MITE
-- FalsePattern — FAKEMITE
-- X86_64 — My-mods-are-outdated（MMO）
+- Avernite — MITE（Minecraft Is Too Easy，1.6.4 原作 R196）
+- [Modded MITE Community](https://github.com/MinecraftIsTooEasy) — MITE 后续社区与社区模组
 - [CleanroomMC](https://github.com/CleanroomMC) — ForgeDevEnv 模板（MIT）
+- [GTNewHorizons](https://github.com/GTNewHorizons/RetroFuturaGradle) — RetroFuturaGradle
+- [FalsePattern](https://github.com/falsepattern) — MITF（MITE-IsTooFalse，R196 测试床；公开实现参考）
 
 ## 许可证
 
