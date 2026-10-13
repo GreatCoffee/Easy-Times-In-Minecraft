@@ -582,9 +582,8 @@ public final class ETIMConfig {
                 comment("R196 aquatic spawn cap before the chunk conversion (audit 14: 5; vanilla 1.12 = 15)",
                         "水生生物生成上限（区块换算前）（审计 14：5；原版 1.12 为 15）"));
         moonStateOverride = config.getString("moonStateOverride", "mobs", "",
-                new String[] { "", "blue", "blood", "full", "new" },
-                comment("Force the spawn-cycle moon overlay state (empty = vanilla clock: full/new bands; blue/blood land with the stage-6 moon slice). Test determinism only",
-                        "强制生成周期的月亮状态（空=原版时钟仅满/新月两档；蓝月血月随阶段六切片落地）。仅测试确定性用"));
+                comment("Force the spawn-cycle moon overlay state (empty = vanilla clock: full/new bands; blue/blood land with the stage-6 moon slice). Accepted: '', 'blue', 'blood', 'full', 'new'. Test determinism only",
+                        "强制生成周期的月亮状态（空=原版时钟仅满/新月两档；蓝月血月随阶段六切片落地）。取值：''、'blue'、'blood'、'full'、'new'。仅测试确定性用"));
         mobStatsR196 = config.getBoolean("mobStatsR196", "mobs", true,
                 comment("R196 per-class mob attribute rows (audit 11 §3.1, vanilla-faithful classes only): skeleton 6 hp / 4 attack / 32 follow, zombie 5 attack / 32 follow / 0 armor, zombie pigman 8 attack / 32 follow, spider 12 hp / 4 attack / 28 follow. Off = vanilla 1.12 attributes",
                         "R196 怪物逐类属性表（审计 11 §3.1，仅原版等价类）：骷髅 6 血/4 攻/32 视距，僵尸 5 攻/32 视距/0 护甲，猪人 8 攻/32 视距，蜘蛛 12 血/4 攻/28 视距。关闭则回到原版 1.12 属性"));

@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -51,6 +52,9 @@ public final class ETIMSpawnCycle {
         int increased;
         int noSpawn;
         final Set<ChunkPos> eligible = Sets.newHashSet();
+        // R196 (:1434 getfield #23): the modifier draws come from an
+        // independent class-field Random, NOT world.rand (audit 15 §2.2).
+        final Random rng = new Random();
     }
 
     private static State state(int dim) {
@@ -68,6 +72,11 @@ public final class ETIMSpawnCycle {
                     spawnOnSetTickRate);
         }
         if (!spawnHostileMobs && !spawnPeacefulMobs) {
+            return 0;
+        }
+        // R196 freeze plane (SpawnerAnimals :463-464): with no players online
+        // the whole calc is skipped — modifier counters must NOT tick down.
+        if (w.playerEntities.isEmpty()) {
             return 0;
         }
         State st = state(w.provider.getDimension());
@@ -98,30 +107,45 @@ public final class ETIMSpawnCycle {
             return 0.25F;
         }
         float mod = 1.0F;
+        // Transition-only logging (audit 15 §2.1 判词 1a + 契约 1): the emit
+        // fires ONLY on a state edge — window opened or window exhausted —
+        // never on steady in-window ticks (steady duty ≈19%, prev flood
+        // 2915 rows/16 min was a misread, not a topology bug).
+        boolean ev = false;
         if (st.decreased > 0) {
-            st.decreased--;
+            if (--st.decreased == 0) {
+                ev = true; // window exhausted
+            }
             mod *= 0.5F;
-        } else if (w.rand.nextInt(24000) == 0) {
-            st.decreased = w.rand.nextInt(4000) + 1;
+        } else if (st.rng.nextInt(24000) == 0) {
+            st.decreased = st.rng.nextInt(4000) + 1; // 1..4000
+            ev = true; // window opened
         }
         if (st.increased > 0) {
-            st.increased--;
+            if (--st.increased == 0) {
+                ev = true;
+            }
             mod *= 2.0F;
-        } else if (w.rand.nextInt(24000) == 0) {
-            st.increased = w.rand.nextInt(2000);
+        } else if (st.rng.nextInt(24000) == 0) {
+            st.increased = st.rng.nextInt(2000); // 0..1999
+            ev = true;
         }
         if (st.noSpawn > 0) {
-            st.noSpawn--;
+            if (--st.noSpawn == 0) {
+                ev = true;
+            }
             mod = 0.0F;
-        } else if (w.rand.nextInt(24000) == 0) {
-            st.noSpawn = w.rand.nextInt(2000) + w.rand.nextInt(2000);
+        } else if (st.rng.nextInt(24000) == 0) {
+            st.noSpawn = st.rng.nextInt(2000) + st.rng.nextInt(2000); // 0..3998
+            ev = true;
         }
-        // Rescue gate (:1499-1512): only "reduced" mods are restored; an
+        // Rescue gate (calc :455-457): only "reduced" mods are restored; an
         // active x2 stands even under a blood moon / thunderstorm.
         if (mod < 1.0F && ETIMMoonState.rescueGate(w, w.isThundering())) {
             mod = 1.0F;
+            ev = true;
         }
-        if (ETIMConfig.mobDebugLog && (st.decreased > 0 || st.increased > 0 || st.noSpawn > 0 || mod != 1.0F)) {
+        if (ETIMConfig.mobDebugLog && ev) {
             log(w, "modifier mod=" + mod + " d=" + st.decreased + " i=" + st.increased + " n=" + st.noSpawn);
         }
         return mod;
