@@ -13,6 +13,7 @@ import com.google.common.collect.Sets;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EnumCreatureType;
+import net.minecraft.entity.IEntityLivingData;
 import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -38,7 +39,12 @@ import io.github.etim.etim.ETIMConfig;
  * the night-moon rejection rates, the per-mob under/over buckets, the
  * per-chunk density band). Moon state comes from {@link ETIMMoonState}.</p>
  *
- * <p>All [SpawnLog] rows run behind the {@code mobDebugLog} gate.</p>
+ * <p>Hostile dual-ring pass follows audit 16 (R196 :102-311 全文对照):
+ * band gates per ring (deep y&lt;60 / surface y&gt;=60), the 48-block coin,
+ * chunk-scoped per-bucket spawn counters with label249 abandon, per-round
+ * living data, the combined-light close branch, undead-only daylight skip
+ * and the blue-moon eye-brightness reject. All [SpawnLog] rows run behind
+ * the {@code mobDebugLog} gate.</p>
  */
 public final class ETIMSpawnCycle {
 
@@ -257,23 +263,33 @@ public final class ETIMSpawnCycle {
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         BlockPos.MutableBlockPos probe = new BlockPos.MutableBlockPos();
         int spawnedTotal = 0;
-        // Per-class spawned counters, split y<60 / y>=60 (audit 14 §4.6).
-        Map<Class<? extends EntityLiving>, int[]> perClass = new HashMap<>();
 
         for (ChunkPos chunkpos : shuffled) {
             if (spawnedTotal >= budget) {
                 break;
             }
-            // Pick a random y anywhere in the column (R196 :134-137), reroll
-            // for the deep pass until below 60.
             int x = chunkpos.x * 16 + w.rand.nextInt(16);
             int z = chunkpos.z * 16 + w.rand.nextInt(16);
             int top = topFilledSegmentPlus16(w, x, z);
             int y = w.rand.nextInt(Math.max(top, 1)) + 1;
-            if (deepOnly) {
-                if (y >= 60) {
-                    // Deep-only reroll: surface candidates are dropped, the
-                    // attempt count stays consumed (R196 recycles silently).
+            if (type == EnumCreatureType.MONSTER) {
+                // A2 (audit 16 定谳): R196 :135-137 — the deep ring rerolls
+                // the whole spawn point exactly once; the reroll must still
+                // clear the :144 band gate below.
+                if (deepOnly && y >= 60) {
+                    x = chunkpos.x * 16 + w.rand.nextInt(16);
+                    z = chunkpos.z * 16 + w.rand.nextInt(16);
+                    top = topFilledSegmentPlus16(w, x, z);
+                    y = w.rand.nextInt(Math.max(top, 1)) + 1;
+                }
+                // A3 (audit 16 定谳): R196 :143 — with no player within 48 a
+                // 1/2 coin drops the chunk (or-gate: player OR coin-pass).
+                if (w.getClosestPlayer(x, y, z, 48.0D, false) == null && w.rand.nextInt(2) != 0) {
+                    continue;
+                }
+                // A1 (audit 16 定谳): R196 :144 — the y band is a required
+                // conjunct of the ring: deep y<60, surface y>=60.
+                if (deepOnly ? y >= 60 : y < 60) {
                     continue;
                 }
             }
@@ -285,8 +301,7 @@ public final class ETIMSpawnCycle {
             if (entry == null) {
                 continue;
             }
-            List<EntityLiving> pack = spawnPack(w, cursor, type, entry, perClass, deepOnly);
-            spawnedTotal += pack.size();
+            spawnedTotal += spawnPack(w, cursor, probe, type, entry);
         }
         return spawnedTotal;
     }
@@ -298,34 +313,51 @@ public final class ETIMSpawnCycle {
 
     /**
      * MITE group structure (audit 14 §4.2): 3 rounds × per-candidate up to 4
-     * walks of ±6 (phase spider widens to 64 — class absent here, gap list).
+     * walks. Audit 16 changes: chunk-scoped per-bucket spawn counters with a
+     * label249 abandon on slot exhaustion (A4), the day/undead chunk-abandon
+     * channel out of canSpawnHere (A7) and per-round living data (A5).
      */
-    private static List<EntityLiving> spawnPack(WorldServer w, BlockPos.MutableBlockPos cursor, EnumCreatureType type,
-            Biome.SpawnListEntry entry, Map<Class<? extends EntityLiving>, int[]> perClass, boolean deepOnly) {
+    private static int spawnPack(WorldServer w, BlockPos.MutableBlockPos cursor, BlockPos base,
+            EnumCreatureType type, Biome.SpawnListEntry entry) {
         List<EntityLiving> landed = new ArrayList<>();
-        int baseX = cursor.getX();
-        int baseY = cursor.getY();
-        int baseZ = cursor.getZ();
+        int baseX = base.getX();
+        int baseY = base.getY();
+        int baseZ = base.getZ();
+        // A4 (audit 16 定谳): R196 :146-147 — the y-bucket spawn counters live
+        // at chunk scope; hitting getMaxSpawnedInChunk abandons the chunk's
+        // remaining rounds (:293-297 continue label249).
+        int[] chunkCounts = new int[2];
+        boolean[] abandonChunk = new boolean[1];
+
+        roundLoop:
         for (int round = 0; round < 3; ++round) {
+            // A5 (audit 16 轮位): R196 :153-155 — the living data is re-nulled
+            // each round; spawns later in the same round chain onto it.
+            IEntityLivingData data = null;
+            if (abandonChunk[0]) {
+                break;
+            }
             int x = baseX;
             int y = baseY;
             int z = baseZ;
             for (int attempt = 0; attempt < 4; ++attempt) {
+                if (abandonChunk[0]) {
+                    break roundLoop;
+                }
                 x += w.rand.nextInt(6) - w.rand.nextInt(6);
                 z += w.rand.nextInt(6) - w.rand.nextInt(6);
                 cursor.setPos(x, y, z);
-                if (!admitCandidate(w, cursor, deepOnly)) {
+                if (!admitCandidate(w, cursor)) {
                     continue;
                 }
-                if (!canSpawnHere(w, entry, cursor, type)) {
+                if (!canSpawnHere(w, entry, cursor, type, abandonChunk)) {
+                    if (abandonChunk[0]) {
+                        break roundLoop;
+                    }
                     continue;
                 }
                 Class<? extends EntityLiving> cls = entry.entityClass;
-                int[] buckets = perClass.computeIfAbsent(cls, (k) -> new int[2]);
                 int bucket = cursor.getY() < 60 ? 0 : 1;
-                if (buckets[bucket] >= getMaxSpawnedInChunk(w, entry)) {
-                    continue;
-                }
                 EntityLiving mob;
                 try {
                     mob = entry.newInstance(w);
@@ -334,11 +366,18 @@ public final class ETIMSpawnCycle {
                 }
                 mob.setLocationAndAngles(x + 0.5D, cursor.getY(), z + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
                 if (mob.isNotColliding()) {
-                    buckets[bucket]++;
+                    // A5 (audit 16): R196 :290 — finalize before entering the
+                    // world; the returned data feeds the round's later spawns.
+                    data = mob.onInitialSpawn(w.getDifficultyForLocation(cursor), data);
                     w.spawnEntity(mob);
                     landed.add(mob);
                     if (ETIMConfig.mobDebugLog) {
                         log(w, "accept " + cls.getSimpleName() + " at " + pos(cursor) + " y-bucket=" + (bucket == 0 ? "under" : "over"));
+                    }
+                    // A4: R196 :293-297 — on slot exhaustion abandon the rest
+                    // of this chunk and move to the next one.
+                    if (++chunkCounts[bucket] >= getMaxSpawnedInChunk(w, entry)) {
+                        break roundLoop;
                     }
                 } else {
                     mob.setDead();
@@ -348,7 +387,7 @@ public final class ETIMSpawnCycle {
                 }
             }
         }
-        return landed;
+        return landed.size();
     }
 
     private static int getMaxSpawnedInChunk(WorldServer w, Biome.SpawnListEntry entry) {
@@ -360,7 +399,7 @@ public final class ETIMSpawnCycle {
      * dual-light close branch (24/8), the spawn-point distance gate
      * (sq >= 576 — same as vanilla), and the y=63 ice or-chain.
      */
-    private static boolean admitCandidate(WorldServer w, BlockPos pos, boolean deepOnly) {
+    private static boolean admitCandidate(WorldServer w, BlockPos pos) {
         // Spawn point distance: sq >= 576 (24 blocks) — no exemptions.
         BlockPos sp = w.getSpawnPoint();
         double distSq = sp.distanceSq(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
@@ -384,9 +423,17 @@ public final class ETIMSpawnCycle {
         EntityPlayer near = w.getClosestPlayer(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 24.0D, false);
         if (near != null) {
             int dim = w.provider.getDimension();
+            // A6 (audit 16 修正): R196 :169-172 checks the combined light of
+            // BOTH layers floor(y) and floor(y)+1 (World:1387 → Chunk:1176
+            // max-of-sky/block) — expanded here as the SKY+BLOCK pair per
+            // layer. Landing-y correction is pending the 11 节段 geometry
+            // slice; pos is the candidate floor until then.
+            BlockPos upper = new BlockPos(pos.getX(), pos.getY() + 1, pos.getZ());
             if ((dim == 0 || dim == -1)
                     && w.getLightFor(EnumSkyBlock.SKY, pos) == 0
-                    && w.getLightFor(EnumSkyBlock.BLOCK, pos) == 0) {
+                    && w.getLightFor(EnumSkyBlock.BLOCK, pos) == 0
+                    && w.getLightFor(EnumSkyBlock.SKY, upper) == 0
+                    && w.getLightFor(EnumSkyBlock.BLOCK, upper) == 0) {
                 EntityPlayer close = w.getClosestPlayer(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 8.0D,
                         false);
                 if (close != null) {
@@ -408,34 +455,54 @@ public final class ETIMSpawnCycle {
     /**
      * Class-level spawn gates (audit 14 §4.2 getCanSpawnHere(true) band):
      * the vanilla difficulty/light body of EntityMob plus the MITE surface
-     * ride-alongs — day+undead-outdoor skip and the night moon rejection.
+     * ride-alongs — the undead-only daylight-outdoor skip (audit 16 A7), the
+     * blue-moon eye-brightness binary reject (audit 16 A8) and the night
+     * moon rejection rates.
      */
-    private static boolean canSpawnHere(WorldServer w, Biome.SpawnListEntry entry, BlockPos pos, EnumCreatureType type) {
+    private static boolean canSpawnHere(WorldServer w, Biome.SpawnListEntry entry, BlockPos pos, EnumCreatureType type,
+            boolean[] abandonChunk) {
         // Difficulty + light + volume via a throwaway instance — the vanilla
-        // getCanSpawnHere chain is the same R196 body.
+        // getCanSpawnHere chain is the same R196 body. R196 :222 positions
+        // the candidate before the walk gates, so the proto is meaningful at
+        // the cursor (audit 16 A8 prerequisite; previously unlocated).
         EntityLiving proto;
         try {
             proto = entry.newInstance(w);
         } catch (Exception e) {
             return false;
         }
+        proto.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
+        ETIMMoonState.Phase phase = ETIMMoonState.phase(w);
+        // A8 (audit 16 修正): R196 :223-232 — on a blue-moon night a lit eye
+        // position is an attempt-level reject, judged BEFORE the
+        // getCanSpawnHere body and independent of the 1/54 denominator chain.
+        if (!w.isDaytime() && phase == ETIMMoonState.Phase.BLUE) {
+            int eyeY = MathHelper.floor(proto.posY + proto.getEyeHeight());
+            if (w.getLightFor(EnumSkyBlock.SKY, new BlockPos(pos.getX(), eyeY, pos.getZ())) > 0) {
+                proto.setDead();
+                return false;
+            }
+        }
         boolean ok = proto.getCanSpawnHere() && proto.isNotColliding();
-        ((EntityLiving) proto).setDead();
+        proto.setDead();
         if (!ok) {
             return false;
         }
         if (type == EnumCreatureType.MONSTER && proto instanceof EntityMob) {
             boolean outdoor = w.canSeeSky(pos);
-            if (outdoor) {
-                if (w.isDaytime()) {
-                    // Day + outdoor mob: vanilla light math already blocks
-                    // most, R196 adds the explicit skip.
+            if (w.isDaytime()) {
+                // A7 (audit 16 定谳): R196 :267-273 — the daylight reject binds
+                // to the undead outdoors face only, and it abandons the whole
+                // chunk (continue label249 :272), not just the attempt.
+                if (proto.isEntityUndead() && outdoor) {
                     if (ETIMConfig.mobDebugLog) {
                         log(w, "reject day-outdoor " + entry.entityClass.getSimpleName());
                     }
+                    abandonChunk[0] = true;
                     return false;
                 }
-                int denom = ETIMMoonState.nightRejectDenominator(ETIMMoonState.phase(w));
+            } else if (outdoor) {
+                int denom = ETIMMoonState.nightRejectDenominator(phase);
                 if (denom > 1 && w.rand.nextInt(denom) != 0) {
                     if (ETIMConfig.mobDebugLog) {
                         log(w, "reject moon-night denom=1/" + denom + " cls=" + entry.entityClass.getSimpleName());
