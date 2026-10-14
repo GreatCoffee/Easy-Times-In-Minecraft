@@ -288,6 +288,16 @@ public final class ETIMSpawnCycle {
                     top = topFilledSegmentPlus16(w, x, z);
                     y = w.rand.nextInt(Math.max(top, 1)) + 1;
                 }
+                // audit 17 /2.5: R196 :142 — the ice-floor or-chain rolls at
+                // the CHUNK base point (before the walk), and only in the
+                // overworld (B4 residue absorbed here). Attempt-level check
+                // removed from admitCandidate.
+                if (w.provider.getDimension() == 0 && y == 63) {
+                    if (w.rand.nextInt(4) != 0
+                            && w.getBlockState(new BlockPos(x, y - 1, z)).getBlock() == Blocks.ICE) {
+                        continue;
+                    }
+                }
                 // A3 (audit 16 定谳): R196 :143 — with no player within 48 a
                 // 1/2 coin drops the chunk (or-gate: player OR coin-pass).
                 if (w.getClosestPlayer(x, y, z, 48.0D, false) == null && w.rand.nextInt(2) != 0) {
@@ -299,17 +309,13 @@ public final class ETIMSpawnCycle {
                     continue;
                 }
             }
-            probe.setPos(x, y, z);
             // :145 (11 节段移植, 批五): base-point geometry gate — replaces
             // the bare normal-cube continue with the full skeleton.
             if (canSpawnAtLocation(w, type, x, y, z) < 0.0D) {
                 continue;
             }
-            Biome.SpawnListEntry entry = ETIMSpawnTables.pickSpawn(w, type, probe);
-            if (entry == null) {
-                continue;
-            }
-            spawnedTotal += spawnPack(w, cursor, probe, type, entry);
+            probe.setPos(x, y, z);
+            spawnedTotal += spawnPack(w, cursor, probe, type);
         }
         return spawnedTotal;
     }
@@ -326,7 +332,7 @@ public final class ETIMSpawnCycle {
      * channel out of canSpawnHere (A7) and per-round living data (A5).
      */
     private static int spawnPack(WorldServer w, BlockPos.MutableBlockPos cursor, BlockPos base,
-            EnumCreatureType type, Biome.SpawnListEntry entry) {
+            EnumCreatureType type) {
         List<EntityLiving> landed = new ArrayList<>();
         int baseX = base.getX();
         int baseY = base.getY();
@@ -339,9 +345,11 @@ public final class ETIMSpawnCycle {
 
         roundLoop:
         for (int round = 0; round < 3; ++round) {
-            // A5 (audit 16 轮位): R196 :153-155 — the living data is re-nulled
-            // each round; spawns later in the same round chain onto it.
+            // A5 (audit 16 轮位): R196 :153-155 — living data AND the suitable
+            // entry are re-nulled each round (audit 17 /2.4); later spawns in
+            // the same round chain onto them.
             IEntityLivingData data = null;
+            Biome.SpawnListEntry entry = null;
             if (abandonChunk[0]) {
                 break;
             }
@@ -364,6 +372,15 @@ public final class ETIMSpawnCycle {
                 cursor.setPos(x, MathHelper.floor(landing), z);
                 if (!admitCandidate(w, cursor)) {
                     continue;
+                }
+                // audit 17 /2.4: R196 :190-195 — the suitable class is picked
+                // on the round's first attempt past the distance gates, with
+                // the WALKED coordinates (base y); null type breaks the round.
+                if (entry == null) {
+                    entry = ETIMSpawnTables.pickSpawn(w, type, new BlockPos(x, y, z));
+                    if (entry == null) {
+                        break;
+                    }
                 }
                 if (!canSpawnHere(w, entry, cursor, type, abandonChunk)) {
                     if (abandonChunk[0]) {
@@ -424,14 +441,9 @@ public final class ETIMSpawnCycle {
             }
             return false;
         }
-        // y=63 ice floor 1/4 or-chain: reject only when y==63 AND on ice AND
-        // the quarter roll missed.
-        if (pos.getY() == 63) {
-            IBlockState below = w.getBlockState(new BlockPos(pos.getX(), pos.getY() - 1, pos.getZ()));
-            if (below.getBlock() == Blocks.ICE && w.rand.nextInt(4) != 0) {
-                return false;
-            }
-        }
+        // audit 17 /2.5: the y=63 ice or-chain moved up to the chunk-level
+        // base point (R196 :142) — this site previously double-checked it at
+        // attempt level on the wrong (landing-floor) y.
         // Close-branch: in the overworld/nether, a player within 24 with both
         // light layers at 0 relaxes the radius to 8; otherwise the standard
         // no-player-within-24 gate.
