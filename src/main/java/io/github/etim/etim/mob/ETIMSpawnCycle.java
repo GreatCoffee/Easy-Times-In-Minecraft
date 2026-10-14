@@ -232,7 +232,15 @@ public final class ETIMSpawnCycle {
         int spawned = 0;
         spawned += runPeaceful(w, st, EnumCreatureType.AMBIENT, chunkCount);
         spawned += runPeaceful(w, st, EnumCreatureType.WATER_CREATURE, chunkCount);
-        if (ETIMMoonState.blueMoonAnimalPeriod(ETIMMoonState.phase(w))) {
+        // R196 :471: blue-moon animal season = blue phase && night && %400
+        // tick. Night gate goes through the shared isNight seam; %400 fields
+        // are congruent modulo 400 (24000 = 60×400), totalWorldTime used.
+        // Tournament double-cost (:316-319) and blood-moon weather stacking
+        // (generateWeatherEvents :6444-6476) are out of scope, own slices.
+        ETIMMoonState.Phase moonPhase = ETIMMoonState.phase(w);
+        if (ETIMMoonState.isNight(w)
+                && ETIMMoonState.blueMoonAnimalPeriod(moonPhase)
+                && w.getTotalWorldTime() % 400L == 0L) {
             spawned += runPeaceful(w, st, EnumCreatureType.CREATURE, chunkCount);
         }
         return spawned;
@@ -500,10 +508,11 @@ public final class ETIMSpawnCycle {
         }
         proto.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
         ETIMMoonState.Phase phase = ETIMMoonState.phase(w);
+        boolean night = ETIMMoonState.isNight(w);
         // A8 (audit 16 修正): R196 :223-232 — on a blue-moon night a lit eye
         // position is an attempt-level reject, judged BEFORE the
         // getCanSpawnHere body and independent of the 1/54 denominator chain.
-        if (!w.isDaytime() && phase == ETIMMoonState.Phase.BLUE) {
+        if (night && phase == ETIMMoonState.Phase.BLUE) {
             int eyeY = MathHelper.floor(proto.posY + proto.getEyeHeight());
             if (w.getLightFor(EnumSkyBlock.SKY, new BlockPos(pos.getX(), eyeY, pos.getZ())) > 0) {
                 proto.setDead();
@@ -517,7 +526,9 @@ public final class ETIMSpawnCycle {
         }
         if (type == EnumCreatureType.MONSTER && proto instanceof EntityMob) {
             boolean outdoor = w.canSeeSky(pos);
-            if (w.isDaytime()) {
+            // R196 :267 is_daytime — same-source night window as the A8/animal
+            // gates; single seam keeps the boundary traceable (isNight).
+            if (!night) {
                 // A7 (audit 16 定谳): R196 :267-273 — the daylight reject binds
                 // to the undead outdoors face only, and it abandons the whole
                 // chunk (continue label249 :272), not just the attempt.
