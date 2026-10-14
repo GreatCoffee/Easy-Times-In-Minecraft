@@ -132,6 +132,21 @@ public final class ETIMMoonState {
         return phase(w) == Phase.BLOOD || thundering;
     }
 
+    /** Blue-moon animal light-bypass arm (audit 18 verdict §2.2): armed only
+     *  around the CREATURE∧blue-season getCanSpawnHere() call in the spawn
+     *  cycle; the EntityAnimal light-gate redirect returns 16 (>8 passes)
+     *  while armed, the grass gate and the EntityLiving chain are untouched
+     *  (R196 perform_light_check=false semantics). */
+    private static boolean animalLightBypass = false;
+
+    public static void setAnimalLightBypass(boolean armed) {
+        animalLightBypass = armed;
+    }
+
+    public static boolean animalLightBypass() {
+        return animalLightBypass;
+    }
+
     private ETIMMoonState() {
     }
 }

@@ -530,7 +530,25 @@ public final class ETIMSpawnCycle {
                 return false;
             }
         }
-        boolean ok = proto.getCanSpawnHere() && proto.isNotColliding();
+        // Blue-moon animal light-bypass (audit 18 verdict §2.2): arm the
+        // EntityAnimal light-gate redirect only for CREATURE∧blue-phase
+        // attempts. R196 :399 passes perform_light_check=false from the same
+        // period bool the outer gate uses (night ∧ %400 ∧ blue) — here the
+        // outer gate has already established the season, so phase+type is
+        // the exact residual predicate. Unarmed calls are byte-identical.
+        boolean blueAnimalSeason = phase == ETIMMoonState.Phase.BLUE
+                && type == EnumCreatureType.CREATURE;
+        if (blueAnimalSeason) {
+            ETIMMoonState.setAnimalLightBypass(true);
+        }
+        boolean ok;
+        try {
+            ok = proto.getCanSpawnHere() && proto.isNotColliding();
+        } finally {
+            if (blueAnimalSeason) {
+                ETIMMoonState.setAnimalLightBypass(false);
+            }
+        }
         proto.setDead();
         if (!ok) {
             return false;
