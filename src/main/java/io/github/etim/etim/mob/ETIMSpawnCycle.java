@@ -515,6 +515,9 @@ public final class ETIMSpawnCycle {
         if (night && phase == ETIMMoonState.Phase.BLUE) {
             int eyeY = MathHelper.floor(proto.posY + proto.getEyeHeight());
             if (w.getLightFor(EnumSkyBlock.SKY, new BlockPos(pos.getX(), eyeY, pos.getZ())) > 0) {
+                if (ETIMConfig.mobDebugLog) {
+                    log(w, "reject blue-lit-eye " + entry.entityClass.getSimpleName());
+                }
                 proto.setDead();
                 return false;
             }
