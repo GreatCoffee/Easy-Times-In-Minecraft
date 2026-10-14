@@ -233,14 +233,16 @@ public final class ETIMSpawnCycle {
         spawned += runPeaceful(w, st, EnumCreatureType.AMBIENT, chunkCount);
         spawned += runPeaceful(w, st, EnumCreatureType.WATER_CREATURE, chunkCount);
         // R196 :471: blue-moon animal season = blue phase && night && %400
-        // tick. Night gate goes through the shared isNight seam; %400 fields
-        // are congruent modulo 400 (24000 = 60×400), totalWorldTime used.
-        // Tournament double-cost (:316-319) and blood-moon weather stacking
-        // (generateWeatherEvents :6444-6476) are out of scope, own slices.
+        // tick. BOTH clock faces are the WORLDINFO clock (R196: instance
+        // isBlueMoon(true) → C17 :1704 worldInfo isDaytime; :471 uses
+        // getTimeOfDay()), NOT the cached-flag totalWorldTime clock the A8
+        // gate reads. Tournament double-cost (:316-319) and blood-moon
+        // weather stacking (generateWeatherEvents :6444-6476) are out of
+        // scope, own slices.
         ETIMMoonState.Phase moonPhase = ETIMMoonState.phase(w);
-        if (ETIMMoonState.isNight(w)
+        if (!w.isDaytime()
                 && ETIMMoonState.blueMoonAnimalPeriod(moonPhase)
-                && w.getTotalWorldTime() % 400L == 0L) {
+                && w.getWorldTime() % 400L == 0L) {
             spawned += runPeaceful(w, st, EnumCreatureType.CREATURE, chunkCount);
         }
         return spawned;
@@ -512,7 +514,13 @@ public final class ETIMSpawnCycle {
         // A8 (audit 16 修正): R196 :223-232 — on a blue-moon night a lit eye
         // position is an attempt-level reject, judged BEFORE the
         // getCanSpawnHere body and independent of the 1/54 denominator chain.
-        if (night && phase == ETIMMoonState.Phase.BLUE) {
+        // moon6 W2b 修正: the A8 face lives in the HOSTILE chain only
+        // (trySpawningHostileMobs) — animals sharing this admission path must
+        // not be lit-eye-eaten, or the blue animal season starves. Clock note:
+        // A8's night reads the totalWorldTime clock (R196 cached
+        // isBlueMoonNight flag semantics) and does NOT respond to /time set
+        // or sleep jumps — R196-exact.
+        if (type == EnumCreatureType.MONSTER && night && phase == ETIMMoonState.Phase.BLUE) {
             int eyeY = MathHelper.floor(proto.posY + proto.getEyeHeight());
             if (w.getLightFor(EnumSkyBlock.SKY, new BlockPos(pos.getX(), eyeY, pos.getZ())) > 0) {
                 if (ETIMConfig.mobDebugLog) {
@@ -529,9 +537,11 @@ public final class ETIMSpawnCycle {
         }
         if (type == EnumCreatureType.MONSTER && proto instanceof EntityMob) {
             boolean outdoor = w.canSeeSky(pos);
-            // R196 :267 is_daytime — same-source night window as the A8/animal
-            // gates; single seam keeps the boundary traceable (isNight).
-            if (!night) {
+            // R196 :267 is_daytime = the WORLDINFO clock (responds to /time
+            // set and sleep jumps) — deliberately different from the A8
+            // cached-flag clock above; the split is R196-exact (moon C17:
+            // instance isDaytime vs 12 cached flags).
+            if (w.isDaytime()) {
                 // A7 (audit 16 定谳): R196 :267-273 — the daylight reject binds
                 // to the undead outdoors face only, and it abandons the whole
                 // chunk (continue label249 :272), not just the attempt.

@@ -68,13 +68,16 @@ public final class ETIMMoonState {
     }
 
     /**
-     * Single R196 night-window judgment point (World.isDaytime: adjusted =
-     * {@code (t%24000 + 6000) % 24000}, daytime iff {@code 5000 < adjusted <
-     * 19000}; {@code decompile/moon/C17_World-isDaytime-sunrise-sunset.txt}).
-     * Shared by every moon-linked consumer: the A8 blue-moon night gate, the
-     * blue-moon animal gate and the night-outdoor denominator branch —
-     * vanilla 1.12's {@code isDaytime} has a slightly different boundary, so
-     * they all must route through here for one traceable window.
+     * R196 night window on the TOTALWORLDTIME clock (World.updateMoonFlags
+     * builds the 12 cached flags with the static isDaytime(total_world_time);
+     * adjusted = {@code (t%24000 + 6000) % 24000}, night iff not
+     * {@code 5000 < adjusted < 19000}; {@code decompile/moon/C17}). This
+     * clock does NOT respond to /time set or vanilla sleep jumps — the
+     * sole consumer is the A8 blue-lit-eye gate, which R196 serves from the
+     * cached isBlueMoonNight flag. WorldInfo-clock consumers (the A7/denom
+     * day-night branch, the animal season night and %400 gates) deliberately
+     * read {@code WorldServer.isDaytime()/getWorldTime()} instead, matching
+     * R196's instance isDaytime/getTimeOfDay faces.
      */
     public static boolean isNight(WorldServer w) {
         long adjusted = (w.getTotalWorldTime() % 24000L + 6000L) % 24000L;
