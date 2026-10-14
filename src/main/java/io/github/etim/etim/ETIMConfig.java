@@ -73,14 +73,14 @@ public final class ETIMConfig {
     /** TEST compression: hunger accrual and starve progress ×5 (burn a unit every 20 s, a starve strike every 5 s). */
     public static boolean foodTestMode = false;
     /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). */
-    public static boolean foodDebugLog = true;
+    public static boolean foodDebugLog = false;
 
     /** Task 2.4 (ingestion): use duration for all R196-ingestible items (R196 §四: every
      *  eating/drinking family runs 32 ticks — ItemFood/ItemBowl/ItemPotion/ItemBucketMilk). */
     public static int ingestUseDurationTicks = 32;
 
     /** Task 2.4 (ingestion): [IngestLog] server dev channel for routing/refusal decisions. */
-    public static boolean ingestDebugLog = true;
+    public static boolean ingestDebugLog = false;
     /** TEST-mode multipliers of the R196 pacing (hunger accrual + starve progress ×5). */
     private static final float TEST_MODE_MULTIPLIER = 5.0F;
 
@@ -205,7 +205,7 @@ public final class ETIMConfig {
     /** Fill the crafting arrow with white progress (MITE GUI look). */
     public static boolean craftingProgressArrow = true;
     /** Server-log [CraftingLog] lines for period sets, starts, penalties and completions (dev channel). */
-    public static boolean craftingDebugLog = true;
+    public static boolean craftingDebugLog = false;
     /** Batch-3 master switch of the R196 quality ladder (false = vanilla-no-quality v1). */
     public static boolean qualitySystem = true;
     /** Batch-3: chat line when the right-click quality cycling changes the rung (dev/test channel). */
@@ -227,7 +227,7 @@ public final class ETIMConfig {
     /** Vanilla furnace cap (R196 cobblestone tier). */
     public static int furnaceVanillaMaxHeat = 2;
     /** Server-log [FurnaceLog] lines for heat denials (dev channel). */
-    public static boolean furnaceDebugLog = true;
+    public static boolean furnaceDebugLog = false;
     /** Batch-B: R196 fuel burn times replace vanilla where they differ (audit 9 §2.2). */
     public static boolean furnaceBurnTimeR196 = true;
     /** Batch-C: furnace take pays the R196 per-item reward as one orb (audit 9 §1.4). */
@@ -243,7 +243,7 @@ public final class ETIMConfig {
     /** Death settles the XP balance (orb drop aside, R196 deposit/refill verdict: respawn = total − 20 sub-1, stale above). */
     public static boolean deathXpSettle = true;
     /** Server-log [DeathLog] lines for the death chain (dev channel). */
-    public static boolean deathDebugLog = true;
+    public static boolean deathDebugLog = false;
 
     // mobs (stage 5 slice 1: R196 despawn chain) ------------------------------
     /** Master switch of the R196 despawn chain (audit 11 §2.1): view-resets, mob-path hold, animal walls, zombie-villager hold, hour-of-grace dy and the counter≥200 kill pass. Off = vanilla 1.12 despawn. */
@@ -253,7 +253,7 @@ public final class ETIMConfig {
     /** Master switch of the R196 livestock wellness pipeline (audit 11 §2.2 v1: needs floats + supervision, production comes later). Off = vanilla livestock carries nothing. */
     public static boolean livestockNeedsR196 = true;
     /** Server-log [AILog] lines for despawn kills, holds and rerolls (dev channel). */
-    public static boolean mobDebugLog = true;
+    public static boolean mobDebugLog = false;
     /** Master switch of the R196 spawn cycle (audit 11 §4 + audit 14): cap table 50/10/5/5 over /256, hostile dual probability rings, the modifier four events and the admission fine print. Off = vanilla 1.12 world-entity spawner. */
     public static boolean mobSpawnR196 = true;
     /** R196 spawn caps per creature type (audit 14 §2.1/§2.2): monster 50, animal 10, ambient 5, aquatic 5 — before the ×chunks/256 conversion. */
@@ -344,13 +344,13 @@ public final class ETIMConfig {
         foodTestMode = config.getBoolean("foodTestMode", "food", false,
                 comment("TEST compression: hunger accrual and starve progress ×5 (a food unit burns every 20 s, a starve strike every 5 s)",
                         "测试压缩：饥饿积累与饿伤进度×5（每20秒烧掉1点食物、每5秒掉一次饿伤）"));
-        foodDebugLog = config.getBoolean("foodDebugLog", "food", true,
+        foodDebugLog = config.getBoolean("foodDebugLog", "food", false,
                 comment("Server log [FoodLog] lines for eats, pool consumption, starve strikes and bed events (dev channel)",
                         "服务端日志 [FoodLog] 行：进食、池消耗、饿伤判定与床事件（开发通道）"));
         ingestUseDurationTicks = config.getInt("ingestUseDurationTicks", "food", ingestUseDurationTicks, 1, 200,
                 comment("Use duration in ticks for the R196-ingestible items added by the ingestion task (sugar / mushrooms / egg). R196 runs every eating/drinking family at 32 ticks",
                         "可食化任务新增件（糖/蘑菇/蛋）的食用时长（tick）。R196 全部吃/喝家族固定 32 tick"));
-        ingestDebugLog = config.getBoolean("ingestDebugLog", "food", true,
+        ingestDebugLog = config.getBoolean("ingestDebugLog", "food", false,
                 comment("Server log [IngestLog] lines for ingestion routing: what starts eating, what is refused, egg eat/throw fork (dev channel)",
                         "服务端日志 [IngestLog] 行：可食化路由——开吃、拒绝与蛋的吃/掷分叉（开发通道）"));
         malnourishedHungerFactor = config.getFloat("malnourishedHungerFactor", "food", malnourishedHungerFactor, 0.0F, 10.0F,
@@ -504,7 +504,7 @@ public final class ETIMConfig {
         craftingProgressArrow = config.getBoolean("craftingProgressArrow", "crafting", true,
                 comment("Fill the crafting GUI arrow with white progress (the arrow between grid and result slot)",
                         "合成界面的箭头以白色进度填充（网格与产物槽之间的箭头）"));
-        craftingDebugLog = config.getBoolean("craftingDebugLog", "crafting", true,
+        craftingDebugLog = config.getBoolean("craftingDebugLog", "crafting", false,
                 comment("Server log [CraftingLog] lines: period sets, starts, damage penalties and completions (dev channel)",
                         "服务端日志 [CraftingLog] 行：周期设定、开表、受击扣进度与完成（开发通道）"));
         qualitySystem = config.getBoolean("qualitySystem", "crafting", true,
@@ -535,7 +535,7 @@ public final class ETIMConfig {
         furnaceVanillaMaxHeat = config.getInt("furnaceVanillaMaxHeat", "furnace", furnaceVanillaMaxHeat, 1, 4,
                 comment("Max heat the vanilla furnace accepts (R196 cobblestone furnace cap = 2; the extra tiers come with batch B)",
                         "原版熔炉可承受的最高热度（R196 圆石炉 cap 为 2；其余炉型随批 B 落地）"));
-        furnaceDebugLog = config.getBoolean("furnaceDebugLog", "furnace", true,
+        furnaceDebugLog = config.getBoolean("furnaceDebugLog", "furnace", false,
                 comment("Server log [FurnaceLog] lines: smelt blocks and fuel admittance denials (dev channel)",
                         "服务端日志 [FurnaceLog] 行：熔炼拒绝与燃料准入拒绝（开发通道）"));
         furnaceBurnTimeR196 = config.getBoolean("furnaceBurnTimeR196", "furnace", true,
@@ -556,14 +556,14 @@ public final class ETIMConfig {
         deathXpSettle = config.getBoolean("deathXpSettle", "death", true,
                 comment("Death settles the XP balance: below-1-total deaths subtract 20 points (floor −800); higher deaths restore the stale respawn value (R196 ServerPlayer:953-957). Off = vanilla XP carryover",
                         "死亡结算经验：总量低于 1 级线（20 点）时扣 20 点（下限 −800）；更高时重生继承上次结算值（R196 ServerPlayer:953-957）。关闭则回到原版经验全保留"));
-        deathDebugLog = config.getBoolean("deathDebugLog", "death", true,
+        deathDebugLog = config.getBoolean("deathDebugLog", "death", false,
                 comment("Server log [DeathLog] lines: orb dumps, settle results and respawn rewrites (dev test channel)",
                         "服务端日志 [DeathLog] 行：经验球掉落、结算结果与重生效写（开发测试通道）"));
 
         mobDespawnR196 = config.getBoolean("mobDespawnR196", "mobs", true,
                 comment("R196 despawn chain (audit 11 §2.1): LOS view-resets (-400/-9600), the mob 48-path hold (-1200), animal walls (counter 800/2400, 1024-radius player, ±16 fence), zombie-villager holds, the hour-of-grace dy doubling and the counter>=200 kill pass at >16 blocks. Off = vanilla 1.12 despawn rules",
                         "R196 消散链（审计 11 §2.1）：视线重置（-400/-9600）、怪类 48 格寻路挽留（-1200）、动物三重墙（计数 800/2400、1024 半径玩家、±16 围栏）、僵尸村民不消散、非天亮整点的 y 折倍、计数≥200 且距离>16 格的击杀判定。关闭则回到原版 1.12 消散规则"));
-        mobDebugLog = config.getBoolean("mobDebugLog", "mobs", true,
+        mobDebugLog = config.getBoolean("mobDebugLog", "mobs", false,
                 comment("Server log [AILog] lines: despawn kills, holds and counter rerolls (dev channel)",
                         "服务端日志 [AILog] 行：消散击杀、挽留判定与计数重掷（开发通道）"));
         mobSpawnR196 = config.getBoolean("mobSpawnR196", "mobs", true,
