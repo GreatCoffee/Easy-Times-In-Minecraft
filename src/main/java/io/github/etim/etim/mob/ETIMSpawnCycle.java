@@ -11,6 +11,12 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockHugeMushroom;
+import net.minecraft.block.BlockSlab;
+import net.minecraft.block.BlockStairs;
+import net.minecraft.block.material.Material;
+import net.minecraft.init.Blocks;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.entity.IEntityLivingData;
@@ -294,7 +300,9 @@ public final class ETIMSpawnCycle {
                 }
             }
             probe.setPos(x, y, z);
-            if (w.getBlockState(probe).isBlockNormalCube()) {
+            // :145 (11 节段移植, 批五): base-point geometry gate — replaces
+            // the bare normal-cube continue with the full skeleton.
+            if (canSpawnAtLocation(w, type, x, y, z) < 0.0D) {
                 continue;
             }
             Biome.SpawnListEntry entry = ETIMSpawnTables.pickSpawn(w, type, probe);
@@ -346,7 +354,14 @@ public final class ETIMSpawnCycle {
                 }
                 x += w.rand.nextInt(6) - w.rand.nextInt(6);
                 z += w.rand.nextInt(6) - w.rand.nextInt(6);
-                cursor.setPos(x, y, z);
+                // :162 geometry + landing-y correction (audit 16 A6 落点面,
+                // 11 节段批五): close-branch floors, distances and the locate
+                // all use the landing position from here on.
+                double landing = canSpawnAtLocation(w, type, x, y, z);
+                if (landing < 0.0D) {
+                    continue;
+                }
+                cursor.setPos(x, MathHelper.floor(landing), z);
                 if (!admitCandidate(w, cursor)) {
                     continue;
                 }
@@ -364,7 +379,7 @@ public final class ETIMSpawnCycle {
                 } catch (Exception e) {
                     continue;
                 }
-                mob.setLocationAndAngles(x + 0.5D, cursor.getY(), z + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
+                mob.setLocationAndAngles(x + 0.5D, landing, z + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
                 if (mob.isNotColliding()) {
                     // A5 (audit 16): R196 :290 — finalize before entering the
                     // world; the returned data feeds the round's later spawns.
@@ -512,6 +527,92 @@ public final class ETIMSpawnCycle {
             }
         }
         return true;
+    }
+
+    // ------------------------------------------------------------------
+    // landing geometry (audit 16 A6 伴随 · 11/10 节段批五移植)
+
+    private static final double REJECT = -1.0D;
+
+    /**
+     * R196 :525-579 — geometric skeleton + landing y. Return value: the
+     * landing y (topmost face of the standing surface, fractional), or
+     * {@link #REJECT} when the location cannot host the type.
+     */
+    private static double canSpawnAtLocation(WorldServer w, EnumCreatureType type, int x, int y, int z) {
+        if (y < 1) {
+            return REJECT;
+        }
+        IBlockState state = w.getBlockState(new BlockPos(x, y, z));
+        // isAlwaysSolidStandardFormCube ≈ 1.12 always-normal-cube.
+        if (state.isBlockNormalCube()) {
+            return REJECT;
+        }
+        Material mat = state.getMaterial();
+        if (mat == Material.LAVA) {
+            return REJECT;
+        }
+        if (type == EnumCreatureType.WATER_CREATURE) {
+            // :546-547 — must be IN water with water below.
+            return (mat == Material.WATER
+                    && w.getBlockState(new BlockPos(x, y - 1, z)).getMaterial() == Material.WATER)
+                    ? (double) y : REJECT;
+        }
+        if (type == EnumCreatureType.AMBIENT) {
+            return mat == Material.AIR ? (double) y : REJECT;
+        }
+        if (!state.isBlockNormalCube() && state.getBlock() != Blocks.SNOW_LAYER
+                && state.getBlock() != Blocks.WATERLILY) {
+            // :554-566 — candidate cell is airy: the standing surface is the
+            // block below (solid-ish / snow / lily).
+            BlockPos belowPos = new BlockPos(x, y - 1, z);
+            IBlockState belowState = w.getBlockState(belowPos);
+            if (belowState.isBlockNormalCube() || belowState.getBlock() == Blocks.SNOW_LAYER
+                    || belowState.getBlock() == Blocks.WATERLILY) {
+                double top = belowState.getBlock().getBoundingBox(belowState, w, belowPos).maxY;
+                return canSpawnOn(type, belowState) ? (y - 1) + top + 0.005D : REJECT;
+            }
+            return REJECT;
+        }
+        // :568-576 — the candidate cell holds the standing surface itself
+        // (slab/stairs/snow/lily tops).
+        BlockPos pos = new BlockPos(x, y, z);
+        double top = state.getBlock().getBoundingBox(state, w, pos).maxY;
+        if (state.getBlock() == Blocks.SNOW_LAYER) {
+            // snow qualifies through whatever ground is under the layer
+            IBlockState belowState = w.getBlockState(new BlockPos(x, y - 1, z));
+            return canSpawnOn(type, belowState) ? (double) y + top + 0.005D : REJECT;
+        }
+        return canSpawnOn(type, state) ? (double) y + top + 0.005D : REJECT;
+    }
+
+    /**
+     * R196 :500-524 — surface qualification table (10 节段). metadata lives
+     * in the state; {@code isTopFlatAndSolid} resolves to the standard-form
+     * cube test (Block.java:1750-1781 → 1.12 isBlockNormalCube).
+     */
+    private static boolean canSpawnOn(EnumCreatureType type, IBlockState state) {
+        if (type == EnumCreatureType.AMBIENT) {
+            return true;
+        }
+        Block block = state.getBlock();
+        if (block == Blocks.AIR) {
+            return false;
+        }
+        if (type == EnumCreatureType.WATER_CREATURE) {
+            return state.getMaterial() == Material.WATER;
+        }
+        if (block == Blocks.BEDROCK || block == Blocks.MYCELIUM || block instanceof BlockHugeMushroom) {
+            return false;
+        }
+        if (type == EnumCreatureType.CREATURE) {
+            return block == Blocks.GRASS;
+        }
+        return block == Blocks.SNOW_LAYER
+                || block == Blocks.WATERLILY
+                || block instanceof BlockSlab
+                || block instanceof BlockStairs
+                || state.isBlockNormalCube();
     }
 
     // ------------------------------------------------------------------
