@@ -263,6 +263,24 @@ public final class ETIMSpawnCycle {
         if (count >= cap) {
             if (ETIMConfig.mobDebugLog) {
                 log(w, "cap-block type=" + type + " count=" + count + " limit=" + cap);
+                // Composition instrument (audit18-w2h option-1): the cap-block
+                // count face and the testfor battery face disagreed twice
+                // (W2h/W2i) — log the actual class make-up the count face sees.
+                if (type == EnumCreatureType.CREATURE) {
+                    HashMap<String, Integer> species = new HashMap<>();
+                    for (net.minecraft.entity.Entity e : w.loadedEntityList) {
+                        if (type.getCreatureClass().isAssignableFrom(e.getClass())) {
+                            String name = e.getClass().getSimpleName();
+                            Integer cur = species.get(name);
+                            species.put(name, cur == null ? Integer.valueOf(1) : Integer.valueOf(cur.intValue() + 1));
+                        }
+                    }
+                    StringBuilder sb = new StringBuilder("cap-comp");
+                    for (Map.Entry<String, Integer> en : species.entrySet()) {
+                        sb.append(' ').append(en.getKey()).append('=').append(en.getValue());
+                    }
+                    log(w, sb.toString());
+                }
             }
             return 0;
         }
