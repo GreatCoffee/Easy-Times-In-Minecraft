@@ -21,6 +21,7 @@ import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.entity.IEntityLivingData;
 import net.minecraft.entity.monster.EntityMob;
+import net.minecraft.entity.monster.IMob;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;import net.minecraft.world.EnumSkyBlock;import net.minecraft.util.math.ChunkPos;
@@ -164,14 +165,85 @@ public final class ETIMSpawnCycle {
     }
 
     // ------------------------------------------------------------------
-    // eligible chunks (same layout as vanilla; edge ring count-only)
+    // eligible chunks (same layout as vanilla; edge ring count-only).
+    // R196 02 节段 (audit19 落码): the hostile per-player density gate rides
+    // on the forHostileMobs=true build (SpawnerAnimals:19-72).
 
-    private static int collectEligibleChunks(WorldServer w, State st, boolean countOnlyForLog) {
+    private static int collectEligibleChunks(WorldServer w, State st, boolean forHostileMobs) {
+        // R196 :33/:21-23 — day/phase snapshots at build-head.
+        boolean daytime = w.isDaytime();
+        ETIMMoonState.Phase phase = ETIMMoonState.phase(w);
+        if (forHostileMobs) {
+            densitySkipLogBudget = 2; // audit19 #5: per-pass instrument budget
+        }
         st.eligible.clear();
         int count = 0;
         for (EntityPlayer p : w.playerEntities) {
-            if (p.isSpectator()) {
+            // R196 :27 (两页共用): ghost→spectator 直映射; the tournament
+            // check is a 1.6.4-only system with no 1.12 counterpart
+            // (audit19 #6 确证: build 源 entity/player 域零命中).
+            if (p.isSpectator() || p.isDead || p.getHealth() <= 0.0F) {
                 continue;
+            }
+            if (forHostileMobs) {
+                int footY = MathHelper.floor(p.posY);
+                int densityLimit;
+                int minimum = 8;
+                if (w.provider.getDimension() == 0) {
+                    // R196 :31 — depth-proportional base.
+                    densityLimit = (int) (8.0F * (1.0F + (64.0F - footY) / 32.0F));
+                    // R196 :32-43 — the night moon bump applies to the
+                    // MINIMUM floor only: blood x3/2, full x5/4 (else-if,
+                    // so blood wins on the %128∩%32 days — phase() keeps
+                    // the same outranking). Night face = worldInfo
+                    // instance clock (A7/denom 同族); phase face =
+                    // totalWorldTime derivation + override shortcut — the
+                    // two sources co-present, a documented deviation
+                    // (audit19 #3).
+                    if (!daytime) {
+                        minimum = (int) (minimum * ETIMMoonState.deepDensityMultiplier(phase));
+                    }
+                    if (densityLimit < minimum) {
+                        densityLimit = minimum;
+                    }
+                } else {
+                    // R196 :44-45 — flat limit off-overworld, no depth
+                    // factor, no moon bump, no floor term.
+                    densityLimit = 8;
+                }
+                // R196 :48 + WorldServer:1850-1866. Block coordinates on
+                // BOTH generations (audit19 双否: R196 returns getCenter()
+                // box midpoints / getChunkPosition(64) chunk-center blocks;
+                // 1.12 returns BlockPos((chunk<<4)+8)) — no /16 restore.
+                // The (int) OUTER truncation (:48) is an A-grade fidelity
+                // point: `imobs > limit` flips without it.
+                float proximity = strongholdProximity(w, MathHelper.floor(p.posX), MathHelper.floor(p.posZ));
+                densityLimit = (int) (densityLimit + densityLimit * proximity);
+                // R196 :49 — the IMob layer inside the player's dense box.
+                // 1.12's <T extends Entity> witness can't take an interface
+                // type raw (vanilla precedent search: zero callers) — query
+                // the EntityLiving layer and filter (every IMob impl is an
+                // EntityLiving subclass: EntityMob/EntitySlime/EntityGhast).
+                List<EntityLiving> nearby = w.getEntitiesWithinAABB(EntityLiving.class,
+                        p.getEntityBoundingBox().expand(32.0D, 8.0D, 32.0D));
+                int imobs = 0;
+                for (EntityLiving e : nearby) {
+                    if (e instanceof IMob) {
+                        ++imobs;
+                    }
+                }
+                if (imobs > densityLimit) {
+                    // R196 :50-51 — skip this player's whole ring.
+                    if (ETIMConfig.mobDebugLog && densitySkipLogBudget > 0) {
+                        --densitySkipLogBudget;
+                        log(w, "density-skip dim=" + w.provider.getDimension()
+                                + " at (" + MathHelper.floor(p.posX) + "," + footY + ","
+                                + MathHelper.floor(p.posZ) + ")"
+                                + " imobs=" + imobs + " limit=" + densityLimit
+                                + " min=" + minimum + " prox=" + proximity);
+                    }
+                    continue;
+                }
             }
             int cx = MathHelper.floor(p.posX / 16.0D);
             int cz = MathHelper.floor(p.posZ / 16.0D);
@@ -196,11 +268,39 @@ public final class ETIMSpawnCycle {
         return count;
     }
 
+    /**
+     * R196 WorldServer:1850-1866 (getStrongholdProximity), verbatim.
+     * Structure lookup rides the 1.12 face
+     * {@code World.findNearestStructure → ChunkGeneratorOverworld "Stronghold"}
+     * (ChunkGeneratorOverworld:573-581; non-map worlds → null → 0). Both
+     * return families are BLOCK coordinates (audit19 双否), y deltas are
+     * 0.0 and the search plane sits at y=64 (:1851/:1856/:1863);
+     * {@code getDistanceFromDeltas} = plain sqrt (R196 World.java:434).
+     * No caching, no throttling (R196-exact).
+     */
+    private static float strongholdProximity(WorldServer w, int x, int z) {
+        BlockPos stronghold = w.findNearestStructure("Stronghold", new BlockPos(x, 64, z), true);
+        if (stronghold == null) {
+            return 0.0F;
+        }
+        double dxs = stronghold.getX() - w.getWorldInfo().getSpawnX();
+        double dzs = stronghold.getZ() - w.getWorldInfo().getSpawnZ();
+        double spawnToStronghold = Math.sqrt(dxs * dxs + dzs * dzs);
+        if (spawnToStronghold < 2000.0D) {
+            return 0.0F;
+        }
+        double dxp = stronghold.getX() - x;
+        double dzp = stronghold.getZ() - z;
+        double playerToStronghold = Math.sqrt(dxp * dxp + dzp * dzp);
+        float proximity = (float) (1.0D - playerToStronghold / spawnToStronghold);
+        return proximity < 0.0F ? 0.0F : proximity;
+    }
+
     // ------------------------------------------------------------------
     // hostile pass (audit 14 §4.2, trySpawningHostileMobs :102-311)
 
     private static int trySpawningHostileMobs(WorldServer w, State st, boolean deep) {
-        int chunkCount = collectEligibleChunks(w, st, false);
+        int chunkCount = collectEligibleChunks(w, st, true);
         if (chunkCount <= 0 || st.eligible.isEmpty()) {
             return 0;
         }
@@ -769,6 +869,8 @@ public final class ETIMSpawnCycle {
     private static int blueAnimalGateLogBudget = 0;
     private static int blueAnimalPickLogBudget = 0;
     private static int blueAnimalLandLogBudget = 0;
+    // audit19 #5: per-build budget reset in collectEligibleChunks.
+    private static int densitySkipLogBudget = 0;
 
     private ETIMSpawnCycle() {
     }

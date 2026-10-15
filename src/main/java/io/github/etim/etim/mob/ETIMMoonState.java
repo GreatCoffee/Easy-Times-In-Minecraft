@@ -96,10 +96,12 @@ public final class ETIMMoonState {
     }
 
     /**
-     * Deep-chunk density floor bump (R196 setEligibleChunks :28-43): blood
-     * ×3/2, full ×5/4, daytime no bump. Applied to the per-player minimum
-     * density limit, NOT to a spawn rate — consumed by the later per-player
-     * density-limit slice (stage-02), seam only.
+     * Deep-chunk density floor bump (R196 setEligibleChunks :32-43): blood
+     * ×3/2, full ×5/4 (else-if, blood outranks); the night gate
+     * {@code !isDaytime()} lives at the consumption site. Applied to the
+     * per-player minimum density limit, NOT to a spawn rate — consumed by
+     * the hostile per-player density gate in
+     * {@code ETIMSpawnCycle.collectEligibleChunks} (stage-02 slice).
      */
     public static float deepDensityMultiplier(Phase p) {
         if (p == Phase.BLOOD) {
