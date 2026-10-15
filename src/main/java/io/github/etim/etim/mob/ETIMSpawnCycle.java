@@ -233,16 +233,18 @@ public final class ETIMSpawnCycle {
         spawned += runPeaceful(w, st, EnumCreatureType.AMBIENT, chunkCount);
         spawned += runPeaceful(w, st, EnumCreatureType.WATER_CREATURE, chunkCount);
         // R196 :471: blue-moon animal season = blue phase && night && %400
-        // tick. BOTH clock faces are the WORLDINFO clock (R196: instance
-        // isBlueMoon(true) → C17 :1704 worldInfo isDaytime; :471 uses
-        // getTimeOfDay()), NOT the cached-flag totalWorldTime clock the A8
-        // gate reads. Tournament double-cost (:316-319) and blood-moon
-        // weather stacking (generateWeatherEvents :6444-6476) are out of
-        // scope, own slices.
+        // tick. The %400 MUST be the SAME clock as the pass head that made
+        // trySpawningPeacefulMobs tick (:119 worldInfo.getWorldTotalTime()
+        // % 400) — W2d instrumented the day-counter %400 as dead-on-arrival
+        // (a763b14): after any /time set or sleep jump the two counters are
+        // incongruent modulo 400 (Δ = worldTime − totalTime, a fixed
+        // nonzero offset), so the gates never co-fire. Same-clock pairing
+        // is the fix, not the day counter even though R196 :471 uses
+        // getTimeOfDay — the enclosing pass gate IS the shipped face here.
         ETIMMoonState.Phase moonPhase = ETIMMoonState.phase(w);
         if (!w.isDaytime()
                 && ETIMMoonState.blueMoonAnimalPeriod(moonPhase)
-                && w.getWorldTime() % 400L == 0L) {
+                && w.getWorldInfo().getWorldTotalTime() % 400L == 0L) {
             blueAnimalGateLogBudget = 4;
             blueAnimalPickLogBudget = 2;
             blueAnimalLandLogBudget = 4;
