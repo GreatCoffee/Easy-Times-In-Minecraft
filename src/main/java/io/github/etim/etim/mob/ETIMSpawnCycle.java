@@ -245,6 +245,7 @@ public final class ETIMSpawnCycle {
                 && w.getWorldTime() % 400L == 0L) {
             blueAnimalGateLogBudget = 4;
             blueAnimalPickLogBudget = 2;
+            blueAnimalLandLogBudget = 4;
             int spawnedAnimal = runPeaceful(w, st, EnumCreatureType.CREATURE, chunkCount);
             spawned += spawnedAnimal;
             if (ETIMConfig.mobDebugLog) {
@@ -683,6 +684,11 @@ public final class ETIMSpawnCycle {
             return false;
         }
         if (type == EnumCreatureType.CREATURE) {
+            if (ETIMConfig.mobDebugLog && blueAnimalLandLogBudget > 0
+                    && block != Blocks.GRASS) {
+                --blueAnimalLandLogBudget;
+                ETIM.LOGGER.info("[SpawnLog] blue-animal landface ground=" + block.getRegistryName());
+            }
             return block == Blocks.GRASS;
         }
         return block == Blocks.SNOW_LAYER
@@ -742,6 +748,7 @@ public final class ETIMSpawnCycle {
     // %400 pass and the budgets are reset in trySpawningPeacefulMobs.
     private static int blueAnimalGateLogBudget = 0;
     private static int blueAnimalPickLogBudget = 0;
+    private static int blueAnimalLandLogBudget = 0;
 
     private ETIMSpawnCycle() {
     }
