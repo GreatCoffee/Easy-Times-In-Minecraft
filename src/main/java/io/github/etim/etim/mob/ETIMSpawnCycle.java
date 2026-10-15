@@ -243,7 +243,13 @@ public final class ETIMSpawnCycle {
         if (!w.isDaytime()
                 && ETIMMoonState.blueMoonAnimalPeriod(moonPhase)
                 && w.getWorldTime() % 400L == 0L) {
-            spawned += runPeaceful(w, st, EnumCreatureType.CREATURE, chunkCount);
+            blueAnimalGateLogBudget = 4;
+            blueAnimalPickLogBudget = 2;
+            int spawnedAnimal = runPeaceful(w, st, EnumCreatureType.CREATURE, chunkCount);
+            spawned += spawnedAnimal;
+            if (ETIMConfig.mobDebugLog) {
+                log(w, "blue-animal pass gate-hit spawned=" + spawnedAnimal);
+            }
         }
         return spawned;
     }
@@ -389,6 +395,14 @@ public final class ETIMSpawnCycle {
                 if (entry == null) {
                     entry = ETIMSpawnTables.pickSpawn(w, type, new BlockPos(x, y, z));
                     if (entry == null) {
+                        if (type == EnumCreatureType.CREATURE
+                                && ETIMMoonState.phase(w) == ETIMMoonState.Phase.BLUE
+                                && ETIMConfig.mobDebugLog
+                                && blueAnimalPickLogBudget > 0) {
+                            --blueAnimalPickLogBudget;
+                            log(w, "blue-animal pickspawn-null at " + pos(cursor)
+                                    + " ground=" + groundOf(w, cursor));
+                        }
                         break;
                     }
                 }
@@ -550,6 +564,15 @@ public final class ETIMSpawnCycle {
             }
         }
         proto.setDead();
+        if (!ok && type == EnumCreatureType.CREATURE
+                && phase == ETIMMoonState.Phase.BLUE
+                && ETIMConfig.mobDebugLog
+                && blueAnimalGateLogBudget > 0) {
+            --blueAnimalGateLogBudget;
+            log(w, "reject blue-animal-gate cls=" + entry.entityClass.getSimpleName()
+                    + " ground=" + groundOf(w, pos)
+                    + " eyeY=" + MathHelper.floor(pos.getY() + proto.getEyeHeight()));
+        }
         if (!ok) {
             return false;
         }
@@ -707,6 +730,18 @@ public final class ETIMSpawnCycle {
     private static String pos(BlockPos p) {
         return "(" + p.getX() + "," + p.getY() + "," + p.getZ() + ")";
     }
+
+    private static String groundOf(WorldServer w, BlockPos p) {
+        return String.valueOf(w.getBlockState(p.down()).getBlock().getRegistryName());
+    }
+
+    // Instrument budgets for the blue-animal season faces (§9: the admission
+    // chain between the season gate and accept is otherwise silent — the
+    // %400 pass proves the gate fires, so a zero-accept window cannot tell
+    // pickspawn-null apart from a ground-gate failure). Rows are capped per
+    // %400 pass and the budgets are reset in trySpawningPeacefulMobs.
+    private static int blueAnimalGateLogBudget = 0;
+    private static int blueAnimalPickLogBudget = 0;
 
     private ETIMSpawnCycle() {
     }
