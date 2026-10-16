@@ -232,6 +232,28 @@ public final class ETIMSpawnCycle {
                         ++imobs;
                     }
                 }
+                // audit19-W3 判据仪器 (甲, 边沿去重): the min-value chain
+                // (override→phase→seam→min) executes at EVERY build, but the
+                // skip row only fires when the player IS skipped — this eval
+                // row logs the chain inputs regardless of the skip truth
+                // (edge-deduped: emission only when the signature changes,
+                // audit 15 transition-only logging precedent). imobs is
+                // deliberately OUT of the signature (it churns every tick
+                // and would re-flood); it prints at emit time only.
+                String evalSig = w.provider.getDimension() + "|" + footY + "|" + minimum
+                        + "|" + densityLimit + "|" + proximity + "|" + daytime + "|" + phase
+                        + "|" + MathHelper.floor(p.posX) + "|" + MathHelper.floor(p.posZ);
+                if (!evalSig.equals(lastDensityEvalSig)) {
+                    lastDensityEvalSig = evalSig;
+                    if (ETIMConfig.mobDebugLog) {
+                        log(w, "density-eval dim=" + w.provider.getDimension()
+                                + " at (" + MathHelper.floor(p.posX) + "," + footY + ","
+                                + MathHelper.floor(p.posZ) + ")"
+                                + " imobs=" + imobs + " limit=" + densityLimit
+                                + " min=" + minimum + " prox=" + proximity
+                                + " daytime=" + daytime + " phase=" + phase);
+                    }
+                }
                 if (imobs > densityLimit) {
                     // R196 :50-51 — skip this player's whole ring.
                     if (ETIMConfig.mobDebugLog && densitySkipLogBudget > 0) {
@@ -871,6 +893,8 @@ public final class ETIMSpawnCycle {
     private static int blueAnimalLandLogBudget = 0;
     // audit19 #5: per-build budget reset in collectEligibleChunks.
     private static int densitySkipLogBudget = 0;
+    // audit19-W3 (甲): edge-dedupe signature for the density-eval row.
+    private static String lastDensityEvalSig = "";
 
     private ETIMSpawnCycle() {
     }
