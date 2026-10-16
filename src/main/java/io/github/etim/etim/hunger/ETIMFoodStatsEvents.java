@@ -96,6 +96,8 @@ public final class ETIMFoodStatsEvents {
         event.setResult(EntityPlayer.SleepResult.OTHER_PROBLEM);
         player.sendStatusMessage(new TextComponentTranslation("tile.bed.tooHungry"), true);
         ETIMFoodStats.logFoodEntry(player, "tooHungry (right-click bed while starvation)");
+        // sleep-01 judge face: the shipped entry refusal is a sleep-window reason.
+        io.github.etim.etim.playerstate.ETIMSleepClock.logWindowBlocked(player.world, "hungerDeny");
     }
 
     /** Client learns the values on login (server-authoritative display). */

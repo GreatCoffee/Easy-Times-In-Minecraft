@@ -1,7 +1,10 @@
 package io.github.etim.etim.mixins;
 
-import io.github.etim.etim.playerstate.PlayerBedEvents;
+import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.mob.ETIMMoonState;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
+import io.github.etim.etim.playerstate.ETIMSleepClock;
+import io.github.etim.etim.playerstate.PlayerBedEvents;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldEntitySpawner;
 import org.spongepowered.asm.mixin.Mixin;
@@ -9,13 +12,30 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
- * Blocks vanilla's "everyone asleep → skip to morning" while a player is
- * lying (not really sleeping) in a bed that was entered during the day
- * (MITE daytime-lying support, see PlayerBedEvents).
- *
- * <p>Without this, a daytime lie would skip the whole day (and the whole
- * night once it falls), because vanilla's {@code WorldServer.tick} has no
- * time-of-day condition around {@code areAllPlayersAsleep()}.</p>
+ * The sleep-skip site of {@code WorldServer.tick} (vanilla :196), owning
+ * the sleep-01 sleep clock. The redirect replaces the single
+ * {@code areAllPlayersAsleep()} invoke (require=1, verdict批文 1: only the
+ * direct invoke is rewritten, callee internals stay in bytecode) and runs
+ * the R196 sleep gate chain (WorldServer.java:202-218 transposed):
+ * <ol>
+ *   <li>day-liar gate (shipped, PlayerBedEvents):</li>
+ *   <li>blood-moon gate (R196 :203 sleeping_prevented, config
+ *       {@code bloodMoonSleepBlock}):
+ *       {@link ETIMMoonState#phase} == BLOOD blocks the skip all day;</li>
+ *   <li>{@code doDaylightCycle} off → R196 :210-211 face: no jump, no
+ *       弹床 (vanilla {@code wakeAllPlayers} is suppressed by returning
+ *       false);</li>
+ *   <li>{@code sleepFastForward} off → return true: vanilla instant 表钟
+ *       jump + wake (the gates above still applied);</li>
+ *   <li>R196 trigger window (adjusted ∈ [21000,24000) ∪ [0,4000)) on the
+ *       TOTAL clock;</li>
+ *   <li>the R196 night batch runs in {@link ETIMSleepClock#runSleepTicks}
+ *       (S1) with the S3 absolute dayTime/totalTime alignment exit; return
+ *       false suppresses the vanilla :200-202 表钟 jump and :204 弹床
+ *       wake in favor of the transposed exit.</li>
+ * </ol>
+ * Returning false is always safe here: {@code areAllPlayersAsleep()} has
+ * no other consumer of this result than the skip block.
  */
 @Mixin(WorldServer.class)
 public abstract class MixinWorldServer {
@@ -26,8 +46,39 @@ public abstract class MixinWorldServer {
                     target = "Lnet/minecraft/world/WorldServer;areAllPlayersAsleep()Z"),
             require = 1
     )
-    private boolean etim$noSkipForDayLiers(WorldServer self) {
-        return self.areAllPlayersAsleep() && !PlayerBedEvents.hasAnyDayLiar(self);
+    private boolean etim$sleepClock(WorldServer self) {
+        if (!self.areAllPlayersAsleep()) {
+            return false;
+        }
+        // Gate 1 (shipped): a player lying in a bed entered during the day.
+        if (PlayerBedEvents.hasAnyDayLiar(self)) {
+            ETIMSleepClock.logWindowBlocked(self, "dayLiar");
+            return false;
+        }
+        // Gate 2 (S2): R196 :203 sleeping_prevented — blood moon blocks all day.
+        if (ETIMConfig.bloodMoonSleepBlock
+                && ETIMMoonState.phase(self) == ETIMMoonState.Phase.BLOOD) {
+            ETIMSleepClock.logWindowBlocked(self, "blood");
+            return false;
+        }
+        // R196 :208-212: no doDaylightCycle → no jump, players stay lying.
+        if (!self.getGameRules().getBoolean("doDaylightCycle")) {
+            ETIMSleepClock.logDaylightCycleSkip(self);
+            return false;
+        }
+        // Config off = vanilla passthrough (blood/dayLiar gates already applied).
+        if (!ETIMConfig.sleepFastForward) {
+            return true;
+        }
+        // Gate 4 (S1): R196 :206 trigger window on the total clock.
+        long adjusted = ETIMSleepClock.adjustedTimeOfDay(self);
+        if (!ETIMSleepClock.windowOpen(adjusted)) {
+            ETIMSleepClock.logWindowBlocked(self, "offWindow");
+            return false;
+        }
+        // S1/S3: run the R196 night batch, land the aligned double-clock exit.
+        ETIMSleepClock.runSleepTicks(self);
+        return false;
     }
 
     /**

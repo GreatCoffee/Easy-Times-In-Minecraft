@@ -358,11 +358,12 @@ public final class ETIMSpawnCycle {
         // tick. The %400 MUST be the SAME clock as the pass head that made
         // trySpawningPeacefulMobs tick (:119 worldInfo.getWorldTotalTime()
         // % 400) — W2d instrumented the day-counter %400 as dead-on-arrival
-        // (a763b14): after any /time set or sleep jump the two counters are
-        // incongruent modulo 400 (Δ = worldTime − totalTime, a fixed
-        // nonzero offset), so the gates never co-fire. Same-clock pairing
-        // is the fix, not the day counter even though R196 :471 uses
-        // getTimeOfDay — the enclosing pass gate IS the shipped face here.
+        // (a763b14): after a /time set the two counters are incongruent
+        // modulo 400 (Δ = worldTime − totalTime, a fixed nonzero offset), so
+        // the gates never co-fire. Since sleep-01, sleep nights keep the
+        // clocks congruent (sleep-01 absolute alignment dayTime :=
+        // totalTime % 24000, Δ≡0 mod 400 survives the jump) — only /time
+        // set still splits the pair. Same-clock pairing remains the fix.
         ETIMMoonState.Phase moonPhase = ETIMMoonState.phase(w);
         if (!w.isDaytime()
                 && ETIMMoonState.blueMoonAnimalPeriod(moonPhase)
@@ -675,8 +676,10 @@ public final class ETIMSpawnCycle {
         // (trySpawningHostileMobs) — animals sharing this admission path must
         // not be lit-eye-eaten, or the blue animal season starves. Clock note:
         // A8's night reads the totalWorldTime clock (R196 cached
-        // isBlueMoonNight flag semantics) and does NOT respond to /time set
-        // or sleep jumps — R196-exact.
+        // isBlueMoonNight flag semantics); /time set doesn't touch it
+        // (R196-exact), and since sleep-01 sleep nights move both clocks
+        // together (absolute alignment), the phase/night face holds across
+        // sleep jumps too.
         if (type == EnumCreatureType.MONSTER && night && phase == ETIMMoonState.Phase.BLUE) {
             int eyeY = MathHelper.floor(proto.posY + proto.getEyeHeight());
             if (w.getLightFor(EnumSkyBlock.SKY, new BlockPos(pos.getX(), eyeY, pos.getZ())) > 0) {

@@ -47,6 +47,12 @@ public final class ETIMConfig {
     /** Allow lying in a bed during the day purely for the regen boost (MITE behavior). */
     public static boolean allowDayBedRegen = true;
 
+    // sleep (sleep-01 sleep clock) -----------------------------------
+    /** Blood moon (full-day phase) blocks the sleep skip (R196 WorldServer:203 sleeping_prevented). */
+    public static boolean bloodMoonSleepBlock = true;
+    /** Sleep-night fast-forward: R196 runSleepTicks batch + absolute dayTime/totalTime alignment. Off = vanilla instant 表钟 jump. */
+    public static boolean sleepFastForward = true;
+
     // food (task 1.5 R196 dual-pool model) ---------------------------
     /** Master switch: R196 satiation/nutrition dual-pool model (false = vanilla food bar system). */
     public static boolean foodModel = true;
@@ -307,6 +313,13 @@ public final class ETIMConfig {
         allowDayBedRegen = config.getBoolean("allowDayBedRegen", "regen", true,
                 comment("Allow lying in a bed during the day purely for the regen boost (MITE behavior)",
                         "允许白天躺床来获得回血加速（MITE 行为），关闭则白天不能上床"));
+
+        bloodMoonSleepBlock = config.getBoolean("bloodMoonSleepBlock", "sleep", true,
+                comment("Blood moon (R196 full-day sleeping_prevented phase; blue outranks blood) blocks the sleep skip: sleepers stay in bed all that day. false = blood moon skips as vanilla",
+                        "血月（R196 全日 sleeping_prevented 相位；蓝月优先于血月）禁止睡跳：全日睡眠者留在床上。false = 血月按原版照样跳"));
+        sleepFastForward = config.getBoolean("sleepFastForward", "sleep", true,
+                comment("Sleep-night fast-forward (R196 runSleepTicks): the night runs as a per-tick batch (food/starve at real pace, hunger wakes sleepers) and dayTime is absolutely aligned to the total clock (double-clock desync cure). false = vanilla instant dayTime jump + eject",
+                        "睡夜 fast-forward（R196 runSleepTicks）：整夜逐拍批量模拟（饥饿/饿伤按真实节奏、断粮者被踢醒），睡跳出口把表钟绝对对齐到总钟（双钟 desync 根治）。false = 原版直接跳表钟并弹床"));
 
         foodModel = config.getBoolean("foodModel", "food", true,
                 comment("R196 dual-pool food model (task 1.5): satiation+nutrition pools, wetness hunger, starve/heal rules. Off = vanilla hunger bar",
