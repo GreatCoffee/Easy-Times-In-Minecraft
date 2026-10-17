@@ -2,6 +2,7 @@ package io.github.etim.etim.hunger;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.ETIM;
+import io.github.etim.etim.playerstate.ETIMBedSafety;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
 import io.github.etim.etim.nutrition.NutritionSystem;
@@ -52,6 +53,10 @@ public final class ETIMFoodStatsEvents {
         }
         EntityPlayer player = event.player;
         NutritionSystem.tick(player); // 1.4 drain (has its own creative guard)
+        // bed-entry S2 (verdict批文 2/M1): the R196 lie-side per-tick sentinel
+        // runs HERE — never inside tickBedGate, which the sleepForward batch
+        // loop also calls per slept tick (~22k/night). Config: bedSentryWake.
+        ETIMBedSafety.tickSentry(player);
         if (ETIMConfig.foodModel) {
             ETIMFoodStats.tick(player);          // pools + starve/heal + write-through
             ETIMFoodStats.tickBedGate(player);   // starved sleeper ejection (R196 :421-429)

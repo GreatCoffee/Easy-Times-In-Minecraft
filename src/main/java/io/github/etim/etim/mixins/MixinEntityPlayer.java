@@ -2,14 +2,19 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMHunger;
+import io.github.etim.etim.playerstate.ETIMBedSafety;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.PlayerCapabilities;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.List;
 
 /**
  * Hard level cap (task 1.2): player levels stop at {@code ETIMConfig.levelCap}.
@@ -78,5 +83,37 @@ public abstract class MixinEntityPlayer {
         }
         // jumpMovementFactor is public on EntityLivingBase — no shadow needed.
         ((EntityPlayer) (Object) this).jumpMovementFactor *= ETIMConfig.hungerMoveFactor;
+    }
+
+    /**
+     * bed-entry S1 (verdict批文 1/M2/M3) — R196 NOT_SAFE pathable face
+     * (EntityPlayer.java:1347-1384: IMob federation + navigator path reaching
+     * the bed) replaces the vanilla EntityMob AABB probe at :1697. Vanilla
+     * queries EntityMob only and has no pathability filter (a walled-in mob
+     * refuses the bed anyway); R196 needs the threat to be able to actually
+     * reach the bed. Config off = vanilla passthrough.
+     *
+     * <p>The redirect returns the R196 nearest-pathable-IMob as a singleton
+     * list (empty = no refuse). The vanilla NOT_SAFE branch (BlockBed :127-129)
+     * sends its own message; the [SleepLog] bed-refuse row is emitted here.</p>
+     */
+    @Redirect(
+            method = "trySleep",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/World;getEntitiesWithinAABB(Ljava/lang/Class;Lnet/minecraft/util/math/AxisAlignedBB;Lcom/google/common/base/Predicate;)Ljava/util/List;"
+            ),
+            require = 1
+    )
+    private List etim$bedNotSafe(World world, Class clazz, AxisAlignedBB aabb,
+            com.google.common.base.Predicate predicate) {
+        if (!ETIMConfig.bedHostilePathable) {
+            return world.getEntitiesWithinAABB(clazz, aabb, predicate); // vanilla face
+        }
+        List hostiles = ETIMBedSafety.pathableHostilesNearBed(world, aabb);
+        if (!hostiles.isEmpty()) {
+            ETIMBedSafety.logBedRefuse(world, "notSafe", aabb);
+        }
+        return hostiles;
     }
 }

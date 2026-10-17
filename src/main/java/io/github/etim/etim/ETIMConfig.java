@@ -53,6 +53,18 @@ public final class ETIMConfig {
     /** Sleep-night fast-forward: R196 runSleepTicks batch + absolute dayTime/totalTime alignment. Off = vanilla instant 表钟 jump. */
     public static boolean sleepFastForward = true;
 
+    // sleep (bed-entry, R196 bed face) --------------------------------
+    /** Bed must be sheltered: the R196 isOutdoors face refuses open-sky beds. */
+    public static boolean bedRefuseShelter = true;
+    /** Bed overhead must be passable: the R196 obstructed face refuses blocked beds. */
+    public static boolean bedRefuseObstructed = true;
+    /** Poisoned players cannot enter a bed (R196 poisoned face). */
+    public static boolean bedRefusePoison = true;
+    /** NOT_SAFE needs a PATHABLE hostile at the bed (R196 :1347-1384; off = vanilla unfiltered EntityMob AABB). */
+    public static boolean bedHostilePathable = true;
+    /** Lie-side per-tick sentinel: ejects sleepers a pathable hostile reaches (R196 :402-430). */
+    public static boolean bedSentryWake = true;
+
     // food (task 1.5 R196 dual-pool model) ---------------------------
     /** Master switch: R196 satiation/nutrition dual-pool model (false = vanilla food bar system). */
     public static boolean foodModel = true;
@@ -320,6 +332,22 @@ public final class ETIMConfig {
         sleepFastForward = config.getBoolean("sleepFastForward", "sleep", true,
                 comment("Sleep-night fast-forward (R196 runSleepTicks): the night runs as a per-tick batch (food/starve at real pace, hunger wakes sleepers) and dayTime is absolutely aligned to the total clock (double-clock desync cure). false = vanilla instant dayTime jump + eject",
                         "睡夜 fast-forward（R196 runSleepTicks）：整夜逐拍批量模拟（饥饿/饿伤按真实节奏、断粮者被踢醒），睡跳出口把表钟绝对对齐到总钟（双钟 desync 根治）。false = 原版直接跳表钟并弹床"));
+
+        bedRefuseShelter = config.getBoolean("bedRefuseShelter", "sleep", true,
+                comment("bed-entry S1: bed must be sheltered (R196 ServerPlayer:1081 isOutdoors 37-window rain-height face) — open-sky beds refuse with tile.bed.notSheltered. false = vanilla behavior (roof not required)",
+                        "床铺入口 S1：床必须有遮蔽（R196 ServerPlayer:1081 isOutdoors 37 向天幕/降水高程面），露天床拒绝入睡。false = vanilla 行为（屋顶非必需）"));
+        bedRefuseObstructed = config.getBoolean("bedRefuseObstructed", "sleep", true,
+                comment("bed-entry S1: the block right above the head must be passable (R196 ServerPlayer:1085). false = vanilla behavior (no overhead check)",
+                        "床铺入口 S1：床头上方需净空（R196 ServerPlayer:1085）。false = vanilla 行为（无头顶检查）"));
+        bedRefusePoison = config.getBoolean("bedRefusePoison", "sleep", true,
+                comment("bed-entry S1: poisoned players cannot enter a bed (R196 ServerPlayer:1087, tile.bed.poisoned). false = vanilla behavior",
+                        "床铺入口 S1：中毒状态玩家不能上床（R196 ServerPlayer:1087，tile.bed.poisoned）。false = vanilla 行为"));
+        bedHostilePathable = config.getBoolean("bedHostilePathable", "sleep", true,
+                comment("bed-entry S1: NOT_SAFE requires a hostile that can actually PATH to the bed (R196 EntityPlayer:1347-1384, IMob filter + navigator probe reaching the bed; also covers non-EntityMob IMobs like ghasts/slimes). false = vanilla unfiltered EntityMob AABB refuse",
+                        "床铺入口 S1：NOT_SAFE 需要能真正寻路到床边的敌怪（R196 EntityPlayer:1347-1384，IMob 过滤+寻路探星，也覆盖 Ghast/史莱姆等非 EntityMob 的 IMob）。false = vanilla 无过滤 EntityMob AABB 拒床"));
+        bedSentryWake = config.getBoolean("bedSentryWake", "sleep", true,
+                comment("bed-entry S2: while lying/asleep, a hostile that reaches the bed wakes you every tick (R196 EntityPlayer:402-430 notSafe/wakeMobs; hunger wake stays the shipped food face). false = vanilla behavior (no hostile sentry)",
+                        "床铺入口 S2：躺卧/睡着期间，能到达床边的敌怪逐拍惊醒（R196 EntityPlayer:402-430，notSafe/wakeMobs；饥饿醒面保持既有食物面）。false = vanilla 行为（无敌怪哨门）"));
 
         foodModel = config.getBoolean("foodModel", "food", true,
                 comment("R196 dual-pool food model (task 1.5): satiation+nutrition pools, wetness hunger, starve/heal rules. Off = vanilla hunger bar",

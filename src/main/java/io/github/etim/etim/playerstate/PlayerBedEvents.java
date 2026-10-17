@@ -5,9 +5,15 @@ import io.github.etim.etim.Tags;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import net.minecraft.block.BlockBed;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayer.SleepResult;
+import net.minecraft.init.MobEffects;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.entity.player.PlayerSleepInBedEvent;
 import net.minecraftforge.event.entity.player.PlayerWakeUpEvent;
 import net.minecraftforge.event.entity.player.SleepingTimeCheckEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -68,5 +74,94 @@ public final class PlayerBedEvents {
             }
         }
         return false;
+    }
+
+    /**
+     * bed-entry S1 (verdict批文 1): the R196 entry gate trio (ServerPlayer
+     * :1081/:1085/:1087) on the ENTRY-ONLY hook — PlayerSleepInBedEvent fires
+     * exactly once per attempt from trySleep:1667, no lying-tick contamination
+     * (M1 spirit). Host choice over the verdict-named SleepingTimeCheckEvent:
+     * that event also fires every lying tick (EntityPlayer:255) and its DENY
+     * path makes vanilla emit its own tile.bed.noSleep on top (BlockBed
+     * :123-126) — the OTHER_PROBLEM branch is silent vanilla-side (the shipped
+     * tooHungry face precedent), so the R196 single-message face holds.
+     *
+     * <p>Gate order inside is R196's (:1081 sheltered → :1085 obstructed →
+     * :1087 poisoned; tooHungry stays the shipped separate subscriber —
+     * a same-click double message if both faces hit is a B-level registered
+     * face, verdict批文 3 B-tier). Vanilla TOO_FAR/NOT_SAFE run after us
+     * inside trySleep (TOO_FAR kept per verdict M4).</p>
+     */
+    @SubscribeEvent
+    public static void onPlayerSleepInBed(PlayerSleepInBedEvent event) {
+        EntityPlayer player = event.getEntityPlayer();
+        World world = player.world;
+        if (world.isRemote) {
+            return;
+        }
+        BlockPos bed = event.getPos(); // HEAD-resolved by vanilla BlockBed :84-87
+        int x = bed.getX();
+        int y = bed.getY();
+        int z = bed.getZ();
+        if (ETIMConfig.bedRefuseShelter && ETIMBedSafety.isOutdoors(world, x, y, z)) {
+            player.sendStatusMessage(new net.minecraft.util.text.TextComponentTranslation("tile.bed.notSheltered"), true);
+            ETIMBedSafety.logBedRefuse(world, "notSheltered", bed);
+            event.setResult(SleepResult.OTHER_PROBLEM);
+            return;
+        }
+        if (ETIMConfig.bedRefuseObstructed && !ETIMBedSafety.isAirOrPassableBlock(world, x, y + 1, z)) {
+            player.sendStatusMessage(new net.minecraft.util.text.TextComponentTranslation("tile.bed.obstructed"), true);
+            ETIMBedSafety.logBedRefuse(world, "obstructed", bed);
+            event.setResult(SleepResult.OTHER_PROBLEM);
+            return;
+        }
+        if (ETIMConfig.bedRefusePoison && player.isPotionActive(MobEffects.POISON)) {
+            player.sendStatusMessage(new net.minecraft.util.text.TextComponentTranslation("tile.bed.poisoned"), true);
+            ETIMBedSafety.logBedRefuse(world, "poisoned", bed);
+            event.setResult(SleepResult.OTHER_PROBLEM);
+        }
+    }
+
+    /**
+     * bed-entry S1 judge face for the occupied gate (verdict批文 6): vanilla
+     * natively carries BOTH halves of R196 BlockBed.java:68-85 — the occupied
+     * message at :105 and the stale-flag self-clear at :109-110 — but never
+     * reaches trySleep (no PlayerSleepInBedEvent) in either case, so the
+     * [SleepLog] rows are observed here, right before vanilla's decision.
+     * Read-only hook; no result changes.
+     */
+    @SubscribeEvent
+    public static void onRightClickBed(PlayerInteractEvent.RightClickBlock event) {
+        World world = event.getWorld();
+        if (world.isRemote) {
+            return;
+        }
+        IBlockState state = world.getBlockState(event.getPos());
+        if (!(state.getBlock() instanceof BlockBed)) {
+            return;
+        }
+        BlockPos pos = event.getPos();
+        if (state.getValue(BlockBed.PART) != BlockBed.EnumPartType.HEAD) {
+            pos = pos.offset(state.getValue(BlockBed.FACING));
+            state = world.getBlockState(pos);
+            if (!(state.getBlock() instanceof BlockBed)) {
+                return;
+            }
+        }
+        if (!state.getValue(BlockBed.OCCUPIED)) {
+            return;
+        }
+        EntityPlayer occupant = null;
+        for (EntityPlayer candidate : world.playerEntities) {
+            if (candidate.isPlayerSleeping() && pos.equals(candidate.bedLocation)) {
+                occupant = candidate;
+                break;
+            }
+        }
+        if (occupant != null) {
+            ETIMBedSafety.logBedRefuse(world, "occupied", pos);
+        } else {
+            ETIMBedSafety.logOccupiedCleared(world, pos);
+        }
     }
 }

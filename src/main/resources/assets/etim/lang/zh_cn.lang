@@ -68,3 +68,6 @@ etim.furnace.tooHot=å¯¹è¿™åº§ç†”ç‚‰å¤ªçƒ­
 etim.furnace.needed=æœ¬é…æ–¹éœ€è¦çƒ­åº¦ â‰¥ %s
 etim.furnace.curheat=ç‡ƒæ–™çƒ­åº¦ %sï¼ˆç†”ç‚‰ä¸Šé™ %sï¼‰
 etim.state.deathXp=æ­»äº¡ç»“ç®—
+tile.bed.notSheltered=Õâ´²Ã»ÓĞ×ã¹»µÄÕÚ±Î£¬²»ÄÜÈëË¯
+tile.bed.obstructed=´²±»·½¿éµ²×¡ÁË
+tile.bed.poisoned=ÖĞ¶¾×´Ì¬ÏÂÎŞ·¨ÈëË¯

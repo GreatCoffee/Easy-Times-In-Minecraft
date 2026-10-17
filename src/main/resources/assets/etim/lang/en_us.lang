@@ -68,3 +68,6 @@ etim.furnace.tooHot=Too hot for this furnace
 etim.furnace.needed=This recipe needs heat >= %s
 etim.furnace.curheat=Fuel heat %s (furnace cap %s)
 etim.state.deathXp=Death settle
+tile.bed.notSheltered=This bed isn't sheltered enough to sleep in
+tile.bed.obstructed=The bed is obstructed
+tile.bed.poisoned=You cannot sleep while poisoned
