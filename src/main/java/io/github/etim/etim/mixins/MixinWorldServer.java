@@ -117,17 +117,24 @@ public abstract class MixinWorldServer {
     /**
      * R196 :988 rarity = blood 20000 / normal 100000 (verdict J1, ×5 on
      * blood). The blood face reads {@link ETIMMoonState#phase} (override
-     * aware). Delegating redirect: {@code tick} carries 10 {@code nextInt(I)}
-     * call sites (:355,356,380,382,383,384,423,451) — only the 100000
-     * literal is rewritten, every other modulus passes through unchanged,
-     * so no ordinal bookkeeping. Clock-off → vanilla rarity (J1 passthrough).
+     * aware). Delegating redirect over the TWO {@code nextInt(I)} call
+     * sites of {@code updateBlocks} (:423 lightning, :451 iceandsnow);
+     * only the 100000 literal is rewritten, the other modulus delegates
+     * unchanged, so no ordinal bookkeeping.
      */
     @Redirect(
-            method = "tick",
+            method = "updateBlocks", // the chunk polling body, WorldServer.java:391-551 (NOT tick)
             at = @At(value = "INVOKE",
-                    target = "Ljava/util/Random;nextInt(I)I")
+                    target = "Ljava/util/Random;nextInt(I)I"),
+            require = 2
     )
     private int etim$lightningRarity(Random random, int original) {
+        // require=2: only :423 (lightning 100000 literal) and :451 (iceandsnow
+        // nextInt(16)) live inside updateBlocks; the other nextInt sites
+        // (:355/:356 in setInitialSpawnLocation, :380/:382-384 in
+        // playerCheckLight) stay untouched here. Only the 100000 literal is
+        // rewritten; every other modulus delegates unchanged, so no ordinal
+        // bookkeeping. Clock-off → vanilla rarity (J1 passthrough).
         if (original == 100000) {
             return random.nextInt(ETIMWeatherClock.lightningRarity((WorldServer) (Object) this));
         }
@@ -141,10 +148,10 @@ public abstract class MixinWorldServer {
      * removed AND the y=0 call-site value (:427) is refilled in the same
      * replacement; missing either half leaves {@code isRainingAt}'s
      * {@code y >= precipitationHeight} test permanently false. require=1:
-     * single call site (WorldServer.tick :427).
+     * single call site (WorldServer.updateBlocks :427).
      */
     @Redirect(
-            method = "tick",
+            method = "updateBlocks", // WorldServer.java:391-551 — the strike block lives here, not tick
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/WorldServer;adjustPosToNearbyEntity(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/BlockPos;"),
             require = 1
@@ -162,10 +169,10 @@ public abstract class MixinWorldServer {
      * difficulty makes the trap roll {@code nextDouble() < 0} always
      * false, so only the normal bolt branch survives (the RNG stream keeps
      * its shape: nextDouble is still consumed). require=1: single site
-     * (WorldServer.tick :433).
+     * (WorldServer.updateBlocks :433).
      */
     @Redirect(
-            method = "tick",
+            method = "updateBlocks", // WorldServer.java:391-551 — strike block, not tick
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/DifficultyInstance;getAdditionalDifficulty()F"),
             require = 1
@@ -187,7 +194,7 @@ public abstract class MixinWorldServer {
      * the trap bolt is inside a dead branch under J3 but keeps its face.
      */
     @Redirect(
-            method = "tick",
+            method = "updateBlocks", // WorldServer.java:391-551 — strike block, not tick
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/WorldServer;addWeatherEffect(Lnet/minecraft/entity/Entity;)Z"),
             require = 2
