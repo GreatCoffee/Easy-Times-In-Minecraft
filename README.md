@@ -252,7 +252,7 @@ truth. Invalid combinations abort the mod load instead of falling back.
 ## Compatibility goals
 
 ETIM aims to be compatible with: JEI, Just Enough Characters, Fence Jumper,
-Inventory Sorter, Optifine, SmoothFont, Journey Map, Mouse Tweaks, Rebind,
+Inventory Sorter, OptiFine, SmoothFont, Journey Map, Mouse Tweaks, Rebind,
 RAD (Reload Audio Drivers), Step Up, and The One Probe.
 
 ## Credits

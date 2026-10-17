@@ -283,10 +283,13 @@ public final class ETIMConfig {
     public static boolean mobDebugLog = false;
     /** Master switch of the R196 spawn cycle (audit 11 §4 + audit 14): cap table 50/10/5/5 over /256, hostile dual probability rings, the modifier four events and the admission fine print. Off = vanilla 1.12 world-entity spawner. R196 生成周期总开关（审计 11 §4 + 审计 14）：物种上限表 50/10/5/5 按区块 /256 折算、敌怪双概率环、四个调制事件与准入细则。关闭则回到原版 1.12 生物生成器。 */
     public static boolean mobSpawnR196 = true;
-    /** R196 spawn caps per creature type (audit 14 §2.1/§2.2): monster 50, animal 10, ambient 5, aquatic 5 — before the ×chunks/256 conversion. R196 逐物种生成上限（审计 14 §2.1/§2.2）：敌怪 50、动物 10、环境 5、水生 5 —— 区块 ×/256 换算之前。 */
+    /** R196 monster spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 50; vanilla 1.12 = 70). 敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）。 */
     public static int spawnCapMonster = 50;
+    /** R196 animal spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 10). 动物生成上限（区块换算前）（审计 14：10）。 */
     public static int spawnCapAnimal = 10;
+    /** R196 ambient spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 5; vanilla 1.12 = 15). 环境生物生成上限（区块换算前）（审计 14：5；原版 1.12 为 15）。 */
     public static int spawnCapAmbient = 5;
+    /** R196 aquatic spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 5; vanilla 1.12 = 15). 水生生物生成上限（区块换算前）（审计 14：5；原版 1.12 为 15）。 */
     public static int spawnCapAquatic = 5;
     /** Forced moon overlay state for the spawn cycle ("", "blue", "blood", "full", "new") — test determinism; stage 6 replaces the backend. 生成周期强制月亮叠加态（""、"blue"、"blood"、"full"、"new"）—— 测试确定性用；阶段六替换后端。 */
     public static String moonStateOverride = "";
