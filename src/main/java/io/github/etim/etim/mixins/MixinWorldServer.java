@@ -1,15 +1,23 @@
 package io.github.etim.etim.mixins;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMMoonState;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
 import io.github.etim.etim.playerstate.ETIMSleepClock;
 import io.github.etim.etim.playerstate.PlayerBedEvents;
+import io.github.etim.etim.weather.ETIMWeatherClock;
+import net.minecraft.entity.effect.EntityLightningBolt;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldEntitySpawner;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+
+import java.util.Random;
 
 /**
  * The sleep-skip site of {@code WorldServer.tick} (vanilla :196), owning
@@ -39,6 +47,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  */
 @Mixin(WorldServer.class)
 public abstract class MixinWorldServer {
+
+    @Shadow
+    protected abstract BlockPos adjustPosToNearbyEntity(BlockPos pos);
 
     @Redirect(
             method = "tick",
@@ -99,5 +110,95 @@ public abstract class MixinWorldServer {
     private int etim$spawnCycle(WorldEntitySpawner spawner, WorldServer world, boolean spawnHostileMobs,
             boolean spawnPeacefulMobs, boolean spawnOnSetTickRate) {
         return ETIMSpawnCycle.findChunksForSpawning(world, spawnHostileMobs, spawnPeacefulMobs, spawnOnSetTickRate);
+    }
+
+    // ------------------- weather-01: the R196 lightning face (WorldServer.java:987-1010) -------------------
+
+    /**
+     * R196 :988 rarity = blood 20000 / normal 100000 (verdict J1, ×5 on
+     * blood). The blood face reads {@link ETIMMoonState#phase} (override
+     * aware). Delegating redirect: {@code tick} carries 10 {@code nextInt(I)}
+     * call sites (:355,356,380,382,383,384,423,451) — only the 100000
+     * literal is rewritten, every other modulus passes through unchanged,
+     * so no ordinal bookkeeping. Clock-off → vanilla rarity (J1 passthrough).
+     */
+    @Redirect(
+            method = "tick",
+            at = @At(value = "INVOKE",
+                    target = "Ljava/util/Random;nextInt(I)I")
+    )
+    private int etim$lightningRarity(Random random, int original) {
+        if (original == 100000) {
+            return random.nextInt(ETIMWeatherClock.lightningRarity((WorldServer) (Object) this));
+        }
+        return random.nextInt(original);
+    }
+
+    /**
+     * R196 :1002-1006 strike positioning (verdict J4, A 级强制细则): the
+     * strike lands at the precipitation height of the LCG block — the
+     * vanilla {@code adjustPosToNearbyEntity} entity bias (:510-535) is
+     * removed AND the y=0 call-site value (:427) is refilled in the same
+     * replacement; missing either half leaves {@code isRainingAt}'s
+     * {@code y >= precipitationHeight} test permanently false. require=1:
+     * single call site (WorldServer.tick :427).
+     */
+    @Redirect(
+            method = "tick",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/WorldServer;adjustPosToNearbyEntity(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/BlockPos;"),
+            require = 1
+    )
+    private BlockPos etim$strikePos(WorldServer world, BlockPos pos) {
+        if (!ETIMWeatherClock.active(world)) {
+            return this.adjustPosToNearbyEntity(pos); // same object as world
+        }
+        return world.getPrecipitationHeight(pos);
+    }
+
+    /**
+     * R196 has no skeleton-trap face (verdict J3, A 级定谳 — vanilla
+     * WorldServer:433-441 is 1.9+ content): zeroing the additional
+     * difficulty makes the trap roll {@code nextDouble() < 0} always
+     * false, so only the normal bolt branch survives (the RNG stream keeps
+     * its shape: nextDouble is still consumed). require=1: single site
+     * (WorldServer.tick :433).
+     */
+    @Redirect(
+            method = "tick",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/DifficultyInstance;getAdditionalDifficulty()F"),
+            require = 1
+    )
+    private float etim$noSkeletonTrap(DifficultyInstance difficulty) {
+        if (ETIMWeatherClock.active((WorldServer) (Object) this)) {
+            return 0.0F;
+        }
+        return difficulty.getAdditionalDifficulty();
+    }
+
+    /**
+     * Judge channel (verdict §4.4): every weather-effect spawn at the R196
+     * addWeatherEffect face (:1008) logs one {@code lightning-struck} line
+     * with the rarity choice in effect — the judge window asserts the
+     * rarity SELECTION, not a density statistic. require=2: the two bolt
+     * branches (:440 trap — dead under J3 — and :444 normal). The target
+     * descriptor is the DECLARED one (Entity)Z (World.addWeatherEffect);
+     * the trap bolt is inside a dead branch under J3 but keeps its face.
+     */
+    @Redirect(
+            method = "tick",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/WorldServer;addWeatherEffect(Lnet/minecraft/entity/Entity;)Z"),
+            require = 2
+    )
+    private boolean etim$lightningLog(WorldServer world, net.minecraft.entity.Entity effect) {
+        if (effect instanceof EntityLightningBolt && ETIMWeatherClock.active(world)) {
+            ETIM.LOGGER.info("[WeatherLog] lightning-struck x,y,z="
+                    + (int) effect.posX + "," + (int) effect.posY + "," + (int) effect.posZ
+                    + " rarity=" + ETIMWeatherClock.lightningRarity(world)
+                    + " blood=" + (ETIMMoonState.phase(world) == ETIMMoonState.Phase.BLOOD));
+        }
+        return world.addWeatherEffect(effect);
     }
 }

@@ -4,6 +4,7 @@ import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mob.ETIMMoonState;
+import io.github.etim.etim.weather.ETIMWeatherClock;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.WorldServer;
 
@@ -212,6 +213,11 @@ public final class ETIMSleepClock {
         String achievements = (slept == ticks && !woke && slept >= 6000) ? "wellRested" : "none";
         ETIM.LOGGER.info("[SleepLog] sleep-done achievements=" + achievements
                 + " potionsCleared=" + potionsCleared + " slept=" + slept);
+
+        // R196 :599 — the sleep exit snaps weather to the event target with
+        // no ramp (the _calculateInitialWeather deferred account, weather-01
+        // verdict J1/must-add; clock-off = vanilla passthrough, no snap).
+        ETIMWeatherClock.snapAfterSleep(world);
 
         return slept;
     }

@@ -71,6 +71,16 @@ public final class ETIMConfig {
     /** Lie-side per-tick sentinel: ejects sleepers a pathable hostile reaches (R196 :402-430). 躺卧面逐拍哨门：能寻路到床边的敌怪会把睡着者踢醒（R196 :402-430）。 */
     public static boolean bedSentryWake = true;
 
+    // weather (weather-01, R196 deterministic event clock) ------------
+    /** Master switch of the R196 weather event clock (weather-01): a pure daily schedule (seed+day) drives rain/thunder instead of vanilla timers, with the blood-moon forced thunderstorm and the sleep-exit weather snap. false = vanilla 1.12 weather timers untouched. R196 天气事件时钟总开关：种子+日号的纯函数排程驱雨/雷暴替代原版计时器，含血月强制雷暴与睡眠出口的天气瞬置；关闭则回到原版 1.12 天气计时器。*/
+    public static boolean weatherSystem = true;
+    /** Blood moon day runs a forced thunderstorm for bloodMoonStormTicks (R196 World.java:6472-6476 = 13000t = 06:00-19:00 of the day block). false = no forced storm. 血月日强制雷暴 bloodMoonStormTicks 长（R196 = 13000tick，即日块 06:00-19:00）；关闭则无强制雷暴。*/
+    public static boolean bloodMoonStorm = true;
+    /** Forced blood-moon thunderstorm length in ticks (R196: 13000; a full day = 24000). 血月强制雷暴时长（tick）（R196 = 13000；一整天 = 24000）。*/
+    public static int bloodMoonStormTicks = 13000;
+    /** Lightning rarity per active chunk per tick during a blood moon (R196 WorldServer:988 = 20000 = 5x vanilla). Normal weather keeps the vanilla 100000 unkeyed. 血月期间的闪电概率分母（每激活区块每 tick）（R196 = 20000 = 原版 5 倍）；非血月天气保持原版 100000 不配键。*/
+    public static int lightningRarityBlood = 20000;
+
     // food (task 1.5 R196 dual-pool model) ---------------------------
     /** Master switch: R196 satiation/nutrition dual-pool model (false = vanilla food bar system). 总开关：R196 饱食/营养双池模型（false = 原版饥饿条系统）。 */
     public static boolean foodModel = true;
@@ -360,6 +370,19 @@ public final class ETIMConfig {
         bedSentryWake = config.getBoolean("bedSentryWake", "sleep", true,
                 comment("bed-entry S2: while lying/asleep, a hostile that reaches the bed wakes you every tick (R196 EntityPlayer:402-430 notSafe/wakeMobs; hunger wake stays the shipped food face). false = vanilla behavior (no hostile sentry)",
                         "床铺入口 S2：躺卧/睡着期间，能到达床边的敌怪逐拍惊醒（R196 EntityPlayer:402-430，notSafe/wakeMobs；饥饿醒面保持既有食物面）。false = vanilla 行为（无敌怪哨门）"));
+
+        weatherSystem = config.getBoolean("weatherSystem", "weather", true,
+                comment("Master switch of the R196 weather event clock (weather-01): a pure daily schedule (seed+day) drives rain/thunder instead of vanilla timers, with the blood-moon forced thunderstorm and the sleep-exit weather snap. false = vanilla 1.12 weather timers untouched",
+                        "R196 天气事件时钟总开关：种子+日号的纯函数排程驱雨/雷暴替代原版计时器，含血月强制雷暴与睡眠出口的天气瞬置；关闭则回到原版 1.12 天气计时器"));
+        bloodMoonStorm = config.getBoolean("bloodMoonStorm", "weather", true,
+                comment("Blood moon day runs a forced thunderstorm for bloodMoonStormTicks (R196 World.java:6472-6476 = 13000t = 06:00-19:00 of the day block). false = no forced storm",
+                        "血月日强制雷暴 bloodMoonStormTicks 长（R196 = 13000tick，即日块 06:00-19:00）；关闭则无强制雷暴"));
+        bloodMoonStormTicks = config.getInt("bloodMoonStormTicks", "weather", bloodMoonStormTicks, 0, 240000,
+                comment("Forced blood-moon thunderstorm length in ticks (R196: 13000; a full day = 24000)",
+                        "血月强制雷暴时长（tick）（R196 = 13000；一整天 = 24000）"));
+        lightningRarityBlood = config.getInt("lightningRarityBlood", "weather", lightningRarityBlood, 1, 1000000,
+                comment("Lightning rarity per active chunk per tick during a blood moon (R196 WorldServer:988 = 20000 = 5x vanilla). Normal weather keeps the vanilla 100000 unkeyed",
+                        "血月期间的闪电概率分母（每激活区块每 tick）（R196 = 20000 = 原版 5 倍）；非血月天气保持原版 100000 不配键"));
 
         foodModel = config.getBoolean("foodModel", "food", true,
                 comment("R196 dual-pool food model (task 1.5): satiation+nutrition pools, wetness hunger, starve/heal rules. Off = vanilla hunger bar",
