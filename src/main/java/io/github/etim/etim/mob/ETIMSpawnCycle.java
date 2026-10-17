@@ -752,6 +752,40 @@ public final class ETIMSpawnCycle {
         return true;
     }
 
+    /**
+     * AI-01 (mobs-ai verdict 裁 1): the R196 :395 canCreatureTypeSpawnAtLocation
+     * face for the mobwake spawn fallback — landing-y admission for one
+     * sampled position; {@code < 0.0} rejects the attempt.
+     */
+    public static double spawnLandingY(WorldServer w, EnumCreatureType type, int x, int y, int z) {
+        return canSpawnAtLocation(w, type, x, y, z);
+    }
+
+    /**
+     * AI-01 (mobs-ai verdict 裁 1): R196 :404-414 — instantiate the picked
+     * entry, place it at the landing y (R196 :412 resulting_y_pos face) and
+     * run the admission proto chain ({@code getCanSpawnHere(false)} parity:
+     * the private {@code canSpawnHere} body carries the vanilla chain plus
+     * the MITE ride-alongs and includes the collision face). Returns the
+     * positioned but UNSPAWNED mob, or null — the caller owns the A3 hatch
+     * gate (R196 :565-568). The abandonChunk side effect of the chunked
+     * spawner does not apply to a single-position attempt.
+     */
+    public static EntityLiving admitMonster(WorldServer w, Biome.SpawnListEntry entry, BlockPos pos,
+            double landingY, EnumCreatureType type) {
+        EntityLiving mob;
+        try {
+            mob = entry.newInstance(w);
+        } catch (Exception e) {
+            return null;
+        }
+        mob.setLocationAndAngles(pos.getX() + 0.5D, landingY, pos.getZ() + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
+        if (!canSpawnHere(w, entry, pos, type, new boolean[1])) {
+            return null;
+        }
+        return mob;
+    }
+
     // ------------------------------------------------------------------
     // landing geometry (audit 16 A6 伴随 · 11/10 节段批五移植)
 

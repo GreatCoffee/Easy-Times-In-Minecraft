@@ -3,7 +3,6 @@ package io.github.etim.etim.playerstate;
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.monster.IMob;
 import net.minecraft.entity.player.EntityPlayer;
@@ -314,6 +313,18 @@ public final class ETIMBedSafety {
      * Public: the obstructed entry gate reuses the same face.
      */
     public static boolean isAirOrPassableBlock(World world, int x, int y, int z) {
+        return isAirOrPassableBlock(world, x, y, z, false);
+    }
+
+    /**
+     * R196 isAirOrPassableBlock both vertices (World.java:5634-5652). The
+     * false vertex is the bed-entry solid face above; the true vertex
+     * (:5648) drops the liquid special-case — liquids fall through to the
+     * solid face (water is not solid ⇒ passable), which the AI-01 foot-solid
+     * gate (:386) reads as "the spawn foot stands on a real non-liquid
+     * surface".
+     */
+    public static boolean isAirOrPassableBlock(World world, int x, int y, int z, boolean includeLiquid) {
         if (y < 0 || y > 255) {
             return true;
         }
@@ -321,10 +332,9 @@ public final class ETIMBedSafety {
         if (!world.isBlockLoaded(pos)) {
             return false;
         }
-        IBlockState state = world.getBlockState(pos);
-        Material material = state.getMaterial();
+        Material material = world.getBlockState(pos).getMaterial();
         if (material.isLiquid()) {
-            return false;
+            return includeLiquid; // R196 :5648
         }
         return !material.blocksMovement();
     }

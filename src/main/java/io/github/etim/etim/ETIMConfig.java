@@ -6,6 +6,7 @@ import io.github.etim.etim.furnace.FurnaceXpRewards;
 import io.github.etim.etim.quality.ETIMQuality;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
@@ -70,6 +71,8 @@ public final class ETIMConfig {
     public static boolean bedHostilePathable = true;
     /** Lie-side per-tick sentinel: ejects sleepers a pathable hostile reaches (R196 :402-430). 躺卧面逐拍哨门：能寻路到床边的敌怪会把睡着者踢醒（R196 :402-430）。 */
     public static boolean bedSentryWake = true;
+    /** AI-01 mobwake: the per-slept-tick wake-roll denominator (R196 :551 = 1000; 1 = every slept tick rolls, the judge-harness face). AI-01 睡眠惊醒骰：每睡拍惊醒判定分母（R196 = 1000；1 = 每睡拍必骰中，判据工装面）。 */
+    public static int mobwakeRarity = 1000;
 
     // weather (weather-01, R196 deterministic event clock) ------------
     /** Master switch of the R196 weather event clock (weather-01): a pure daily schedule (seed+day) drives rain/thunder instead of vanilla timers, with the blood-moon forced thunderstorm and the sleep-exit weather snap. false = vanilla 1.12 weather timers untouched. R196 天气事件时钟总开关：种子+日号的纯函数排程驱雨/雷暴替代原版计时器，含血月强制雷暴与睡眠出口的天气瞬置；关闭则回到原版 1.12 天气计时器。*/
@@ -370,6 +373,24 @@ public final class ETIMConfig {
         bedSentryWake = config.getBoolean("bedSentryWake", "sleep", true,
                 comment("bed-entry S2: while lying/asleep, a hostile that reaches the bed wakes you every tick (R196 EntityPlayer:402-430 notSafe/wakeMobs; hunger wake stays the shipped food face). false = vanilla behavior (no hostile sentry)",
                         "床铺入口 S2：躺卧/睡着期间，能到达床边的敌怪逐拍惊醒（R196 EntityPlayer:402-430，notSafe/wakeMobs；饥饿醒面保持既有食物面）。false = vanilla 行为（无敌怪哨门）"));
+        // A2 (mobs-ai verdict): the RAW file value is validated here —
+        // getInt's min bound only clamps silently, but rarity <= 0 must
+        // REJECT the load (nextInt(0) would crash the roll; the
+        // moonStateOverride reject-load contract).
+        Property mobwakeRarityProp = config.get("sleep", "mobwakeRarity", mobwakeRarity,
+                comment("AI-01 mobwake: per-slept-tick wake-roll denominator (R196 :551 = 1000, one wake attempt per 1000 slept ticks on average). 1 = the roll hits every slept tick (judge harness). Values < 1 stop the load",
+                        "AI-01 睡眠惊醒骰：每睡拍惊醒判定分母（R196 = 1000，平均每 1000 睡拍一次惊醒尝试）。1 = 每睡拍必中（判据工装）。小于 1 直接拒载"));
+        String rawMobwakeRarity = mobwakeRarityProp.getString();
+        try {
+            mobwakeRarity = Integer.parseInt(rawMobwakeRarity.trim());
+        } catch (NumberFormatException ex) {
+            mobwakeRarity = 0; // rejected below
+        }
+        if (mobwakeRarity < 1) {
+            throw new IllegalStateException("[ETIM] Invalid config: sleep.mobwakeRarity ('" + rawMobwakeRarity
+                    + "') must be an integer >= 1 (1 = the wake roll hits every slept tick, the judge-harness face) (file "
+                    + config.getConfigFile().getAbsolutePath() + ")");
+        }
 
         weatherSystem = config.getBoolean("weatherSystem", "weather", true,
                 comment("Master switch of the R196 weather event clock (weather-01): a pure daily schedule (seed+day) drives rain/thunder instead of vanilla timers, with the blood-moon forced thunderstorm and the sleep-exit weather snap. false = vanilla 1.12 weather timers untouched",

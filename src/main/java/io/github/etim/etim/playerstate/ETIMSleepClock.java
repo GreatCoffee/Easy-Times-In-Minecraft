@@ -4,6 +4,7 @@ import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mob.ETIMMoonState;
+import io.github.etim.etim.mob.ETIMMobWake;
 import io.github.etim.etim.weather.ETIMWeatherClock;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.WorldServer;
@@ -26,11 +27,8 @@ import net.minecraft.world.WorldServer;
  *
  * <p>Deferred faces (verdict批文 3, W3d mode — hooks reserved):
  * <ul>
- *   <li>the 1/1000 bed-mob wake roll (R196 :551-578) needs the AI/bed
- *       path-to-bed slice — logged once per night as {@code sleep-mobwake
- *       deferred};</li>
  *   <li>{@code _calculateInitialWeather} (:599) belongs to the weather
- *       slice;</li>
+ *       slice (landed with weather-01);</li>
  *   <li>wellRested (:582-588) has no 1.12 achievement equivalent — the
  *       {@code sleep-done} line judges the condition with
  *       {@code achievements=wellRested} but grants nothing in this
@@ -153,8 +151,6 @@ public final class ETIMSleepClock {
         long totalBefore = world.getWorldInfo().getWorldTotalTime();
         long dayTimeBefore = world.getWorldTime();
 
-        ETIM.LOGGER.info("[SleepLog] sleep-mobwake deferred (R196 1/1000 bed-mob wake roll :551-578 needs the AI/bed slice; hook reserved)");
-
         int slept = 0;
         boolean woke = false;
         String reason = null;
@@ -175,7 +171,13 @@ public final class ETIMSleepClock {
                     break;
                 }
             }
-            // R196 :551-578 mob-wake roll — deferred (see the deferred line above).
+            // R196 :551-578 mob-wake roll — AI-01 (A4: the roll is
+            // slept-tick level and sits on the OUTER loop, never inside the
+            // per-player pass — a player count would scale the judge value).
+            if (!woke && world.rand.nextInt(ETIMConfig.mobwakeRarity) == 0 && ETIMMobWake.tryMobWake(world)) {
+                woke = true;
+                reason = "mobwake";
+            }
         }
 
         if (woke) {
