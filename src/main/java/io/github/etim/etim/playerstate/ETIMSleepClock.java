@@ -52,6 +52,9 @@ public final class ETIMSleepClock {
     /** Log-dedupe key of the last emitted gate/skip line (no gameplay role). */
     private static String lastGateLogKey = "";
 
+    /** sleep-probe throttle: next tick at which a probe row may be emitted (no gameplay role). */
+    private static int probeCooldown = 0;
+
     private ETIMSleepClock() {
     }
 
@@ -92,6 +95,48 @@ public final class ETIMSleepClock {
         }
         lastGateLogKey = key;
         ETIM.LOGGER.info("[SleepLog] sleep-skip n/a doDaylightCycle=false");
+    }
+
+    /**
+     * sleep-probe judge instrument (02 density-eval precedent, judge-only
+     * face): fires 1/100 ticks ONLY while some player is lying and the
+     * vanilla all-asleep verdict is still false, localizing which link of
+     * WorldServer.java:318-336 broke — sleepers vs the full-asleep
+     * (sleepTimer>=100, EntityPlayer:1871-1873) headcount. Zero rows with a
+     * standing lying face mean the world flag machine never stood up.
+     */
+    public static void probe(WorldServer world, boolean allAsleep) {
+        if (allAsleep) {
+            probeCooldown = 0;
+            return;
+        }
+        if (probeCooldown > 0) {
+            --probeCooldown;
+            return;
+        }
+        int lying = 0;
+        int fullyAsleep = 0;
+        int nonSpectators = 0;
+        for (EntityPlayer player : world.playerEntities) {
+            if (player.isSpectator()) {
+                continue;
+            }
+            ++nonSpectators;
+            if (player.isPlayerSleeping()) {
+                ++lying;
+                if (player.isPlayerFullyAsleep()) {
+                    ++fullyAsleep;
+                }
+            }
+        }
+        if (lying == 0) {
+            probeCooldown = 0;
+            return;
+        }
+        probeCooldown = 100;
+        ETIM.LOGGER.info("[SleepLog] sleep-probe allAsleep=false lying=" + lying + "/" + nonSpectators
+                + " fullyAsleep=" + fullyAsleep
+                + " doDaylightCycle=" + world.getGameRules().getBoolean("doDaylightCycle"));
     }
 
     /**

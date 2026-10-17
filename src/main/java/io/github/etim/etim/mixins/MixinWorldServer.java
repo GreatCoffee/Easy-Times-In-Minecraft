@@ -47,7 +47,11 @@ public abstract class MixinWorldServer {
             require = 1
     )
     private boolean etim$sleepClock(WorldServer self) {
-        if (!self.areAllPlayersAsleep()) {
+        boolean allAsleep = self.areAllPlayersAsleep();
+        // Judge instrument (02 density-eval precedent): localize which link of
+        // the all-asleep machine fails — the W4 window sits on this verdict.
+        ETIMSleepClock.probe(self, allAsleep);
+        if (!allAsleep) {
             return false;
         }
         // Gate 1 (shipped): a player lying in a bed entered during the day.
