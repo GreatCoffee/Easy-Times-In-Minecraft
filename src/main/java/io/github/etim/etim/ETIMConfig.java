@@ -11,165 +11,173 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 
 /**
- * ETIM configuration (config/etim.cfg, standard Forge Configuration).
+ * ETIM configuration (config/etim.cfg, standard Forge Configuration). ETIM 配置（config/etim.cfg，标准 Forge Configuration）。
  *
  * <p>Every player-perceivable tuning value and gameplay toggle lives here;
  * mechanic code reads these statics directly. Values load once in preInit
  * (runtime reload is not wired: changing requires a restart) and invalid
  * values abort the mod load — no fallback, per the project constraints.</p>
  *
+ * <p>凡玩家可感知的调值与玩法开关都在这里，机制代码直接读这些静态量；数值只在 preInit
+ * 载入一次（未接运行时重载：改动需重启），非法值直接中止模组加载——不回落默认值（项目约束）。</p>
+ *
  * <p>Option comments are written in the game's language (Chinese when the
  * client runs zh*, English otherwise, plain English on dedicated servers).
  * The comment language is decided when the file is first generated; a
  * later language change does not rewrite an existing file.</p>
+ *
+ * <p>档位注释按游戏语言写出（客户端 zh* 用中文，其余用英文，专用服务器一律英文）；
+ * 该语言在文件首次生成时定死，之后换语言不会重写既有文件。</p>
  */
 public final class ETIMConfig {
 
     // playerCaps -------------------------------------------------
-    /** Health/food cap (in points, 2 = one icon) at level 0. */
+    /** Health/food cap (in points, 2 = one icon) at level 0. 0 级时的生命/饥饿上限（点数；2 点 = 1 个图标）。 */
     public static int capAtLevel0 = 6;
-    /** Cap added (in points) per 5 levels. */
+    /** Cap added (in points) per 5 levels. 每满 5 级增加的上限（点数）。 */
     public static int capGrowthPerFiveLevels = 2;
-    /** Highest cap the level table can reach. */
+    /** Highest cap the level table can reach. 等级表能到的上限天花板。 */
     public static int capMaximum = 20;
 
     // leveling ----------------------------------------------------
-    /** Hard cap of player levels. */
+    /** Hard cap of player levels. 玩家等级硬上限。 */
     public static int levelCap = 200;
-    /** Mining speed bonus fraction per level. */
+    /** Mining speed bonus fraction per level. 每级挖掘速度加成（比例值）。 */
     public static float miningSpeedPerLevel = 0.02F;
-    /** Melee damage bonus fraction per level. */
+    /** Melee damage bonus fraction per level. 每级近战伤害加成（比例值）。 */
     public static float meleeDamagePerLevel = 0.005F;
 
     // regen (sleep/bed side of the food model) ---------------------
-    /** Heal rate multiplier while LYING IN A BED (R196: 4x, any time of day). */
+    /** Heal rate multiplier while LYING IN A BED (R196: 4x, any time of day). 躺在床上的回血倍率（R196：4 倍，任意时段）。 */
     public static float bedRegenFactor = 4.0F;
-    /** Allow lying in a bed during the day purely for the regen boost (MITE behavior). */
+    /** Allow lying in a bed during the day purely for the regen boost (MITE behavior). 允许白天躺床只为吃这份回血加成（MITE 行为）。 */
     public static boolean allowDayBedRegen = true;
 
     // sleep (sleep-01 sleep clock) -----------------------------------
-    /** Blood moon (full-day phase) blocks the sleep skip (R196 WorldServer:203 sleeping_prevented). */
+    /** Blood moon (full-day phase) blocks the sleep skip (R196 WorldServer:203 sleeping_prevented). 血月（全日相位）禁止睡跳（R196 WorldServer:203 sleeping_prevented）；关闭则血月按原版照样跳。 */
     public static boolean bloodMoonSleepBlock = true;
-    /** Sleep-night fast-forward: R196 runSleepTicks batch + absolute dayTime/totalTime alignment. Off = vanilla instant 表钟 jump. */
+    /** Sleep-night fast-forward: R196 runSleepTicks batch + absolute dayTime/totalTime alignment. Off = vanilla instant dayTime jump. 睡夜 fast-forward：R196 runSleepTicks 逐拍批量模拟 + 表钟/总钟绝对对齐；关闭则回到原版瞬时跳表钟。 */
     public static boolean sleepFastForward = true;
 
     // sleep (bed-entry, R196 bed face) --------------------------------
-    /** Bed must be sheltered: the R196 isOutdoors face refuses open-sky beds. */
+    /** Bed must be sheltered: the R196 isOutdoors face refuses open-sky beds. 床必须有遮蔽：R196 isOutdoors 面对露天床拒绝入睡。 */
     public static boolean bedRefuseShelter = true;
-    /** Bed overhead must be passable: the R196 obstructed face refuses blocked beds. */
+    /** Bed overhead must be passable: the R196 obstructed face refuses blocked beds. 床头上方必须可通行：R196 obstructed 面对被堵死的床拒绝入睡。 */
     public static boolean bedRefuseObstructed = true;
-    /** Poisoned players cannot enter a bed (R196 poisoned face). */
+    /** Poisoned players cannot enter a bed (R196 poisoned face). 中毒状态玩家不能上床（R196 poisoned 面）。 */
     public static boolean bedRefusePoison = true;
-    /** NOT_SAFE needs a PATHABLE hostile at the bed (R196 :1347-1384; off = vanilla unfiltered EntityMob AABB). */
+    /** NOT_SAFE needs a PATHABLE hostile at the bed (R196 :1347-1384; off = vanilla unfiltered EntityMob AABB). NOT_SAFE 要求床边有能真正寻路过来的敌怪（R196 :1347-1384）；关闭则回到原版无过滤 EntityMob AABB。 */
     public static boolean bedHostilePathable = true;
-    /** Lie-side per-tick sentinel: ejects sleepers a pathable hostile reaches (R196 :402-430). */
+    /** Lie-side per-tick sentinel: ejects sleepers a pathable hostile reaches (R196 :402-430). 躺卧面逐拍哨门：能寻路到床边的敌怪会把睡着者踢醒（R196 :402-430）。 */
     public static boolean bedSentryWake = true;
 
     // food (task 1.5 R196 dual-pool model) ---------------------------
-    /** Master switch: R196 satiation/nutrition dual-pool model (false = vanilla food bar system). */
+    /** Master switch: R196 satiation/nutrition dual-pool model (false = vanilla food bar system). 总开关：R196 饱食/营养双池模型（false = 原版饥饿条系统）。 */
     public static boolean foodModel = true;
-    /** Hunger pool accrual per tick (R196 FoodStats.getHungerPerTick 0.002). */
+    /** Hunger pool accrual per tick (R196 FoodStats.getHungerPerTick 0.002). 每 tick 饥饿池积攒量（R196 FoodStats.getHungerPerTick 0.002）。 */
     public static float hungerGainPerTick = 0.002F;
-    /** Hunger pool units per consumed food point (R196 getHungerPerFoodUnit 4.0). */
+    /** Hunger pool units per consumed food point (R196 getHungerPerFoodUnit 4.0). 每消耗 1 点食物所扣的饥饿池单位（R196 getHungerPerFoodUnit 4.0）。 */
     public static float hungerPerFoodUnit = 4.0F;
-    /** The nutrition-only accumulator accrual factor (R196 :43 = 0.002×0.25 per tick). */
+    /** The nutrition-only accumulator accrual factor (R196 :43 = 0.002×0.25 per tick). 营养独占积分器的积攒系数（R196 :43 = 每 tick 0.002×0.25）。 */
     public static float hungerNutritionOnlyFactor = 0.25F;
-    /** Hunger pool cap (R196 addHunger clamp 40.0). */
+    /** Hunger pool cap (R196 addHunger clamp 40.0). 饥饿池上限（R196 addHunger clamp 40.0）。 */
     public static float hungerPoolCap = 40.0F;
-    /** Starve progress accrual per tick at nutrition 0 (R196 :64 = 0.002). */
+    /** Starve progress accrual per tick at nutrition 0 (R196 :64 = 0.002). 营养为 0 时每 tick 的饿伤进度积攒（R196 :64 = 0.002）。 */
     public static float starveGainPerTick = 0.002F;
-    /** Health above which starving players take no starve damage (R196 :66 = 10.0). */
+    /** Health above which starving players take no starve damage (R196 :66 = 10.0). 生命高于该值时饿伤不生效（R196 :66 = 10.0）。 */
     public static float starveHealthCeiling = 10.0F;
-    /** Heal progress base per tick (R196 :77 = 4.0E-4). */
+    /** Heal progress base per tick (R196 :77 = 4.0E-4). 每 tick 回血进度基数（R196 :77 = 4.0E-4）。 */
     public static float healBasePerTick = 0.0004F;
-    /** Additional heal progress per tick per nutrition point (R196 :77 = 2.0E-5). */
+    /** Additional heal progress per tick per nutrition point (R196 :77 = 2.0E-5). 每 tick 每点营养的额外回血进度（R196 :77 = 2.0E-5）。 */
     public static float healPerNutritionPerTick = 0.00002F;
-    /** Hunger pool charge per damage event taken while lying in a bed (R196 :58-60 ≈ 0.04). */
+    /** Hunger pool charge per damage event taken while lying in a bed (R196 :58-60 ≈ 0.04). 躺床期间每次受击计入的饥饿池量（R196 :58-60 ≈ 0.04）。 */
     public static float inBedHitListHunger = 0.04F;
-    /** Hungrover sleepers are woken with a message (R196 EntityPlayer:421-429; nutrition == 0). */
+    /** Hungrover sleepers are woken with a message (R196 EntityPlayer:421-429; nutrition == 0). 断粮（营养 == 0）的睡眠者会被提示踢醒（R196 EntityPlayer:421-429）。 */
     public static boolean hungerSleepDeny = true;
-    /** TEST compression: hunger accrual and starve progress ×5 (burn a unit every 20 s, a starve strike every 5 s). */
+    /** TEST compression: hunger accrual and starve progress ×5 (burn a unit every 20 s, a starve strike every 5 s). 测试压缩：饥饿积攒与饿伤进度 ×5（每 20 s 烧掉 1 点食物，每 5 s 掉一次饿伤）。 */
     public static boolean foodTestMode = false;
-    /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). */
+    /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). 每次池变动/进食/饿伤判定都写一行 [FoodLog] 服务端日志（开发通道）。 */
     public static boolean foodDebugLog = false;
 
     /** Task 2.4 (ingestion): use duration for all R196-ingestible items (R196 §四: every
-     *  eating/drinking family runs 32 ticks — ItemFood/ItemBowl/ItemPotion/ItemBucketMilk). */
+     *  eating/drinking family runs 32 ticks — ItemFood/ItemBowl/ItemPotion/ItemBucketMilk). 任务 2.4（可食化）：全部 R196 可食物件的食用时长（R196 §四：每个吃/喝家族固定跑 32 tick）。 */
     public static int ingestUseDurationTicks = 32;
 
-    /** Task 2.4 (ingestion): [IngestLog] server dev channel for routing/refusal decisions. */
+    /** Task 2.4 (ingestion): [IngestLog] server dev channel for routing/refusal decisions. 任务 2.4（可食化）：[IngestLog] 服务端开发通道，记录开吃/拒绝等路由判定。 */
     public static boolean ingestDebugLog = false;
-    /** TEST-mode multipliers of the R196 pacing (hunger accrual + starve progress ×5). */
+    /** TEST-mode multipliers of the R196 pacing (hunger accrual + starve progress ×5). R196 节奏的测试模式倍率（饥饿积攒 + 饿伤进度 ×5）。 */
     private static final float TEST_MODE_MULTIPLIER = 5.0F;
 
-    /** Hunger accrual actually in effect (test compression multiplies it). */
+    /** Hunger accrual actually in effect (test compression multiplies it). 实际生效的饥饿积攒量（测试压缩会乘倍率）。 */
     public static float effectiveHungerGainPerTick() {
         return hungerGainPerTick * (foodTestMode ? TEST_MODE_MULTIPLIER : 1.0F);
     }
 
-    /** Starve progress accrual actually in effect (test compression multiplies it). */
+    /** Starve progress accrual actually in effect (test compression multiplies it). 实际生效的饿伤进度积攒量（测试压缩会乘倍率）。 */
     public static float effectiveStarveGainPerTick() {
         return starveGainPerTick * (foodTestMode ? TEST_MODE_MULTIPLIER : 1.0F);
     }
 
-    /** Hunger rate factor while malnourished (R196 ServerPlayer:1845 = 0.5; the regen factor is the 0.25 in nutrition). */
+    /** Hunger rate factor while malnourished (R196 ServerPlayer:1845 = 0.5; the regen factor is the 0.25 in nutrition). 营养不良时的饥饿速率系数（R196 ServerPlayer:1845 = 0.5；回血侧的 0.25 在 nutrition 域）。 */
     public static float malnourishedHungerFactor = 0.5F;
-    /** Wetness factor for standing in (light) rain (R196 ServerPlayer:1830 = 0.25). */
+    /** Wetness factor for standing in (light) rain (R196 ServerPlayer:1830 = 0.25). 站在小雨里的湿冷系数（R196 ServerPlayer:1830 = 0.25）。 */
     public static float wetnessRainLight = 0.25F;
-    /** Wetness factor for standing in a thunderstorm's rain (R196 ServerPlayer:1830 = 0.5). */
+    /** Wetness factor for standing in a thunderstorm's rain (R196 ServerPlayer:1830 = 0.5). 站在雷暴雨里的湿冷系数（R196 ServerPlayer:1830 = 0.5）。 */
     public static float wetnessRainThunder = 0.5F;
-    /** Wetness factor when the head's block is water (R196 ServerPlayer:1831-1832 = 0.5). */
+    /** Wetness factor when the head's block is water (R196 ServerPlayer:1831-1832 = 0.5). 头部所在方块是水时的湿冷系数（R196 ServerPlayer:1831-1832 = 0.5）。 */
     public static float wetnessImmerseAbove = 0.5F;
-    /** Wetness factor when the feet's block is water (R196 ServerPlayer:1833 = 0.25). */
+    /** Wetness factor when the feet's block is water (R196 ServerPlayer:1833 = 0.25). 脚部所在方块是水时的湿冷系数（R196 ServerPlayer:1833 = 0.25）。 */
     public static float wetnessImmerseBelow = 0.25F;
-    /** Extra wetness for light rain + feet-only immersion combo (R196 ServerPlayer:1836 = 0.125). */
+    /** Extra wetness for light rain + feet-only immersion combo (R196 ServerPlayer:1836 = 0.125). 小雨 + 仅脚部浸水的组合附加湿冷（R196 ServerPlayer:1836 = 0.125）。 */
     public static float wetnessCombo = 0.125F;
-    /** Multiplier when the biome is freezing (R196 ServerPlayer:1840 = 2.0). */
+    /** Multiplier when the biome is freezing (R196 ServerPlayer:1840 = 2.0). 群系判寒冷时的倍率（R196 ServerPlayer:1840 = 2.0）。 */
     public static float wetnessFreezingMultiplier = 2.0F;
-    /** Biome temperature at or below which the freeze multiplier applies (≈ R196 isBiomeFreezing). */
+    /** Biome temperature at or below which the freeze multiplier applies (≈ R196 isBiomeFreezing). 群系温度低于该值时套用寒冷倍率（≈ R196 isBiomeFreezing）。 */
     public static float wetnessFreezingTemperature = 0.15F;
-    /** Biome temperature at or above which wetness is washed out entirely (≈ R196 desertRiver rule). */
+    /** Biome temperature at or above which wetness is washed out entirely (≈ R196 desertRiver rule). 群系温度高于该值时湿冷全免（≈ R196 desertRiver 规则）。 */
     public static float wetnessHotExemptTemperature = 1.0F;
 
     // nutrition ---------------------------------------------------
-    /** Full pool size, in ticks (R196: 160000 = 20 nutrition points worth). */
+    /** Full pool size, in ticks (R196: 160000 = 20 nutrition points). 池满时的容量（以 tick 计）（R196：160000 = 20 点营养）。 */
     public static int nutritionPoolMax = 160000;
-    /** Pool tick gain per food nutrition point (R196: 8000). */
+    /** Pool tick gain per food nutrition point (R196: 8000). 每点食物营养为池带来的 tick 增益（R196：8000）。 */
     public static int nutritionTicksPerPoint = 8000;
-    /** Sugar content → insulin response conversion (R196 MITEConstant 4.8). */
+    /** Sugar content → insulin response conversion (R196 MITEConstant 4.8). 糖含量 → 胰岛素响应的换算（R196 MITEConstant 4.8）。 */
     public static float sugarToInsulin = 4.8F;
-    /** Insulin resistance cap (R196 MITEConstant: 192000). */
+    /** Insulin resistance cap (R196 MITEConstant: 192000). 胰岛素抵抗上限（R196 MITEConstant：192000）。 */
     public static int insulinCap = 192000;
-    /** Insulin resistance level thresholds (R196: 48000/96000/144000). */
+    /** Insulin resistance level thresholds (R196: 48000/96000/144000). 胰岛素抵抗各档阈值（R196：48000/96000/144000）。 */
     public static int insulinThresholdMild = 48000;
+    /** Moderate threshold; moderate and above can no longer eat sugars (R196: 96000). 中度阈值；中度及以上不能再吃含糖食物（R196：96000）。 */
     public static int insulinThresholdModerate = 96000;
+    /** Severe insulin resistance threshold (R196: 144000). 重度胰岛素抵抗阈值（R196：144000）。 */
     public static int insulinThresholdSevere = 144000;
-    /** Regen rate factor while malnourished (R196: 0.25). */
+    /** Regen rate factor while malnourished (R196: 0.25). 营养不良时的回血速率系数（R196：0.25）。 */
     public static float malnourishedRegenFactor = 0.25F;
 
     // reach ---------------------------------------------------------
-    /** Block selection/breaking reach with a bare hand (R196 EntityPlayer:2179 = 2.75). */
+    /** Block selection/breaking reach with a bare hand (R196 EntityPlayer:2179 = 2.75). 空手选中/破坏方块的触及距离（R196 EntityPlayer:2179 = 2.75）。 */
     public static float blockReachBase = 2.75F;
-    /** Bare-hand melee attack reach; held weapons add their bonus (R196 EntityPlayer:2207 = 1.5). */
+    /** Bare-hand melee attack reach; held weapons add their bonus (R196 EntityPlayer:2207 = 1.5). 空手近战攻击触及距离；持武器加其加成（R196 EntityPlayer:2207 = 1.5）。 */
     public static float meleeReachBase = 1.5F;
-    /** Entity interaction (right-click) reach (R196 EntityPlayer:2210-2213 = 2.5). */
+    /** Entity interaction (right-click) reach (R196 EntityPlayer:2210-2213 = 2.5). 实体交互（右键）触及距离（R196 EntityPlayer:2210-2213 = 2.5）。 */
     public static float interactionReachBase = 2.5F;
-    /** Extended 5.0 reach while in creative mode (R196 hasExtendedReach). */
+    /** Extended 5.0 reach while in creative mode (R196 hasExtendedReach). 创造模式下的加长触及 5.0（R196 hasExtendedReach）。 */
     public static float creativeReach = 5.0F;
     /** Reach bonus of generic tools/weapons — swords, pickaxes, axes, shovels
-     * (R196 ItemTool base class, ItemSword extends it: 0.75). */
+     * (R196 ItemTool base class, ItemSword extends it: 0.75). 通用工具/武器（剑、镐、斧、铲）的触及加成（R196 ItemTool 基类，ItemSword 继承之：0.75）。 */
     public static float reachBonusTool = 0.75F;
-    /** Reach bonus of stick/bone and shears (R196 Item.java:33/188 + ItemShears.java:8 = 0.5). */
+    /** Reach bonus of stick/bone and shears (R196 Item.java:33/188 + ItemShears.java:8 = 0.5). 木棍/骨头与剪刀的触及加成（R196 Item.java:33/188 + ItemShears.java:8 = 0.5）。 */
     public static float reachBonusSmall = 0.5F;
-    /** Server-side validation headroom against lag and metric differences. */
+    /** Server-side validation headroom against lag and metric differences. 服务端校验留给延迟与取整差异的宽松余量。 */
     public static float reachServerTolerance = 0.25F;
 
-    /** Entity raycast hit-test expansion: origins hit the AABB grown by this border (R196 Entity.getCollisionBorderSize default = 0.1). */
+    /** Entity raycast hit-test expansion: origins hit the AABB grown by this border (R196 Entity.getCollisionBorderSize default = 0.1). 实体射线判定的命中盒外扩：射线原点按该边长吃到扩张后的 AABB（R196 Entity.getCollisionBorderSize 默认 = 0.1）。 */
     public static float entityHitboxExpansion = 0.1F;
-    /** Chat feedback when the server rejects a reach-denied action (debug/test data channel). */
+    /** Chat feedback when the server rejects a reach-denied action (debug/test data channel). 服务端拒绝触及不足的动作时发聊天反馈（调试/测试数据通道）。 */
     public static boolean reachDenialFeedback = true;
 
-    /** Master switch of the task-2.2 mining reform (progress formula + drop gate). */
+    /** Master switch of the task-2.2 mining reform (progress formula + drop gate). 任务 2.2 挖掘改革总开关（进度公式 + 掉落门控）。 */
     public static boolean miningReform = true;
 
     // hunger (task 2.3) ----------------------------------------------
@@ -193,104 +201,105 @@ public final class ETIMConfig {
     public static boolean hungerDenialFeedback = true;
 
 
-    /** Maximum level of the tree-felling enchant (ToolSuite audit: level per-log recursion depth). */
+    /** Maximum level of the tree-felling enchant (ToolSuite audit: level per-log recursion depth). 树木连根附魔的最高等级（ToolSuite 审计：等级 = 每根原木的递归深度）。 */
     public static int treeFellingMaxLevel = 10;
-    /** Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay). */
+    /** Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay). 调试覆盖显示射线的长度（永不进入游戏判定）。 */
     public static float debugRayLength = 8.0F;
 
 
     // crafting (stage 3, batch 1: server-authoritative craft timer) --------------
-    /** Master switch of the R196 crafting timer (false = vanilla instant crafting). */
+    /** Master switch of the R196 crafting timer (false = vanilla instant crafting). R196 合成计时总开关（false = 原版瞬时合成）。 */
     public static boolean craftingTimer = true;
-    /** Creative players keep vanilla instant crafting (test convenience switch). */
+    /** Creative players keep vanilla instant crafting (test convenience switch). 创造模式玩家保留原版瞬时合成（测试便利开关）。 */
     public static boolean craftingSkipCreative = true;
-    /** Crafting speed bonus fraction per level (R196 getLevelModifier CRAFTING = 0.02). */
+    /** Crafting speed bonus fraction per level (R196 getLevelModifier CRAFTING = 0.02). 每级合成速度加成（R196 getLevelModifier CRAFTING = 0.02）。 */
     public static float craftingSpeedPerLevel = 0.02F;
-    /** Bench speed modifier of the vanilla crafting table (R196 lowest bench tier = 0.2). */
+    /** Bench speed modifier of the vanilla crafting table (R196 lowest bench tier = 0.2). 原版合成台的台面提速系数（R196 最低台面档 = 0.2）。 */
     public static float craftingBenchModifier = 0.2F;
-    /** Minimum crafting period in ticks (R196 floor = 25). */
+    /** Minimum crafting period in ticks (R196 floor = 25). 合成周期下限（tick）（R196 下限 = 25）。 */
     public static int craftingPeriodFloor = 25;
-    /** Exponent of the difficulty>100 period curve (R196 pow(d−100, 0.8)+100). */
+    /** Exponent of the difficulty>100 period curve (R196 pow(d−100, 0.8)+100). 难度 >100 时周期曲线的指数（R196 pow(d−100, 0.8)+100）。 */
     public static float craftingCurveExponent = 0.8F;
-    /** Difficulty of unlisted generic ingredients (R196 §4.1 one-family = 25). */
+    /** Difficulty of unlisted generic ingredients (R196 §4.1 one-family = 25). 未列名普通配料的难度（R196 §4.1 单一家族 = 25）。 */
     public static float craftingGenericDifficulty = 25.0F;
-    /** Craft progress in ticks lost per whole damage point taken (R196 = 50 = 2.5 s). */
+    /** Craft progress in ticks lost per whole damage point taken (R196 = 50 = 2.5 s). 每受 1 点整伤害所损失的合成进度（tick）（R196 = 50 = 2.5 s）。 */
     public static int craftingDamagePenaltyPerDamagePoint = 50;
-    /** Chat line when a craft completes (dev/test feedback channel). */
+    /** Chat line when a craft completes (dev/test feedback channel). 合成完成时的聊天行（开发/测试反馈通道）。 */
     public static boolean craftingCompleteFeedback = true;
-    /** Chat line when a craft starts, with the expected duration (dev/test feedback channel). */
+    /** Chat line when a craft starts, with the expected duration (dev/test feedback channel). 合成开始时的聊天行，附带预计耗时（开发/测试反馈通道）。 */
     public static boolean craftingStartFeedback = true;
-    /** Fill the crafting arrow with white progress (MITE GUI look). */
+    /** Fill the crafting arrow with white progress (MITE GUI look). 用白色进度填充合成箭头（MITE GUI 观感）。 */
     public static boolean craftingProgressArrow = true;
-    /** Server-log [CraftingLog] lines for period sets, starts, penalties and completions (dev channel). */
+    /** Server-log [CraftingLog] lines for period sets, starts, penalties and completions (dev channel). 服务端日志 [CraftingLog] 行：周期设定、开表、惩罚与完成（开发通道）。 */
     public static boolean craftingDebugLog = false;
-    /** Batch-3 master switch of the R196 quality ladder (false = vanilla-no-quality v1). */
+    /** Batch-3 master switch of the R196 quality ladder (false = vanilla-no-quality v1). 批三：R196 品质阶梯总开关（false = 原版无品质 v1）。 */
     public static boolean qualitySystem = true;
-    /** Batch-3: chat line when the right-click quality cycling changes the rung (dev/test channel). */
+    /** Batch-3: chat line when the right-click quality cycling changes the rung (dev/test channel). 批三：右击循环品质档变化时的聊天行（开发/测试通道）。 */
     public static boolean craftingQualityFeedback = true;
-    /** Batch-3: max quality rung (0..7) for items with no mapped material (R196 material rows only for knowns). */
+    /** Batch-3: max quality rung (0..7) for items with no mapped material (R196 material rows only for knowns). 批三：无映射材质物品的最高品质档（0..7）（R196 材质行只覆盖已知材质）。 */
     public static int qualityDefaultMax = 5;
-    /** Batch-3: per-item max-quality overrides as "registryName=0..7" CSV, beating the material mapping. */
+    /** Batch-3: per-item max-quality overrides as "registryName=0..7" CSV, beating the material mapping. 批三：逐物品最高品质覆盖，格式 "registryName=0..7" 的 CSV，优先于材质映射。 */
     public static String qualityMaxOverrides = "";
-    /** Batch-3: crafting freezes when the player's upper body is inside a spider web (R196 SlotCrafting:155-157). */
+    /** Batch-3: crafting freezes when the player's upper body is inside a spider web (R196 SlotCrafting:155-157). 批三：玩家上身陷在蜘蛛网里时合成冻结（R196 SlotCrafting:155-157）。 */
     public static boolean craftingWebDeny = true;
-    /** Batch-3: any damaged item in the crafting grid freezes the craft (R196 MITEContainerCrafting:178-181). */
+    /** Batch-3: any damaged item in the crafting grid freezes the craft (R196 MITEContainerCrafting:178-181). 批三：合成格内有任何受损物品时合成冻结（R196 MITEContainerCrafting:178-181）。 */
     public static boolean craftingDamagedDeny = true;
-    /** Batch-3: completion effect — level-up sound + witch sparkles (user-named dot, off until picked). */
+    /** Batch-3: completion effect — level-up sound + witch sparkles (user-named dot, off until picked). 批三：完成特效 — 升级音效 + 巫师粒子（用户点名，视听方案拍板前保持关闭）。 */
     public static boolean craftingFx = false;
 
     // furnace (stage 4 batch A: heat gate on the vanilla furnace) -------------
-    /** Master switch of the R196 heat ladder on the vanilla furnace tier. */
+    /** Master switch of the R196 heat ladder on the vanilla furnace tier. 原版熔炉档上的 R196 热量阶梯总开关。 */
     public static boolean furnaceHeatSystem = true;
-    /** Vanilla furnace cap (R196 cobblestone tier). */
+    /** Vanilla furnace cap (R196 cobblestone tier). 原版熔炉热度上限（R196 圆石炉档）。 */
     public static int furnaceVanillaMaxHeat = 2;
-    /** Server-log [FurnaceLog] lines for heat denials (dev channel). */
+    /** Server-log [FurnaceLog] lines for heat denials (dev channel). 服务端日志 [FurnaceLog] 行：热度拒绝判定（开发通道）。 */
     public static boolean furnaceDebugLog = false;
-    /** Batch-B: R196 fuel burn times replace vanilla where they differ (audit 9 §2.2). */
+    /** Batch-B: R196 fuel burn times replace vanilla where they differ (audit 9 §2.2). 批-B：R196 燃料燃烧时长替换与原版有差异的项（审计 9 §2.2）。 */
     public static boolean furnaceBurnTimeR196 = true;
-    /** Batch-C: furnace take pays the R196 per-item reward as one orb (audit 9 §1.4). */
+    /** Batch-C: furnace take pays the R196 per-item reward as one orb (audit 9 §1.4). 批-C：取熔炉产物时按 R196 逐物品奖励结算为一次经验球（审计 9 §1.4）。 */
     public static boolean furnaceXpRewards = true;
-    /** Batch-B GUI hints: gold noSmelt/notFuel/tooHot text when a carried item is refused by a furnace slot. */
+    /** Batch-B GUI hints: gold noSmelt/notFuel/tooHot text when a carried item is refused by a furnace slot. 批-B GUI 提示：光标持有物被熔炉槽拒绝时的金字 noSmelt/notFuel/tooHot 文案。 */
     public static boolean furnaceGuiHints = true;
 
+    /** Furnace input slot only admits items that HAVE a smelting recipe (R196 TileEntityFurnace:360-368 — GUI drag and hopper alike). 熔炉输入槽只收有熔炼配方的物品（R196 TileEntityFurnace:360-368 — GUI 拖放与漏斗同门）。 */
     public static boolean furnaceInputRecipeGate = true;
 
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
-    /** Death drops total/3 as XP orbs at the death spot (R196 xp/3 verdict). */
+    /** Death drops total/3 as XP orbs at the death spot (R196 xp/3 verdict). 死亡时在死亡点掉落 total/3 的经验球（R196 xp/3 判值）。 */
     public static boolean deathXpOrbs = true;
-    /** Death settles the XP balance (orb drop aside, R196 deposit/refill verdict: respawn = total − 20 sub-1, stale above). */
+    /** Death settles the XP balance (orb drop aside, R196 deposit/refill verdict: respawn = total − 20 sub-1, stale above). 死亡结算经验收支（不含经验球掉落；R196 存取判值：重生时总量 <1 扣 20，更高则沿用上次结算值）。 */
     public static boolean deathXpSettle = true;
-    /** Server-log [DeathLog] lines for the death chain (dev channel). */
+    /** Server-log [DeathLog] lines for the death chain (dev channel). 服务端日志 [DeathLog] 行：死亡链判定（开发通道）。 */
     public static boolean deathDebugLog = false;
 
     // mobs (stage 5 slice 1: R196 despawn chain) ------------------------------
-    /** Master switch of the R196 despawn chain (audit 11 §2.1): view-resets, mob-path hold, animal walls, zombie-villager hold, hour-of-grace dy and the counter≥200 kill pass. Off = vanilla 1.12 despawn. */
+    /** Master switch of the R196 despawn chain (audit 11 §2.1): view-resets, mob-path hold, animal walls, zombie-villager hold, hour-of-grace dy and the counter≥200 kill pass. Off = vanilla 1.12 despawn. R196 消散链总开关（审计 11 §2.1）：视线重置、怪类寻路挽留、动物墙、僵尸村民挽留、非天亮整点的 y 折倍与计数 ≥200 的击杀判定。关闭则回到原版 1.12 消散。 */
     public static boolean mobDespawnR196 = true;
-    /** Master switch of the R196 per-class mob attribute table (audit 11 §3.1): skeleton 6 hp/4 atk/32 follow, zombie 5 atk/32 follow/0 armor, pigman 8 atk, spider 12 hp/4 atk/28 follow. Off = vanilla 1.12 attributes. */
+    /** Master switch of the R196 per-class mob attribute table (audit 11 §3.1): skeleton 6 hp/4 atk/32 follow, zombie 5 atk/32 follow/0 armor, pigman 8 atk, spider 12 hp/4 atk/28 follow. Off = vanilla 1.12 attributes. R196 逐类怪物属性表总开关（审计 11 §3.1）：骷髅 6 血/4 攻/32 视距，僵尸 5 攻/32 视距/0 护甲，猪人 8 攻，蜘蛛 12 血/4 攻/28 视距。关闭则回到原版 1.12 属性。 */
     public static boolean mobStatsR196 = true;
-    /** Master switch of the R196 livestock wellness pipeline (audit 11 §2.2 v1: needs floats + supervision, production comes later). Off = vanilla livestock carries nothing. */
+    /** Master switch of the R196 livestock wellness pipeline (audit 11 §2.2 v1: needs floats + supervision, production comes later). Off = vanilla livestock carries nothing. R196 家畜需求管线总开关（审计 11 §2.2 v1：需求 + 监管已落地，产出留后续切片）。关闭则回到原版家畜无需求。 */
     public static boolean livestockNeedsR196 = true;
-    /** Server-log [AILog] lines for despawn kills, holds and rerolls (dev channel). */
+    /** Server-log [AILog] lines for despawn kills, holds and rerolls (dev channel). 服务端日志 [AILog] 行：消散击杀、挽留判定与计数重掷（开发通道）。 */
     public static boolean mobDebugLog = false;
-    /** Master switch of the R196 spawn cycle (audit 11 §4 + audit 14): cap table 50/10/5/5 over /256, hostile dual probability rings, the modifier four events and the admission fine print. Off = vanilla 1.12 world-entity spawner. */
+    /** Master switch of the R196 spawn cycle (audit 11 §4 + audit 14): cap table 50/10/5/5 over /256, hostile dual probability rings, the modifier four events and the admission fine print. Off = vanilla 1.12 world-entity spawner. R196 生成周期总开关（审计 11 §4 + 审计 14）：物种上限表 50/10/5/5 按区块 /256 折算、敌怪双概率环、四个调制事件与准入细则。关闭则回到原版 1.12 生物生成器。 */
     public static boolean mobSpawnR196 = true;
-    /** R196 spawn caps per creature type (audit 14 §2.1/§2.2): monster 50, animal 10, ambient 5, aquatic 5 — before the ×chunks/256 conversion. */
+    /** R196 spawn caps per creature type (audit 14 §2.1/§2.2): monster 50, animal 10, ambient 5, aquatic 5 — before the ×chunks/256 conversion. R196 逐物种生成上限（审计 14 §2.1/§2.2）：敌怪 50、动物 10、环境 5、水生 5 —— 区块 ×/256 换算之前。 */
     public static int spawnCapMonster = 50;
     public static int spawnCapAnimal = 10;
     public static int spawnCapAmbient = 5;
     public static int spawnCapAquatic = 5;
-    /** Forced moon overlay state for the spawn cycle ("", "blue", "blood", "full", "new") — test determinism; stage 6 replaces the backend. */
+    /** Forced moon overlay state for the spawn cycle ("", "blue", "blood", "full", "new") — test determinism; stage 6 replaces the backend. 生成周期强制月亮叠加态（""、"blue"、"blood"、"full"、"new"）—— 测试确定性用；阶段六替换后端。 */
     public static String moonStateOverride = "";
 
     // compat group: interop switches (rule 2 — player-perceivable, configurable)
-    /** Crafting Tweaks rightClickCraftsStack auto-disable (see CraftingTweaksCompat). */
+    /** Crafting Tweaks rightClickCraftsStack auto-disable (see CraftingTweaksCompat). 自动停用 Crafting Tweaks 的 rightClickCraftsStack（见 CraftingTweaksCompat）。 */
     public static boolean compatCraftingTweaksFix = true;
 
     // devtools ----------------------------------------------------
     /** Master switch of the DEV TEST FACILITIES: the GRAVE-key debug HUD
      * (ETIMDebugOverlay) and the /etest state command. Off = player-facing
      * release behaves as if they never existed (no overlay, command not
-     * registered). Requires a restart (like every other key). */
+     * registered). Requires a restart (like every other key). 开发测试设施总开关：GRAVE 键左上角的调试 HUD（ETIMDebugOverlay）与 /etest 状态指令。关闭则发布形态当作两者从未存在（无覆盖层、指令不注册）。与其他键一样需重启生效。 */
     public static boolean devTools = true;
 
     private static boolean chinese;
@@ -449,7 +458,7 @@ public final class ETIMConfig {
 
         blockReachBase = config.getFloat("blockReachBase", "reach", blockReachBase, 0.1F, 32.0F,
                 comment("Block reach with a bare hand (R196: 2.75); tools effective against the block add their bonus",
-                        "空手可触及方块的直线距离（R196 为 2.75）；工具对联类方块生效时加其加成"));
+                        "空手可触及方块的直线距离（R196 为 2.75）；工具对该方块生效时加其加成"));
         meleeReachBase = config.getFloat("meleeReachBase", "reach", meleeReachBase, 0.1F, 32.0F,
                 comment("Bare-hand melee attack reach with ±1 elevation advantage (R196: 1.5); weapons add their bonus",
                         "空手近战攻击距离，附加高低差 ±1（R196 为 1.5）；持武器加其加成"));
@@ -582,7 +591,8 @@ public final class ETIMConfig {
         furnaceBurnTimeR196 = config.getBoolean("furnaceBurnTimeR196", "furnace", true,
                 comment("R196 fuel burn durations replace vanilla where they differ (audit 9 §2.2: log 1600, planks 400, torch 800, lava bucket 3200, coal block 16000, blaze rod 2400, ...)",
                         "燃料燃烧时长按 R196 判值替换与原版有差异的项（审计 9 §2.2：原木 1600、木板 400、火把 800、熔岩桶 3200、煤炭块 16000、烈焰棒 2400 等）"));
-        furnaceXpRewards = config.getBoolean("furnaceXpRewards", "furnace", true,                comment("Take pays the R196 per-item XP reward as one orb at the player (audit 9 §1.4: iron 10 / gold 20 / diamond 30 / emerald 20 / quartz 10; batch-B metals keep their judged numbers), replacing the vanilla random split; creative pays identical",
+        furnaceXpRewards = config.getBoolean("furnaceXpRewards", "furnace", true,
+                comment("Take pays the R196 per-item XP reward as one orb at the player (audit 9 §1.4: iron 10 / gold 20 / diamond 30 / emerald 20 / quartz 10; batch-B metals keep their judged numbers), replacing the vanilla random split; creative pays identical",
                         "取产物时按 R196 逐物品经验表结算一次（审计 9 §1.4：铁 10/金 20/钻石 30/绿宝石 20/石英 10；批 B 金属照判值），替换原版随机分配；创造不豁免"));
         furnaceGuiHints = config.getBoolean("furnaceGuiHints", "furnace", true,
                 comment("Gold no-smelt / not-fuel / too-hot text when the cursor's carried item is refused by a furnace slot (R196 GuiFurnace:47-85)",
@@ -609,7 +619,7 @@ public final class ETIMConfig {
                         "服务端日志 [AILog] 行：消散击杀、挽留判定与计数重掷（开发通道）"));
         mobSpawnR196 = config.getBoolean("mobSpawnR196", "mobs", true,
                 comment("R196 spawn cycle (audit 11 §4 + audit 14): creature caps 50/10/5/5 over /256 chunks with the deep doubling, hostile dual probability rings 0.10 (under y60) / 0.17 (surface) times the modifier events (decreased x0.5 / increased x2 / no-spawn windows, blood-moon and thunder restore only reduced mods), the %-400 peaceful windows with blue-moon animal gating, night moon rejection rates and the dual-light close branch. Off = vanilla 1.12 spawning",
-                        "R196 生成周期（审计 11 §4 + 审计 14）：物种上限 50/10/5/5 ×区块数/256（深处加倍）、敌怪双概率环（y60 下 0.10/地表 0.17）×调制事件（缩减×0.5/翻倍×2/停发窗口，血月与雷雨只还原缩减类）、%400 温驯窗口（动物加蓝月门）、夜间月亮拒率与双光照近距离准入。关闭则回到原版 1.12 生成"));
+                        "R196 生成周期（审计 11 §4 + 审计 14）：物种上限 50/10/5/5 ×区块数/256（深处加倍）、敌怪双概率环（y60 下 0.10/地表 0.17）×调制事件（缩减×0.5/翻倍×2/停发窗口，血月与雷雨只还原缩减类）、%-400 温驯窗口（动物加蓝月门）、夜间月亮拒率与双光照近距离准入。关闭则回到原版 1.12 生成"));
         spawnCapMonster = config.getInt("spawnCapMonster", "mobs", spawnCapMonster, 0, 500,
                 comment("R196 monster spawn cap before the chunk conversion (audit 14: 50; vanilla 1.12 = 70)",
                         "敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）"));
@@ -651,11 +661,13 @@ public final class ETIMConfig {
         validate(config);
     }
 
-    /** Rejected configurations stop the load instead of using defaults. */
+    /** Rejected configurations stop the load instead of using defaults. 被判定非法的配置直接中止加载，不回落默认值。 */
     private static void validate(Configuration config) {
         // moonStateOverride accepts only the documented set; any other value
         // must stop the load (same contract as every numeric threshold here),
         // not silently fall back to the vanilla clock.
+        // moonStateOverride 只接受文档列出的那组取值；其他取值一律中止加载
+        // （与此处所有数值门同一条契约），不静默回落原版时钟。
         switch (moonStateOverride) {
             case "":
             case "blue":
@@ -716,7 +728,7 @@ public final class ETIMConfig {
         }
     }
 
-    /** Picks the comment by game language (client zh* → Chinese, else English). */
+    /** Picks the comment by game language (client zh* → Chinese, else English). 按游戏语言挑选注释（客户端 zh* 用中文，其余用英文）。 */
     private static String comment(String en, String zh) {
         return chinese ? zh : en;
     }

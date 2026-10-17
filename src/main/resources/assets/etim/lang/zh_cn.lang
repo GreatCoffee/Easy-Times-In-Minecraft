@@ -9,8 +9,8 @@ etim.state.level.none=无
 etim.state.level.mild=轻度
 etim.state.level.moderate=中度
 etim.state.level.severe=重度
-etim.state.malnourished=（营养不良）
-etim.state.sugar_discount=（糖类饱食收益打折）
+etim.state.malnourished= （营养不良）
+etim.state.sugar_discount= （糖类饱食收益打折）
 key.etim.debug=ETIM 调试覆盖（2.1 触及数据）
 etim.debug.header=ETIM 调试（按 ~ 键开关，可在按键设置更改）
 etim.debug.far_none=显示射线 %s 米内没有方块或实体（只用于显示，不影响游戏判定）
@@ -23,8 +23,8 @@ enchantment.etim_tree_felling=树木连根
 etim.debug.raycast=眼-命中盒进入点距离：%s
 etim.debug.food=饥饿诊断：食物=%s 饱和度=%s 疲劳=%s
 etim.debug.hunger_gate=饥饿门：合成%s 放置%s 冲刺%s 空手%s
-etim.debug.mining=挖掘：有效工具：✓/✗ %s  str=%s  进度/刻=%s  剩余刻=%s
-etim.debug.mining_gate=便携块：✓/✗ %s  需工具：✓/✗ %s  块等级=%s  手持=%s
+etim.debug.mining=挖掘：有效工具 %s  str=%s  进度/刻=%s  剩余刻=%s
+etim.debug.mining_gate=便携块 %s  需工具 %s  块等级=%s  手持=%s
 etim.debug.body_center=体点-方块中心距离（双原点取近）：%s
 etim.debug.reach_block=方块触及（含工具加成）：%s → %s
 etim.debug.reach_melee=近战触及（含容差）：%s → %s
@@ -47,7 +47,7 @@ tile.bed.tooHungry=太饿了，无法睡觉
 etim.state.satiation=饱食
 etim.state.nutrition=营养
 etim.state.hungerPool=饥饿池
-etim.crafting.completed=%s
+etim.crafting.completed=合成完成：%s
 etim.crafting.started=开始合成：约 %s 完成
 etim.quality.wretched=劣质品质
 etim.quality.poor=贫瘠品质
@@ -55,7 +55,7 @@ etim.quality.average=普通品质
 etim.quality.fine=精良品质
 etim.quality.excellent=优秀品质
 etim.quality.superb=卓越品质
-etim.quality.masterwork=大师之作
+etim.quality.masterwork=大师之作品质
 etim.quality.legendary=传奇品质
 etim.quality.durability_penalty=耐久惩罚 -%s%%
 etim.quality.durability_bonus=耐久加成 +%s%%
@@ -68,6 +68,6 @@ etim.furnace.tooHot=对这座熔炉太热
 etim.furnace.needed=本配方需要热度 ≥ %s
 etim.furnace.curheat=燃料热度 %s（熔炉上限 %s）
 etim.state.deathXp=死亡结算
-tile.bed.notSheltered=�ⴲû���㹻���ڱΣ�������˯
-tile.bed.obstructed=�������鵲ס��
-tile.bed.poisoned=�ж�״̬���޷���˯
+tile.bed.notSheltered=这床没有足够的遮蔽，不能入睡
+tile.bed.obstructed=床被方块挡住了
+tile.bed.poisoned=中毒状态下无法入睡
