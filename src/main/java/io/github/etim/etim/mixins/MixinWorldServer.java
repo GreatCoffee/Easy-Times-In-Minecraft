@@ -14,6 +14,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldEntitySpawner;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
@@ -136,10 +137,24 @@ public abstract class MixinWorldServer {
         // rewritten; every other modulus delegates unchanged, so no ordinal
         // bookkeeping. Clock-off → vanilla rarity (J1 passthrough).
         if (original == 100000) {
-            return random.nextInt(ETIMWeatherClock.lightningRarity((WorldServer) (Object) this));
+            int rarity = ETIMWeatherClock.lightningRarity((WorldServer) (Object) this);
+            // A1 probe (weather verdict A1): sampled 1/8192, ZERO world-RNG
+            // consumption (static counter, not random) so the lightning
+            // stream stays shape-preserved. Verifies the dynamic rarity
+            // propagation AND the boolean gate face in one line.
+            if ((this.etim$rarityProbe++ & 8191) == 0) {
+                WorldServer w = (WorldServer) (Object) this;
+                ETIM.LOGGER.info("[WeatherLog] rarity-probe rarity=" + rarity
+                        + " raining=" + w.isRaining() + " thundering=" + w.isThundering());
+            }
+            return random.nextInt(rarity);
         }
         return random.nextInt(original);
     }
+
+    /** A1 probe sampling counter — static field, never advances world RNG. */
+    @Unique
+    private int etim$rarityProbe;
 
     /**
      * R196 :1002-1006 strike positioning (verdict J4, A 级强制细则): the
@@ -160,7 +175,20 @@ public abstract class MixinWorldServer {
         if (!ETIMWeatherClock.active(world)) {
             return this.adjustPosToNearbyEntity(pos); // same object as world
         }
-        return world.getPrecipitationHeight(pos);
+        BlockPos strike = world.getPrecipitationHeight(pos);
+        // A1 probe (weather verdict A1): ONE line per :423-hit (≈26 per
+        // 13000t blood window at rarity 20000) — closes the generation-vs-log
+        // split AND pins the isRainingAt refusal face (biome/height/rarity)
+        // in a single read. Handler presence itself ≡ the :423 gate hit.
+        net.minecraft.world.biome.Biome biome = world.getBiome(strike);
+        ETIM.LOGGER.info("[WeatherLog] strike-gate x,y,z=" + pos.getX() + "," + strike.getY() + "," + pos.getZ()
+                + " rainingAt=" + world.isRainingAt(strike)
+                + " canRain=" + biome.canRain()
+                + " rainfall=" + biome.getRainfall()
+                + " temp=" + biome.getTemperature(strike)
+                + " biome=" + biome.getClass().getSimpleName()
+                + " rarity=" + ETIMWeatherClock.lightningRarity(world));
+        return strike;
     }
 
     /**
