@@ -16,7 +16,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Random;
 
@@ -155,6 +157,88 @@ public abstract class MixinWorldServer {
     /** A1 probe sampling counter — static field, never advances world RNG. */
     @Unique
     private int etim$rarityProbe;
+
+    // ------------------- A1' final probes (U1/U2/U3, strip after W-3 closes) -------------------
+
+    /**
+     * U1 (A1' probe): sampled 1/8191 per {@code updateBlocks} call. Log proves
+     * the body is REACHED and shows, per world, the strength-face depth behind
+     * the {@code :407-408} booleans (isRaining/isThundering read the strength
+     * thresholds >0.2/>0.9 — World.java:3942-3953 — NOT the worldInfo booleans
+     * our [WeatherLog] flip lines print: that gate-face divergence is now
+     * pinned for the judge window).
+     */
+    @Inject(method = "updateBlocks", at = @At("HEAD"), require = 1)
+    private void etim$ubHeadProbe(CallbackInfo ci) {
+        if ((this.etim$ubHeadProbe++ & 8191) == 0) {
+            WorldServer w = (WorldServer) (Object) this;
+            ETIM.LOGGER.info("[WeatherLog] ub-head dim=" + w.provider.getDimension()
+                    + " prov=" + w.provider.getClass().getSimpleName()
+                    + " isRaining=" + w.isRaining() + " isThundering=" + w.isThundering()
+                    + " rainStr=" + w.getRainStrength(1.0F)
+                    + " thunderStr=" + w.getThunderStrength(1.0F));
+        }
+    }
+
+    /** U1 counter — probe only, never advances world RNG. */
+    @Unique
+    private int etim$ubHeadProbe;
+
+    /**
+     * U2 (A1' probe): wraps {@code chunk.onTick} (both updateBlocks call
+     * sites :401-DEBUG-dead and :420-live) — sampled 1/65535. Presence ≡ the
+     * chunk iterator IS yielding rows (the :411 loop body executes).
+     */
+    @Redirect(
+            method = "updateBlocks",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/chunk/Chunk;onTick(Z)V"),
+            require = 2
+    )
+    private void etim$ubIterProbe(net.minecraft.world.chunk.Chunk chunk, boolean loadedTick) {
+        if ((this.etim$ubIterProbe++ & 65535) == 0) {
+            ETIM.LOGGER.info("[WeatherLog] ub-iter dim=" + ((WorldServer) (Object) this).provider.getDimension()
+                    + " x,z=" + chunk.x + "," + chunk.z);
+        }
+        chunk.onTick(loadedTick);
+    }
+
+    /** U2 counter — probe only. */
+    @Unique
+    private int etim$ubIterProbe;
+
+    /**
+     * U3 (A1' probe): wraps the {@code :423} chain-head
+     * {@code provider.canDoLightning(chunk)} (single call site in
+     * updateBlocks; evaluated EVERY chunk iteration — it is LEFTMOST in the
+     * short-circuit chain). Sampled 1/131071 ⇒ printed rows ≡ flags already
+     * passed? NO — ≡ the chain reached its head — and the logged boolean
+     * re-read shows whether flag/flag1 are the failing link.
+     */
+    @Redirect(
+            method = "updateBlocks",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/WorldProvider;canDoLightning(Lnet/minecraft/world/chunk/Chunk;)Z",
+                    remap = false), // forge-added method: literal name in BOTH namespaces (stable_39 absent)
+            require = 1
+    )
+    private boolean etim$ubCanLightningProbe(net.minecraft.world.WorldProvider provider, net.minecraft.world.chunk.Chunk chunk) {
+        boolean ret = provider.canDoLightning(chunk);
+        WorldServer w = (WorldServer) (Object) this;
+        if ((this.etim$canLightningProbe++ & 131071) == 0) {
+            ETIM.LOGGER.info("[WeatherLog] ub-canLightning dim=" + w.provider.getDimension()
+                    + " prov=" + provider.getClass().getSimpleName()
+                    + " ret=" + ret
+                    + " isRaining=" + w.isRaining() + " isThundering=" + w.isThundering()
+                    + " rainStr=" + w.getRainStrength(1.0F)
+                    + " thunderStr=" + w.getThunderStrength(1.0F));
+        }
+        return ret;
+    }
+
+    /** U3 counter — probe only. */
+    @Unique
+    private int etim$canLightningProbe;
 
     /**
      * R196 :1002-1006 strike positioning (verdict J4, A 级强制细则): the
