@@ -1,6 +1,5 @@
 package io.github.etim.etim.mixins;
 
-import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMEntityAIDig;
 import net.minecraft.entity.monster.EntityZombie;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +21,9 @@ public abstract class MixinEntityZombie {
     @Inject(method = "initEntityAI", at = @At("TAIL"))
     private void etim$addDigAI(CallbackInfo ci) {
         EntityZombie zombie = (EntityZombie) (Object) this;
-        if (ETIMConfig.zombieDigAI && !zombie.world.isRemote) {
+        // A7（2026-10-18 裁）：cfg 门只在执行面（ETIMEntityAIDig.shouldExecute 首出口），
+        // 注册面只留 isRemote —— 注册面双闸使 gate=cfg 行结构性不可达。
+        if (!zombie.world.isRemote) {
             zombie.tasks.addTask(1, new ETIMEntityAIDig(zombie)); // R196 :14, priority 1 / mutex 3
         }
     }
