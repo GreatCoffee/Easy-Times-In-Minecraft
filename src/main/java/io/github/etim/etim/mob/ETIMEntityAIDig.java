@@ -252,9 +252,18 @@ public class ETIMEntityAIDig extends EntityAIBase {
         return MathHelper.floor(e.posY + 1.0E-4F);
     }
 
-    /** R196 canSeeTarget (EntityLiving.java:1691) → EntitySenses face, ignore_leaves dropped (C 级). */
+    /** R196 canSeeTarget (EntityLiving.java:1691) → EntitySenses face, ignore_leaves dropped (C 级).
+     * The null gate restores the R196 EntitySenses.canSee first line
+     * (mite-src EntitySenses.java:24-26 {@code if (entity == null) return false}) —
+     * the 1.12 vanilla EntitySenses lost that gate (f5f2563→25a46e0 window A3:
+     * NPE at getPositionEyes), and the R196 or-gate-before-target-guard order
+     * (:18 before :19-22) relies on it. */
     private boolean canSeeTarget(boolean ignoreLeaves) {
-        return this.digger.getEntitySenses().canSee(this.digger.getAttackTarget()); // R196 :1692 canSeeTarget → EntitySenses face (ignore_leaves dropped, C 级)
+        EntityLivingBase target = this.digger.getAttackTarget();
+        if (target == null) { // R196 EntitySenses.java:24-26 — the lost vanilla gate, restored
+            return false;
+        }
+        return this.digger.getEntitySenses().canSee(target); // R196 :1692 canSeeTarget → EntitySenses face (ignore_leaves dropped, C 级)
     }
 
     /**
