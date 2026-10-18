@@ -3,6 +3,7 @@ package io.github.etim.etim.death;
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.playerstate.ETIMXp;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -35,12 +36,12 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  *       respawn value (the ≥1-level quirk — kept by default, open on the
  *       unattended decision list as D.1).</li>
  *   <li><b>apply</b> — on respawn the arriving player's XP fields rewrite to
- *       the settle: non-negative settles rebuild level/progress on the
- *       vanilla curve, negative settles take the linear
- *       {@code level = total / 20} mapping (negative levels are the R196
+ *       the settle via {@code ETIMXp.applyTotal} — ❗F-10-11/R-17=A（audit20-10 R1）:
+ *       R196 :315 pool-only，settle 走单池曲线一次到位（≥0 → levelForPoints 正支；
+ *       <0 → 债务支线性 {@code level = total / 20}，negative levels are the R196
  *       debt design; every level bonus reads {@code experienceLevel}
  *       directly, so −40 levels produce the −80% edits through the existing
- *       multiplier formulas with no new math).</li>
+ *       multiplier formulas with no new math）。</li>
  *   <li><b>pools</b> — the §6.2 fact: FoodStats pools do NOT survive a
  *       death; ETIM already rebuilds a fresh dual-pool state on the new
  *       entity, matching the R196 respawn-full-pools behavior.</li>
@@ -137,17 +138,11 @@ public final class ETIMDeathEvents {
             return; // keepInventory death: nothing to rewrite
         }
         EntityPlayer player = event.getEntityPlayer();
-        if (settle >= 0) {
-            int level = levelFromTotal(settle);
-            player.experienceTotal = settle;
-            player.experienceLevel = level;
-            player.experience = levelProgress(settle, level);
-        } else {
-            // Linear negative half: total(−L) = −20·L → level = total / 20.
-            player.experienceTotal = settle;
-            player.experienceLevel = settle / ETIMDeathXp.SETTLE_UNIT;
-            player.experience = 0.0F;
-        }
+        // ❗F-10-11 / R-17=A（audit20-10 R1）：R196 :315 pool-only——settle 单池曲线
+        // 一次到位（≥0 → levelForPoints 正支；<0 → 债务支 −1/−2 线性；bar：正支进度/
+        // 负支 0.0F）。vanilla 曲线重建（levelFromTotal/levelProgress/xpBarCapAt）已删，
+        // 线性 level=total/20 分支由 levelForPoints 的债务支承载。
+        ETIMXp.applyTotal(player, settle);
         if (player instanceof EntityPlayerMP) {
             // The clone runs inside recreatePlayerEntity before the XP packet —
             // push the rewritten numbers right away, no stale bar flash.
@@ -158,37 +153,9 @@ public final class ETIMDeathEvents {
                 + " level=" + player.experienceLevel);
     }
 
-    /** Vanilla curve: the level whose cumulative total first exceeds `total`. */
-    private static int levelFromTotal(int total) {
-        int level = 0;
-        int remaining = total;
-        while (remaining > 0) {
-            int cap = xpBarCapAt(level);
-            if (remaining < cap) {
-                break;
-            }
-            remaining -= cap;
-            level++;
-        }
-        return level;
-    }
-
-    /** Remaining portion into the current level (0..1) on the vanilla curve. */
-    private static float levelProgress(int total, int level) {
-        int consumed = 0;
-        for (int i = 0; i < level; i++) {
-            consumed += xpBarCapAt(i);
-        }
-        return (total - consumed) / (float) xpBarCapAt(level);
-    }
-
-    /** EntityPlayer.xpBarCap() shape, level-parameterised (decompile 2231-2238). */
-    private static int xpBarCapAt(int level) {
-        if (level >= 30) {
-            return 112 + (level - 30) * 9;
-        }
-        return level >= 15 ? 37 + (level - 15) * 5 : 7 + level * 2;
-    }
+    // ❗F-10-11（audit20-10 R1）：levelFromTotal/levelProgress/xpBarCapAt（vanilla 曲线
+    // 三件套）已删——单池曲线唯一承载 = ETIMXp（pointsForLevel/levelForPoints/barFor/
+    // applyTotal），R196 :315 pool-only 语义。
 
     private static void log(EntityPlayer player, String message) {
         if (ETIMConfig.deathDebugLog) {

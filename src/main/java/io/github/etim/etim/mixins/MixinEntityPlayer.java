@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMHunger;
 import io.github.etim.etim.playerstate.ETIMBedSafety;
+import io.github.etim.etim.playerstate.ETIMXp;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.PlayerCapabilities;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -51,6 +52,19 @@ public abstract class MixinEntityPlayer {
         EntityPlayer self = (EntityPlayer) (Object) this;
         int allowed = ETIMConfig.levelCap - self.experienceLevel;
         return Math.min(levels, Math.max(0, allowed));
+    }
+
+    /**
+     * ❗F-10-11 配套（audit20-10 R1 must-add）：{@code addExperience(int)} 整体
+     * 收敛到单池曲线——经验球/命令/一切 points 路径经 {@code ETIMXp.applyTotal}
+     * 重写三元组，不再走 vanilla 逐级循环（曲线分裂死口）。负值（扣点）同门：
+     * applyTotal 的债务支承载。附魔扣点走 addExperienceLevel（F-4-6 通道），不经此。
+     */
+    @Inject(method = "addExperience(I)V", at = @At("HEAD"), cancellable = true, remap = true)
+    private void etim$addExperienceSinglePool(int amount, CallbackInfo ci) {
+        ci.cancel();
+        EntityPlayer self = (EntityPlayer) (Object) this;
+        ETIMXp.applyTotal(self, self.experienceTotal + amount);
     }
 
     @Redirect(

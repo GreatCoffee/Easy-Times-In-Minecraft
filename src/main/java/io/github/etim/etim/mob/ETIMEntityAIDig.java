@@ -44,6 +44,7 @@ import net.minecraft.util.math.Vec3d;
 public class ETIMEntityAIDig extends EntityAIBase {
 
     private final EntityZombie digger;
+    private EntityLivingBase etim$lastSentinelTarget; // C15 target 沿哨兵
 
     public ETIMEntityAIDig(EntityZombie digger) {
         this.digger = digger;
@@ -99,12 +100,12 @@ public class ETIMEntityAIDig extends EntityAIBase {
             if (distanceToTarget > 8.0F) { // :58-60
                 return this.gateFail("dist8", " dist=" + distanceToTarget);
             }
-            // :63-66 — the physical-sight gate (own headroom + reach line to the target eye).
+            // :63-66 — the physical-sight gate (own headroom at eyeY+1 + reach line eye→target eye).
             boolean canAttackerSeeTarget = ETIMBedSafety.isAirOrPassableBlock(this.digger.world,
-                    blockPosX(this.digger), MathHelper.floor(this.digger.posY + this.digger.height * 0.85F + 1.0D), blockPosZ(this.digger), false)
+                    blockPosX(this.digger), MathHelper.floor(this.digger.posY + this.digger.getEyeHeight() + 1.0D), blockPosZ(this.digger), false)
                 && lineOfPhysicalReach(this.digger.world,
-                        new Vec3d(this.digger.posX, this.digger.posY + this.digger.height * 0.85F + 1.0D, this.digger.posZ),
-                        new Vec3d(target.posX, target.posY + target.height * 0.85F, target.posZ));
+                        new Vec3d(this.digger.posX, this.digger.posY + this.digger.getEyeHeight() + 1.0D, this.digger.posZ),
+                        new Vec3d(target.posX, target.posY + target.getEyeHeight(), target.posZ)); // target.getEyePos()
             if (distanceToTarget > (canAttackerSeeTarget ? 8.0F : (ETIMDigging.isFrenzied(this.digger) ? 6.0F : 4.0F))) { // :67-69
                 return this.gateFail("sightDist", " dist=" + distanceToTarget + " seen=" + canAttackerSeeTarget + " frenzied=" + ETIMDigging.isFrenzied(this.digger));
             }
@@ -123,7 +124,7 @@ public class ETIMEntityAIDig extends EntityAIBase {
             // :81-102 — the headroom path: ray toward the block above the target center.
             BlockPos hitHead = null;
             if (ETIMBedSafety.isAirOrPassableBlock(this.digger.world,
-                    blockPosX(target), footBlockPosY(target) + 2, blockPosZ(target), false)) {
+                    blockPosX(target), MathHelper.floor(target.posY + 1.0E-4F + target.height) + 1, blockPosZ(target), false)) { // :81 headBlockPosY+1
                 hitHead = reachRay(this.digger.world, this.digger, targetCenterPos.add(0.0D, 1.0D, 0.0D)); // :82-84
                 if (hitHead != null && exemptFromRestriction(this.digger, hitHead)) { // :85-91
                     int hitY = hitHead.getY() + 1; // :92
@@ -152,7 +153,7 @@ public class ETIMEntityAIDig extends EntityAIBase {
             if (legHit != null && exemptFromRestriction(this.digger, legHit)
                 && (ETIMBedSafety.isAirOrPassableBlock(this.digger.world,
                         legHit.getX(), legHit.getY() + 1, legHit.getZ(), false)
-                    || blockWillFall(this.digger.world, legHit))
+                    || blockWillFall(this.digger.world, legHit.up())) // :133 blockWillFall 也查 y+1
                 && ETIMDigging.setBlockToDig(this.digger, s, legHit.getX(), legHit.getY(), legHit.getZ(), false)) {
                 return true;
             }
@@ -219,7 +220,7 @@ public class ETIMEntityAIDig extends EntityAIBase {
                         && blockPosY(this.digger) == blockPosY(target)
                         && blockPosZ(this.digger) == blockPosZ(target)
                     ? false
-                    : this.digger.ticksExisted + this.digger.getEntityId() * 47 % 10 != 0 // :231 getTicksExistedWithOffset
+                    : (this.digger.ticksExisted + this.digger.getEntityId() * 47) % 10 != 0 // :231 getTicksExistedWithOffset
                         || !couldHitTargetByPathing(s, target);
             }
         }
@@ -228,6 +229,14 @@ public class ETIMEntityAIDig extends EntityAIBase {
     /** R196 updateTask (:237-249) with the EntityAnimalWatcher.onUpdate face folded in (:303-319). */
     @Override
     public void updateTask() {
+        EntityLivingBase sentinelTarget = this.digger.getAttackTarget(); // C15 [AILog] target 沿行（建立/丢失/换目标各一行）
+        if (sentinelTarget != this.etim$lastSentinelTarget) {
+            this.etim$lastSentinelTarget = sentinelTarget;
+            if (ETIMConfig.mobDebugLog) {
+                ETIM.LOGGER.info("[AILog] mob target=" + (sentinelTarget == null ? "null"
+                        : sentinelTarget.getClass().getSimpleName() + "#" + sentinelTarget.getEntityId()));
+            }
+        }
         ETIMDigging.IState s = ETIMDigging.get(this.digger);
         if (s == null) {
             return;
@@ -416,6 +425,6 @@ public class ETIMEntityAIDig extends EntityAIBase {
             + (z - target.posZ) * (z - target.posZ));
         return dist > 1.0F ? false
             : lineOfPhysicalReach(this.digger.world,
-                    new Vec3d(x, y, z), getTargetEntityCenterPosForBlockDestroying(target)) == false;
+                    new Vec3d(x, y, z), getTargetEntityCenterPosForBlockDestroying(target));
     }
 }

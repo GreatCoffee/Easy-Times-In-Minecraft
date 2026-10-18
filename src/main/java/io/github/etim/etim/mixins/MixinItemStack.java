@@ -40,6 +40,9 @@ public abstract class MixinItemStack {
         if (self.isEmpty()) {
             return;
         }
+        if (cir.getReturnValue() <= 0) {
+            return; // ❗F-9-17 ≡ R196 Item:916-918 非耐久早退：0 不得经 max(...,1) 抬成 1
+        }
         EnumQuality quality = ETIMQuality.get(self);
         if (quality == null || quality == EnumQuality.AVERAGE) {
             return;

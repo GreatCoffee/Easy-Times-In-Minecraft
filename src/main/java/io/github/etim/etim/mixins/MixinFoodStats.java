@@ -38,7 +38,10 @@ public abstract class MixinFoodStats {
             require = 2
     )
     private void etim$suppressVanillaRegen(EntityPlayer player, float amount) {
-        // R196 regen owns healing; vanilla rates are gone.
+        if (ETIMConfig.foodModel) {
+            return; // ❗F-2-38：R196 regen owns healing（foodModel 门，与 starve redirect :52 同型）
+        }
+        player.heal(amount); // legacy 模式：原版回血放行（原实现无条件吞 → legacy 零回血缺陷）
     }
 
     @Redirect(

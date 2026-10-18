@@ -253,8 +253,9 @@ public final class ETIMCrafting {
             clearCraftingByGate(player, timer, "web deny → crafting cleared");
             return;
         }
-        // Damaged-ingredient gate: R196 MITEContainerCrafting:178-181 — any
-        // damaged stack in the matrix fails canPlayerCraftItem every tick.
+        // Damaged-ingredient gate: ❗F-7-24（audit20-07 R1a）— any damaged
+        // stack in the matrix fails canPlayerCraftItem every tick, EXCEPT
+        // the same-item repair pairing (R196 SlotCrafting:178-183 isRepair 豁免).
         if (ETIMConfig.craftingDamagedDeny && matrixHasDamagedItem(player.openContainer)) {
             clearCraftingByGate(player, timer, "damaged ingredient → crafting cleared");
             return;
@@ -476,17 +477,26 @@ public final class ETIMCrafting {
         return player.world.isMaterialInBB(upperBody, Material.WEB);
     }
 
-    /** R196 MITEContainerCrafting:178-181 — any damaged matrix stack fails. */
+    /**
+     * ❗F-7-24（audit20-07 R1a）：any damaged matrix stack fails — EXCEPT the
+     * anvil-style repair pairing（R196 SlotCrafting:178-183 含 isRepair 豁免原句；
+     * 原 javadoc 引 MITEContainerCrafting:178-181 系引用错位）: two damaged
+     * stacks of the SAME item = the vanilla repair recipe → exempt.
+     */
     private static boolean matrixHasDamagedItem(Container container) {
+        ItemStack firstDamaged = null;
         for (Slot slot : container.inventorySlots) {
             if (slot.inventory instanceof InventoryCrafting) {
                 ItemStack stack = slot.getStack();
                 if (!stack.isEmpty() && stack.isItemDamaged()) {
-                    return true;
+                    if (firstDamaged != null && firstDamaged.getItem() == stack.getItem()) {
+                        return false; // repair pairing (same item, both damaged) — isRepair 豁免
+                    }
+                    firstDamaged = stack;
                 }
             }
         }
-        return false;
+        return firstDamaged != null;
     }
 
     /** Gate-fail clear: R196 clearCrafting (:74-80) — cleared, never frozen. */

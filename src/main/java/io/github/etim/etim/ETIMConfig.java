@@ -78,6 +78,8 @@ public final class ETIMConfig {
 
     // weather (weather-01, R196 deterministic event clock) ------------
     /** Master switch of the R196 weather event clock (weather-01): a pure daily schedule (seed+day) drives rain/thunder instead of vanilla timers, with the blood-moon forced thunderstorm and the sleep-exit weather snap. false = vanilla 1.12 weather timers untouched. R196 天气事件时钟总开关：种子+日号的纯函数排程驱雨/雷暴替代原版计时器，含血月强制雷暴与睡眠出口的天气瞬置；关闭则回到原版 1.12 天气计时器。*/
+    /** R-22b（audit20 回裁）：[WeatherLog] 判据通道门控（weather-01 已关账，默认 false 防刷屏）；[SleepLog] 16 点不动。 */
+    public static boolean weatherDebugLog = false;
     public static boolean weatherSystem = true;
     /** Blood moon day runs a forced thunderstorm for bloodMoonStormTicks (R196 World.java:6472-6476 = 13000t = 06:00-19:00 of the day block). false = no forced storm. 血月日强制雷暴 bloodMoonStormTicks 长（R196 = 13000tick，即日块 06:00-19:00）；关闭则无强制雷暴。*/
     public static boolean bloodMoonStorm = true;
@@ -280,8 +282,8 @@ public final class ETIMConfig {
     public static boolean furnaceInputRecipeGate = true;
 
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
-    /** Death drops total/3 as XP orbs at the death spot (R196 xp/3 verdict). 死亡时在死亡点掉落 total/3 的经验球（R196 xp/3 判值）。 */
-    public static boolean deathXpOrbs = true;
+    /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
+    public static boolean deathXpOrbs = false;
     /** Death settles the XP balance (orb drop aside, R196 deposit/refill verdict: respawn = total − 20 sub-1, stale above). 死亡结算经验收支（不含经验球掉落；R196 存取判值：重生时总量 <1 扣 20，更高则沿用上次结算值）。 */
     public static boolean deathXpSettle = true;
     /** Server-log [DeathLog] lines for the death chain (dev channel). 服务端日志 [DeathLog] 行：死亡链判定（开发通道）。 */
@@ -354,8 +356,8 @@ public final class ETIMConfig {
                         "允许白天躺床来获得回血加速（MITE 行为），关闭则白天不能上床"));
 
         bloodMoonSleepBlock = config.getBoolean("bloodMoonSleepBlock", "sleep", true,
-                comment("Blood moon (R196 full-day sleeping_prevented phase; blue outranks blood) blocks the sleep skip: sleepers stay in bed all that day. false = blood moon skips as vanilla",
-                        "血月（R196 全日 sleeping_prevented 相位；蓝月优先于血月）禁止睡跳：全日睡眠者留在床上。false = 血月按原版照样跳"));
+                comment("Blood moon (R196 full-day sleeping_prevented phase; blue outranks blood) blocks the sleep window: sleepers are woken GENTLY EVERY TICK (R196 WorldServer:216-218 wakeAllPlayersGently — audit20 勘误 F-1-19/R-04=A: the isBloodMoon(false) argument means the whole 24h period INCLUDING the night; the old 'sleepers stay in bed' reading is void — sleep-01 裁定 4 组合语义作废). false = blood moon skips as vanilla",
+                        "血月（R196 全日 sleeping_prevented 相位；蓝月优先于血月）封锁睡眠窗：在床者被每 tick 温和弹醒（R196 WorldServer:216-218 wakeAllPlayersGently——audit20 勘误 F-1-19/R-04=A：isBloodMoon(false) 参数语义 = 含夜的 24h 全周期；旧「睡眠者留床」读法作废——sleep-01 裁定 4 组合语义作废）。false = 血月按原版照样跳"));
         sleepFastForward = config.getBoolean("sleepFastForward", "sleep", true,
                 comment("Sleep-night fast-forward (R196 runSleepTicks): the night runs as a per-tick batch (food/starve at real pace, hunger wakes sleepers) and dayTime is absolutely aligned to the total clock (double-clock desync cure). false = vanilla instant dayTime jump + eject",
                         "睡夜 fast-forward（R196 runSleepTicks）：整夜逐拍批量模拟（饥饿/饿伤按真实节奏、断粮者被踢醒），睡跳出口把表钟绝对对齐到总钟（双钟 desync 根治）。false = 原版直接跳表钟并弹床"));
@@ -394,6 +396,9 @@ public final class ETIMConfig {
                     + config.getConfigFile().getAbsolutePath() + ")");
         }
 
+        weatherDebugLog = config.getBoolean("weatherDebugLog", "weather", false,
+                comment("Server-log [WeatherLog] lines for the weather clock (dev channel; R-22b gate — default false)",
+                        "服务端日志 [WeatherLog] 行：天气时钟判定（开发通道；R-22b 门控——默认 false）"));
         weatherSystem = config.getBoolean("weatherSystem", "weather", true,
                 comment("Master switch of the R196 weather event clock (weather-01): a pure daily schedule (seed+day) drives rain/thunder instead of vanilla timers, with the blood-moon forced thunderstorm and the sleep-exit weather snap. false = vanilla 1.12 weather timers untouched",
                         "R196 天气事件时钟总开关：种子+日号的纯函数排程驱雨/雷暴替代原版计时器，含血月强制雷暴与睡眠出口的天气瞬置；关闭则回到原版 1.12 天气计时器"));
@@ -622,8 +627,8 @@ public final class ETIMConfig {
                 comment("Crafting freezes when the player's upper body is inside a spider web (R196 SlotCrafting:155-157); progress clears, it does not freeze",
                         "玩家上身陷在蜘蛛网内时合成清零（R196 SlotCrafting:155-157）；进度清零而非冻结"));
         craftingDamagedDeny = config.getBoolean("craftingDamagedDeny", "crafting", true,
-                comment("Any damaged item placed in the crafting grid freezes the craft (R196 MITEContainerCrafting:178-181); progress clears, it does not freeze",
-                        "合成格内有任何受损物品时合成清零（R196 MITEContainerCrafting:178-181）；进度清零而非冻结"));
+                comment("Any damaged item placed in the crafting grid freezes the craft, EXCEPT the same-item repair pairing (F-7-24 isRepair exempt; R196 SlotCrafting:178-183); progress clears, it does not freeze",
+                        "合成格内有任何受损物品时合成清零，同物品修复配对豁免（F-7-24 isRepair 豁免；R196 SlotCrafting:178-183）；进度清零而非冻结"));
         craftingFx = config.getBoolean("craftingFx", "crafting", false,
                 comment("Completion effect: level-up sound + witch sparkles at the crafter (user-named preset; off until a visual/audio plan is picked)",
                         "合成完成特效：升级音效+巫师粒子（待裁方案暂凑；用户点名后可换）"));
@@ -650,9 +655,9 @@ public final class ETIMConfig {
                 comment("Furnace input slot only admits items that HAVE a smelting recipe (R196 TileEntityFurnace:360-368 — GUI drag and hopper alike); off = vanilla open-input acceptance",
                         "熔炉输入槽只收有熔炼配方的物品（R196 TileEntityFurnace:360-368 — GUI 拖放与漏斗同门）；关闭则回到原版输入槽全部放行"));
 
-        deathXpOrbs = config.getBoolean("deathXpOrbs", "death", true,
-                comment("Death drops total/3 as XP orbs at the death spot (R196 EntityPlayer:2032-2035); keepInventory suppresses it in both games",
-                        "死亡掉落 total/3 成经验球于死亡点（R196 EntityPlayer:2032-2035）；keepInventory 规则下双方都不生效"));
+        deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
+                comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",
+                        "死亡掉落 total/3 成经验球于死亡点。R-18=R2a：R196 一手无玩家死产经验球（单池语义）——默认 false；键保留为 ETIM 宽松化可选项（可捡回 1/3）"));
         deathXpSettle = config.getBoolean("deathXpSettle", "death", true,
                 comment("Death settles the XP balance: below-1-total deaths subtract 20 points (floor −800); higher deaths restore the stale respawn value (R196 ServerPlayer:953-957). Off = vanilla XP carryover",
                         "死亡结算经验：总量低于 1 级线（20 点）时扣 20 点（下限 −800）；更高时重生继承上次结算值（R196 ServerPlayer:953-957）。关闭则回到原版经验全保留"));

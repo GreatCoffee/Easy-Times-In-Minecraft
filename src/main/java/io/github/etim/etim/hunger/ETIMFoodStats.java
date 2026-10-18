@@ -315,14 +315,18 @@ public final class ETIMFoodStats {
 
     /**
      * The full per-tick loop, a verbatim port of R196
-     * {@code FoodStats.onUpdate} (FoodStats.java:35-92). Server only,
-     * non-creative (R196 gates the pools at {@code addHunger}; the nutrient
-     * drain in {@code NutritionSystem.tick} has its own creative guard).
+     * {@code FoodStats.onUpdate} (FoodStats.java:35-92). Server only.
+     * ❗F-2-39：创造门只在池 accrual 侧 pre-gate（R196 :42-44 addHunger 门位），
+     * 回血/饿伤支保原（创造照吃回血）。
      */
     public static void tick(EntityPlayer player) {
-        if (player.world.isRemote || player.capabilities.isCreativeMode) {
+        if (player.world.isRemote) {
             return;
         }
+        // ❗F-2-39（R-06=A，hunger 卷 R3 口径）：创造门从方法顶移到池侧 pre-gate——
+        // R196 FoodStats:42-44 的创造门只在 addHunger 入池侧，回血支 :76-88 无创造门
+        //（创造照吃回血）⇒ 池 accrual 不进账、health 支照原。
+        boolean creative = player.capabilities.isCreativeMode;
         IFoodState state = get(player);
         if (state == null) {
             return;
@@ -330,12 +334,14 @@ public final class ETIMFoodStats {
         int limit = getLimit(player);
 
         // Hunger accrual (:40-44) + per-unit consumption rhythm (:46-56)
-        float gain = ETIMConfig.effectiveHungerGainPerTick();
-        float gainTick = gain * getHungerMultiplier(player);
-        float hunger = state.getHungerPool();
-        hunger = Math.min(hunger + gainTick, ETIMConfig.hungerPoolCap);
-        state.setHungerPool(hunger);
-        state.setNutritionOnlyPool(state.getNutritionOnlyPool() + gain * ETIMConfig.hungerNutritionOnlyFactor);
+        if (!creative) {
+            float gain = ETIMConfig.effectiveHungerGainPerTick();
+            float gainTick = gain * getHungerMultiplier(player);
+            float hunger = state.getHungerPool();
+            hunger = Math.min(hunger + gainTick, ETIMConfig.hungerPoolCap);
+            state.setHungerPool(hunger);
+            state.setNutritionOnlyPool(state.getNutritionOnlyPool() + gain * ETIMConfig.hungerNutritionOnlyFactor);
+        }
 
         if (state.getHungerPool() >= ETIMConfig.hungerPerFoodUnit) {
             state.setHungerPool(state.getHungerPool() - ETIMConfig.hungerPerFoodUnit);

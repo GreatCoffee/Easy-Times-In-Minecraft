@@ -144,13 +144,13 @@ public final class ETIMQuality {
     private static EnumQuality materialMaxOf(Item item) {
         if (item instanceof ItemTool) {
             // ItemTool exposes only the material NAME (decompiled ItemTool:110).
-            return ofToolMaterial(Item.ToolMaterial.valueOf(((ItemTool) item).getToolMaterialName()));
+            return ofToolMaterialName(((ItemTool) item).getToolMaterialName());
         }
         if (item instanceof ItemSword) {
-            return ofToolMaterial(Item.ToolMaterial.valueOf(((ItemSword) item).getToolMaterialName()));
+            return ofToolMaterialName(((ItemSword) item).getToolMaterialName());
         }
         if (item instanceof ItemHoe) {
-            return ofToolMaterial(Item.ToolMaterial.valueOf(((ItemHoe) item).getMaterialName()));
+            return ofToolMaterialName(((ItemHoe) item).getMaterialName());
         }
         if (item instanceof ItemArmor) {
             return ofArmorMaterial(((ItemArmor) item).getArmorMaterial());
@@ -159,6 +159,23 @@ public final class ETIMQuality {
         // falls to the config fallback (documented open-decision, see the
         // unattended test list "待用户裁决" #1); no per-item guess here.
         return null;
+    }
+
+    /**
+     * ❗F-9-18 熔断（audit20-09 R3）：模组自定义材质（EnumHelper.addToolMaterial）
+     * 不在 vanilla 枚举内，valueOf 抛 IllegalArgumentException → 返回 null
+     * 交回 config fallback，服务端合成链不得崩。
+     */
+    @Nullable
+    private static EnumQuality ofToolMaterialName(String name) {
+        if (name == null) {
+            return null;
+        }
+        try {
+            return ofToolMaterial(Item.ToolMaterial.valueOf(name));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static EnumQuality ofToolMaterial(Item.ToolMaterial material) {

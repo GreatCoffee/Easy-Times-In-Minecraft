@@ -197,8 +197,16 @@ public abstract class MixinTileEntityFurnace {
         ItemStack input = this.furnaceItemStacks.get(0);
         int heat = etim$decisiveHeat(etim$currentHeat());
         int required = FurnaceHeat.getRequiredHeat(input);
+        ItemStack result = FurnaceHeat.getSmeltingResult(input, heat);
+        // ❗F-8-14（audit20-08 R1）：产物槽对位——glass 面按 heat 切产物（sandstone/glass
+        // 结果不同）时 output 槽不兼容 ⇒ 卡住不熔（R196 canSmelt 尾部同构），4 沙错配不再被销毁。
+        ItemStack out = this.furnaceItemStacks.get(2);
+        boolean outOk = out.isEmpty()
+                || (out.getItem() == result.getItem() && out.getMetadata() == result.getMetadata()
+                        && out.getCount() + result.getCount() <= Math.min(64, out.getMaxStackSize())); // TileEntityFurnace.getInventoryStackLimit = 64（protected，mixin 不可见——1.12 恒 64）
         if (heat >= required
-                && !FurnaceHeat.getSmeltingResult(input, heat).isEmpty()) {
+                && !result.isEmpty()
+                && outOk) {
             // PASS probe (signature-gated): D3-round's iron+coal showed NO
             // blocked row yet still made no progress — an admit line for
             // every (input,fuel) pair makes the cook loop's gate state
@@ -224,7 +232,7 @@ public abstract class MixinTileEntityFurnace {
                 this.etim$lastDenySig = sig;
                 ETIM.LOGGER.info("[FurnaceLog] smelt blocked heat=" + heat + " required=" + required
                         + " input=" + input.getItem().getRegistryName().toString()
-                        + " result=" + (heat >= required ? "null (sand<4 or unknown)" : "heat-gated")
+                        + " result=" + (heat >= required ? (result.isEmpty() ? "null (sand<4 or unknown)" : "output-slot-blocked") : "heat-gated")
                         + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));
             }
         }

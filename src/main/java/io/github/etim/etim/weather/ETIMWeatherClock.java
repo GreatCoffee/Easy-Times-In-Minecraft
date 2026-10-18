@@ -110,9 +110,9 @@ public final class ETIMWeatherClock {
                 && w.getGameRules().getBoolean("doWeatherCycle");
     }
 
-    /** Logs the vanilla-takeover proof line once per off transition (verdict must-add 4). */
+    /** Logs the vanilla-takeover proof line once per off transition (verdict must-add 4). R-22b: weatherDebugLog 门控. */
     public static void logOffState(String reason) {
-        if (!offLogged) {
+        if (ETIMConfig.weatherDebugLog && !offLogged) {
             ETIM.LOGGER.info("[WeatherLog] weather-off reason=" + reason);
             offLogged = true;
         }
@@ -144,8 +144,10 @@ public final class ETIMWeatherClock {
             // boolean sync keeps every worldInfo consumer on the clock's truth
             w.getWorldInfo().setRaining(precip);
             w.getWorldInfo().setThundering(storm);
-            ETIM.LOGGER.info("[WeatherLog] weather-flip t=" + total
-                    + " raining=" + precip + " thundering=" + storm + " reason=event");
+            if (ETIMConfig.weatherDebugLog) {
+                ETIM.LOGGER.info("[WeatherLog] weather-flip t=" + total
+                        + " raining=" + precip + " thundering=" + storm + " reason=event");
+            }
         }
 
         // strength ramp — vanilla body shape (World.java:2873-2895)
@@ -172,8 +174,10 @@ public final class ETIMWeatherClock {
         w.getWorldInfo().setThundering(storm);
         w.rainingStrength = precip ? 1.0F : 0.0F;
         w.thunderingStrength = precip && storm ? 1.0F : 0.0F;
-        ETIM.LOGGER.info("[WeatherLog] weather-flip t=" + total
-                + " raining=" + precip + " thundering=" + storm + " reason=snap");
+        if (ETIMConfig.weatherDebugLog) {
+            ETIM.LOGGER.info("[WeatherLog] weather-flip t=" + total
+                    + " raining=" + precip + " thundering=" + storm + " reason=snap");
+        }
     }
 
     /**
@@ -359,6 +363,9 @@ public final class ETIMWeatherClock {
     // ------------------------------------------------------------- judge log
 
     private static void logSchedule(long day, long total, List<Span> events) {
+        if (!ETIMConfig.weatherDebugLog) { // R-22b
+            return;
+        }
         StringBuilder sb = new StringBuilder("[WeatherLog] weather-schedule day=").append(day)
                 .append(" total=").append(total)
                 .append(" events=").append(events.size())

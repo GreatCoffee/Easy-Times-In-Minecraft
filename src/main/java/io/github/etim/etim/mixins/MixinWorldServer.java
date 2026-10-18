@@ -58,6 +58,18 @@ public abstract class MixinWorldServer {
             require = 1
     )
     private boolean etim$sleepClock(WorldServer self) {
+        // ❗F-1-19 / R-04=A（audit20-01 R2，会话五终审）：R196 :203-218 —
+        // sleeping_prevented 在窗口判断之前（Regardless 窗口），:216-218 else 面 =
+        // wakeAllPlayersGently **每 tick 弹床**（血月全周期：World.java:2371-2385
+        // isBloodMoon(exclusively_at_night=false) 恒走血月判定，含夜）——
+        // 「skip 拒但睡者留床」在 R196 结构下不存在（sleep-01 裁 4 组合语义作废）。
+        // 位置 = allAsleep 检查之前：部分在床的 tick 同样弹（R196 else 覆盖一切窗口外态）。
+        if (ETIMConfig.bloodMoonSleepBlock
+                && ETIMMoonState.phase(self) == ETIMMoonState.Phase.BLOOD) {
+            ETIMSleepClock.wakeAllSleepers(self);
+            ETIMSleepClock.logWindowBlocked(self, "blood");
+            return false;
+        }
         boolean allAsleep = self.areAllPlayersAsleep();
         // Judge instrument (02 density-eval precedent): localize which link of
         // the all-asleep machine fails — the W4 window sits on this verdict.
@@ -66,6 +78,8 @@ public abstract class MixinWorldServer {
             return false;
         }
         // Gate 1 (shipped): a player lying in a bed entered during the day.
+        // F-1-21(a)（audit20-01 R3）：夜窗内放行（R196 白天躺床者夜窗照跳），
+        // 窗外否决面保留 = B 级登记（防御面）。
         if (PlayerBedEvents.hasAnyDayLiar(self)) {
             ETIMSleepClock.logWindowBlocked(self, "dayLiar");
             return false;
@@ -202,7 +216,7 @@ public abstract class MixinWorldServer {
             require = 2
     )
     private boolean etim$lightningLog(WorldServer world, net.minecraft.entity.Entity effect) {
-        if (effect instanceof EntityLightningBolt && ETIMWeatherClock.active(world)) {
+        if (effect instanceof EntityLightningBolt && ETIMWeatherClock.active(world) && ETIMConfig.weatherDebugLog) {
             ETIM.LOGGER.info("[WeatherLog] lightning-struck x,y,z="
                     + (int) effect.posX + "," + (int) effect.posY + "," + (int) effect.posZ
                     + " rarity=" + ETIMWeatherClock.lightningRarity(world)

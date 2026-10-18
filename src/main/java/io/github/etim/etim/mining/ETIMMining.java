@@ -113,6 +113,29 @@ public final class ETIMMining {
         put("emerald_ore", 3.0F, 3);
         put("diamond_ore", 3.0F, 4);
         put("glass", 2.0F, 0);
+        // ❗F-5-31（audit20-05 R8）缺行补全（R196 行号见分卷 05 §2.4；清单不含 bed/planks
+        // —— portable 面 pin 吸收、planks 硬度 0.8 在案 —— G 系 cooloff 判据面不受扰）：
+        put("obsidian", 2.4F, 3);           // R196 :256 + Material min 3
+        put("netherrack", 1.6F, 2);         // R196 :426 + Material min 2
+        put("tnt", 1.0F, 0);                // R196 :239（portable pin 4.0×hardness 恢复 128t，免 hardness==0 早退击穿）
+        put("snow", 0.05F, 0);              // R196 :381
+        put("fence", 0.4F, 0);              // R196 :416
+        put("coal_block", 1.2F, 1);         // R196 :728 区 + BlockOreStorage modify(+1)
+        put("enchanting_table", 2.4F, 0);   // R196 :549 区
+        put("ice", 1.0F, 0);                // R196 :387
+        put("melon_block", 0.6F, 0);        // R196 :502
+        put("glass_pane", 0.1F, 0);         // R196 :499
+        put("mob_spawner", 3.0F, 0);        // R196 :275
+        put("hardened_clay", 1.8F, 0);      // R196 1.8
+        put("stained_hardened_clay", 1.8F, 0);
+        put("clay", 0.8F, 0);               // R196 :399
+        put("sapling", 0.02F, 0);
+        put("deadbush", 0.02F, 0);
+        // 等级侧（BlockOreStorage:6 modify(+1)）——硬度保持 vanilla，只抬等级门：
+        BLOCK_MIN_LEVEL.put("gold_block", 3);
+        BLOCK_MIN_LEVEL.put("iron_block", 4);
+        BLOCK_MIN_LEVEL.put("diamond_block", 5);
+        BLOCK_MIN_LEVEL.put("lapis_block", 2);
     }
 
     /** R196 isPortable (audit P2): the declared set + every TileEntity block; spawner opts back out. */
@@ -173,7 +196,9 @@ public final class ETIMMining {
                 return getCurrentPlayerStrVsBlock(player, state, world, pos, false);
             }
             int efficiency = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, held);
-            str += (efficiency * efficiency) + 1;
+            if (efficiency > 0) { // ❗F-5-24（audit20-05 R1）≡ R196 EntityPlayer:897-901：无附魔不加成
+                str += (efficiency * efficiency) + 1;
+            }
         } else {
             str = requiresTool(state) ? 0.0F : 1.0F;
         }

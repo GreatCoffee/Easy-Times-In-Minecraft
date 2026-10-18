@@ -65,7 +65,9 @@ public final class FurnaceHeat {
         REQUIRED.put(Item.getItemFromBlock(Blocks.REDSTONE_ORE), 2);
         REQUIRED.put(Item.getItemFromBlock(Blocks.LAPIS_ORE), 2);
         REQUIRED.put(Item.getItemFromBlock(Blocks.QUARTZ_ORE), 2);
-        REQUIRED.put(Item.getItemFromBlock(Blocks.COAL_ORE), 2);   // oreCoal row: smelt to coal at heat 2
+        // ❗F-8-18/R-13（audit20-08 R5 + 回裁 R-13=A）：COAL_ORE→2 已删——
+        // R196 getHeatLevelRequired（TileEntityFurnace.java:219-241）无 oreCoal 支，
+        // else 恒 1 ⇒ COAL_ORE 落默认档 HEAT_WOOD_AND_CHARCOAL。
         REQUIRED.put(Item.getItemFromBlock(Blocks.SANDSTONE), 2);  // sandStone row: smelt to glass at heat 2
         // else branch (sand, cobble, logs, raw food, ...) = 1.
     }

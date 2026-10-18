@@ -77,9 +77,14 @@ public final class ETIMReach {
         return 0.0F;
     }
 
-    /** Block selection reach without block context (ray length for the client picker). */
+    /**
+     * ❗F-6-18（audit20-06 R1）two-stage restore: 16.0 survival = R196 ray
+     * length only (Raycast(observer, partial, 16.0), EntityPlayer:2239 —
+     * A 级直引常量不配键); creative flat 5.0 (= hasExtendedReach,
+     * EntityPlayer:2171/:2175). The block trim = MixinEntityRenderer TAIL.
+     */
     public static float getBlockReach(EntityPlayer player) {
-        return player.capabilities.isCreativeMode ? ETIMConfig.creativeReach : ETIMConfig.blockReachBase;
+        return player.capabilities.isCreativeMode ? ETIMConfig.creativeReach : 16.0F;
     }
 
     /** R196 getReach(Block, metadata) — bonus only while the held tool is effective (EntityPlayer:2174-2182). */
@@ -123,8 +128,10 @@ public final class ETIMReach {
 
     /**
      * R196 getReach(FOR_INTERACTION) (EntityPlayer:2210-2214): 2.5 + elevation
-     * advantage + item bonus; boats fix the interaction reach at 2.5 flat
+     * advantage; boats fix the interaction reach at 2.5 flat
      * (EntityBoat.java:482-484 overrides the adjust hook).
+     * R-02=A（audit20 回裁）：R196 一手 Item.getReachBonus（Item.java:1285-1287）
+     * 恒 0 且全树无覆写 ⇒ 交互上下文永无物品加成——不转置该项。
      */
     public static float getInteractionReach(EntityPlayer player, Entity target) {
         if (target instanceof EntityBoat) {
@@ -133,7 +140,7 @@ public final class ETIMReach {
         if (player.capabilities.isCreativeMode) {
             return ETIMConfig.creativeReach;
         }
-        return ETIMConfig.interactionReachBase + getHeightAdvantage(player, target) + getHeldReachBonus(player.getHeldItemMainhand());
+        return ETIMConfig.interactionReachBase + getHeightAdvantage(player, target);
     }
 
     /**

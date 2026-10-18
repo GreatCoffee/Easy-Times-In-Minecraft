@@ -42,7 +42,7 @@ public class CommandDevTest extends CommandBase {
 
     @Override
     public int getRequiredPermissionLevel() {
-        return 0;
+        return 2; // ❗F-D2-12（audit20-D2 R1）：与 vanilla /xp、/give 同级
     }
 
     @Override
@@ -134,15 +134,9 @@ public class CommandDevTest extends CommandBase {
         respond(player, "commands.etest.level_set", player.experienceLevel);
     }
 
-    /** Vanilla 1.12.2 XP-to-reach-level curve ({@code XpToReachLevelNumber}). */
-    private static int experiencePointsForLevel(int level) {
-        if (level <= 16) {
-            return level * level + 6 * level;
-        } else if (level <= 30) {
-            return (int) Math.floor(2.5 * level * level - 40.5 * level + 360);
-        }
-        return (int) Math.floor(4.5 * level * level - 162.5 * level + 2220);
-    }
+    // ❗F-D2-14（audit20-D2 R3）：experiencePointsForLevel 死码已删——vanilla
+    // 1.12.2 曲线对照 = level<=16: L²+6L / <=30: 2.5L²−40.5L+360 / else: 4.5L²−162.5L+2220
+    // （curve 仅作注释引用，不留可调用私有方法）。
 
     /**
      * {@code /etest debt <levels>} — stages the R196 death-debt state directly

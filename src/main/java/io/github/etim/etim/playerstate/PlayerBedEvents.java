@@ -66,8 +66,13 @@ public final class PlayerBedEvents {
         DAY_LIERS.remove(event.player.getUniqueID());
     }
 
-    /** True if some lying player entered the bed during the day (mixin hook). */
+    /** True if some lying player entered the bed during the day (mixin hook).
+     * F-1-21(a)（audit20-01 R3）：夜窗开启即返 false（R196 语义——夜窗内白天躺床者照跳）；
+     * 夜窗外否决面保留 = B 级登记（vanilla 白天本无跳钟尝试，防御面无行为后果）。 */
     public static boolean hasAnyDayLiar(World world) {
+        if (ETIMSleepClock.windowOpen(ETIMSleepClock.adjustedTimeOfDay(world))) {
+            return false;
+        }
         for (EntityPlayer player : world.playerEntities) {
             if (player.isPlayerSleeping() && DAY_LIERS.containsKey(player.getUniqueID())) {
                 return true;

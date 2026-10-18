@@ -745,6 +745,11 @@ public final class ETIMSpawnCycle {
                     if (ETIMConfig.mobDebugLog) {
                         log(w, "reject moon-night denom=1/" + denom + " cls=" + entry.entityClass.getSimpleName());
                     }
+                    // ❗F-12-F1（audit20-12 R1，P0-10）：R196 SpawnerAnimals:276-281
+                    // continue label249——夜相拒绝弃整 chunk 剩余 3×4 掷，
+                    // 不是 attempt 级 return false（attempt 级 ⇒ 单 chunk 通过率
+                    // 1−(1−1/denom)¹² ≈ 99.2%，夜怪密度放大 3-10×）。
+                    abandonChunk[0] = true;
                     return false;
                 }
             }

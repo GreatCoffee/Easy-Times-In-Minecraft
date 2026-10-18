@@ -283,6 +283,9 @@ public final class ETIMDigging {
      * bare-handed;平日 requires a held ItemTool.
      */
     public static boolean isDiggingEnabled(EntityZombie digger) {
+        if (isHoldingItemThatPreventsDigging(digger)) { // R196 EntityZombie:404-411 最外项（狂化+持剑不可挖）
+            return false;
+        }
         if (isFrenzied(digger)) {
             return true;
         }
@@ -544,8 +547,7 @@ public final class ETIMDigging {
         }
         // :105 — the destroy-stage packet (vanilla sendBlockBreakProgress face).
         world.sendBlockBreakProgress(digger.getEntityId(), new BlockPos(x, y, z), s.getDestroyBlockProgress());
-        if (state.getMaterial() == Material.GLASS) { // :106-115
-            world.playEvent(2001, pos, Block.getStateId(state));
+        if (state.getMaterial() == Material.GLASS) { // :106-115 — glass面只出声效（2001 仅 break 拍 :49-51 一次）
             net.minecraft.block.SoundType sound = state.getBlock().getSoundType(state, world, pos, digger);
             world.playSound((EntityPlayer) null, x + 0.5F, y + 0.5F, z + 0.5F, sound.getPlaceSound(),
                     SoundCategory.BLOCKS, sound.getVolume() + 2.0F, sound.getPitch());
@@ -567,7 +569,7 @@ public final class ETIMDigging {
      */
     private static boolean reachRayBlocked(World world, EntityZombie digger, int x, int y, int z) {
         Vec3d center = new Vec3d(x + 0.5F, y + 0.5F, z + 0.5F);
-        Vec3d eye = new Vec3d(digger.posX, digger.posY + digger.height * 0.85F, digger.posZ); // getEyePosForBlockDestroying → getPrimaryPointOfAttack
+        Vec3d eye = new Vec3d(digger.posX, digger.posY + digger.height * 0.75F, digger.posZ); // getEyePosForBlockDestroying → getPrimaryPointOfAttack（非玩家 0.75）
         Vec3d leg = new Vec3d(digger.posX, digger.posY + digger.height * 0.25F, digger.posZ); // getAttackerLegPosForBlockDestroying
         return rayHitsOther(world, eye, center, x, y, z) && rayHitsOther(world, leg, center, x, y, z);
     }

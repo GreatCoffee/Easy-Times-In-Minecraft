@@ -139,6 +139,20 @@ public final class ETIMSleepClock {
     }
 
     /**
+     * ❗F-1-19（audit20-01 R2，会话五终审 R-04=A）：R196 :216-218 else 面 →
+     * wakeAllPlayersGently——血月全周期对在床玩家每 tick gentle wake
+     * （wakeUpPlayer(immediately=true, updateWorldFlag=false, setSpawn=false)）。
+     * 无睡者时空转（部分在床的 tick 同样生效，与 R196 else 覆盖面同构）。
+     */
+    public static void wakeAllSleepers(WorldServer world) {
+        for (EntityPlayer player : world.playerEntities) {
+            if (player.isPlayerSleeping()) {
+                player.wakeUpPlayer(true, false, false);
+            }
+        }
+    }
+
+    /**
      * R196 runSleepTicks (WorldServer.java:533-601): runs the whole night
      * batch and lands the S3 double-clock exit. Returns ticks_slept
      * (judging parity: the interrupting iteration counts, R196's for-update
@@ -162,7 +176,14 @@ public final class ETIMSleepClock {
                 if (player.isSpectator() || player.getHealth() <= 0.0F) {
                     continue;
                 }
-                player.getFoodStats().onUpdate(player); // the mixified body (MixinFoodStats)
+                if (ETIMConfig.foodModel) {
+                    // ❗F-2-37/F-1-20（R-06=A，audit20-02 §R1 准稿）：R196 :539 睡拍
+                    // foodStats.onUpdate 每睡拍执行（非跳过）——双池模型下 = ETIMFoodStats.tick
+                    //（睡夜池冻结面消除；wakeHungry 动态路径 :541 由 tickBedGate 承接）。
+                    ETIMFoodStats.tick(player);
+                } else {
+                    player.getFoodStats().onUpdate(player); // legacy: the mixified vanilla body
+                }
                 ETIMFoodStats.tickBedGate(player);      // shipped R196 wakeHungry gate, config respecting
                 if (!player.isPlayerSleeping()) {
                     woke = true;
