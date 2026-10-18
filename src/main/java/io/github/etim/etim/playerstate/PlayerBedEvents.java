@@ -119,6 +119,14 @@ public final class PlayerBedEvents {
             player.sendStatusMessage(new net.minecraft.util.text.TextComponentTranslation("tile.bed.poisoned"), true);
             ETIMBedSafety.logBedRefuse(world, "poisoned", bed);
             event.setResult(SleepResult.OTHER_PROBLEM);
+            return;
+        }
+        // R196 :1089 entry-gate slot 6 (AI-02) — chat only, no wake (R196 :1090);
+        // vanilla TOO_FAR/NOT_SAFE still run inside trySleep after us.
+        if (ETIMConfig.zombieDigAI && io.github.etim.etim.mob.ETIMDigging.isHostileEntityDiggingNearBed(world, bed)) {
+            player.sendStatusMessage(new net.minecraft.util.text.TextComponentTranslation("tile.bed.mobsDigging"), true);
+            ETIMBedSafety.logBedRefuse(world, "mobsDigging", bed);
+            event.setResult(SleepResult.OTHER_PROBLEM);
         }
     }
 

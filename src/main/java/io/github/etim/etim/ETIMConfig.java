@@ -73,6 +73,8 @@ public final class ETIMConfig {
     public static boolean bedSentryWake = true;
     /** AI-01 mobwake: the per-slept-tick wake-roll denominator (R196 :551 = 1000; 1 = every slept tick rolls, the judge-harness face). AI-01 睡眠惊醒骰：每睡拍惊醒判定分母（R196 = 1000；1 = 每睡拍必骰中，判据工装面）。 */
     public static int mobwakeRarity = 1000;
+    /** AI-02 zombie dig AI master switch: zombies chew through blocks blocking their attack target (R196 EntityAnimalWatcher); false = vanilla zombies never dig (the three bed gates read constant false). AI-02 僵尸挖掘总开关：僵尸挖穿阻挡攻击目标的方块（R196 EntityAnimalWatcher）；关闭则回到原版僵尸（床边三门读恒假）。 */
+    public static boolean zombieDigAI = true;
 
     // weather (weather-01, R196 deterministic event clock) ------------
     /** Master switch of the R196 weather event clock (weather-01): a pure daily schedule (seed+day) drives rain/thunder instead of vanilla timers, with the blood-moon forced thunderstorm and the sleep-exit weather snap. false = vanilla 1.12 weather timers untouched. R196 天气事件时钟总开关：种子+日号的纯函数排程驱雨/雷暴替代原版计时器，含血月强制雷暴与睡眠出口的天气瞬置；关闭则回到原版 1.12 天气计时器。*/
@@ -688,6 +690,9 @@ public final class ETIMConfig {
         livestockNeedsR196 = config.getBoolean("livestockNeedsR196", "mobs", true,
                 comment("R196 livestock wellness pipeline v1 (audit 11 §2.2): food/water/freedom needs on cow/sheep/pig/chicken (0.8+rand*0.2 start, +0.1/-0.005 every 100 ticks at a 9/10 roll), near-grass food (cow eats 1% of found grass), near-water/rain fallback, crowd/freedom rules, NBT persistence. Production/milk/egg gates come in a later slice. Off = vanilla carries nothing",
                         "R196 家畜需求管线 v1（审计 11 §2.2）：牛/羊/猪/鸡带食物/饮水/自由三需求（初始 0.8+随机0.2，每 100 tick 以 9/10 概率 +0.1/-0.005），草为食（牛 1% 概率吃掉发现草块），水/雨回退，拥挤/自由规则，NBT 持久化。产出（奶/蛋/羽等）门控留后续切片。关闭则回到原版家畜无需求"));
+        zombieDigAI = config.getBoolean("zombieDigAI", "mobs", true,
+                comment("AI-02 zombie dig AI (R196 EntityAnimalWatcher): zombies pathing to an attack target chew through blocking blocks — beds included; blood-moon frenzy short-circuits the held-tool gate (bare hands dig). Off = vanilla zombies never dig, the bed dig-gate sensors read constant false",
+                        "AI-02 僵尸挖掘 AI（R196 EntityAnimalWatcher）：寻路受阻的僵尸会挖穿阻挡方块——床包括在内；血月狂化短路手持工具门（徒手可挖）。关闭则回到原版僵尸（床边挖床三门读恒假）"));
         compatCraftingTweaksFix = config.getBoolean("compatCraftingTweaksFix", "compat", true,
                 comment("With CraftingTweaks installed, auto-disable its rightClickCraftsStack (right-click = craft full stack) so ETIM's R196 quality picker keeps the result-slot right-click; also rewrites craftingtweaks.cfg",
                         "检测到 Crafting Tweaks 时自动停用其『右击产物=成组合成』，把产物槽右击归还给 ETIM 的 R196 品质选择器；同时回写 craftingtweaks.cfg"));

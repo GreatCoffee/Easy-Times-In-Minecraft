@@ -71,3 +71,5 @@ etim.state.deathXp=Death settle
 tile.bed.notSheltered=This bed isn't sheltered enough to sleep in
 tile.bed.obstructed=The bed is obstructed
 tile.bed.poisoned=You cannot sleep while poisoned
+
+tile.bed.mobsDigging=Monsters are digging nearby - get up

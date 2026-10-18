@@ -364,6 +364,16 @@ public final class ETIMBedSafety {
                     "tile.bed." + (slept ? "wakeMobs" : "notSafe")), true);
             logBedWake(player.world, "notSafe", slept, bed);
             player.wakeUpPlayer(true, true, false); // R196 :412 eject face (look-at face has no 1.12 param, C-level)
+            return;
+        }
+        // R196 :413-420 digging face (AI-02) — sleeper wakeMobs / lying mobsDigging,
+        // eject with no look-at entity (R196 :420 wakeUpPlayer(true, null)).
+        if (io.github.etim.etim.mob.ETIMDigging.isHostileEntityDiggingNearBed(player.world, bed)) {
+            boolean slept = player.isPlayerFullyAsleep();
+            player.sendStatusMessage(new net.minecraft.util.text.TextComponentTranslation(
+                    "tile.bed." + (slept ? "wakeMobs" : "mobsDigging")), true);
+            logBedWake(player.world, "digging", slept, bed);
+            player.wakeUpPlayer(true, true, false);
         }
     }
 

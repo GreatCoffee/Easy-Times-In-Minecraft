@@ -50,6 +50,7 @@ public final class ETIM {
         ETIMFoodStats.register();
         io.github.etim.etim.death.ETIMDeathXp.register();
         io.github.etim.etim.mob.ETIMLivestock.register();
+        io.github.etim.etim.mob.ETIMDigging.register();
         io.github.etim.etim.furnace.FurnaceHeat.addJudgedRecipes();
         ETIMEnchantments.register();
         ETIMConfig.init(event);
@@ -67,6 +68,7 @@ public final class ETIM {
         // wellness v1) — all judged from [AILog].
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.mob.ETIMMobStats.class);
         io.github.etim.etim.mob.ETIMLivestockEvents.register();
+        io.github.etim.etim.mob.ETIMDiggingEvents.register();
         if (event.getSide().isClient()) {
             // Furnace slot heat tooltip row (top-of-tips prepend, F round):
             // ItemTooltipEvent originates client-side only; the handler reads
