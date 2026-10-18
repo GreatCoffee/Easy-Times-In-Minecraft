@@ -13,13 +13,16 @@ import net.minecraft.entity.monster.EntitySlime;
 import net.minecraft.entity.monster.IMob;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.pathfinding.Path;
+import net.minecraft.pathfinding.PathFinder;
 import net.minecraft.pathfinding.PathPoint;
+import net.minecraft.pathfinding.WalkNodeProcessor;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.ChunkCache;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
@@ -58,10 +61,11 @@ import net.minecraft.world.biome.Biome;
  *
  * <p>Registered C 级 deviations: {@code sync_last_tick_pos_on_next_update}
  * dropped (tracker packet-optimization face, 1.12 teleport packets cover it),
- * {@code checkForLineOfSight}/{@code getEntityPathToXYZ} mapped to the
- * vanilla {@code rayTraceBlocks}/{@code PathNavigate.getPathToXYZ} faces
- * (bed-entry M-series precedent — the navigator's own configured door/water
- * semantics carry the R196 flag arguments).</p>
+ * {@code checkForLineOfSight} mapped to the vanilla {@code rayTraceBlocks}
+ * ray, and the path prune face ({@code findPath} g-value prune for the R196
+ * target-centred prune — f5f2563 window M-2: the navigator face was a
+ * mis-port, now replaced by the world-level {@link #worldLevelPathToBed}).
+ * </p>
  */
 public final class ETIMMobWake {
 
@@ -273,10 +277,9 @@ public final class ETIMMobWake {
     }
 
     /**
-     * R196 :474-531. The sync_last_tick_pos flag is dropped (C 级); the
-     * navigator path call loses R196's max-length/flag arguments (C 级
-     * bed-entry M precedent — getPathToXYZ carries the navigator's own
-     * configured semantics).
+     * R196 :474-531. The sync_last_tick_pos flag is dropped (C 级); the path
+     * call is the WORLD-level face ({@link #worldLevelPathToBed}) — the
+     * navigator face was a mis-port (f5f2563 judge window M-2 root cause).
      */
     private static boolean tryPathMobToSleepingPlayer(WorldServer world, EntityLiving mob,
             EntityPlayer player, int maxPathLength) {
@@ -284,7 +287,7 @@ public final class ETIMMobWake {
         if (bed == null) {
             return false;
         }
-        Path path = mob.getNavigator().getPathToXYZ(bed.getX(), bed.getY(), bed.getZ()); // R196 :476-486
+        Path path = worldLevelPathToBed(world, mob, bed, maxPathLength); // R196 :476-486
         if (path == null) {
             return false;
         }
@@ -330,5 +333,37 @@ public final class ETIMMobWake {
     private static boolean lineOfSight(World world, Vec3d from, Vec3d to) {
         RayTraceResult hit = world.rayTraceBlocks(from, to, false, true, false);
         return hit == null || hit.typeOfHit == RayTraceResult.Type.MISS;
+    }
+
+    /**
+     * R196 {@code World.getEntityPathToXYZ} (World.java:4892-4919) — a
+     * WORLD-level PathFinder call with no navigator state gate. The previous
+     * {@code navigator.getPathToXYZ} face was a mis-port: PathNavigate.getPathToPos
+     * refuses via {@code canNavigate()} (onGround/riding/swim, PathNavigate.java:113,
+     * PathNavigateGround.java:32) and the spawn-fallback mob is not yet in the world
+     * (onGround=false), which nulled every spawn-branch roll (f5f2563 judge window
+     * M-2: 3810/3810 noPath, 0 waked).
+     *
+     * <p>Flags: {@code canEnterDoors=true} mirrors the PathNavigateGround
+     * {@code getPathFinder} face (R196 :482 can_pass_open_wooden_doors=true;
+     * closed-door = NodeProcessor default false = R196 :483); the R196
+     * avoid-water/swim flags have no NodeProcessor face here (C 级).
+     * maxDistance stands in for the R196 target-centred prune (PathFinder.java
+     * :122-137) as the vanilla g-value prune (PathFinder.java:94) — same
+     * success semantics either way: the A* must reach the bed point exactly
+     * (equals), else fall back to the closest node, which then fails the √2
+     * final gate.</p>
+     */
+    private static Path worldLevelPathToBed(WorldServer world, EntityLiving mob, BlockPos bed, int maxPathLength) {
+        if (maxPathLength > 32) { // R196 PathFinder.java:36-37 — the 32 clamp
+            maxPathLength = 32;
+        }
+        WalkNodeProcessor processor = new WalkNodeProcessor();
+        processor.setCanEnterDoors(true);
+        PathFinder finder = new PathFinder(processor);
+        BlockPos mobPos = new BlockPos(mob);
+        int r = maxPathLength + 8; // R196 World.java:4907 — the cache radius (par5 + 8)
+        ChunkCache cache = new ChunkCache(world, mobPos.add(-r, -r, -r), mobPos.add(r, r, r), 0);
+        return finder.findPath(cache, mob, bed, (float) maxPathLength);
     }
 }
