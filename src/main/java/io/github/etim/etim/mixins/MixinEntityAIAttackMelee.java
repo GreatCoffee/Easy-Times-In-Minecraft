@@ -39,7 +39,11 @@ public abstract class MixinEntityAIAttackMelee {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/entity/ai/EntityAIAttackMelee;checkAndPerformAttack(Lnet/minecraft/entity/EntityLivingBase;D)V"),
             require = 1)
-    private void etim$attackOrDig(EntityLivingBase enemy, double distToEnemySqr) {
+    private void etim$attackOrDig(EntityAIAttackMelee self, EntityLivingBase enemy, double distToEnemySqr) {
+        // self is the mixin receiver of the redirected this.checkAndPerformAttack
+        // virtual call (virtual invoke ⇒ handler must carry the receiver as its
+        // first parameter — f5f2563 window A1: its absence is a compile-green /
+        // apply-FATAL refmap face). self ≡ this.
         ETIMDigging.IState dig = ETIMConfig.zombieDigAI && this.attacker != null
                 ? ETIMDigging.get(this.attacker) : null;
         if (dig != null // dig capability = zombie host (裁 3)

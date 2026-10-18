@@ -2,6 +2,7 @@ package io.github.etim.etim.mob;
 
 import javax.annotation.Nullable;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.Tags;
 import io.github.etim.etim.playerstate.ETIMBedSafety;
 import net.minecraft.block.Block;
@@ -495,6 +496,14 @@ public final class ETIMDigging {
         IBlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
         s.setDestroyBlockProgress(s.getDestroyBlockProgress() + 1);
+        // [SleepLog] bed-dig — the destroy-progress edge row (AI-02 verdict §7:
+        // one per strike; progress reads 1..9 while digging, 10 on the break
+        // strike before the -1 reset). Covers both the dig-task strikes and
+        // the attack-melee dig branch (both funnel through this strike).
+        ETIM.LOGGER.info("[SleepLog] bed-dig mob=" + digger.getClass().getSimpleName()
+                + " x,y,z=" + x + "," + y + "," + z
+                + " progress=" + s.getDestroyBlockProgress()
+                + " tick=" + world.getWorldInfo().getWorldTotalTime());
         if (s.getDestroyBlockProgress() < 10) { // :45-46
             s.setDestroyingBlock(true);
         } else {
