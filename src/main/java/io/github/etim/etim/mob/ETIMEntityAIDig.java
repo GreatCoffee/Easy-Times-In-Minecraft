@@ -2,6 +2,7 @@ package io.github.etim.etim.mob;
 
 import javax.annotation.Nullable;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.playerstate.ETIMBedSafety;
 import net.minecraft.block.material.Material;
@@ -53,36 +54,36 @@ public class ETIMEntityAIDig extends EntityAIBase {
     @Override
     public boolean shouldExecute() {
         if (!ETIMConfig.zombieDigAI) { // the config gate rides the task (the vanilla-zombie off face)
-            return false;
+            return this.gateFail("cfg", "");
         }
         ETIMDigging.IState s = ETIMDigging.get(this.digger);
         if (s == null) {
-            return false;
+            return this.gateFail("state", "");
         }
         if (ETIMDigging.isHoldingItemThatPreventsDigging(this.digger)) { // :14-15
-            return false;
+            return this.gateFail("holding", "");
         }
         if ((ETIMDigging.isDiggingEnabled(this.digger) || canSeeTarget(false)) // :18, recentlyHit 死码删
                 ) {
             EntityLivingBase target = this.digger.getAttackTarget(); // :19
             if (target == null) { // :20-21
-                return false;
+                return this.gateFail("target", "");
             }
             if (blockPosX(this.digger) == blockPosX(target) // :24-27 — same block = strike face, not dig face
                 && blockPosY(this.digger) == blockPosY(target)
                 && blockPosZ(this.digger) == blockPosZ(target)) {
-                return false;
+                return this.gateFail("sameBlock", "");
             }
             if (s.isDestroyingBlock() // :30-32 — keep the running destruction
                 && ETIMDigging.canDestroyBlock(this.digger, s, s.getDestroyBlockX(), s.getDestroyBlockY(), s.getDestroyBlockZ(), true)) {
                 return true;
             }
-            if (!s.isDestroyingBlock() && this.digger.getRNG().nextInt(20) != 0) { // :35 — the 1/20 pick roll
+            if (!s.isDestroyingBlock() && this.digger.getRNG().nextInt(20) != 0) { // :35 — the 1/20 pick roll (not logged: noise)
                 return false;
             }
             double distanceToTarget = this.digger.getDistance(target.posX, target.posY, target.posZ); // R196 :40 getDistanceToEntity → vanilla distance face
             if (distanceToTarget > 16.0F) { // :41-42
-                return false;
+                return this.gateFail("dist16", " dist=" + distanceToTarget);
             }
             int attackerFootY = footBlockPosY(this.digger);
             if (distanceToTarget * distanceToTarget > 2.0F) { // :46 — probe the target's own support column
@@ -96,7 +97,7 @@ public class ETIMEntityAIDig extends EntityAIBase {
                 }
             }
             if (distanceToTarget > 8.0F) { // :58-60
-                return false;
+                return this.gateFail("dist8", " dist=" + distanceToTarget);
             }
             // :63-66 — the physical-sight gate (own headroom + reach line to the target eye).
             boolean canAttackerSeeTarget = ETIMBedSafety.isAirOrPassableBlock(this.digger.world,
@@ -105,26 +106,29 @@ public class ETIMEntityAIDig extends EntityAIBase {
                         new Vec3d(this.digger.posX, this.digger.posY + this.digger.height * 0.85F + 1.0D, this.digger.posZ),
                         new Vec3d(target.posX, target.posY + target.height * 0.85F, target.posZ));
             if (distanceToTarget > (canAttackerSeeTarget ? 8.0F : (ETIMDigging.isFrenzied(this.digger) ? 6.0F : 4.0F))) { // :67-69
-                return false;
+                return this.gateFail("sightDist", " dist=" + distanceToTarget + " seen=" + canAttackerSeeTarget + " frenzied=" + ETIMDigging.isFrenzied(this.digger));
             }
-            // :71-74 — an existing path means walk, not dig.
-            Path path = this.digger.getNavigator().getPathToEntityLiving(target); // (target,16) cap → navigator followRange, C 级
+            // :71-74 — an existing path means walk, not dig. (The R196 face is faithful:
+            // getPathToEntityLiving is pure-compute in BOTH versions and the R196 :71 local
+            // is dead there too; noPath() reads the ACTIVE movement path in both.)
+            this.digger.getNavigator().getPathToEntityLiving(target); // (target,16) cap → navigator followRange, C 级
             if (!this.digger.getNavigator().noPath()) { // :72-74
-                return false;
+                return this.gateFail("walk", " dist=" + distanceToTarget);
             }
             // :76-78 — within striking distance means attack, not dig (v1 reach face, 补裁 B 级同族).
             if (withinStrikingDistance(this.digger, target)) {
-                return false;
+                return this.gateFail("strike", " dist=" + distanceToTarget);
             }
             Vec3d targetCenterPos = getTargetEntityCenterPosForBlockDestroying(target); // :80
             // :81-102 — the headroom path: ray toward the block above the target center.
+            BlockPos hitHead = null;
             if (ETIMBedSafety.isAirOrPassableBlock(this.digger.world,
                     blockPosX(target), footBlockPosY(target) + 2, blockPosZ(target), false)) {
-                BlockPos hit = reachRay(this.digger.world, this.digger, targetCenterPos.add(0.0D, 1.0D, 0.0D)); // :82-84
-                if (hit != null && exemptFromRestriction(this.digger, hit)) { // :85-91
-                    int hitY = hit.getY() + 1; // :92
+                hitHead = reachRay(this.digger.world, this.digger, targetCenterPos.add(0.0D, 1.0D, 0.0D)); // :82-84
+                if (hitHead != null && exemptFromRestriction(this.digger, hitHead)) { // :85-91
+                    int hitY = hitHead.getY() + 1; // :92
                     while (hitY >= attackerFootY) { // :94
-                        if (ETIMDigging.setBlockToDig(this.digger, s, hit.getX(), hitY, hit.getZ(), true)) {
+                        if (ETIMDigging.setBlockToDig(this.digger, s, hitHead.getX(), hitY, hitHead.getZ(), true)) {
                             return true;
                         }
                         hitY--; // :99
@@ -132,11 +136,11 @@ public class ETIMEntityAIDig extends EntityAIBase {
                 }
             }
             // :104-121 — the center path.
-            BlockPos hit = reachRay(this.digger.world, this.digger, targetCenterPos);
-            if (hit != null && exemptFromRestriction(this.digger, hit)) { // :105-111
-                int hitY = hit.getY() + 1; // :112
+            BlockPos hitCenter = reachRay(this.digger.world, this.digger, targetCenterPos);
+            if (hitCenter != null && exemptFromRestriction(this.digger, hitCenter)) { // :105-111
+                int hitY = hitCenter.getY() + 1; // :112
                 while (hitY >= attackerFootY) { // :114
-                    if (ETIMDigging.setBlockToDig(this.digger, s, hit.getX(), hitY, hit.getZ(), true)) {
+                    if (ETIMDigging.setBlockToDig(this.digger, s, hitCenter.getX(), hitY, hitCenter.getZ(), true)) {
                         return true;
                     }
                     hitY--; // :119
@@ -145,13 +149,17 @@ public class ETIMEntityAIDig extends EntityAIBase {
             // :123-135 — the leg path: dig the blocking block only when its
             // own top face is open (or can fall).
             BlockPos legHit = reachRayLeg(this.digger.world, this.digger, targetCenterPos);
-            return legHit != null && exemptFromRestriction(this.digger, legHit)
+            if (legHit != null && exemptFromRestriction(this.digger, legHit)
                 && (ETIMBedSafety.isAirOrPassableBlock(this.digger.world,
                         legHit.getX(), legHit.getY() + 1, legHit.getZ(), false)
                     || blockWillFall(this.digger.world, legHit))
-                && ETIMDigging.setBlockToDig(this.digger, s, legHit.getX(), legHit.getY(), legHit.getZ(), false);
+                && ETIMDigging.setBlockToDig(this.digger, s, legHit.getX(), legHit.getY(), legHit.getZ(), false)) {
+                return true;
+            }
+            return this.gateFail("probe",
+                " headRay=" + (hitHead != null) + " centerRay=" + (hitCenter != null) + " legRay=" + (legHit != null));
         } else {
-            return false;
+            return this.gateFail("orGate", "");
         }
     }
 
@@ -161,7 +169,32 @@ public class ETIMEntityAIDig extends EntityAIBase {
         ETIMDigging.IState s = ETIMDigging.get(this.digger);
         if (s != null) {
             s.setDestroyingBlock(true);
+            this.lastGate = ""; // the next failure logs immediately
+            this.gateLogCooldown = 0;
         }
+    }
+
+    // ---- the dig-gate judge row (window A4/B1 instrumentation) ----
+    // Edge-triggered with a 40-tick global floor; a stable gate repeats every
+    // 200 ticks. Judgement-only face: every return-false exit of shouldExecute
+    // is observable in the log, so a zero bed-dig row window is self-explaining.
+    private String lastGate = "";
+    private int gateLogCooldown = 0;
+
+    /** Logs the failing gate (throttled) and returns false — every shouldExecute exit rides this. */
+    private boolean gateFail(String gate, String detail) {
+        if (this.gateLogCooldown > 0) {
+            this.gateLogCooldown--;
+        }
+        boolean edge = !gate.equals(this.lastGate);
+        if (edge ? this.gateLogCooldown <= 160 : this.gateLogCooldown <= 0) {
+            ETIM.LOGGER.info("[SleepLog] dig-gate mob=" + this.digger.getClass().getSimpleName()
+                + " gate=" + gate + detail
+                + " tick=" + this.digger.world.getWorldInfo().getWorldTotalTime());
+            this.lastGate = gate;
+            this.gateLogCooldown = 200;
+        }
+        return false;
     }
 
     /** R196 continueExecuting (:197-233) → the 1.12 MCP name; attack-handle face → mutex exclusivity (C 级). */
