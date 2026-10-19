@@ -15,7 +15,9 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  * <p>{@link LivingHurtEvent} fires before armor reduction
  * (EntityLivingBase.damageEntity), so the multiplier applies to the raw
  * melee damage, matching the MITE semantics of a per-level combat
- * modifier. Negative levels (future death penalty) naturally reduce.</p>
+ * modifier. Negative levels (future death penalty) naturally reduce.
+ * audit20 勘误 #9（裁定回执 §三）：negative level 系数 = 0.005（本文件实现）vs R196 0.02
+ * ——偏差在此声明（原声明仅在 javadoc 之外；裁定不改码，0.005 为准）。</p>
  */
 @Mod.EventBusSubscriber(modid = Tags.MOD_ID)
 public final class PlayerLevelBonuses {

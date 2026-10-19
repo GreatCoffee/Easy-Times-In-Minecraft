@@ -79,7 +79,8 @@ import java.util.UUID;
  *       craft every tick (R196 SlotCrafting:155-157), config
  *       {@code craftingWebDeny}.</li>
  *   <li><b>Damaged-ingredient gate</b> — any damaged matrix stack clears the
- *       craft every tick (R196 MITEContainerCrafting:178-181), config
+ *       craft every tick (R196 SlotCrafting:178-183 — audit20 勘误 #12：原引
+ *       MITEContainerCrafting:178-181 系行号载体错位), config
  *       {@code craftingDamagedDeny}.</li>
  *   <li><b>Completion FX</b> — level-up sound + witch sparkles behind
  *       {@code craftingFx} (default off: the R196 5-tick random 1/5 packet
