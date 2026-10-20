@@ -2,6 +2,7 @@ package io.github.etim.etim;
 
 import io.github.etim.etim.commands.CommandDevTest;
 import io.github.etim.etim.commands.CommandState;
+import io.github.etim.etim.commands.CommandXpPool;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.hunger.ETIMFoodStatsEvents;
 import io.github.etim.etim.mining.ETIMEnchantments;
@@ -92,6 +93,11 @@ public final class ETIM {
         if (ETIMConfig.devTools) {
             event.registerServerCommand(new CommandDevTest());
         }
+        // ❗F-4-30（第二批裁点3=A）：replace the vanilla /xp registration with
+        // the R196 pool-absolut set (CommandHandler.getCommands() is the live
+        // registry map; same-name put = swap). The L-face keeps vanilla syntax
+        // but carries the R196 level-curve pool delta.
+        event.getServer().getCommandManager().getCommands().put("xp", new CommandXpPool());
     }
 
 }

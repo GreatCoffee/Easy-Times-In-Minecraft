@@ -15,9 +15,14 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  * <p>{@link LivingHurtEvent} fires before armor reduction
  * (EntityLivingBase.damageEntity), so the multiplier applies to the raw
  * melee damage, matching the MITE semantics of a per-level combat
- * modifier. Negative levels (future death penalty) naturally reduce.
- * audit20 勘误 #9（裁定回执 §三）：negative level 系数 = 0.005（本文件实现）vs R196 0.02
- * ——偏差在此声明（原声明仅在 javadoc 之外；裁定不改码，0.005 为准）。</p>
+ * modifier. ❗F-4-19（第二批裁点6=A，改码）：R196 getLevelModifier
+ * (EntityPlayer:624-626) = {@code level > 0 && kind == MELEE_DAMAGE
+ * ? level×0.005F : level×0.02F} — the POSITIVE melee ladder uses 0.005
+ * (the {@code meleeDamagePerLevel} key, default aligned), but EVERY
+ * non-positive level uses 0.02 across all three kinds (0.02F is an A 级
+ * 直引 constant, no config key). Debt levels now take the full R196
+ * melee penalty (−20% at debt 10, was −5%). The 勘误 #9 附注 (0.005 vs
+ * 0.02 deviation declaration) is superseded by this alignment.</p>
  */
 @Mod.EventBusSubscriber(modid = Tags.MOD_ID)
 public final class PlayerLevelBonuses {
@@ -36,7 +41,14 @@ public final class PlayerLevelBonuses {
     public static void onLivingHurt(LivingHurtEvent event) {
         if (event.getSource().getTrueSource() instanceof EntityPlayer) {
             EntityPlayer attacker = (EntityPlayer) event.getSource().getTrueSource();
-            float bonus = 1.0F + attacker.experienceLevel * ETIMConfig.meleeDamagePerLevel;
+            float bonus;
+            if (attacker.experienceLevel > 0) {
+                bonus = 1.0F + attacker.experienceLevel * ETIMConfig.meleeDamagePerLevel;
+            } else {
+                // ❗F-4-19: R196 :625 negative/non-positive branch — 0.02 flat,
+                // melee included (debt levels are NOT softened).
+                bonus = 1.0F + attacker.experienceLevel * 0.02F;
+            }
             event.setAmount(event.getAmount() * bonus);
         }
     }

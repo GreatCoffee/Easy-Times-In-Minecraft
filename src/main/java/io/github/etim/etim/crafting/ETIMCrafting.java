@@ -191,6 +191,17 @@ public final class ETIMCrafting {
         float qDifficulty = ETIMQuality.qualityAdjustedDifficulty(timer.difficulty, next);
         timer.period = getPeriod(player, qDifficulty, getBenchModifier(player.openContainer));
         timer.ticks = 0;
+        // ❗F-7-30（第二批裁点2=A）：R196 modifyStackForRightClicks
+        // (SlotCrafting:286-302) writes the picked rung onto the RESULT slot
+        // stack immediately (:294) so the player SEES the rung they just
+        // cycled to (name tooltip + durability tint). The door inside
+        // set() keeps non-carrier result stacks untouched; the container
+        // sync then repaints the client's result slot.
+        ItemStack preview = player.openContainer.getSlot(0).getStack();
+        if (!preview.isEmpty()) {
+            ETIMQuality.set(preview, EnumQuality.values()[next]);
+            player.openContainer.detectAndSendChanges();
+        }
         int cost = ETIMQuality.getExperienceCost(qDifficulty);
         log(player, "quality cycle index=" + next + " (" + EnumQuality.values()[next].name()
                 + ") range=[" + min + ".." + max + "] qDifficulty=" + trim(qDifficulty)
@@ -260,6 +271,21 @@ public final class ETIMCrafting {
         if (ETIMConfig.craftingDamagedDeny && matrixHasDamagedItem(player.openContainer)) {
             clearCraftingByGate(player, timer, "damaged ingredient → crafting cleared");
             return;
+        }
+        // ❗F-7-34（第二批裁点核讫）：repair_fail_condition transpose — a repair
+        // pairing whose carried quality exceeds the player's current budget
+        // cap fails canPlayerCraftItem (R196 CraftingManager:363-369 sets the
+        // container flag, SlotCrafting:170-172 reads it). 拒 = cleared.
+        // 修复面跟随 damaged 门（R196 两者同为 canPlayerCraftItem 的并列支）。
+        ItemStack repairFirst = ETIMConfig.craftingDamagedDeny ? findRepairPairing(player.openContainer) : null;
+        if (ETIMConfig.qualitySystem && repairFirst != null) {
+            EnumQuality carried = ETIMQuality.get(repairFirst);
+            if (carried != null
+                    && carried.ordinal() > ETIMQuality.getMaxOrdinal(player, timer.difficulty, output)) {
+                clearCraftingByGate(player, timer, "repair quality " + carried.name()
+                        + " over player budget → crafting cleared (repair_fail_condition)");
+                return;
+            }
         }
         // Hunger gate: R196 :84/:96 conjunction — freeze, do NOT clear.
         if (ETIMConfig.hungerCraftDeny && !ETIMHunger.hasFoodEnergy(player)) {
@@ -398,6 +424,12 @@ public final class ETIMCrafting {
      */
     private static void completeCraft(EntityPlayer player, ItemStack output, Timer timer) {
         timer.ticks = 0;
+        // ❗F-7-34 repair face（第二批）：the repair pairing is read BEFORE
+        // onTake consumes the matrix; the product inherits the FIRST damaged
+        // stack's rung (R196 CraftingManager:383 setQualityOverride(
+        // var4.getQuality())) and is experience-cost EXEMPT
+        // (setExperienceCostExempt).
+        ItemStack repairFirst = ETIMConfig.craftingDamagedDeny ? findRepairPairing(player.openContainer) : null;
         Slot resultSlot = player.openContainer.getSlot(0);
         ItemStack product = output.copy();
         resultSlot.onTake(player, product);
@@ -411,13 +443,25 @@ public final class ETIMCrafting {
         EnumQuality quality = EnumQuality.values()[timer.qualityIndex];
         int cost = ETIMQuality.getExperienceCost(
                 ETIMQuality.qualityAdjustedDifficulty(timer.difficulty, timer.qualityIndex));
-        if (ETIMConfig.qualitySystem && timer.qualityIndex != EnumQuality.AVERAGE.ordinal()) {
+        boolean repair = repairFirst != null;
+        if (repair) {
+            EnumQuality carried = ETIMQuality.get(repairFirst);
+            if (carried != null) {
+                quality = carried;
+                cost = 0;
+            }
+        }
+        // ❗F-9-19（裁点核讫，R-15=A）：write the rung at EVERY grant — the
+        // average rung materializes the side car too (tooltip row must show);
+        // the F-9-16 door inside set() rejects non-carrier items.
+        if (ETIMConfig.qualitySystem) {
             ETIMQuality.set(product, quality);
         }
-        // R196 charge gate (quality audit §2.6 §Picker pseudocode :146-148):
-        // only a NON-average pick pays (SlotCrafting:312-315 charges inside the
-        // quality≠average branch) — average is xp=0 and keeps proceeding.
-        boolean charge = ETIMConfig.qualitySystem && quality != EnumQuality.AVERAGE && cost > 0;
+        // ❗F-7-26（裁点核讫）：R196 charge gate = !getQuality().isAverageOrLower()
+        // (SlotCrafting:312-315) — wretched/poor ride FREE like average; the old
+        // `quality != AVERAGE` over-charged the two low rungs.
+        boolean charge = ETIMConfig.qualitySystem && !repair
+                && quality.ordinal() > EnumQuality.AVERAGE.ordinal() && cost > 0;
         // Snapshot the identity BEFORE the consumptive grant (addItemStackToInventory
         // shrinks the passed stack to 0; log/chat skins captured afterwards read "空气").
         String grantedName = product.getDisplayName() + " ×" + product.getCount();
@@ -483,6 +527,7 @@ public final class ETIMCrafting {
      * anvil-style repair pairing（R196 SlotCrafting:178-183 含 isRepair 豁免原句；
      * 原 javadoc 引 MITEContainerCrafting:178-181 系引用错位）: two damaged
      * stacks of the SAME item = the vanilla repair recipe → exempt.
+     * (阻断判定与 {@link #findRepairPairing} 互斥：pairing = 放行，散件 = 阻断。)
      */
     private static boolean matrixHasDamagedItem(Container container) {
         ItemStack firstDamaged = null;
@@ -498,6 +543,30 @@ public final class ETIMCrafting {
             }
         }
         return firstDamaged != null;
+    }
+
+    /**
+     * ❗F-7-24 R1a / F-7-34（第二批）：the isRepair carrier — two damaged
+     * stacks of the SAME item in the matrix (R196 SlotCrafting:178-183
+     * isRepair 豁免). Returns the FIRST damaged stack (R196 repair recipes
+     * derive the product's quality from it: CraftingManager:363-383
+     * setQualityOverride(var4.getQuality())) or null when the matrix is not
+     * a repair pairing.
+     */
+    private static ItemStack findRepairPairing(Container container) {
+        ItemStack firstDamaged = null;
+        for (Slot slot : container.inventorySlots) {
+            if (slot.inventory instanceof InventoryCrafting) {
+                ItemStack stack = slot.getStack();
+                if (!stack.isEmpty() && stack.isItemDamaged()) {
+                    if (firstDamaged != null && firstDamaged.getItem() == stack.getItem()) {
+                        return firstDamaged; // repair pairing (same item, both damaged)
+                    }
+                    firstDamaged = stack;
+                }
+            }
+        }
+        return null;
     }
 
     /** Gate-fail clear: R196 clearCrafting (:74-80) — cleared, never frozen. */

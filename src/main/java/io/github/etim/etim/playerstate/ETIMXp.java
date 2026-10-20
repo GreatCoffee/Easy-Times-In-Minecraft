@@ -87,6 +87,13 @@ public final class ETIMXp {
      * ONE R196 curve) and pushes the sync packet. NO clamping: a pool that
      * drops below zero survives as debt (level derived negative) — that is
      * how R196 renders the death chain.
+     *
+     * <p>❗F-4-31 销案（第二批重验，裁定回执 §六·补12）：the audit's
+     * "200 级后 addExperience while 循环抽干 bar" face was removed by the
+     * batch-1 F-10-11 single-pool funnel ({@code MixinEntityPlayer}
+     * addExperience → applyTotal): past level 200 the pool VALUE keeps
+     * growing (levelForPoints stalls at MAX_LEVEL, bar reads 1.0) — the
+     * R196 :586-587 MAX_VALUE equivalence. No further code needed.</p>
      */
     public static void applyTotal(EntityPlayer player, int newTotal) {
         player.experienceTotal = newTotal;

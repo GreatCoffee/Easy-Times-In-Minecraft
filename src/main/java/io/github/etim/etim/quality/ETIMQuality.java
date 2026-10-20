@@ -1,11 +1,12 @@
 package io.github.etim.etim.quality;
 
-import io.github.etim.etim.ETIMConfig;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemArmor;
+import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemHoe;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemShears;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
 import net.minecraft.nbt.NBTTagCompound;
@@ -45,8 +46,13 @@ import java.util.Map;
  * difference): R196 reads it off EnumEquipmentMaterial; vanilla 1.12.2 has no
  * such table, so ETIM maps the vanilla ToolMaterial/ArmorMaterial onto the
  * one-hand §2.4 rows (wood/leather→fine, iron→masterwork, gold→superb,
- * diamond→superb), falls back to {@code qualityDefaultMax} for unmapped
- * items, and lets a config override list pin any specific item.</p>
+ * diamond→superb). ❗F-9-16/28（第二批裁点1=A）：R196 only THREE classes carry
+ * quality at all — setQuality REJECTS everything else and keeps the rung null
+ * (ItemStack:1064-1076). The 1.12 carrier set is SIX explicit classes
+ * (ItemTool/ItemSword/ItemShears/ItemHoe/ItemArmor/ItemBow — 1.12.2 ItemHoe
+ * extends Item, NOT ItemTool, so it must be listed on its own; R196's Hoe
+ * rides ItemTool:271). Unmapped/foreign items fall to AVERAGE (= no rung to
+ * pick, free craft) — no config fallback key (qualityDefaultMax 废弃).</p>
  */
 public final class ETIMQuality {
 
@@ -60,6 +66,23 @@ public final class ETIMQuality {
     }
 
     // ---------------------------------------------------------------- sidecar
+
+    /**
+     * ❗F-9-16（第二批裁点1=A）：the R196 hasQuality carrier set, transposed.
+     * R196 = three classes (ItemTool:271 override covering swords & shears
+     * via its subclassing, ItemArmor:261, ItemBow:192); everything else is
+     * REJECTED by setQuality and keeps the rung null (ItemStack:1064-1076).
+     * 1.12.2 side: ItemSword/ItemShears/ItemHoe each extend Item directly
+     * (mcp_patched sources), so the set must list all six explicitly.
+     */
+    public static boolean hasQualityChannel(Item item) {
+        return item instanceof ItemTool
+                || item instanceof ItemSword
+                || item instanceof ItemShears
+                || item instanceof ItemHoe
+                || item instanceof ItemArmor
+                || item instanceof ItemBow;
+    }
 
     public static boolean has(ItemStack stack) {
         return stack.hasTagCompound()
@@ -81,10 +104,16 @@ public final class ETIMQuality {
     }
 
     public static void set(ItemStack stack, EnumQuality quality) {
-        // R196 writes the rung at every grant; ETIM only materializes the side
-        // car for a non-average rung: the average tag would ride EVERY granted
-        // item for zero gameplay effect (average durability modifier = 1.0 and
-        // the tooltip row suppresses it) — the pick stays server-log judged.
+        // ❗F-9-16 gate（裁点1=A）：R196 ItemStack:1064-1076 — a non-carrier
+        // item REJECTS the write (error message, rung stays null). Foreign
+        // stacks never gain an "etim.quality" tag through this door.
+        if (!hasQualityChannel(stack.getItem())) {
+            return;
+        }
+        // ❗F-9-19（裁点核讫，R-15=A）：R196 writes the rung at EVERY grant
+        // (ItemStack:713-715 outputs the row unconditionally) — the side car
+        // materializes for the average rung too (its gameplay effect is nil:
+        // durability modifier 1.0 — but the tooltip row must show).
         // 1.12.2 getSubCompound(key) is a read-only accessor (null when
         // absent), so the side-car is created through the root-tag write.
         NBTTagCompound root = stack.getTagCompound();
@@ -123,7 +152,10 @@ public final class ETIMQuality {
 
     /**
      * Max craftable quality of one item: config override first, then the
-     * vanilla material mapping (one-hand §2.4 rows), then the config fallback.
+     * vanilla material mapping (one-hand §2.4 rows). ❗F-9-16/28（裁点1=A）：
+     * no mapped row → AVERAGE — i.e. nothing above average is pickable and
+     * the craft is free (R196 has no "unmapped fallback" concept at all; the
+     * old qualityDefaultMax=5 key is retired with its door).
      */
     public static EnumQuality getMaxQualityFor(Item item) {
         ResourceLocation name = item.getRegistryName();
@@ -134,10 +166,7 @@ public final class ETIMQuality {
             }
         }
         EnumQuality materialMax = materialMaxOf(item);
-        if (materialMax != null) {
-            return materialMax;
-        }
-        return topOrBelow(ETIMConfig.qualityDefaultMax);
+        return materialMax != null ? materialMax : EnumQuality.AVERAGE;
     }
 
     @Nullable
@@ -155,9 +184,19 @@ public final class ETIMQuality {
         if (item instanceof ItemArmor) {
             return ofArmorMaterial(((ItemArmor) item).getArmorMaterial());
         }
-        // Everything else (shears, anvils, mod items) has no §2.4 row — it
-        // falls to the config fallback (documented open-decision, see the
-        // unattended test list "待用户裁决" #1); no per-item guess here.
+        // ❗F-9-23（第二批定档）：1.12 single shears/bow entities carry no
+        // material concept — pinned per the vanilla RECIPE material: shears
+        // (2 iron) → R196 iron shears row = masterwork(9.0); bow (sticks +
+        // string) → R196 wood bow row = fine(5.5). A 级直引值不配键
+        // (F-5-31 先例).
+        if (item instanceof ItemShears) {
+            return EnumQuality.MASTERWORK;
+        }
+        if (item instanceof ItemBow) {
+            return EnumQuality.FINE;
+        }
+        // Everything else (anvils, mod items outside the six carriers) has
+        // no §2.4 row — the F-9-16 door keeps them rung-less anyway.
         return null;
     }
 
@@ -229,7 +268,9 @@ public final class ETIMQuality {
             return min;
         }
         int itemMax = getMaxQualityFor(result.getItem()).ordinal();
-        for (int i = itemMax; i >= EnumQuality.AVERAGE.ordinal(); i--) {
+        // ❗F-7-28（裁点核讫）：R196 :2430 walks DOWN TO average EXCLUSIVE —
+        // the average rung itself is free and never budget-checked.
+        for (int i = itemMax; i > EnumQuality.AVERAGE.ordinal(); i--) {
             if (getExperienceCost(qualityAdjustedDifficulty(unadjustedDifficulty, i)) <= player.experienceTotal) {
                 return i;
             }

@@ -22,6 +22,10 @@ import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.entity.IEntityLivingData;
 import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.monster.IMob;
+import net.minecraft.entity.monster.EntityCreeper;
+import net.minecraft.entity.monster.EntityGhast;
+import net.minecraft.entity.passive.EntityHorse;
+import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;import net.minecraft.world.EnumSkyBlock;import net.minecraft.util.math.ChunkPos;
@@ -590,8 +594,25 @@ public final class ETIMSpawnCycle {
         return landed.size();
     }
 
+    /** ❗F3（第二批，面12:164）：R196 per-class chunk caps — ghast 1
+     * (EntityGhast:202), horse 6 (EntityHorse:605), wolf 8 (EntityWolf:485),
+     * creeper 2 (EntityCreeper:191; vanilla 1.12 has no override), everything
+     * else 4 (the vanilla default). 表数据 A 级直引不配键（F-5-31 先例）. */
     private static int getMaxSpawnedInChunk(WorldServer w, Biome.SpawnListEntry entry) {
-        return 4; // vanilla default; per-class overrides land with their classes
+        Class<?> cls = entry.entityClass;
+        if (cls == EntityGhast.class) {
+            return 1;
+        }
+        if (cls == EntityHorse.class) {
+            return 6;
+        }
+        if (cls == EntityWolf.class) {
+            return 8;
+        }
+        if (cls == EntityCreeper.class) {
+            return 2;
+        }
+        return 4;
     }
 
     /**

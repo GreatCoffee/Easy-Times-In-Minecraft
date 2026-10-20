@@ -164,9 +164,63 @@ public final class ETIMSpawnTables {
         return BASE.get(type);
     }
 
-    /** MITE-biome table pick at a position (replaces the vanilla
-     * {@code getSpawnListEntryForTypeAt} read point). */
+    /**
+     * MITE-biome table pick at a position (replaces the vanilla
+     * {@code getSpawnListEntryForTypeAt} read point).
+     *
+     * <p>❗F4a/F4b/F4c（第二批，面12:164-165）: R196
+     * {@code getSuitableCreature} (WorldServer:604-718) wraps the weighted
+     * pick in a ≤16-attempt retry loop with per-class detail gates:</p>
+     * <ul>
+     *   <li><b>creeper</b> (:619-627): surface-lit-outdoor night candidates
+     *       are dropped 3/4 (retry) — {@code hasSkylight && !isDaytime &&
+     *       isOutdoors && nextInt(4)≠0} → retry;</li>
+     *   <li><b>spider</b> (:691-695): surface-outdoor candidates are dropped
+     *       1/4 (retry) — {@code hasSkylight && isOutdoors && nextInt(4)==0}
+     *       → retry. <b>No isDaytime clause in the R196 spider gate</b> (the
+     *       decompiled if carries only skylight/outdoors/dice) — the audit's
+     *       pseudocode "夜" wording is not in the one-hand gate;</li>
+     *   <li><b>ghast</b> (:705-711): the 48² dedup (strict &lt; 2304) —
+     *       wired here via {@link #ghastDedup} (was dead code); the boundary
+     *       is aligned to R196's strict {@code <}.</li>
+     * </ul>
+     * R196's infernal-creeper / WoodSpider / BlackWidow / 50%-surface
+     * branches have no ETIM counterpart entities or were not listed in the
+     * audit verdict — 未立项面不落（audit12 对照表仅列三门；50% 表面重掷门
+     * 嫌疑缺口另行登记待核）。16 attempts exhausted → null.
+     */
     public static Biome.SpawnListEntry pickSpawn(WorldServer w, EnumCreatureType type, BlockPos pos) {
+        for (int attempt = 0; attempt < 16; attempt++) {
+            Biome.SpawnListEntry picked = pickWeighted(w, type, pos);
+            if (picked == null) {
+                return null;
+            }
+            Class<? extends EntityLiving> cls = picked.entityClass;
+            // 1.12 carriers: R196 hasSkylight() = provider.hasSkyLight();
+            // R196 isOutdoors(x,y,z) ≈ canSeeSky (lit ray to the sky — the
+            // exact R196 outdoors mesh has no 1.12 counterpart; nearest
+            // vanilla carrier, gap noted in the report addendum).
+            if (cls == EntityCreeper.class) {
+                if (w.provider.hasSkyLight() && !w.isDaytime() && w.canSeeSky(pos) && w.rand.nextInt(4) != 0) {
+                    continue; // 3/4 drop on lit-outdoor nights
+                }
+                return picked;
+            }
+            if (cls == EntitySpider.class) {
+                if (w.provider.hasSkyLight() && w.canSeeSky(pos) && w.rand.nextInt(4) == 0) {
+                    continue; // 1/4 drop on lit outdoors (day-independent per the one-hand gate)
+                }
+                return picked;
+            }
+            if (cls == EntityGhast.class && ghastDedup(w, pos)) {
+                return null; // dedup cancel
+            }
+            return picked;
+        }
+        return null;
+    }
+
+    private static Biome.SpawnListEntry pickWeighted(WorldServer w, EnumCreatureType type, BlockPos pos) {
         Biome biome = w.getBiome(pos);
         Map<EnumCreatureType, List<Biome.SpawnListEntry>> byType = OVERRIDES.get(biome);
         List<Biome.SpawnListEntry> list;
@@ -184,15 +238,17 @@ public final class ETIMSpawnTables {
         return WeightedRandom.getRandomItem(w.rand, list);
     }
 
-    /** The ghast 48² dedup (audit 14 §3.4 :703-709): a ghast candidate is
-     *  cancelled 80% of the time when another ghast is within 48 blocks. */
+    /** ❗F4a（第二批）：the ghast 48² dedup (R196 WorldServer:705-711) — a
+     * ghast candidate is cancelled 80% of the time per neighbor within 48
+     * blocks (strict &lt; 2304). Previously dead code (zero call sites); now
+     * wired into {@link #pickSpawn}. */
     public static boolean ghastDedup(WorldServer w, BlockPos pos) {
         for (net.minecraft.entity.Entity e : w.loadedEntityList) {
             if (e instanceof EntityGhast && e.isEntityAlive()) {
                 double dx = e.posX - pos.getX();
                 double dy = e.posY - pos.getY();
                 double dz = e.posZ - pos.getZ();
-                if (dx * dx + dy * dy + dz * dz <= 2304.0D && w.rand.nextInt(5) != 0) {
+                if (dx * dx + dy * dy + dz * dz < 2304.0D && w.rand.nextInt(5) != 0) {
                     return true;
                 }
             }

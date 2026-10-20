@@ -253,8 +253,9 @@ public final class ETIMConfig {
     public static boolean qualitySystem = true;
     /** Batch-3: chat line when the right-click quality cycling changes the rung (dev/test channel). 批三：右击循环品质档变化时的聊天行（开发/测试通道）。 */
     public static boolean craftingQualityFeedback = true;
-    /** Batch-3: max quality rung (0..7) for items with no mapped material (R196 material rows only for knowns). 批三：无映射材质物品的最高品质档（0..7）（R196 材质行只覆盖已知材质）。 */
-    public static int qualityDefaultMax = 5;
+    // ❗F-9-16/28（第二批裁点1=A）：qualityDefaultMax 键废弃——R196 无「集外回落」概念，
+    // 非六类物品 setQuality 直接拒绝保持 null（ItemStack:1064-1076）；无映射材质回落
+    // AVERAGE（免费无档），不留 fallback 键（项目约束 1）。
     /** Batch-3: per-item max-quality overrides as "registryName=0..7" CSV, beating the material mapping. 批三：逐物品最高品质覆盖，格式 "registryName=0..7" 的 CSV，优先于材质映射。 */
     public static String qualityMaxOverrides = "";
     /** Batch-3: crafting freezes when the player's upper body is inside a spider web (R196 SlotCrafting:155-157). 批三：玩家上身陷在蜘蛛网里时合成冻结（R196 SlotCrafting:155-157）。 */
@@ -617,9 +618,7 @@ public final class ETIMConfig {
         craftingQualityFeedback = config.getBoolean("craftingQualityFeedback", "crafting", true,
                 comment("Chat line when right-click quality cycling changes the rung (dev/test feedback channel)",
                         "右击循环档位时的聊天提示（开发/测试反馈通道）"));
-        qualityDefaultMax = config.getInt("qualityDefaultMax", "crafting", qualityDefaultMax, 0, 7,
-                comment("Max quality rung for items with no mapped vanilla material: 0=wretched 1=poor 2=average 3=fine 4=excellent 5=superb 6=masterwork 7=legendary (R196 §2.4 material rows used for known materials)",
-                        "无对应原版材质的物品最高品质档：0=劣质 1=贫瘠 2=普通 3=精良 4=优秀 5=华丽 6=大师之作 7=传奇（对应原版材质按 R196 §2.4 材质表取值）"));
+        // qualityDefaultMax 键随 F-9-16 门废弃（第二批裁点1=A），不再读取。
         qualityMaxOverrides = config.getString("qualityMaxOverrides", "crafting", qualityMaxOverrides,
                 comment("Per-item max-quality overrides beating the material mapping, format 'minecraft:iron_sword=6,minecraft:diamond_pickaxe=7' (empty = none)",
                         "逐物品最高品质覆盖（优先于材质映射），格式『minecraft:iron_sword=6,minecraft:diamond_pickaxe=7』（留空=无覆盖）"));
