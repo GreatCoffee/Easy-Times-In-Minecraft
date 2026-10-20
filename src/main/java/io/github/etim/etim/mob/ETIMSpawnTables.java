@@ -1,5 +1,8 @@
 package io.github.etim.etim.mob;
 
+import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIMConfig;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -213,6 +216,12 @@ public final class ETIMSpawnTables {
                 return picked;
             }
             if (cls == EntityGhast.class && ghastDedup(w, pos)) {
+                // ❗B2-6（会话七终验回执）：dedup was a silent null — verdict
+                // line for the F-4a face (48² dedup, strict < 2304).
+                if (ETIMConfig.mobDebugLog) {
+                    ETIM.LOGGER.info("[SpawnLog] ghast dedup cancel at (" + pos.getX() + "," + pos.getY()
+                            + "," + pos.getZ() + ") → null");
+                }
                 return null; // dedup cancel
             }
             return picked;

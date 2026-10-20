@@ -581,6 +581,12 @@ public final class ETIMSpawnCycle {
                     // A4: R196 :293-297 — on slot exhaustion abandon the rest
                     // of this chunk and move to the next one.
                     if (++chunkCounts[bucket] >= getMaxSpawnedInChunk(w, entry)) {
+                        // ❗B2-6（会话七终验回执）：the per-class cap break was
+                        // silent — verdict line for the F-3 face (cap 1/6/8/2/4).
+                        if (ETIMConfig.mobDebugLog) {
+                            log(w, "cap-class " + cls.getSimpleName() + " at " + pos(cursor)
+                                    + " count=" + chunkCounts[bucket] + " → abandon chunk");
+                        }
                         break roundLoop;
                     }
                 } else {
