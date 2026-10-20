@@ -1,6 +1,7 @@
 package io.github.etim.etim.reach;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.mining.ETIMMining;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -96,14 +97,13 @@ public final class ETIMReach {
         ItemStack held = player.getHeldItemMainhand();
         if (held != null && !held.isEmpty()) {
             IBlockState state = block.getStateFromMeta(MathHelper.clamp(metadata, 0, 15));
-            // R196 Item.getReachBonus (Item.java:1277-1279): the bonus applies
-            // only while the tool is EFFECTIVE against the block
-            // (isEffectiveAgainstBlock). The 1.12 equivalence is
-            // getDestroySpeed > 1.0F (ItemTool honors both the forge tool-class
-            // registry and its own effective set); canHarvestBlock never fires
-            // for vanilla tools — ItemTool does not override it (the base Item
-            // method is a constant false).
-            if (held.getItem().getDestroySpeed(held, state) > 1.0F) {
+            // A5 定谳（2026-10-20，主会话）：R196 谓词 = Item.getReachBonus(Block,int)
+            // （Item.java:1281-1283，final）＝ isEffectiveAgainstBlock —— EntityPlayer:2181
+            // 调用的正是带 Block 的版本。旧 1.12 等价物 getDestroySpeed > 1.0F 在
+            // getHarvestTool=null 的方块（玻璃等）上背离 R196 表（destroySpeed=1.0 ⇒ 无加成，
+            // R196 表 = 有效）——实测 HUD「有效工具✓」而 reach 2.75 的口径断裂即此。
+            // 判据面统一走 ETIM 表谓词（与 HUD/挖掘同一判定源）。
+            if (ETIMMining.isEffectiveAgainstBlock(held, state)) {
                 reach += getReachBonus(held.getItem());
             }
         }
