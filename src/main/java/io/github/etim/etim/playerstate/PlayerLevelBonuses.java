@@ -49,6 +49,10 @@ public final class PlayerLevelBonuses {
                 // melee included (debt levels are NOT softened).
                 bonus = 1.0F + attacker.experienceLevel * 0.02F;
             }
+            if (ETIMConfig.mobDebugLog) {
+                // F-4-19 判据行（第二批）：负级近战系数实测对账用。
+                ETIM.LOGGER.info("[MobLog] level-modifier lvl={} melee bonus={}", attacker.experienceLevel, bonus);
+            }
             event.setAmount(event.getAmount() * bonus);
         }
     }
