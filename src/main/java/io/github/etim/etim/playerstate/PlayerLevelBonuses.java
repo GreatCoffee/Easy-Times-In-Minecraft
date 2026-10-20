@@ -1,5 +1,6 @@
 package io.github.etim.etim.playerstate;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
 import net.minecraft.entity.player.EntityPlayer;
