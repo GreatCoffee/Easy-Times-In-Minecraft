@@ -100,6 +100,13 @@ public final class ETIMQuality {
             if (etim.isEmpty()) {
                 root.removeTag(TAG_ETIM);
             }
+            // ❗B2-1 第二轮（复跑窗 20:38:03 证据，会话七初判）：an emptied
+            // root must become a NULL root — areItemStacksEqual compares
+            // null↔null equal but {}↔null UNEQUAL, so leaving the empty
+            // shell kept the identity guard tripping on every cycle.
+            if (root.isEmpty()) {
+                stack.setTagCompound(null);
+            }
         }
     }
 
