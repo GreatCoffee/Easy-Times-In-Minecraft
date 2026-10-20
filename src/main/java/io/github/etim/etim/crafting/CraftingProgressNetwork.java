@@ -34,9 +34,10 @@ import io.netty.buffer.ByteBuf;
  */
 public final class CraftingProgressNetwork {
 
+    /** ≤20 chars total — vanilla SPacketCustomPayload.readString(20) cap (A3 crash, 2026-10-20). */
     public static final SimpleNetworkWrapper CHANNEL =
             NetworkRegistry.INSTANCE.newSimpleChannel(
-                    new ResourceLocation(Tags.MOD_ID, "crafting_progress").toString());
+                    new ResourceLocation(Tags.MOD_ID, "craft_progress").toString());
 
     public static final byte PACKET_PROGRESS = 0;
 

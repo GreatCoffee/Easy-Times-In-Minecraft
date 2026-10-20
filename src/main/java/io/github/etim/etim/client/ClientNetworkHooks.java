@@ -51,7 +51,7 @@ public final class ClientNetworkHooks {
     }
 
     /** CLIENT-side handler for the food-model HUD mirror (see FoodDebugNetwork). */
-    static final class FoodDebugSyncHandler
+    public static final class FoodDebugSyncHandler
             implements IMessageHandler<FoodDebugNetwork.PacketFoodDebug, IMessage> {
         @Override
         public IMessage onMessage(FoodDebugNetwork.PacketFoodDebug message, MessageContext ctx) {
@@ -69,7 +69,7 @@ public final class ClientNetworkHooks {
     }
 
     /** CLIENT-side sync handler writing the progress snapshot. */
-    static final class ProgressSyncHandler
+    public static final class ProgressSyncHandler
             implements IMessageHandler<CraftingProgressNetwork.PacketProgress, IMessage> {
         @Override
         public IMessage onMessage(CraftingProgressNetwork.PacketProgress message, MessageContext ctx) {
@@ -119,7 +119,7 @@ public final class ClientNetworkHooks {
     }
 
     /** CLIENT-side handler for the nutrition capability mirror. */
-    static final class NutritionSyncHandler
+    public static final class NutritionSyncHandler
             implements IMessageHandler<NutritionNetwork.PacketSyncNutrition, IMessage> {
         @Override
         public IMessage onMessage(NutritionNetwork.PacketSyncNutrition message, MessageContext ctx) {
