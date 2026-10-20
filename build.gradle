@@ -451,29 +451,63 @@ tasks.register('etimTestServerModsHold') {
 }
 tasks.named('restoreCompatMods') { finalizedBy 'etimTestServerModsHold' }
 
-// ETIM test harness: a dev runClient round must NOT load the production
-// coremod/SRG-built jars from the 兼容.md list — the deobf dev runtime
-// crashes on them (2026-10-20 four-crash round: OptiFine/SmoothFont →
-// GlStateManager VerifyError via ASM GET_BLEND_STATE; rebind →
-// NoSuchMethodError KeyBinding.func_151469_h; MouseTweaks →
-// NoClassDefFoundError 'bib'). Dev whitelist = mixinbooter only (etim
-// rides the dev classpath; full-list acceptance goes through
-// runObfClient). Hold everything else out of run/mods before the client
-// launches and restore it when the client exits — finalizedBy also fires
-// on a crash exit. If a gradle round is killed hard and the hold leaks,
-// `gradlew etimDevClientModsRestore` puts the master list back by hand.
-tasks.register('etimDevClientModsHold') {
+// ============ ETIM compat hard gate (user ruling 2026-10-20) ============
+// The 兼容.md list is a HARD requirement, not optional: on every client
+// round the compatibility mods load alongside etim; a missing entry fails
+// the launch loudly (listing what is absent) — never silently dropped, and
+// never held as a group (supersedes 580525a's hold-all dev chain). Per-mod
+// exemption requires a crash-log citation; the only four are the deobf-dev
+// crashers held by etimDevClientModsGate below (evidence table:
+// testharness/client/README.md). etimTestServerModsHold keeps holding the
+// client-only jars out of runObfServer rounds — a dedicated server crashes
+// on them (cited there), and server rounds are not client-test rounds.
+def etimCompatList = [
+        'CraftingTweaks_1.12.2-8.1.9.jar',
+        'fencejumper-1.12-1.0.5.jar',
+        'inventorysorter-1.12.2-1.13.3+57.jar',
+        'jecharacters-1.12.0-3.7.3.jar',
+        'jei_1.12.2-4.22.0.1034.jar',
+        'journeymap-forge-1.12.2-6.0.10.jar',
+        'MouseTweaks-2.10.1-mc1.12.2.jar',
+        'OptiFine_1.12.2_HD_U_G5.jar',
+        'rad-1.12-1.1.0.jar',
+        'rebind-1.12.2-2.7.5-0.jar',
+        'SmoothFont-mc1.12.2-2.1.4.jar',
+        'StepUp-1.0.2-mc1.10-1.12.jar',
+        'theoneprobe-1.12-1.4.28.jar'
+]
+// per-mod dev-runtime exemptions, each with its crash citation (README):
+def etimDevCrashExempt = [
+        'OptiFine_1.12.2_HD_U_G5.jar',      // GlStateManager.getBlendState VerifyError (ASM GET_BLEND_STATE)
+        'SmoothFont-mc1.12.2-2.1.4.jar',    // same VerifyError
+        'rebind-1.12.2-2.7.5-0.jar',        // NoSuchMethodError KeyBinding.func_151469_h()I
+        'MouseTweaks-2.10.1-mc1.12.2.jar'   // NoClassDefFoundError 'bib' (obf class name)
+]
+def jarNames = { File dir ->
+    (dir.isDirectory() ? dir.listFiles() : []).findAll { it.isFile() && it.name.endsWith('.jar') }*.name
+}
+def etimCompatMissing = { List<String> presentNames ->
+    etimCompatList.findAll { n -> !presentNames.contains(n) }
+}
+
+// dev runClient: gate the FULL list first, then hold ONLY the four
+// crash-exempt jars out for this round — the remaining 9 load alongside
+// etim. Restored on exit by etimDevClientModsRestore (finalizedBy also
+// fires on a crash exit; manual recovery after a hard kill:
+// `gradlew etimDevClientModsRestore`).
+tasks.register('etimDevClientModsGate') {
     onlyIf { gradle.startParameter.taskNames.any { it == 'runClient' } }
     doLast {
         def modsDir = file('run/mods')
+        def missing = etimCompatMissing(jarNames(modsDir))
+        if (!missing.isEmpty()) {
+            throw new GradleException('[etim-harness] COMPAT GATE FAIL (dev runClient) — the 兼容.md list is a hard gate, these compat mod(s) are missing from run/mods: ' + missing)
+        }
         def holdDir = file('run/mods-hold-dev')
         holdDir.mkdirs()
-        def held = (modsDir.isDirectory() ? modsDir.listFiles() : []).findAll {
-            it.isFile() && it.name.endsWith('.jar') &&
-                    !(it.name.replaceFirst('^!+', '') =~ /(?i)mixinbooter/)
-        }
-        held.each { f -> f.renameTo(new File(holdDir, f.name)) }
-        println "[etim-harness] dev client mods hold complete (${held.size()} jar(s) held)"
+        def held = jarNames(modsDir).findAll { etimDevCrashExempt.contains(it) }
+        held.each { n -> new File(modsDir, n).renameTo(new File(holdDir, n)) }
+        println '[etim-harness] dev compat gate OK: ' + (etimCompatList.size() - held.size()) + ' compat mod(s) load alongside etim; ' + held.size() + ' crash-exempt held per-mod: ' + held
     }
 }
 tasks.register('etimDevClientModsRestore') {
@@ -489,8 +523,35 @@ tasks.register('etimDevClientModsRestore') {
     }
 }
 tasks.named('runClient').configure {
-    dependsOn 'etimDevClientModsHold'
+    dependsOn 'etimDevClientModsGate'
     finalizedBy 'etimDevClientModsRestore'
+}
+
+// obf client (the default client-test chain): the full list must be
+// present. Ordering note: the testharness obfclient-fix.init.gradle doFirst
+// (added during gradle INIT, before this script configures) runs first and
+// syncs the etim jar — this gate only checks the compat list itself.
+tasks.named('runObfClient').configure {
+    doFirst {
+        def missing = etimCompatMissing(jarNames(file('run/obfuscated/mods')))
+        if (!missing.isEmpty()) {
+            throw new GradleException('[etim-harness] COMPAT GATE FAIL (obf client) — the 兼容.md list is a hard gate, these compat mod(s) are missing from run/obfuscated/mods: ' + missing)
+        }
+        println "[etim-harness] obf compat gate OK: all ${etimCompatList.size()} compat mod(s) present alongside etim"
+    }
+}
+
+// manual audit entry point (no onlyIf): prints the missing list for both
+// faces; throws if either face is incomplete
+tasks.register('etimCompatGateCheck') {
+    doLast {
+        def devMissing = etimCompatMissing(jarNames(file('run/mods')))
+        def obfMissing = etimCompatMissing(jarNames(file('run/obfuscated/mods')))
+        println '[etim-harness] compat gate check — dev run/mods missing: ' + (devMissing.isEmpty() ? 'none' : devMissing) + ' | obf run/obfuscated/mods missing: ' + (obfMissing.isEmpty() ? 'none' : obfMissing)
+        if (!devMissing.isEmpty() || !obfMissing.isEmpty()) {
+            throw new GradleException('[etim-harness] COMPAT GATE FAIL — see missing list above')
+        }
+    }
 }
 
 // ETIM test harness: dump the runObfServer javaexec launch line (runner-driven
