@@ -390,8 +390,9 @@ tasks.register('prioritizeCoremods') {
 
 // prepareObfModsFolder (RFG 2.0.3) wipes run/obfuscated/mods on every run
 // (doFirst deleteQuietly on all entries) and repopulates only its own
-// framework set — the user's compatibility mods (兼容.md list, living in
-// run/mods for the dev launcher) would be lost every launch. Restore them
+// framework set — the user's compatibility mods (兼容.md master list kept
+// in run/mods, feeding the obf chain; dev runClient rounds hold it via
+// etimDevClientModsHold below) would be lost every launch. Restore them
 // right after the wipe: copy everything from run/mods except this mod's
 // dev jar and the framework jars the obf folder already provisions itself.
 tasks.register('restoreCompatMods') {
@@ -449,6 +450,48 @@ tasks.register('etimTestServerModsHold') {
     }
 }
 tasks.named('restoreCompatMods') { finalizedBy 'etimTestServerModsHold' }
+
+// ETIM test harness: a dev runClient round must NOT load the production
+// coremod/SRG-built jars from the 兼容.md list — the deobf dev runtime
+// crashes on them (2026-10-20 four-crash round: OptiFine/SmoothFont →
+// GlStateManager VerifyError via ASM GET_BLEND_STATE; rebind →
+// NoSuchMethodError KeyBinding.func_151469_h; MouseTweaks →
+// NoClassDefFoundError 'bib'). Dev whitelist = mixinbooter only (etim
+// rides the dev classpath; full-list acceptance goes through
+// runObfClient). Hold everything else out of run/mods before the client
+// launches and restore it when the client exits — finalizedBy also fires
+// on a crash exit. If a gradle round is killed hard and the hold leaks,
+// `gradlew etimDevClientModsRestore` puts the master list back by hand.
+tasks.register('etimDevClientModsHold') {
+    onlyIf { gradle.startParameter.taskNames.any { it == 'runClient' } }
+    doLast {
+        def modsDir = file('run/mods')
+        def holdDir = file('run/mods-hold-dev')
+        holdDir.mkdirs()
+        def held = (modsDir.isDirectory() ? modsDir.listFiles() : []).findAll {
+            it.isFile() && it.name.endsWith('.jar') &&
+                    !(it.name.replaceFirst('^!+', '') =~ /(?i)mixinbooter/)
+        }
+        held.each { f -> f.renameTo(new File(holdDir, f.name)) }
+        println "[etim-harness] dev client mods hold complete (${held.size()} jar(s) held)"
+    }
+}
+tasks.register('etimDevClientModsRestore') {
+    doLast {
+        def holdDir = file('run/mods-hold-dev')
+        if (!holdDir.isDirectory()) {
+            return
+        }
+        def modsDir = file('run/mods')
+        def restored = holdDir.listFiles().findAll { it.isFile() }
+        restored.each { f -> f.renameTo(new File(modsDir, f.name)) }
+        println "[etim-harness] dev client mods restore complete (${restored.size()} jar(s) restored)"
+    }
+}
+tasks.named('runClient').configure {
+    dependsOn 'etimDevClientModsHold'
+    finalizedBy 'etimDevClientModsRestore'
+}
 
 // ETIM test harness: dump the runObfServer javaexec launch line (runner-driven
 // server execu; invoke via `gradlew etimDumpServerExec`)
