@@ -84,6 +84,25 @@ public final class ETIMQuality {
                 || item instanceof ItemBow;
     }
 
+    /**
+     * ❗B2-1（第二批实测窗阻断修复）：the etim.quality side-car remover.
+     * F-7-30's right-click preview writes the picked rung onto the RESULT
+     * slot stack in place (R196 SlotCrafting:294) — that tag-only delta is
+     * the picker's OWN output, not a recipe change; the crafting driver's
+     * result-CHANGED guard must not see it (feeding it in rewinds the picker
+     * to min one tick after every cycle). Callers compare COPIES.
+     */
+    public static void stripSideCar(ItemStack stack) {
+        NBTTagCompound root = stack.getTagCompound();
+        if (root != null && root.hasKey(TAG_ETIM, 10 /* compound */)) {
+            NBTTagCompound etim = root.getCompoundTag(TAG_ETIM);
+            etim.removeTag(TAG_QUALITY);
+            if (etim.isEmpty()) {
+                root.removeTag(TAG_ETIM);
+            }
+        }
+    }
+
     public static boolean has(ItemStack stack) {
         return stack.hasTagCompound()
                 && stack.getTagCompound().hasKey(TAG_ETIM, 10 /* compound */)

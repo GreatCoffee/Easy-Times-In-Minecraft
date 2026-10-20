@@ -145,7 +145,10 @@ public final class ETIMCrafting {
         // server saw, before any arm/cycle branch can reroute it).
         log(player, "result click btn=" + button);
         Timer timer = TIMERS.get(player.getUniqueID());
-        if (timer == null || !ItemStack.areItemStacksEqual(timer.lastOutput, output)) {
+        // ❗B2-1: same identity guard semantics as the driver tick — the
+        // preview's quality tag is NOT a recipe change (else the second
+        // right-click would rewind the picker before cycling).
+        if (timer == null || !sameCraftingIdentity(timer.lastOutput, output)) {
             recomputePeriod(player, output, timer);
             timer = TIMERS.get(player.getUniqueID());
         }
@@ -244,7 +247,12 @@ public final class ETIMCrafting {
             }
             return;
         }
-        if (timer == null || !ItemStack.areItemStacksEqual(timer.lastOutput, output)) {
+        // ❗B2-1（第二批实测窗 A 级阻断修复）：the identity guard ignores the
+        // etim.quality side-car — F-7-30's preview write is the picker's own
+        // output, not a recipe change (otherwise every right-click cycle is
+        // rewound to min one tick later, run 19:43:13). Item/metadata/other
+        // NBT deltas still trip the guard (picker floor preserved).
+        if (timer == null || !sameCraftingIdentity(timer.lastOutput, output)) {
             // Non-equivalent result: R196 onCraftMatrixChanged → clearCrafting
             // (five fields all reset, timer re-armed for the new output only by a take click).
             log(player, "result CHANGED sig=" + outputSignature(output)
@@ -380,6 +388,29 @@ public final class ETIMCrafting {
             }
         }
         return null;
+    }
+
+    /**
+     * ❗B2-1（第二批实测窗 A 级阻断修复）：the crafting-identity comparison —
+     * {@link ItemStack#areItemStacksEqual} with the {@code etim.quality}
+     * side-car stripped from BOTH sides (copies; the real stacks keep their
+     * tags — the preview tag must stay on the result slot for the client).
+     * The F-7-30 preview write is the picker's own output, not a recipe
+     * change; real deltas (item / metadata / any other NBT) still trip the
+     * guard, so the picker floor (recomputePeriod) keeps its recipe-change
+     * semantics intact. R196 side: SlotCrafting:294 writes the rung in place
+     * and updatePlayerCrafting recomputes cost WITHOUT resetting
+     * crafting_result_index — this helper restores exactly that.
+     */
+    private static boolean sameCraftingIdentity(ItemStack a, ItemStack b) {
+        if (a.isEmpty() || b.isEmpty()) {
+            return ItemStack.areItemStacksEqual(a, b);
+        }
+        ItemStack ac = a.copy();
+        ItemStack bc = b.copy();
+        ETIMQuality.stripSideCar(ac);
+        ETIMQuality.stripSideCar(bc);
+        return ItemStack.areItemStacksEqual(ac, bc);
     }
 
     private static void recomputePeriod(EntityPlayer player, ItemStack output, Timer existing) {
