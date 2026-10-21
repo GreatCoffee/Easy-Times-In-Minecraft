@@ -25,13 +25,24 @@ import net.minecraft.util.text.TextFormatting;
  * to it in-game:
  *
  * <ul>
- *   <li>{@code /etest food <satiation> [nutrition]} — the dual pools
- *       (task 1.5), clamped to the per-pool limit; {@code 0 0} starves the
- *       player for the 2.3 gates. Under the legacy food model:
- *       {@code /etest food <points> [saturation]}.</li>
- *   <li>{@code /etest health <points>} — health, clamped to the cap.</li>
- *   <li>{@code /etest level <number>} — XP level (task-1.2 cap applies).</li>
+ *   <li>{@code /etest food <satiation> [nutrition] [player]} — the dual
+ *       pools (task 1.5), clamped to the per-pool limit; {@code 0 0} starves
+ *       the player for the 2.3 gates. Under the legacy food model:
+ *       {@code /etest food <points> [saturation] [player]}.</li>
+ *   <li>{@code /etest health <points> [player]} — health, clamped to the
+ *       cap.</li>
+ *   <li>{@code /etest level <number> [player]} — XP level (task-1.2 cap
+ *       applies).</li>
+ *   <li>{@code /etest debt <levels> [player]} — staged death-debt levels
+ *       (0..40).</li>
  * </ul>
+ *
+ * Every sub-command accepts an optional trailing {@code [player]} argument
+ * (a player name or a selector such as {@code @p}) so RCON/console can drive
+ * the test rounds; when it is omitted the sender must be a player. In the
+ * two-token-value shape ({@code food <satiation> [nutrition]}) the middle
+ * token is the nutrition/saturation value when numeric, otherwise the player
+ * argument — pure-digit player names must use a selector.
  */
 public class CommandDevTest extends CommandBase {
 
@@ -52,10 +63,6 @@ public class CommandDevTest extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        if (!(sender instanceof EntityPlayerMP)) {
-            throw new PlayerNotFoundException("commands.state.no_player");
-        }
-        EntityPlayerMP player = (EntityPlayerMP) sender;
         if (args.length == 0) {
             throw new WrongUsageException("commands.etest.usage");
         }
@@ -63,31 +70,47 @@ public class CommandDevTest extends CommandBase {
         switch (args[0]) {
             case "food":
             case "hunger":
-                executeFood(player, args);
+                executeFood(server, sender, args);
                 break;
             case "health":
-                executeHealth(player, args);
+                executeHealth(server, sender, args);
                 break;
             case "level":
-                executeLevel(player, args);
+                executeLevel(server, sender, args);
                 break;
             case "debt":
-                executeDebt(player, args);
+                executeDebt(server, sender, args);
                 break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
         }
     }
 
-    private static void executeFood(EntityPlayerMP player, String[] args) throws CommandException {
+    private static void executeFood(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");
+        }
+        // Target: /etest food <satiation> [value] [player]. The middle token
+        // is the nutrition/saturation value when numeric, otherwise the
+        // optional player argument; four tokens are always <satiation>
+        // <value> <player>. Pure-digit player names use a selector.
+        EntityPlayerMP player;
+        if (args.length >= 4) {
+            player = CommandBase.getPlayer(server, sender, args[3]);
+        } else if (args.length == 3 && !isNumber(args[2])) {
+            player = CommandBase.getPlayer(server, sender, args[2]);
+        } else if (sender instanceof EntityPlayerMP) {
+            player = (EntityPlayerMP) sender;
+        } else {
+            throw new PlayerNotFoundException("commands.state.no_player");
         }
         if (ETIMConfig.foodModel) {
             // Task 1.5 pools: /etest food <satiation> <nutrition>
             int limit = ETIMFoodStats.getLimit(player);
             int satiation = CommandBase.parseInt(args[1], 0, limit);
-            int nutrition = args.length >= 3 ? CommandBase.parseInt(args[2], 0, limit) : satiation;
+            int nutrition = args.length >= 3 && isNumber(args[2])
+                    ? CommandBase.parseInt(args[2], 0, limit)
+                    : satiation;
             ETIMFoodStats.IFoodState state = ETIMFoodStats.get(player);
             if (state == null) {
                 return;
@@ -100,7 +123,8 @@ public class CommandDevTest extends CommandBase {
             // Legacy model: /etest food <points> [saturation]
             int cap = PlayerStatLimits.getHealthFoodCap(player.experienceLevel);
             int level = CommandBase.parseInt(args[1], 0, cap);
-            float saturation = args.length >= 3 ? (float) parseDouble(args[2], 0.0D, cap) : 0.0F;
+            float saturation = args.length >= 3 && isNumber(args[2])
+                    ? (float) parseDouble(args[2], 0.0D, cap) : 0.0F;
             FoodStats stats = player.getFoodStats();
             stats.setFoodLevel(level);
             stats.setFoodSaturationLevel(saturation); // vanilla clamps saturation to the food level
@@ -109,20 +133,22 @@ public class CommandDevTest extends CommandBase {
         FoodDebugNetwork.sync(player);
     }
 
-    private static void executeHealth(EntityPlayerMP player, String[] args) throws CommandException {
+    private static void executeHealth(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");
         }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 2);
         int cap = PlayerStatLimits.getHealthFoodCap(player.experienceLevel);
         float health = (float) parseDouble(args[1], 0.0D, cap);
         player.setHealth(health);
         respond(player, "commands.etest.health_set", health, cap);
     }
 
-    private static void executeLevel(EntityPlayerMP player, String[] args) throws CommandException {
+    private static void executeLevel(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");
         }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 2);
         int target = CommandBase.parseInt(args[1], 0, ETIMConfig.levelCap);
         // R196: the LEVEL derives from POINTS (cost budget §53-56 reads
         // experienceTotal). A legit level-N player owns exactly curve(N)
@@ -139,15 +165,16 @@ public class CommandDevTest extends CommandBase {
     // （curve 仅作注释引用，不留可调用私有方法）。
 
     /**
-     * {@code /etest debt <levels>} — stages the R196 death-debt state directly
+     * {@code /etest debt <levels> [player]} — stages the R196 death-debt state directly
      * (negative level, linear total −20·L) without grinding deaths; the same
      * shape the respawn settle writes (death/ETIMDeathXp linear negative
      * half). Unlimited to 0..40 (= R196 xp(−40) floor).
      */
-    private static void executeDebt(EntityPlayerMP player, String[] args) throws CommandException {
+    private static void executeDebt(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");
         }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 2);
         int debt = CommandBase.parseInt(args[1], 0, 40);
         player.experienceLevel = -debt;
         player.experienceTotal = -20 * debt;
@@ -155,6 +182,33 @@ public class CommandDevTest extends CommandBase {
         player.connection.sendPacket(new SPacketSetExperience(
                 player.experience, player.experienceTotal, player.experienceLevel));
         respond(player, "commands.etest.debt_set", -debt, player.experienceTotal);
+    }
+
+    /**
+     * Target-player resolution for the sub-commands whose only optional token
+     * is the trailing one ({@code health} / {@code level} / {@code debt}):
+     * when present it is the player argument (a name or a selector such as
+     * {@code @p}), otherwise the sender resolves the target and must then be
+     * a player (RCON/console always passes the target explicitly).
+     */
+    private static EntityPlayerMP targetOrSender(MinecraftServer server, ICommandSender sender,
+            String[] args, int targetIndex) throws CommandException {
+        if (args.length > targetIndex) {
+            return CommandBase.getPlayer(server, sender, args[targetIndex]);
+        }
+        if (sender instanceof EntityPlayerMP) {
+            return (EntityPlayerMP) sender;
+        }
+        throw new PlayerNotFoundException("commands.state.no_player");
+    }
+
+    private static boolean isNumber(String token) {
+        try {
+            Integer.parseInt(token);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private static void respond(EntityPlayerMP player, String key, Object... params) {

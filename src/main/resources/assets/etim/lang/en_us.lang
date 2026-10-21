@@ -38,7 +38,7 @@ commands.etest.level_set=Set: level=%s
 etim.hunger.craftDeny=Too hungry to craft
 etim.hunger.placeDeny=Too hungry to place hard blocks
 etim.hunger.weakStrike=Too hungry to hurt anything with bare hands
-commands.etest.usage=/etest food <satiation> [nutrition] /etest health <health> /etest level <level> /etest debt <0..40> (legacy food model: /etest food <points> [saturation])
+commands.etest.usage=/etest food <satiation> [nutrition] [player] /etest health <health> [player] /etest level <level> [player] /etest debt <0..40> [player] (legacy food model: /etest food <points> [saturation] [player])
 commands.etest.food_set_pool=Set pools: satiation=%s nutrition=%s (limit %s points)
 commands.etest.food_set_bar=Set: food=%s saturation=%s (cap %s points)
 etim.debug.food_pools=Pools: satiation=%s nutrition=%s hunger pool=%s
