@@ -125,7 +125,12 @@ public final class ETIMWeatherClock {
      */
     public void update(WorldServer w) {
         long total = w.getWorldInfo().getWorldTotalTime();
-        long day = total / DAY_TICKS + 1L;
+        // ❗F-14-26/R2 — the day-key is the R196 ADJUSTED day (World.java:5303-5309
+        // getDayOfWorld = (t+6000)/24000 + 1, the same clock firstTick's
+        // (day-1)*24000-6000 block anchoring already follows). The unadjusted
+        // day flipped the schedule refresh 6000 ticks after the day block had
+        // started, delaying every random event starting in t%24000 ∈ [18000,24000).
+        long day = (total + 6000L) / DAY_TICKS + 1L;
         if (day != cachedDay) {
             cachedDay = day;
             spans = buildSchedule(w, total);
@@ -203,7 +208,9 @@ public final class ETIMWeatherClock {
      * yesterday's tail spill over (merge padding).
      */
     private static List<Span> buildSchedule(WorldServer w, long total) {
-        long day = total / DAY_TICKS + 1L;
+        // ❗F-14-26/R2 — adjusted day, same face as update() (the cachedDay key
+        // and the logSchedule day parameter follow automatically).
+        long day = (total + 6000L) / DAY_TICKS + 1L;
         List<Span> events = new ArrayList<Span>();
         generateDay(w, day - 1L, events);
         generateDay(w, day, events);
@@ -237,10 +244,14 @@ public final class ETIMWeatherClock {
         }
 
         // R196 :6472-6476 blood-moon forced thunderstorm. Trigger face =
-        // ETIMMoonState.phase (override-aware); the exclusion gate above
-        // stays PURE (verdict must-add 2: the override must not be able to
-        // pollute the exclusion logic itself).
-        if (ETIMConfig.bloodMoonStorm && ETIMMoonState.phase(w) == ETIMMoonState.Phase.BLOOD) {
+        // ETIMMoonState.phaseForDay(day) (override-aware) — ❗F-14-33/R2: the
+        // gate reads the GENERATED day's own bloodness (R196 :6472
+        // isBloodMoon(first_tick_of_day + 6000L, false) = the day parameter's
+        // pure derivation), not the current-day phase; this also kills the
+        // spurious previous-day inertia span on blood-moon days (proven lazy,
+        // now exact). The exclusion gate above stays PURE (verdict must-add 2:
+        // the override must not be able to pollute the exclusion logic itself).
+        if (ETIMConfig.bloodMoonStorm && ETIMMoonState.phaseForDay(day) == ETIMMoonState.Phase.BLOOD) {
             Span e = new Span();
             e.start = firstTick + 6000L; // = the day block start (06:00)
             e.end = e.start + ETIMConfig.bloodMoonStormTicks;
@@ -259,9 +270,13 @@ public final class ETIMWeatherClock {
                 || isBlueTick(e.start) || isBlueTick(e.end);
     }
 
-    /** R196 isBloodMoon(t, false) (World.java:2371-2375, static form). */
+    /** R196 isBloodMoon(t, false) (World.java:2371-2375, static form) — the
+     * full form carries the {@code !isBlueMoon} clause (F-14-25/R1 声明保真:
+     * on %128 days isBlueTick excludes the same event anyway, zero behavior
+     * difference — F-13-13 net-effect note). */
     private static boolean isBloodTick(long t) {
-        return (t / DAY_TICKS + 1L) % 32L == 0L;
+        long day = t / DAY_TICKS + 1L;
+        return day % 32L == 0L && day % 128L != 0L;
     }
 
     /** R196 isBlueMoon(t, false) (World.java:2387-2388). */
@@ -269,9 +284,28 @@ public final class ETIMWeatherClock {
         return (t / DAY_TICKS + 1L) % 128L == 0L;
     }
 
-    /** R196 isHarvestMoon(t, false) (World.java:2399-2400): the blood moon 8 days out. */
+    /** R196 isDaytime(long) (World.java:1699-1702): adjusted ∈ (5000, 19000). */
+    private static boolean isDayTick(long t) {
+        long adjusted = (t % DAY_TICKS + 6000L) % DAY_TICKS;
+        return adjusted > 5000L && adjusted < 19000L;
+    }
+
+    /**
+     * ❗F-14-25/R1 — R196 isHarvestMoon(t, true) (World.java:2399-2400)
+     * UNFOLDED: the night gate (exclusively_at_night — the :6460-6463 four
+     * sampling points pass true, so a daytime sample point is never
+     * excluded) plus isBloodMoon(t+192000, true)'s blood test with its
+     * {@code !isBlueMoon} clause. The double night gate collapses (t and
+     * t+192000 share the time of day), giving exactly:
+     * isDaytime(t) → false, else blood-8-days-out AND not blue.
+     */
     private static boolean isHarvestTick(long t) {
-        return isBloodTick(t + 192000L);
+        if (isDayTick(t)) {
+            return false;
+        }
+        long h = t + 192000L; // R196 :2400 — the blood moon 8 days out
+        long dayH = h / DAY_TICKS + 1L;
+        return dayH % 32L == 0L && dayH % 128L != 0L;
     }
 
     /** R196 mergeWeatherEvents (World.java:6491-6521): 6000 padding, storm carried. */

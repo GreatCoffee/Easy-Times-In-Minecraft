@@ -11,6 +11,7 @@ import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.monster.EntityZombieVillager;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntityWaterMob;
+import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -46,9 +47,11 @@ import java.util.WeakHashMap;
  *       the LOS gate): {@code counter < 800 → false}; then a nearest player
  *       within 1024 <b>blocks radius</b> or any fence within ±16 xz / ±1 y
  *       → {@code counter = 0}; then {@code counter <= 2400 → false}.</li>
- *   <li><b>EntityZombie layer</b> (MITE EntityZombie :346-347): converting /
- *       villager-born zombies never despawn (1.12: every
- *       {@code EntityZombieVillager}).</li>
+ *   <li><b>EntityZombie layer</b> (MITE EntityZombie :346-347): converting
+ *       zombies never despawn. ❗F-11-28: the R196 village-source hook is a
+ *       dead constant-false, so the exemption is converting-ONLY — 1.12
+ *       {@code EntityZombieVillager} is exempt iff converting (the old
+ *       every-zombie-villager hold was over-broad).</li>
  *   <li><b>Tame gate</b> (MITE EntityWolf:558 front guard): owned animals
  *       hold; the R196 cat override and the vanilla-only tameables share it.
  *       1.12's chicken-jockey gate and the Golem/Villager constant-false
@@ -174,9 +177,17 @@ public final class DespawnRules {
      * canDespawn. Returns the despawn eligibility.
      */
     public static boolean canDespawn(EntityLiving e) {
-        // zombie layer — checked before everything else (MITE :346-347)
-        if (e instanceof EntityZombieVillager) {
-            log(e, "hold=zombie-villager");
+        // zombie layer — checked before everything else (MITE :346-347).
+        // ❗F-11-28（裁点④ A(a)，回裁判词升级）: R196 EntityZombie:347
+        // `!isConverting() && !wasVillagerThatWasGeneratedWithVillage() ? super
+        // : false` — the village-source hook is a dead constant-false
+        // (EntityZombie:341-343, zero overrides), so the effective exemption is
+        // converting-ONLY. 1.12.2 has no village-source flag (EntityZombieVillager
+        // NBT: IsConverting/ConversionTime only) — the narrowing is a bit-exact
+        // transposition: non-converting zombie villagers now walk the chain and
+        // can despawn like plain zombies.
+        if (e instanceof EntityZombieVillager && ((EntityZombieVillager) e).isConverting()) {
+            log(e, "hold=zombie-villager-converting");
             return false;
         }
         // tame layer — R196 EntityWolf:558 puts {@code !isTamed} in front of
@@ -184,6 +195,16 @@ public final class DespawnRules {
         // the same hold, noted in the deviation list)
         if (e instanceof net.minecraft.entity.passive.EntityTameable
                 && ((net.minecraft.entity.passive.EntityTameable) e).isTamed()) {
+            return false;
+        }
+        // ❗F-11-26 — the wolf 2400-age gate, the missing half of R196
+        // EntityWolf:558 `(age > 2400 || IMob) && !tamed && super` (the IMob
+        // clause is dead for wolves — EntityWolf is never IMob; the tame layer
+        // above already carries the !isTamed half). A wild wolf inside its
+        // first two minutes is held regardless of the counter walls below;
+        // past 2400 it walks the chain like any animal.
+        if (e instanceof EntityWolf && e.ticksExisted <= 2400) {
+            log(e, "hold=wolf-age");
             return false;
         }
         World w = ((EntityAccessor) e).etim$getWorld();

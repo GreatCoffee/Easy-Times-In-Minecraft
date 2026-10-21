@@ -32,7 +32,17 @@ public final class ETIMMoonState {
         override = value == null ? "" : value.trim().toLowerCase();
     }
 
-    public static Phase phase(WorldServer w) {
+    /**
+     * ❗F-14-26/R2 — the phase derivation on an EXPLICIT day number (R196
+     * {@code isBloodMoon(first_tick_of_day + 6000L, false)} at World.java:6472:
+     * the forced-storm gate reads the GENERATED day's own bloodness, not the
+     * current-day phase). Blue outranks blood (the blood test carries
+     * {@code !isBlueMoon} and %128 ⊂ %32 — World.java:2374). The override
+     * stays a passthrough here so the schedule's trigger face keeps its
+     * test-determinism channel (verdict must-add 2 untouched: the EXCLUSION
+     * gate reads the static tick forms, no override).
+     */
+    public static Phase phaseForDay(long day) {
         switch (override) {
             case "blue": return Phase.BLUE;
             case "blood": return Phase.BLOOD;
@@ -40,18 +50,6 @@ public final class ETIMMoonState {
             case "new": return Phase.NEW;
             default: break;
         }
-        // R196 pure derivation (World.java:2374/:2388 static; :2378/:2392 for
-        // the instance auto-false in non-Overworld). day numbering follows
-        // R196: day = totalWorldTime / 24000 + 1. Blue outranks blood: the
-        // blood test carries !isBlueMoon and %128 ⊂ %32, so on a %128 day
-        // blue wins — judging blue first is equivalent. FULL/NEW are
-        // numerically identical to the provider clock (day%8==0 ⇔ phase 0,
-        // day%8==4 ⇔ phase 4); world rendering/brightness keep reading the
-        // provider body, do NOT rewire it here.
-        if (w.provider.getDimension() != 0) {
-            return Phase.OTHER;
-        }
-        long day = w.getTotalWorldTime() / 24000L + 1L;
         if (day % 128L == 0L) {
             return Phase.BLUE;
         }
@@ -65,6 +63,22 @@ public final class ETIMMoonState {
             return Phase.NEW;
         }
         return Phase.OTHER;
+    }
+
+    public static Phase phase(WorldServer w) {
+        if (w.provider.getDimension() != 0) {
+            return Phase.OTHER;
+        }
+        // R196 pure derivation (World.java:2374/:2388 static; :2378/:2392 for
+        // the instance auto-false in non-Overworld). day numbering follows
+        // R196: day = totalWorldTime / 24000 + 1. FULL/NEW are numerically
+        // identical to the provider clock (day%8==0 ⇔ phase 0, day%8==4 ⇔
+        // phase 4); world rendering/brightness keep reading the provider
+        // body, do NOT rewire it here. NOTE: the UNADJUSTED day is correct
+        // for the phase static form (R2 note ① — the :2374/:2388 formulas
+        // take the raw tick); the +6000 offset belongs ONLY to the weather
+        // clock's day-key face.
+        return phaseForDay(w.getTotalWorldTime() / 24000L + 1L);
     }
 
     /**
