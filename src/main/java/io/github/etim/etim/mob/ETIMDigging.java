@@ -4,11 +4,16 @@ import javax.annotation.Nullable;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.mining.ETIMMining;
 import io.github.etim.etim.playerstate.ETIMBedSafety;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFalling;
+import net.minecraft.block.BlockLeaves;
 import net.minecraft.block.BlockMelon;
 import net.minecraft.block.BlockPumpkin;
+import net.minecraft.block.BlockSlab;
+import net.minecraft.block.BlockStoneSlab;
+import net.minecraft.block.BlockWoodSlab;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -327,11 +332,13 @@ public final class ETIMDigging {
     }
 
     /**
-     * R196 canDestroyBlock (:160-229). v1 list-only blacklist (B 级登记:
-     * the {@code requiresTool} harvest gate is deferred to v1.5 with the
-     * physical-reach line face); the cactus term transposes verbatim
-     * ({@code block == cactus && (invuln || undead)} membership — undead
-     * mobs cannot chew cacti).
+     * R196 canDestroyBlock (:160-229) — the ❗F-15-F1 rebuild. v1 shipped a
+     * registered B-级 list-only blacklist; M批 ports the verbatim
+     * deny-conjunct (黑名单转主动 + 工具项极性反转 + 狂化空手挖石, per
+     * playground/doc/v1.5-账本.md §一/§二). The Earth-Elemental branch
+     * (:199-204) is MITE-only and stays gone. The cactus allow-membership
+     * keeps the invulnerable/undead caveat verbatim (:220 De Morgan) — an
+     * undead digger chews cacti.
      */
     public static boolean canDestroyBlock(EntityZombie digger, IState s,
             int x, int y, int z, boolean checkClipping) {
@@ -362,16 +369,21 @@ public final class ETIMDigging {
         if (block == Blocks.AIR || state.getMaterial().isLiquid()) { // :189-196
             return false;
         }
-        ItemStack held = digger.getHeldItemMainhand();
-        boolean hasEffectiveTool = heldToolEffective(held, state); // R196 :207/:210 反门 → vanilla isToolEffective face
-        boolean blacklisted = hasEffectiveTool
-                || block == Blocks.SAND || block == Blocks.DIRT || block == Blocks.GRASS
-                || block == Blocks.GRAVEL || block == Blocks.SNOW_LAYER || block == Blocks.FARMLAND
-                || block == Blocks.CLAY || block == Blocks.LEAVES || block == Blocks.WOOL
-                || (block == Blocks.CACTUS && (digger.isEntityInvulnerable(DamageSource.GENERIC) || digger.isEntityUndead()))
-                || block == Blocks.SPONGE || block instanceof BlockPumpkin || block instanceof BlockMelon
-                || block == Blocks.MYCELIUM || block == Blocks.HAY_BLOCK || block == Blocks.GLASS_PANE;
-        return !blacklisted && !isBlockClaimedByAnother(digger, x, y, z); // :208-228
+        // ❗F-15-F1 — R196 :206-228 verbatim: the dig is denied only when the
+        // FULL deny-conjunct holds (:227-228 ternary). An effective tool
+        // (:206-207 — the vanilla isToolEffective transpose) SATISFIES the
+        // gate: the :210 term drops out and the dig proceeds (with the
+        // :288-298 str divisor in the cooloff) — the v1 blacklist had this
+        // polarity inverted. The rage unlock (:209) compares the harvest
+        // LEVEL, never hardness (U-01): a frenzied bare-hand digger chews
+        // anything with min level < 2 — sandstone slab (1) yes, stone (2)
+        // never, obsidian (3) absolutely not (D-04).
+        boolean hasEffectiveTool = heldToolEffective(digger.getHeldItemMainhand(), state);
+        boolean denied = requiresToolFace(state)                                  // :208
+                && (!isFrenzied(digger) || getMinHarvestLevelFace(state) >= 2)    // :209
+                && !hasEffectiveTool                                              // :210
+                && !isAlwaysChewable(block, digger);                              // :211-226
+        return !denied && !isBlockClaimedByAnother(digger, x, y, z);              // :227-228
     }
 
     /**
@@ -382,12 +394,130 @@ public final class ETIMDigging {
         if (held == null || !(held.getItem() instanceof ItemTool)) {
             return false;
         }
+        // R196 ItemTool.isEffectiveAgainstBlock :143-148 — the sandstone-model
+        // slab / axe special case (J-11): an axe is effective there.
+        if (state.getBlock() instanceof BlockStoneSlab
+                && state.getValue(BlockStoneSlab.VARIANT) == BlockStoneSlab.EnumType.SAND
+                && held.getItem() instanceof net.minecraft.item.ItemAxe) {
+            return true;
+        }
         for (String toolClass : held.getItem().getToolClasses(held)) {
             if (state.getBlock().isToolEffective(toolClass, state)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * R196 Material.requiresTool (:405-407): {@code requires_tool || block
+     * min harvest level > 0} (the E-06 definition face). The 1.12
+     * requires_tool carrier is the vanilla Material tool flag (ROCK/IRON/
+     * ANVIL/SNOW/CRAFTED_SNOW set it; GROUND/WOOD/SAND/GLASS/CLOTH/ICE do
+     * not).
+     */
+    private static boolean requiresToolFace(IBlockState state) {
+        return !state.getMaterial().isToolNotRequired() || getMinHarvestLevelFace(state) > 0;
+    }
+
+    /**
+     * R196 Block.getMinHarvestLevel(metadata) (Block.java:2903-2905 — the
+     * constructor seeds the block level from the material :1145): the block
+     * row over the material level. The block rows are the ETIMMining R196
+     * table (ores/sandstone/logs/obsidian — the audit-ported clinit rows).
+     * The slab families carry the R196 BlockSlab face (:117-120): the
+     * sandstone model row = 1, the rest the material level; the double
+     * delegates (BlockDoubleSlab :112-115). The R196 obsidian-slab row has
+     * no 1.12 slab carrier — obsidian's face rides the block table row (3).
+     */
+    private static int getMinHarvestLevelFace(IBlockState state) {
+        Block block = state.getBlock();
+        if (block instanceof BlockStoneSlab) {
+            return state.getValue(BlockStoneSlab.VARIANT) == BlockStoneSlab.EnumType.SAND
+                    ? 1 : materialMinLevel(state.getMaterial());
+        }
+        if (block instanceof BlockWoodSlab) {
+            return materialMinLevel(state.getMaterial()); // wood = 0
+        }
+        Integer row = ETIMMining.getTableMinLevel(state);
+        if (row != null) {
+            return row;
+        }
+        return materialMinLevel(state.getMaterial());
+    }
+
+    /**
+     * R196 material levels (Material.java:14-28, E-07): stone 2 / iron 3 /
+     * wood 0; the unset utility materials default 0. The R196-only equipment
+     * materials (flint/copper/silver/gold/ancient_metal/obsidian-as-material)
+     * have no 1.12 carriers.
+     */
+    private static int materialMinLevel(Material material) {
+        if (material == Material.ROCK) {
+            return 2;   // Material.java:23
+        }
+        if (material == Material.IRON) {
+            return 3;   // Material.java:49-53
+        }
+        return 0;
+    }
+
+    /**
+     * R196 :211-226 — the always-chewable list (the v1 list polarity
+     * inverted by the rebuild: these blocks chew regardless of the :208/
+     * :210 faces). The cactus membership keeps the invulnerable/undead
+     * caveat verbatim (:220). The leaves row transposes as the BlockLeaves
+     * class (R196 has one leaves block; v1 pinned Blocks.LEAVES only and
+     * missed LEAVES2).
+     */
+    private static boolean isAlwaysChewable(Block block, EntityZombie digger) {
+        return block == Blocks.SAND || block == Blocks.DIRT || block == Blocks.GRASS
+                || block == Blocks.GRAVEL || block == Blocks.SNOW_LAYER || block == Blocks.FARMLAND
+                || block == Blocks.CLAY || block instanceof BlockLeaves || block == Blocks.WOOL
+                || (block == Blocks.CACTUS && (digger.isEntityInvulnerable(DamageSource.GENERIC) || digger.isEntityUndead()))
+                || block == Blocks.SPONGE || block instanceof BlockPumpkin || block instanceof BlockMelon
+                || block == Blocks.MYCELIUM || block == Blocks.HAY_BLOCK || block == Blocks.GLASS_PANE;
+    }
+
+    /**
+     * R196 BlockSlab.getBlockHardness (:88-115): the model-block table ×
+     * 0.5F — stone 2.4 / sandStone 1.0 / planks 0.8 / quartz 0.8 /
+     * cobblestone+brick+stoneBrick+netherBrick 2.0 (the obsidian row, 2.4,
+     * has no 1.12 slab carrier) — and the double face (BlockDoubleSlab
+     * :107-110) = the single × 2.0. The E-09 cooloff rows read this face:
+     * stone slab 1.2 → 180 frenzied; sandstone slab 0.5 → 75.
+     */
+    private static float slabHardnessFace(IBlockState state) {
+        float table;
+        if (state.getBlock() instanceof BlockStoneSlab) {
+            switch (state.getValue(BlockStoneSlab.VARIANT)) {
+                case STONE:
+                    table = 2.4F;
+                    break;
+                case SAND:
+                    table = 1.0F;
+                    break;
+                case WOOD:  // the planks-model row (the wood-textured stone slab)
+                case QUARTZ:
+                    table = 0.8F;
+                    break;
+                default:    // cobblestone / brick / stoneBrick / netherBrick
+                    table = 2.0F;
+                    break;
+            }
+        } else {
+            table = 0.8F; // BlockWoodSlab family — the planks-model row
+        }
+        return ((BlockSlab) state.getBlock()).isDouble() ? table : table * 0.5F;
+    }
+
+    /** The R196 :267 hardness funnel: the slab faces for the R196 slab families, the ETIMMining R196 table (vanilla fallback) elsewhere. */
+    private static float r196BlockHardness(IBlockState state, World world, BlockPos pos) {
+        Block block = state.getBlock();
+        if (block instanceof BlockStoneSlab || block instanceof BlockWoodSlab) {
+            return slabHardnessFace(state);
+        }
+        return ETIMMining.getHardness(state, world, pos);
     }
 
     /**
@@ -460,7 +590,7 @@ public final class ETIMDigging {
         if (block == Blocks.AIR) {
             return 40; // :263-265
         }
-        int cooloff = (int) (300.0F * state.getBlockHardness(digger.world, pos)); // :267
+        int cooloff = (int) (300.0F * r196BlockHardness(state, digger.world, pos)); // :267 — the R196 hardness funnel (slab faces + the ETIMMining table)
         if (isFrenzied(digger)) {
             cooloff /= 2; // :268-270
         }

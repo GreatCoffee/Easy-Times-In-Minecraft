@@ -48,9 +48,6 @@ import net.minecraft.world.World;
  *       also permits — the server-side funnel here stays strict.</li>
  *   <li>isPortable now ports the audit P2 list (containers via
  *       hasTileEntity, spawner opts out) with the fixed 4.0×hardness floor.</li>
- *   <li>Dig hunger (0.01×endurance per tick, even on failed digs) ships with
- *       the food reform; tool durability gates ({@code onBlockDestroyed})
- *       pending the 追加任务 5 dump.</li>
  * </ul></p>
  */
 public final class ETIMMining {
@@ -164,6 +161,11 @@ public final class ETIMMining {
     public static int getMinHarvestLevel(IBlockState state) {
         Integer min = BLOCK_MIN_LEVEL.get(state.getBlock().getRegistryName().getPath());
         return min != null ? min : Math.max(0, state.getBlock().getHarvestLevel(state));
+    }
+
+    /** The R196 block-level row only ({@code null} = no row) — the dig-gate face (F-15-F1) stacks the material level under it. */
+    public static Integer getTableMinLevel(IBlockState state) {
+        return BLOCK_MIN_LEVEL.get(state.getBlock().getRegistryName().getPath());
     }
 
     /** R196 block hardness; missing rows keep the vanilla value. */
