@@ -2,6 +2,7 @@ package io.github.etim.etim.commands;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMFoodStats;
+import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.playerstate.PlayerStatLimits;
 import net.minecraft.command.CommandBase;
@@ -11,6 +12,8 @@ import net.minecraft.command.PlayerNotFoundException;
 import net.minecraft.command.WrongUsageException;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.server.SPacketSetExperience;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.FoodStats;
@@ -35,6 +38,10 @@ import net.minecraft.util.text.TextFormatting;
  *       applies).</li>
  *   <li>{@code /etest debt <levels> [player]} — staged death-debt levels
  *       (0..40).</li>
+ *   <li>{@code /etest enchant <slot> <level> [player]} — injects Endurance
+ *       into the slot's stack NBT (vanilla {@code /enchant} only touches the
+ *       held item and refuses same-level restaging, so one RCON step covers
+ *       the level-sampling rounds and the "worn" semantics natively).</li>
  * </ul>
  *
  * Every sub-command accepts an optional trailing {@code [player]} argument
@@ -80,6 +87,9 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "debt":
                 executeDebt(server, sender, args);
+                break;
+            case "enchant":
+                executeEnchant(server, sender, args);
                 break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
@@ -182,6 +192,40 @@ public class CommandDevTest extends CommandBase {
         player.connection.sendPacket(new SPacketSetExperience(
                 player.experience, player.experienceTotal, player.experienceLevel));
         respond(player, "commands.etest.debt_set", -debt, player.experienceTotal);
+    }
+
+    /**
+     * {@code /etest enchant <slot> <level> [player]} — writes Endurance
+     * straight into the slot's stack NBT. Vanilla {@code /enchant} is
+     * held-item-only and merges levels via the anvil rules (same-level
+     * restaging rejected), while the sampling rounds need to restage the
+     * chest slot in one step; {@link ItemStack#addEnchantment} updates the
+     * same-id entry in place, so this is a pure restage. Slot names follow
+     * {@link EntityEquipmentSlot#fromString}; offhand is excluded (Endurance
+     * reads the armor semantics, C1). The NBT change reaches the client via
+     * the inventory container's per-tick detectAndSendChanges.
+     */
+    private static void executeEnchant(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 3) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityEquipmentSlot slot;
+        try {
+            slot = EntityEquipmentSlot.fromString(args[1]);
+        } catch (IllegalArgumentException e) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        if (slot == EntityEquipmentSlot.OFFHAND) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 3);
+        ItemStack stack = player.getItemStackFromSlot(slot);
+        if (stack.isEmpty()) {
+            throw new CommandException("commands.etest.enchant_empty_slot", args[1]);
+        }
+        int level = CommandBase.parseInt(args[2], 1, ETIMEnchantments.ENDURANCE.getMaxLevel());
+        stack.addEnchantment(ETIMEnchantments.ENDURANCE, level);
+        respond(player, "commands.etest.enchant_set", args[1], level, stack.getDisplayName());
     }
 
     /**

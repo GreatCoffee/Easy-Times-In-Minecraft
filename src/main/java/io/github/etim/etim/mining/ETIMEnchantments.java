@@ -1,5 +1,6 @@
 package io.github.etim.etim.mining;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.Tags;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.util.ResourceLocation;
@@ -28,5 +29,9 @@ public final class ETIMEnchantments {
         ENDURANCE = new io.github.etim.etim.hunger.EnchantmentEndurance();
         ENDURANCE.setRegistryName(new ResourceLocation(Tags.MOD_ID, "endurance"));
         ForgeRegistries.ENCHANTMENTS.register(ENDURANCE);
+        // Harness convenience: the numeric id for raw-NBT staging
+        // (/replaceitem ... {ench:[{id:n,lvl:L}]}) without a decompile round.
+        ETIM.LOGGER.info("[EtimInit] enchant {} id={}", ENDURANCE.getRegistryName(),
+                Enchantment.getEnchantmentID(ENDURANCE));
     }
 }
