@@ -187,10 +187,15 @@ public final class ETIMSpawnTables {
      *       wired here via {@link #ghastDedup} (was dead code); the boundary
      *       is aligned to R196's strict {@code <}.</li>
      * </ul>
-     * R196's infernal-creeper / WoodSpider / BlackWidow / 50%-surface
-     * branches have no ETIM counterpart entities or were not listed in the
-     * audit verdict — 未立项面不落（audit12 对照表仅列三门；50% 表面重掷门
-     * 嫌疑缺口另行登记待核）。16 attempts exhausted → null.
+     * R196's infernal-creeper / WoodSpider / BlackWidow branches have no
+     * ETIM counterpart entities — 未立项面不落（audit12 对照表仅列三门）。
+     * 会话五裁定（裁定回执 补16）：R196 WorldServer:714-716 = BlackWidowSpider
+     * 专属 50% 通过门（per-attempt 50% accept，else 续走 :614 内部 16-attempt
+     * 循环重掷——null 仅在 16 连败后，p≈2⁻¹⁶；调用方 SpawnerAnimals 对 null
+     * 的续试是外层，非门本体）+ :718-720 = DemonSpider/PhaseSpider 专属
+     * y≤32 地下支——载体类均不在 1.12 宇宙 ⇒ 不可达 ⇒ 登记等价不立项；
+     * 三类入宇宙时随类立项（v2+ 触发条件挂账）。
+     * 16 attempts exhausted → null.
      */
     public static Biome.SpawnListEntry pickSpawn(WorldServer w, EnumCreatureType type, BlockPos pos) {
         for (int attempt = 0; attempt < 16; attempt++) {
