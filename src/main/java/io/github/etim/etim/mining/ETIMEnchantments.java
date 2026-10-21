@@ -14,6 +14,7 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 public final class ETIMEnchantments {
 
     public static Enchantment TREE_FELLING;
+    public static Enchantment ENDURANCE;
 
     private ETIMEnchantments() {
     }
@@ -22,5 +23,10 @@ public final class ETIMEnchantments {
         TREE_FELLING = new EnchantmentTreeFelling();
         TREE_FELLING.setRegistryName(new ResourceLocation(Tags.MOD_ID, "tree_felling"));
         ForgeRegistries.ENCHANTMENTS.register(TREE_FELLING);
+        // v2+ Endurance product order (F-5-29): R196 Enchantment.java:45 id 95,
+        // four levels, chestpieces only — hunger-package port (G4/G5).
+        ENDURANCE = new io.github.etim.etim.hunger.EnchantmentEndurance();
+        ENDURANCE.setRegistryName(new ResourceLocation(Tags.MOD_ID, "endurance"));
+        ForgeRegistries.ENCHANTMENTS.register(ENDURANCE);
     }
 }

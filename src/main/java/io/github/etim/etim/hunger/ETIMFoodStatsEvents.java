@@ -60,6 +60,7 @@ public final class ETIMFoodStatsEvents {
         if (ETIMConfig.foodModel) {
             ETIMFoodStats.tick(player);          // pools + starve/heal + write-through
             ETIMFoodStats.tickBedGate(player);   // starved sleeper ejection (R196 :421-429)
+            ETIMEndurance.tickBowDraw(player);   // R196 ServerPlayer:641-643 (per active bow tick)
         }
         if (player.world.getWorldTime() % 20 == 0 && player instanceof EntityPlayerMP) {
             FoodDebugNetwork.sync((EntityPlayerMP) player);
@@ -103,6 +104,23 @@ public final class ETIMFoodStatsEvents {
         ETIMFoodStats.logFoodEntry(player, "tooHungry (right-click bed while starvation)");
         // sleep-01 judge face: the shipped entry refusal is a sleep-window reason.
         io.github.etim.etim.playerstate.ETIMSleepClock.logWindowBlocked(player.world, "hungerDeny");
+    }
+
+    /**
+     * R196 EntityPlayer:2654-2661 (server, non-creative, successful
+     * placement): {@code min(hardness, 20) × endurance modifier}. PlaceEvent
+     * is server-side only (ItemStack.java:200 wraps every server onItemUse
+     * in ForgeHooks.onPlaceItemIntoWorld) and carries the placed state; the
+     * same-tick hoe-till event is skipped inside
+     * {@code ETIMEndurance.chargePlace}.
+     */
+    @SubscribeEvent
+    public static void onPlaceBlock(net.minecraftforge.event.world.BlockEvent.PlaceEvent event) {
+        if (event.getPlayer() == null) {
+            return;
+        }
+        ETIMEndurance.chargePlace(event.getPlayer(),
+                event.getPlacedBlock().getBlockHardness(event.getWorld(), event.getPos()));
     }
 
     /** Client learns the values on login (server-authoritative display). */

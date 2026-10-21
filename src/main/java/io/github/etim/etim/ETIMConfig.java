@@ -111,6 +111,20 @@ public final class ETIMConfig {
     public static float inBedHitListHunger = 0.04F;
     /** Hungrover sleepers are woken with a message (R196 EntityPlayer:421-429; nutrition == 0). 断粮（营养 == 0）的睡眠者会被提示踢醒（R196 EntityPlayer:421-429）。 */
     public static boolean hungerSleepDeny = true;
+    /** Endurance enchantment max level (R196 EnchantmentEndurance:9-10 = 4; modifier floor 0.2). 耐力附魔最高等级（R196 = 4；修饰量下限 0.2）。 */
+    public static int enduranceMaxLevel = 4;
+    /** Hunger-charge modifier step per endurance level (R196 EnchantmentHelper:404 = 0.2, modifier = 1.0 − level×0.2). 每级耐力对饥渴充账的修饰步长（R196 = 0.2，修饰量 = 1.0 − 等级×0.2）。 */
+    public static float enduranceModifierStep = 0.2F;
+    /** Dig hunger charge per active dig tick, server-side loop (R196 PlayerControllerMP:181/:222 = 0.01×mod; server-direct per 终审 G2). 每个活跃挖掘 tick 的饥饿池充账，走服务端挖掘循环（R196 = 0.01×mod；服务端直收，终审 G2）。 */
+    public static float digHungerPerTick = 0.01F;
+    /** Attack hunger charge per landed swing (R196 EntityPlayer:1314 = 0.3×mod). 每次有效挥击的充账（R196 = 0.3×mod）。 */
+    public static float attackHungerPerHit = 0.3F;
+    /** Place charge cap on the placed block hardness (R196 EntityPlayer:2659 = min(hardness, 20)). 放置充账的硬度封顶（R196 = min(硬度, 20)）。 */
+    public static float placeHungerHardnessCap = 20.0F;
+    /** Hoe charge divisor on the tilled block hardness (R196 ItemHoe:76 = hardness/2×mod). 锄地充账的硬度除数（R196 = 硬度/2×mod）。 */
+    public static float hoeHungerDivisor = 2.0F;
+    /** Bow-draw hunger charge per active tick (R196 ServerPlayer:642 = 0.01×mod). 拉弓每 tick 充账（R196 = 0.01×mod）。 */
+    public static float bowDrawHungerPerTick = 0.01F;
     /** TEST compression: hunger accrual and starve progress ×5 (burn a unit every 20 s, a starve strike every 5 s). 测试压缩：饥饿积攒与饿伤进度 ×5（每 20 s 烧掉 1 点食物，每 5 s 掉一次饿伤）。 */
     public static boolean foodTestMode = false;
     /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). 每次池变动/进食/饿伤判定都写一行 [FoodLog] 服务端日志（开发通道）。 */
@@ -446,6 +460,27 @@ public final class ETIMConfig {
         hungerSleepDeny = config.getBoolean("hungerSleepDeny", "food", true,
                 comment("Players with nutrition == 0 cannot sleep: lie-down is refused / sleepers are woken (R196 EntityPlayer:421-429, tile.bed.wakeHungry/tooHungry)",
                         "营养为0时无法睡觉：已躺下的会被踢醒（R196 EntityPlayer:421-429，wakeHungry/tooHungry 语义）"));
+        enduranceMaxLevel = config.getInt("enduranceMaxLevel", "food", enduranceMaxLevel, 0, 10,
+                comment("Endurance enchantment max level (R196 EnchantmentEndurance:9-10 = 4; modifier floor 0.2)",
+                        "耐力附魔最高等级（R196 EnchantmentEndurance:9-10 = 4；修饰量下限 0.2）"));
+        enduranceModifierStep = config.getFloat("enduranceModifierStep", "food", enduranceModifierStep, 0.0F, 1.0F,
+                comment("Hunger-charge modifier step per endurance level (R196 EnchantmentHelper:404 = 0.2, modifier = 1.0 - level*0.2)",
+                        "每级耐力对饥渴充账的修饰步长（R196 = 0.2，修饰量 = 1.0 − 等级×0.2）"));
+        digHungerPerTick = config.getFloat("digHungerPerTick", "food", digHungerPerTick, 0.0F, 1.0F,
+                comment("Dig hunger charge per active dig tick via the server dig loop (R196 PlayerControllerMP:181/:222 = 0.01 x modifier; server-direct per the Endurance verdict G2)",
+                        "每个活跃挖掘 tick 的饥饿池充账，走服务端挖掘循环（R196 PlayerControllerMP:181/:222 = 0.01×修饰量；服务端直收，终审 G2）"));
+        attackHungerPerHit = config.getFloat("attackHungerPerHit", "food", attackHungerPerHit, 0.0F, 10.0F,
+                comment("Attack hunger charge per landed swing (R196 EntityPlayer:1314 = 0.3 x modifier)",
+                        "每次有效挥击的充账（R196 EntityPlayer:1314 = 0.3×修饰量）"));
+        placeHungerHardnessCap = config.getFloat("placeHungerHardnessCap", "food", placeHungerHardnessCap, 0.0F, 1000.0F,
+                comment("Place charge cap on the placed block hardness (R196 EntityPlayer:2659 = min(hardness, 20))",
+                        "放置充账的硬度封顶（R196 EntityPlayer:2659 = min(硬度, 20)）"));
+        hoeHungerDivisor = config.getFloat("hoeHungerDivisor", "food", hoeHungerDivisor, 1.0F, 100.0F,
+                comment("Hoe charge divisor on the tilled block hardness (R196 ItemHoe:76 = hardness/2 x modifier)",
+                        "锄地充账的硬度除数（R196 ItemHoe:76 = 硬度/2×修饰量）"));
+        bowDrawHungerPerTick = config.getFloat("bowDrawHungerPerTick", "food", bowDrawHungerPerTick, 0.0F, 1.0F,
+                comment("Bow-draw hunger charge per active tick (R196 ServerPlayer:642 = 0.01 x modifier)",
+                        "拉弓每 tick 充账（R196 ServerPlayer:642 = 0.01×修饰量）"));
         foodTestMode = config.getBoolean("foodTestMode", "food", false,
                 comment("TEST compression: hunger accrual and starve progress ×5 (a food unit burns every 20 s, a starve strike every 5 s)",
                         "测试压缩：饥饿积累与饿伤进度×5（每20秒烧掉1点食物、每5秒掉一次饿伤）"));
@@ -760,6 +795,9 @@ public final class ETIMConfig {
                 || Float.isNaN(starveGainPerTick) || Float.isNaN(starveHealthCeiling)
                 || Float.isNaN(healBasePerTick) || Float.isNaN(healPerNutritionPerTick)
                 || Float.isNaN(inBedHitListHunger)
+                || Float.isNaN(enduranceModifierStep) || Float.isNaN(digHungerPerTick)
+                || Float.isNaN(attackHungerPerHit) || Float.isNaN(placeHungerHardnessCap)
+                || Float.isNaN(hoeHungerDivisor) || Float.isNaN(bowDrawHungerPerTick)
                 || Float.isNaN(malnourishedHungerFactor)
                 || Float.isNaN(wetnessRainLight) || Float.isNaN(wetnessRainThunder)
                 || Float.isNaN(wetnessImmerseAbove) || Float.isNaN(wetnessImmerseBelow)
