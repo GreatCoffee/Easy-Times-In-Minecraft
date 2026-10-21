@@ -630,9 +630,10 @@ public final class ETIMDigging {
         Block block = state.getBlock();
         s.setDestroyBlockProgress(s.getDestroyBlockProgress() + 1);
         // [SleepLog] bed-dig — the destroy-progress edge row (AI-02 verdict §7:
-        // one per strike; progress reads 1..9 while digging, 10 on the break
-        // strike before the -1 reset). Covers both the dig-task strikes and
-        // the attack-melee dig branch (both funnel through this strike).
+        // one per strike; the state seeds -1, so progress reads 0..9 while
+        // digging, 10 on the break strike before the -1 reset). Covers both the
+        // dig-task strikes and the attack-melee dig branch (both funnel through
+        // this strike).
         ETIM.LOGGER.info("[SleepLog] bed-dig mob=" + digger.getClass().getSimpleName()
                 + " x,y,z=" + x + "," + y + "," + z
                 + " progress=" + s.getDestroyBlockProgress()
