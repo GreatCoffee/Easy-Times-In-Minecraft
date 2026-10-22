@@ -128,6 +128,24 @@ public final class TestDriver {
         });
     }
 
+    /**
+     * {@code /etest release} — one use-stop packet ({@code RELEASE_USE_ITEM}
+     * → {@code player.stopActiveHand()}, rfg NetHandlerPlayServer:693): the
+     * bow-release / eat-stop face. The RCON script spaces useitem → release
+     * itself (sleep), so no delay parameter.
+     */
+    public static void release(EntityPlayerMP player) {
+        schedule(player, "release", 1, () -> {
+            CPacketPlayerDigging packet = new CPacketPlayerDigging();
+            CPacketPlayerDiggingAccessor fields = (CPacketPlayerDiggingAccessor) (Object) packet;
+            fields.etim$setAction(CPacketPlayerDigging.Action.RELEASE_USE_ITEM);
+            fields.etim$setPosition(player.getPosition());
+            fields.etim$setFacing(EnumFacing.DOWN);
+            player.connection.processPlayerDigging(packet);
+            ETIM.LOGGER.info("[TestLog] step=release player={}", player.getName());
+        });
+    }
+
     private static void schedule(EntityPlayerMP player, String label, int delayTicks, Runnable action) {
         STEPS.add(new Step(player, label, delayTicks, action));
     }

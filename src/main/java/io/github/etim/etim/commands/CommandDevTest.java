@@ -16,6 +16,7 @@ import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -58,6 +59,10 @@ import java.util.Arrays;
  *       {@code NetHandlerPlayServer} over the next server ticks, so the
  *       drain-probe rounds run without real client input. Each executed step
  *       logs a {@code [TestLog]} line.</li>
+ *   <li>{@code /etest hold <item> [player]} — stages the main hand directly
+ *       (T2 缺口① 裁定=b); {@code /etest release [player]} — queues the
+ *       bow-release / eat-stop packet. Together they close the held-item and
+ *       hold-use gaps so R7/R8/R9 join the one-RCON suite.</li>
  * </ul>
  *
  * Every sub-command accepts an optional trailing {@code [player]} argument
@@ -118,6 +123,12 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "useitem":
                 executeUseItem(server, sender, args);
+                break;
+            case "hold":
+                executeHold(server, sender, args);
+                break;
+            case "release":
+                executeRelease(server, sender, args);
                 break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
@@ -322,6 +333,37 @@ public class CommandDevTest extends CommandBase {
         EntityPlayerMP player = targetOrSender(server, sender, args, 1);
         TestDriver.useItem(player);
         respond(player, "commands.etest.drive_queued", "useitem");
+    }
+
+    /**
+     * {@code /etest hold <item> [player]} — stages the main hand directly
+     * (T2 缺口① 裁定=b：R7 place / R8 till / R9 bow need a held item, and
+     * the 1.12 hotbar selection is client-side state unreachable from RCON).
+     * Mirrors the T0-2 staging pattern: direct inventory write into the
+     * currently-selected hotbar slot ({@code currentItem} = what
+     * {@code getHeldItem(MAIN_HAND)} reads), client syncs via the inventory
+     * container's per-tick detectAndSendChanges. Accepts the plain registry
+     * name or the {@code minecraft:} domain form.
+     */
+    private static void executeHold(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 2);
+        Item item = Item.getByNameOrId(args[1]);
+        if (item == null) {
+            throw new CommandException("commands.etest.hold_bad_item", args[1]);
+        }
+        ItemStack stack = new ItemStack(item, 1);
+        player.inventory.setInventorySlotContents(player.inventory.currentItem, stack);
+        respond(player, "commands.etest.hold_set", stack.getDisplayName());
+    }
+
+    /** {@code /etest release [player]} — queues one use-stop packet (bow release / eat stop). */
+    private static void executeRelease(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = targetOrSender(server, sender, args, 1);
+        TestDriver.release(player);
+        respond(player, "commands.etest.drive_queued", "release");
     }
 
     /**
