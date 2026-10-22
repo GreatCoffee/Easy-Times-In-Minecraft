@@ -1,5 +1,6 @@
 package io.github.etim.etim.commands;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mining.ETIMEnchantments;
@@ -10,16 +11,21 @@ import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.command.PlayerNotFoundException;
 import net.minecraft.command.WrongUsageException;
+import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketSetExperience;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.FoodStats;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
+
+import java.util.Arrays;
 
 /**
  * {@code /etest} — dev/test state setter for the debug-overlay test rounds
@@ -199,11 +205,15 @@ public class CommandDevTest extends CommandBase {
      * straight into the slot's stack NBT. Vanilla {@code /enchant} is
      * held-item-only and merges levels via the anvil rules (same-level
      * restaging rejected), while the sampling rounds need to restage the
-     * chest slot in one step; {@link ItemStack#addEnchantment} updates the
-     * same-id entry in place, so this is a pure restage. Slot names follow
-     * {@link EntityEquipmentSlot#fromString}; offhand is excluded (Endurance
-     * reads the armor semantics, C1). The NBT change reaches the client via
-     * the inventory container's per-tick detectAndSendChanges.
+     * chest slot in one step. 1.12.2 {@link ItemStack#addEnchantment} is
+     * APPEND semantics (same-id entries accumulate; EnchantmentHelper reads
+     * the FIRST matching entry — E1, harness-t01-t02-verdict), so same-id
+     * entries are filtered out before the add: exactly one entry survives,
+     * at the injected level (this also cleans an already-polluted stack).
+     * Slot names follow {@link EntityEquipmentSlot#fromString}; offhand is
+     * excluded (Endurance reads the armor semantics, C1). The NBT change
+     * reaches the client via the inventory container's per-tick
+     * detectAndSendChanges.
      */
     private static void executeEnchant(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 3) {
@@ -224,8 +234,23 @@ public class CommandDevTest extends CommandBase {
             throw new CommandException("commands.etest.enchant_empty_slot", args[1]);
         }
         int level = CommandBase.parseInt(args[2], 1, ETIMEnchantments.ENDURANCE.getMaxLevel());
+        // E1: addEnchantment appends, so drop same-id entries first — the
+        // ench list ends up holding exactly one Endurance entry.
+        int id = Enchantment.getEnchantmentID(ETIMEnchantments.ENDURANCE);
+        NBTTagCompound tag = stack.getTagCompound() != null ? stack.getTagCompound() : new NBTTagCompound();
+        NBTTagList list = tag.getTagList("ench", 10);
+        NBTTagList kept = new NBTTagList();
+        for (int i = 0; i < list.tagCount(); i++) {
+            NBTTagCompound entry = list.getCompoundTagAt(i);
+            if (entry.getShort("id") != id) {
+                kept.appendTag(entry); // keep other enchantments verbatim (no reverse lookup)
+            }
+        }
+        tag.setTag("ench", kept);
+        stack.setTagCompound(tag); // empty list must persist too
         stack.addEnchantment(ETIMEnchantments.ENDURANCE, level);
-        respond(player, "commands.etest.enchant_set", args[1], level, stack.getDisplayName());
+        respond(player, "commands.etest.enchant_set", args[1],
+                ETIMEnchantments.ENDURANCE.getTranslatedName(level), stack.getDisplayName());
     }
 
     /**
@@ -256,6 +281,11 @@ public class CommandDevTest extends CommandBase {
     }
 
     private static void respond(EntityPlayerMP player, String key, Object... params) {
+        // S2 (harness-t01-t02-verdict): RCON/bot rounds can't see the green
+        // chat line and bot clients show the raw key only — mirror the
+        // receipt to the server log so a verdict window greps [EtimTest].
+        ETIM.LOGGER.info("[EtimTest] {} player={} params={}", key, player.getName(),
+                Arrays.toString(params));
         player.sendMessage(new TextComponentTranslation(key, params)
                 .setStyle(new Style().setColor(TextFormatting.GREEN)));
     }
