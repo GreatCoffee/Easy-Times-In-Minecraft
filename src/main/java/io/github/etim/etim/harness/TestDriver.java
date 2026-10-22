@@ -2,6 +2,8 @@ package io.github.etim.etim.harness;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.mixins.CPacketPlayerDiggingAccessor;
+import io.github.etim.etim.mixins.CPacketPlayerTryUseItemOnBlockAccessor;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.EntitySelector;
 import net.minecraft.entity.Entity;
@@ -41,6 +43,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * disconnect and needs the target within 6 blocks (3 if not visible);
  * {@code processTryUseItemOnBlock / processTryUseItem} route to
  * {@code interactionManager.processRightClick(Block) }.</p>
+ *
+ * <p>Verdict-lesson (harness-t1-verdict.md, 2 FAIL same root): packet
+ * convenience constructors annotated {@code @SideOnly(Side.CLIENT)} exist in
+ * the compile-time merged jar but are <em>stripped from the dedicated-server
+ * runtime jar</em> — building those packets server-side goes through the
+ * no-arg constructor plus accessor-mixin field injection (same packet bytes,
+ * same boundary).</p>
  */
 @Mod.EventBusSubscriber(modid = Tags.MOD_ID)
 public final class TestDriver {
@@ -88,8 +97,19 @@ public final class TestDriver {
     /** {@code /etest useblock <x> <y> <z>} — one right-click on the block (till/place faces). */
     public static void useBlock(EntityPlayerMP player, BlockPos pos) {
         schedule(player, "useblock", 1, () -> {
-            player.connection.processTryUseItemOnBlock(new CPacketPlayerTryUseItemOnBlock(
-                    pos, EnumFacing.UP, EnumHand.MAIN_HAND, 0.5F, 0.5F, 0.5F));
+            // No-arg ctor + field injection: the six-argument convenience
+            // constructor is @SideOnly(CLIENT) and stripped from the
+            // dedicated-server runtime jar (T1 verdict FAIL root cause).
+            CPacketPlayerTryUseItemOnBlock packet = new CPacketPlayerTryUseItemOnBlock();
+            CPacketPlayerTryUseItemOnBlockAccessor fields =
+                    (CPacketPlayerTryUseItemOnBlockAccessor) (Object) packet;
+            fields.etim$setPosition(pos);
+            fields.etim$setPlacedBlockDirection(EnumFacing.UP);
+            fields.etim$setHand(EnumHand.MAIN_HAND);
+            fields.etim$setFacingX(0.5F);
+            fields.etim$setFacingY(0.5F);
+            fields.etim$setFacingZ(0.5F);
+            player.connection.processTryUseItemOnBlock(packet);
             ETIM.LOGGER.info("[TestLog] step=useblock player={} pos={}", player.getName(), pos);
         });
     }
@@ -125,11 +145,12 @@ public final class TestDriver {
             }
             try {
                 step.action.run();
-            } catch (Exception e) {
-                // e.g. the attack selector matched nothing — the verdict
-                // window greps this line instead of a silent no-op.
-                ETIM.LOGGER.info("[TestLog] step={} player={} ERROR={}", step.label,
-                        step.player.getName(), e.getMessage());
+            } catch (Throwable t) {
+                // A harness defect must never take the server down (T1
+                // verdict N3: NoSuchMethodError is an Error and escaped the
+                // previous catch(Exception)). FAILED line = verdict-visible.
+                ETIM.LOGGER.info("[TestLog] step={} player={} FAILED={}", step.label,
+                        step.player.getName(), t);
             }
         }
     }
@@ -157,7 +178,15 @@ public final class TestDriver {
 
     private static void feedDig(EntityPlayerMP player, BlockPos pos,
             CPacketPlayerDigging.Action action, String phase) {
-        player.connection.processPlayerDigging(new CPacketPlayerDigging(action, pos, EnumFacing.DOWN));
+        // No-arg ctor + field injection — the (Action, BlockPos, EnumFacing)
+        // convenience constructor is @SideOnly(CLIENT), absent from the
+        // dedicated-server runtime jar (T1 verdict FAIL root cause).
+        CPacketPlayerDigging packet = new CPacketPlayerDigging();
+        CPacketPlayerDiggingAccessor fields = (CPacketPlayerDiggingAccessor) (Object) packet;
+        fields.etim$setAction(action);
+        fields.etim$setPosition(pos);
+        fields.etim$setFacing(EnumFacing.DOWN);
+        player.connection.processPlayerDigging(packet);
         ETIM.LOGGER.info("[TestLog] step=dig-{} player={} pos={}", phase, player.getName(), pos);
     }
 }
