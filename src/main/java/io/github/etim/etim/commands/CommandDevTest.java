@@ -2,6 +2,7 @@ package io.github.etim.etim.commands;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.harness.TestDriver;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
@@ -21,6 +22,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketSetExperience;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.FoodStats;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
@@ -48,6 +50,14 @@ import java.util.Arrays;
  *       into the slot's stack NBT (vanilla {@code /enchant} only touches the
  *       held item and refuses same-level restaging, so one RCON step covers
  *       the level-sampling rounds and the "worn" semantics natively).</li>
+ *   <li>{@code /etest attack <selector> [player]} / {@code dig <x> <y> <z>
+ *       [player]} / {@code useblock <x> <y> <z> [player]} / {@code useitem
+ *       [player]} — T1 packet driver: schedules the vanilla client→server
+ *       packets ({@code CPacketUseEntity(ATTACK)}, digging START/STOP, right
+ *       click on block / into air) onto the acting player's
+ *       {@code NetHandlerPlayServer} over the next server ticks, so the
+ *       drain-probe rounds run without real client input. Each executed step
+ *       logs a {@code [TestLog]} line.</li>
  * </ul>
  *
  * Every sub-command accepts an optional trailing {@code [player]} argument
@@ -96,6 +106,18 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "enchant":
                 executeEnchant(server, sender, args);
+                break;
+            case "attack":
+                executeAttack(server, sender, args);
+                break;
+            case "dig":
+                executeDig(server, sender, args);
+                break;
+            case "useblock":
+                executeUseBlock(server, sender, args);
+                break;
+            case "useitem":
+                executeUseItem(server, sender, args);
                 break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
@@ -251,6 +273,55 @@ public class CommandDevTest extends CommandBase {
         stack.addEnchantment(ETIMEnchantments.ENDURANCE, level);
         respond(player, "commands.etest.enchant_set", args[1],
                 ETIMEnchantments.ENDURANCE.getTranslatedName(level), stack.getDisplayName());
+    }
+
+    /**
+     * {@code /etest attack <selector> [player]} — queues one
+     * {@code CPacketUseEntity(ATTACK)} against the selector's entity
+     * (resolved on the server thread, centered on the acting player, e.g.
+     * {@code @e[type=zombie,limit=1]}), for the attackDrain probe rounds.
+     */
+    private static void executeAttack(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 2);
+        TestDriver.attack(player, args[1]);
+        respond(player, "commands.etest.drive_queued", "attack " + args[1]);
+    }
+
+    /**
+     * {@code /etest dig <x> <y> <z> [player]} — queues the dig pair: digging
+     * START on the block (reach-checked by the vanilla handler) and STOP
+     * after the driver's hold window, so the per-tick digDrain face
+     * accumulates and the break completes server-side.
+     */
+    private static void executeDig(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 4);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        TestDriver.dig(player, pos);
+        respond(player, "commands.etest.drive_queued", "dig " + pos);
+    }
+
+    /** {@code /etest useblock <x> <y> <z> [player]} — queues one right-click on the block. */
+    private static void executeUseBlock(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 4);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        TestDriver.useBlock(player, pos);
+        respond(player, "commands.etest.drive_queued", "useblock " + pos);
+    }
+
+    /** {@code /etest useitem [player]} — queues one right-click into the air. */
+    private static void executeUseItem(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = targetOrSender(server, sender, args, 1);
+        TestDriver.useItem(player);
+        respond(player, "commands.etest.drive_queued", "useitem");
     }
 
     /**
