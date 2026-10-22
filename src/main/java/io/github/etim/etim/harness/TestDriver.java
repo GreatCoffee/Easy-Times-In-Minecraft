@@ -55,9 +55,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public final class TestDriver {
 
     /**
-     * Ticks a {@code /etest dig} holds the START packet before STOP. Bare-hand
-     * dirt: 5 initial hit-delay ticks + ~15 progress ticks ≈ tick 20; 40 covers
-     * the typical probe block and lets the per-tick digDrain face accumulate.
+     * Ticks a {@code /etest dig} holds the START packet before STOP. Measured
+     * model (harness-t1-retest.md, driver path — supersedes the earlier
+     * client-loop guess): every tick from START charges one digDrain line
+     * (no client-style blockHitDelay gap on this single-START path); the
+     * break itself lands in blockRemoving at STOP when progress ≥ 0.7, else
+     * the server keeps digging past STOP until progress ≥ 1.0 — bare-hand
+     * dirt measured 149 active ticks total, tallgrass breaks on the STOP
+     * tick. 40 = a one-and-done hold window: soft probe blocks break on
+     * STOP, hard ones keep charging after it.
      */
     private static final int DIG_HOLD_TICKS = 40;
 
