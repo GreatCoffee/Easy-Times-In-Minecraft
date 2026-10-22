@@ -2,9 +2,11 @@ package io.github.etim.etim.hunger;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mining.ETIMEnchantments;
+import net.minecraft.block.material.Material;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBow;
+import net.minecraft.util.math.MathHelper;
 
 /**
  * R196 Endurance machinery (v2+ Endurance product order, F-5-29 → 终审
@@ -26,6 +28,15 @@ import net.minecraft.item.ItemBow;
  * <p>Movement/walking drains carry NO endurance modifier in R196
  * (EntityPlayer:1687/:1695/:1702/:1715/:1718 bare addHungerServerSide) and
  * stay a separate product line (终审边界判词).</p>
+ *
+ * <p>Movement five-branch drain (R196 EntityPlayer.addMovementStat
+ * :1680-1730, the movement product line): hooked at the same vanilla stats
+ * method via {@code MixinEntityPlayer} (TAIL) — 1.12.2 runs it server-side
+ * from NetHandlerPlayServer:411/:589 (movement packets) and travel :1989, so
+ * the drain inherits the vanilla counting semantics by construction. Branch
+ * classification re-evaluates the vanilla conditions in the same order (终审
+ * movement-drain G-M1..M4 = A; boat :1727-1728 and water jump
+ * EntityLivingBase:2167 are client-only in R196 and not ported).</p>
  */
 public final class ETIMEndurance {
 
@@ -50,12 +61,12 @@ public final class ETIMEndurance {
      * per 终审 G2 (MixinPlayerInteractionManager).
      */
     public static void chargeDig(EntityPlayer player) {
-        charge(player, ETIMConfig.digHungerPerTick, "digDrain");
+        charge(player, ETIMConfig.digHungerPerTick, getEnduranceModifier(player), "digDrain");
     }
 
     /** R196 EntityPlayer:1313-1315 (per landed swing, no harmed gate). */
     public static void chargeAttack(EntityPlayer player) {
-        charge(player, ETIMConfig.attackHungerPerHit, "attackDrain");
+        charge(player, ETIMConfig.attackHungerPerHit, getEnduranceModifier(player), "attackDrain");
     }
 
     /**
@@ -67,33 +78,76 @@ public final class ETIMEndurance {
             return; // the same-tick PlaceEvent of a just-charged till
         }
         charge(player, Math.min(hardness, ETIMConfig.placeHungerHardnessCap),
-                "placeDrain hardness=" + hardness);
+                getEnduranceModifier(player), "placeDrain hardness=" + hardness);
     }
 
     /** R196 ItemHoe:75-77 (successful till, hardness / 2). */
     public static void chargeHoe(EntityPlayer player, float hardness) {
         charge(player, hardness / ETIMConfig.hoeHungerDivisor,
-                "hoeDrain hardness=" + hardness);
+                getEnduranceModifier(player), "hoeDrain hardness=" + hardness);
         lastTillChargeTick = player.world.getTotalWorldTime();
     }
 
     /** R196 ServerPlayer:641-643 (per active tick while drawing a bow). */
     public static void tickBowDraw(EntityPlayer player) {
         if (player.isHandActive() && player.getActiveItemStack().getItem() instanceof ItemBow) {
-            charge(player, ETIMConfig.bowDrawHungerPerTick, "bowDrain");
+            charge(player, ETIMConfig.bowDrawHungerPerTick, getEnduranceModifier(player), "bowDrain");
         }
+    }
+
+    /**
+     * R196 EntityPlayer:1680-1730 five-branch movement drain — bare (no
+     * endurance modifier, mod = 1.0). Branch order mirrors the vanilla stats
+     * method (rfg :2005-2070); the 1.12 walk branch splits crouch stats the
+     * 1.5.2 method lacks — both drain as walk (D-M1). Sleeping zeroes the
+     * walk face (R196 :1707-1709 inBed → var7=0; G-M3), spectator is the
+     * 1.12 superset face R196 lacks (G-M2), airborne/elytra stay free of
+     * charge (R196 :1721-1726 else face).
+     */
+    public static void chargeMovement(EntityPlayer player, double dx, double dy, double dz) {
+        if (player.world.isRemote || player.isRiding() || player.isSpectator()) {
+            return;
+        }
+        if (player.isInsideOfMaterial(Material.WATER)) {
+            int cm = Math.round(MathHelper.sqrt(dx * dx + dy * dy + dz * dz) * 100.0F);
+            if (cm > 0) {
+                charge(player, ETIMConfig.swimHungerPerMeter * cm * 0.01F, 1.0F, "diveDrain cm=" + cm);
+            }
+        } else if (player.isInWater()) {
+            int cm = Math.round(MathHelper.sqrt(dx * dx + dz * dz) * 100.0F);
+            if (cm > 0) {
+                charge(player, ETIMConfig.swimHungerPerMeter * cm * 0.01F, 1.0F, "swimDrain cm=" + cm);
+            }
+        } else if (player.isOnLadder()) {
+            if (dy > 0.0D) {
+                charge(player, (float) dy / ETIMConfig.ladderHungerDivisor, 1.0F, "ladderDrain dy=" + dy);
+            }
+        } else if (player.onGround) {
+            int cm = Math.round(MathHelper.sqrt(dx * dx + dz * dz) * 100.0F);
+            if (player.isPlayerSleeping()) {
+                cm = 0;
+            }
+            if (cm > 0) {
+                if (player.isSprinting()) {
+                    charge(player, ETIMConfig.sprintHungerPerMeter * cm * 0.01F, 1.0F, "sprintDrain cm=" + cm);
+                } else {
+                    charge(player, ETIMConfig.walkHungerPerMeter * cm * 0.01F, 1.0F, "walkDrain cm=" + cm);
+                }
+            }
+        }
+        // else: airborne / elytra — stats only, no drain (R196 :1721-1726 same face).
     }
 
     /**
      * Shared charge funnel: R196 FoodStats.addHunger (:122-134) guards +
      * cap, with the foodModel master switch. The [FoodLog] row carries the
-     * base/mod/amount decomposition for the harness judgment.
+     * base/mod/amount decomposition for the harness judgment. Movement
+     * branches pass mod = 1.0 (bare addHunger, no endurance coupling).
      */
-    private static void charge(EntityPlayer player, float base, String tag) {
+    private static void charge(EntityPlayer player, float base, float mod, String tag) {
         if (player.world.isRemote || !ETIMConfig.foodModel || player.capabilities.isCreativeMode) {
             return;
         }
-        float mod = getEnduranceModifier(player);
         float amount = base * mod;
         ETIMFoodStats.IFoodState state = ETIMFoodStats.get(player);
         if (state == null) {

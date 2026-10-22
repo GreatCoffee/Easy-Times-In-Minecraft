@@ -1,6 +1,7 @@
 package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.hunger.ETIMEndurance;
 import io.github.etim.etim.hunger.ETIMHunger;
 import io.github.etim.etim.playerstate.ETIMBedSafety;
 import io.github.etim.etim.playerstate.ETIMXp;
@@ -97,6 +98,20 @@ public abstract class MixinEntityPlayer {
         }
         // jumpMovementFactor is public on EntityLivingBase — no shadow needed.
         ((EntityPlayer) (Object) this).jumpMovementFactor *= ETIMConfig.hungerMoveFactor;
+    }
+
+    /**
+     * Movement five-branch pool drain (R196 EntityPlayer:1680-1730
+     * addMovementStat, bare addHungerServerSide per branch; movement product
+     * line, 终审 G-M1 = A single TAIL hook). 1.12.2 runs this method
+     * server-side from the movement packets (NetHandlerPlayServer:411/:589)
+     * and travel (:1989) — the drain inherits the vanilla stats counting
+     * semantics by construction; branch classification is re-evaluated in
+     * the same order inside ETIMEndurance.chargeMovement.
+     */
+    @Inject(method = "addMovementStat", at = @At("TAIL"), remap = true)
+    private void etim$moveDrain(double dx, double dy, double dz, CallbackInfo ci) {
+        ETIMEndurance.chargeMovement((EntityPlayer) (Object) this, dx, dy, dz);
     }
 
     /**

@@ -125,6 +125,14 @@ public final class ETIMConfig {
     public static float hoeHungerDivisor = 2.0F;
     /** Bow-draw hunger charge per active tick (R196 ServerPlayer:642 = 0.01×mod). 拉弓每 tick 充账（R196 = 0.01×mod）。 */
     public static float bowDrawHungerPerTick = 0.01F;
+    /** Hunger-pool drain per meter in water, dive (3D) and wade/swim (2D) branches share the rate (R196 EntityPlayer:1687/:1695 = 0.015, bare). 水中每米饥饿池消耗，潜水面（3D 距）与涉水面（2D 距）共率（R196 EntityPlayer:1687/:1695 = 0.015，裸充无修饰）。 */
+    public static float swimHungerPerMeter = 0.015F;
+    /** Ladder-climb drain divisor: hunger = vertical delta / divisor, ascent only (R196 EntityPlayer:1702 = (float)dy/10, bare). 爬梯消耗除数：充账 = 垂直位移/除数，仅上升（R196 :1702 = (float)par3/10，裸充）。 */
+    public static float ladderHungerDivisor = 10.0F;
+    /** Hunger-pool drain per meter walked, sneaking included (R196 EntityPlayer:1718 = 0.01, bare). 行走每米饥饿池消耗，含潜行（R196 :1718 = 0.01，裸充）。 */
+    public static float walkHungerPerMeter = 0.01F;
+    /** Hunger-pool drain per meter sprinted (R196 EntityPlayer:1715 = 0.05, bare). 疾跑每米饥饿池消耗（R196 :1715 = 0.05，裸充）。 */
+    public static float sprintHungerPerMeter = 0.05F;
     /** TEST compression: hunger accrual and starve progress ×5 (burn a unit every 20 s, a starve strike every 5 s). 测试压缩：饥饿积攒与饿伤进度 ×5（每 20 s 烧掉 1 点食物，每 5 s 掉一次饿伤）。 */
     public static boolean foodTestMode = false;
     /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). 每次池变动/进食/饿伤判定都写一行 [FoodLog] 服务端日志（开发通道）。 */
@@ -481,6 +489,18 @@ public final class ETIMConfig {
         bowDrawHungerPerTick = config.getFloat("bowDrawHungerPerTick", "food", bowDrawHungerPerTick, 0.0F, 1.0F,
                 comment("Bow-draw hunger charge per active tick (R196 ServerPlayer:642 = 0.01 x modifier)",
                         "拉弓每 tick 充账（R196 ServerPlayer:642 = 0.01×修饰量）"));
+        swimHungerPerMeter = config.getFloat("swimHungerPerMeter", "food", swimHungerPerMeter, 0.0F, 1.0F,
+                comment("Hunger-pool drain per meter in water - dive (3D distance) and wade/swim (2D) branches share the rate (R196 EntityPlayer:1687/:1695 = 0.015, no modifier)",
+                        "水中每米饥饿池消耗——潜水面（3D 距）与涉水面（2D 距）共率（R196 EntityPlayer:1687/:1695 = 0.015，无修饰量）"));
+        ladderHungerDivisor = config.getFloat("ladderHungerDivisor", "food", ladderHungerDivisor, 1.0F, 100.0F,
+                comment("Ladder-climb drain divisor: hunger = vertical delta / divisor, ascent only (R196 EntityPlayer:1702 = dy/10, no modifier)",
+                        "爬梯消耗除数：充账 = 垂直位移/除数，仅上升（R196 EntityPlayer:1702 = dy/10，无修饰量）"));
+        walkHungerPerMeter = config.getFloat("walkHungerPerMeter", "food", walkHungerPerMeter, 0.0F, 1.0F,
+                comment("Hunger-pool drain per meter walked, sneaking included (R196 EntityPlayer:1718 = 0.01, no modifier)",
+                        "行走每米饥饿池消耗，含潜行（R196 EntityPlayer:1718 = 0.01，无修饰量）"));
+        sprintHungerPerMeter = config.getFloat("sprintHungerPerMeter", "food", sprintHungerPerMeter, 0.0F, 1.0F,
+                comment("Hunger-pool drain per meter sprinted (R196 EntityPlayer:1715 = 0.05, no modifier)",
+                        "疾跑每米饥饿池消耗（R196 EntityPlayer:1715 = 0.05，无修饰量）"));
         foodTestMode = config.getBoolean("foodTestMode", "food", false,
                 comment("TEST compression: hunger accrual and starve progress ×5 (a food unit burns every 20 s, a starve strike every 5 s)",
                         "测试压缩：饥饿积累与饿伤进度×5（每20秒烧掉1点食物、每5秒掉一次饿伤）"));
