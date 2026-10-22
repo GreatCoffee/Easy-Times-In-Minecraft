@@ -25,6 +25,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.FoodStats;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 
@@ -282,8 +283,16 @@ public class CommandDevTest extends CommandBase {
         tag.setTag("ench", kept);
         stack.setTagCompound(tag); // empty list must persist too
         stack.addEnchantment(ETIMEnchantments.ENDURANCE, level);
+        // S3b (harness-e1-retest N2): pass the enchant name + roman level as
+        // translation components so the client renders it in its own language
+        // (zh chat "耐力 IV" == tooltip), instead of the server-side
+        // pre-translated en_US string. The [EtimTest] mirror logs the raw
+        // TranslatableComponent (key form) — grep keys, not baked text.
         respond(player, "commands.etest.enchant_set", args[1],
-                ETIMEnchantments.ENDURANCE.getTranslatedName(level), stack.getDisplayName());
+                new TextComponentTranslation(ETIMEnchantments.ENDURANCE.getName())
+                        .appendSibling(new TextComponentString(" "))
+                        .appendSibling(new TextComponentTranslation("enchantment.level." + level)),
+                stack.getDisplayName());
     }
 
     /**
