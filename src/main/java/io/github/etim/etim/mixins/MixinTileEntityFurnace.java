@@ -522,12 +522,23 @@ public abstract class MixinTileEntityFurnace {
 
     // ---------------------------------------------------------------- batch B1: F-8-16 + F-8-20
 
+    /** A-1 fix (verdict B1): set at readFromNBT, the row fires on the FIRST update
+     * tick instead — during AnvilChunkLoader.loadEntities the TE's world/blockType
+     * are still unbound, and getBlockType()=null NPE'd the whole restore away
+     * (TE discarded, heat/burn/cook lost, orphan _lit block). */
+    @Unique
+    private boolean etim$pendingLoadLog = false;
+
     /**
      * ❗F-8-16（batch B1 并修）：heat_level NBT persistence — the R196
      * furnace keeps a dedicated heat_level field (decisive heat while
      * burning); the batch-A derivation vanishes across a save/reload mid-burn
      * (the empty fuel slot collapses the derived heat to 0). The byte rides
-     * the vanilla readFromNBT/writeToNBT bodies.
+     * the vanilla readFromNBT/writeToNBT bodies. The judgment row is
+     * DEFERRED to the first update tick (A-1): at loadEntities time
+     * getBlockType() is still null and the NPE would kill the whole TE
+     * restore; by the first tick the world is bound and the row keeps its
+     * judged furnace= shape.
      */
     @Inject(
             method = "readFromNBT",
@@ -536,10 +547,27 @@ public abstract class MixinTileEntityFurnace {
     )
     private void etim$readHeatLevel(NBTTagCompound compound, CallbackInfo ci) {
         this.etim$heatLevel = compound.getByte("heat_level");
-        if (ETIMConfig.furnaceDebugLog && this.etim$heatLevel > 0 && this.furnaceBurnTime > 0) {
+        this.etim$pendingLoadLog = this.etim$heatLevel > 0 && this.furnaceBurnTime > 0;
+    }
+
+    @Inject(
+            method = "update",
+            at = @At("HEAD"),
+            remap = true
+    )
+    private void etim$loadLogRow(CallbackInfo ci) {
+        if (!this.etim$pendingLoadLog) {
+            return;
+        }
+        TileEntityFurnace self = (TileEntityFurnace) (Object) this;
+        if (self.getWorld() == null || self.getWorld().isRemote) {
+            return; // stay pending until the server world is bound
+        }
+        this.etim$pendingLoadLog = false;
+        if (ETIMConfig.furnaceDebugLog) {
             ETIM.LOGGER.info("[FurnaceLog] heat load level=" + this.etim$heatLevel
                     + " burn=" + this.furnaceBurnTime
-                    + " furnace=" + FurnaceHeat.getNameFor((TileEntityFurnace) (Object) this)
+                    + " furnace=" + FurnaceHeat.getNameFor(self)
                     + " [server]");
         }
     }

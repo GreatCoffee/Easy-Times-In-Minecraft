@@ -195,8 +195,13 @@ public final class FurnaceHeat {
      */
     public static String getNameFor(IInventory inventory) {
         if (inventory instanceof TileEntityFurnace) {
-            ResourceLocation name = ((TileEntityFurnace) inventory).getBlockType().getRegistryName();
-            return name != null ? name.toString() : "minecraft:furnace";
+            // A-1 fix (verdict B1): getBlockType() is null while the TE is
+            // still loading (AnvilChunkLoader.loadEntities — world/blockType
+            // unbound); an explicit marker beats an NPE that would kill the
+            // whole TE restore.
+            Block block = ((TileEntityFurnace) inventory).getBlockType();
+            ResourceLocation name = block != null ? block.getRegistryName() : null;
+            return name != null ? name.toString() : "unbound";
         }
         return "minecraft:furnace";
     }

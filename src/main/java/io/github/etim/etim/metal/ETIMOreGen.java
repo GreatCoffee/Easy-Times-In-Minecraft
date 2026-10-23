@@ -2,6 +2,8 @@ package io.github.etim.etim.metal;
 
 import java.util.Random;
 
+import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIMConfig;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -49,15 +51,33 @@ public final class ETIMOreGen {
     private static void genMinable(World world, Random random, BlockPos chunkPos, int frequency, Block ore,
                                    int veinSize, int maxHeight, int distribution, boolean veinGrowsWithDepth) {
         IBlockState oreState = ore.getDefaultState();
+        // B-1(b) verdict instrumentation: per-chunk aggregate counts so the
+        // copper judge band is re-derived from LOGS (the naive freq/10 ×
+        // vein-width expectation ignores the R196 :77 origin-stone abort
+        // face). Counters only — zero behavior change.
+        int veins = 0, originAborts = 0, placed = 0;
+        int rolls = frequency;
         while (frequency-- > 0) {
             if (random.nextInt(10) == 0) {
                 int x = chunkPos.getX() + random.nextInt(16);
                 int y = getRandomVeinHeight(random, maxHeight, distribution);
                 int z = chunkPos.getZ() + random.nextInt(16);
                 if (y >= 0) {
-                    generateVein(world, random, new BlockPos(x, y, z), oreState, veinSize, veinGrowsWithDepth, maxHeight);
+                    BlockPos origin = new BlockPos(x, y, z);
+                    if (world.isBlockLoaded(origin) && world.getBlockState(origin).getBlock() != Blocks.STONE) {
+                        // same face generateVein aborts on — counted before the call
+                        originAborts++;
+                    }
+                    veins++;
+                    placed += generateVein(world, random, origin, oreState, veinSize, veinGrowsWithDepth, maxHeight);
                 }
             }
+        }
+        if (ETIMConfig.metalDebugLog) {
+            String oreName = ore.getRegistryName().getPath();
+            ETIM.LOGGER.info("[OreLog] ore=" + oreName + " chunk=(" + chunkPos.getX() + "," + chunkPos.getZ() + ")"
+                    + " rolls=" + rolls + " veins=" + veins + " origin-abort=" + originAborts
+                    + " grown=" + placed + " [server]");
         }
     }
 
@@ -81,11 +101,11 @@ public final class ETIMOreGen {
         return (int) (relativeHeight * (maxHeight + 1));
     }
 
-    /** R196 WorldGenMinable.generate(world, rand, x, y, z, vein_size_increases_with_depth) :76-131. */
-    private static void generateVein(World world, Random random, BlockPos pos, IBlockState oreState,
-                                     int veinSize, boolean veinGrowsWithDepth, int maxHeight) {
+    /** R196 WorldGenMinable.generate(world, rand, x, y, z, vein_size_increases_with_depth) :76-131. Returns the blocks placed (0 = aborted, origin not stone or the :96-123 small-vein chain). */
+    private static int generateVein(World world, Random random, BlockPos pos, IBlockState oreState,
+                                    int veinSize, boolean veinGrowsWithDepth, int maxHeight) {
         if (!world.isBlockLoaded(pos) || world.getBlockState(pos).getBlock() != Blocks.STONE) {
-            return;
+            return 0;
         }
         float scale = 1.0F;
         while (random.nextInt(2) == 0) {
@@ -101,28 +121,28 @@ public final class ETIMOreGen {
         }
         if (veinSize * scale <= 3.0F && random.nextInt(2) == 0) {
             if (random.nextInt(2) != 0) {
-                return;
+                return 0;
             }
             scale *= 2.0F;
         }
         int size = (int) (veinSize * scale);
         if (size < 1) {
-            return;
+            return 0;
         }
         if (size == 1) {
             if (random.nextInt(3) != 0) {
-                return;
+                return 0;
             }
             size = 3;
         } else if (size == 2) {
             if (random.nextInt(3) == 0) {
-                return;
+                return 0;
             }
             size = 3;
         } else if (size > 32) {
             size = 32;
         }
-        growVein(world, random, size, pos, oreState);
+        return growVein(world, random, size, pos, oreState);
     }
 
     /** R196 WorldGenMinable.growVein :36-74 (must_be_supported/is_dirt false for ores, :125-126). */

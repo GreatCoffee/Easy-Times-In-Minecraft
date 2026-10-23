@@ -49,6 +49,7 @@ public final class ETIMItems {
 
         Collections.addAll(NUGGETS, nuggetCopper, nuggetSilver, nuggetMithril, nuggetAdamantium, nuggetAncientMetal);
         Collections.addAll(INGOTS, ingotCopper, ingotSilver, ingotMithril, ingotAdamantium, ingotAncientMetal);
+        assertRegistered();
 
         // FurnaceXpRewards metal rows (batch-C take face): R196 Item.java:347-351
         io.github.etim.etim.furnace.FurnaceXpRewards.addReward(ingotCopper, 10);
@@ -71,7 +72,32 @@ public final class ETIMItems {
         item.setRegistryName(new ResourceLocation(ETIM.MOD_ID, name));
         item.setTranslationKey("etim." + name);
         item.setCreativeTab(CreativeTabs.MATERIALS);
+        // A-2 fix (verdict B1): the ten metal items were never REGISTERED —
+        // /give answered "no such item" and the 9:1 recipes failed validation
+        // with "produces unregistered item" on world load.
+        net.minecraftforge.fml.common.registry.ForgeRegistries.ITEMS.register(item);
         return item;
+    }
+
+    /**
+     * A-2 fail-fast self-check (verdict B1): every metal item must be IN the
+     * item registry after registration — the A-2 class of bug used to surface
+     * only at level.dat read ("produces unregistered item"), far from the
+     * register call.
+     */
+    private static void assertRegistered() {
+        for (Item item : NUGGETS) {
+            ResourceLocation name = item.getRegistryName();
+            if (name == null || net.minecraftforge.fml.common.registry.ForgeRegistries.ITEMS.getValue(name) == null) {
+                throw new IllegalStateException("etim metal item not registered: " + name);
+            }
+        }
+        for (Item item : INGOTS) {
+            ResourceLocation name = item.getRegistryName();
+            if (name == null || net.minecraftforge.fml.common.registry.ForgeRegistries.ITEMS.getValue(name) == null) {
+                throw new IllegalStateException("etim metal item not registered: " + name);
+            }
+        }
     }
 
     private ETIMItems() {

@@ -313,6 +313,8 @@ public final class ETIMConfig {
     public static boolean metalSystem = true;
     /** Main-world generation of the three ETIM ores (R196 BiomeDecorator :344-357: copper freq 40 / silver 10 / mithril 10, the nextInt(10)==0 gate). Off = no ETIM ore veins (blocks still craftable in creative). 三矿主世界生成开关（R196 BiomeDecorator：铜 40/银 10/秘银 10，nextInt(10)==0 频率门）；关闭则无 ETIM 矿脉（方块创造栏仍可取）。 */
     public static boolean metalOreGen = true;
+    /** [OreLog] per-chunk gen rows (ore/chunk/rolls/veins/origin-abort/grown) — the B-1(b) verdict instrumentation that re-derives the copper judge band from logs. Off = silent gen. 每区块三行 [OreLog] 生成计数判行（B-1(b) 判带重导工装）；关闭则生成静默。 */
+    public static boolean metalDebugLog = true;
 
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
@@ -731,6 +733,9 @@ public final class ETIMConfig {
         metalOreGen = config.getBoolean("metalOreGen", "metal", true,
                 comment("Main-world generation of the three ETIM ores (R196 BiomeDecorator :344-357): copper frequency 40 / silver 10 / mithril 10 (one vein attempt per nextInt(10)==0 roll), veins 6/6/3, bands 0-128/0-96/0-32 with the R196 height draws. Adamantium generates NOWHERE (R196 :345-357 — stage 7). Off = no ETIM ore veins",
                         "三矿主世界生成（R196 BiomeDecorator :344-357）：铜频率 40/银 10/秘银 10（每次 nextInt(10)==0 掷中才尝试一条矿脉），脉宽 6/6/3，带 0-128/0-96/0-32 走 R196 高度分布；艾德曼主世界零生成（阶段七）。关闭则无 ETIM 矿脉"));
+        metalDebugLog = config.getBoolean("metalDebugLog", "metal", true,
+                comment("[OreLog] per-chunk generation rows (ore/chunk/rolls/veins/origin-abort/grown) — the B-1(b) verdict instrumentation that re-derives the copper judge band from logs; off = silent generation",
+                        "每区块三行 [OreLog] 生成计数判行（矿种/区块/掷次/成脉/原点放弃/成块）——B-1(b) 判带重导工装；关闭则生成静默"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",
