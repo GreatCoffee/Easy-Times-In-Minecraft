@@ -33,6 +33,7 @@ public final class ClientNetworkHooks {
     }
 
     public static void register() {
+        ETIMSpiderRender.register();
         CraftingProgressNetwork.CHANNEL.registerMessage(
                 ProgressSyncHandler.class,
                 CraftingProgressNetwork.PacketProgress.class,

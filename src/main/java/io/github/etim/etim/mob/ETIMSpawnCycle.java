@@ -514,13 +514,16 @@ public final class ETIMSpawnCycle {
             // the same round chain onto them.
             IEntityLivingData data = null;
             Biome.SpawnListEntry entry = null;
+            // 三蜘蛛轮门3（R196 SpawnerAnimals :216-220 一手）：per-round 位置
+            // 重试上限 4；entry 选定为 PhaseSpider（isClass 精确类）→ 64。
+            int maxSpawnAttempts = 4;
             if (abandonChunk[0]) {
                 break;
             }
             int x = baseX;
             int y = baseY;
             int z = baseZ;
-            for (int attempt = 0; attempt < 4; ++attempt) {
+            for (int attempt = 0; attempt < maxSpawnAttempts; ++attempt) {
                 if (abandonChunk[0]) {
                     break roundLoop;
                 }
@@ -552,6 +555,14 @@ public final class ETIMSpawnCycle {
                                     + " ground=" + groundOf(w, cursor));
                         }
                         break;
+                    }
+                    // 三蜘蛛轮门3：R196 :216-220 — PhaseSpider 拿 64 次重试上限
+                    // （其余类恒 4）；round-scoped，装载判行一次/round。
+                    if (entry.entityClass == ETIMEntityPhaseSpider.class) {
+                        maxSpawnAttempts = 64;
+                        if (ETIMConfig.mobDebugLog) {
+                            log(w, "phase-max-attempts 64 at " + pos(cursor));
+                        }
                     }
                 }
                 if (!canSpawnHere(w, entry, cursor, type, abandonChunk)) {

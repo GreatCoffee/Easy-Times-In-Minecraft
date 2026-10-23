@@ -41,12 +41,15 @@ import net.minecraft.world.biome.Biome;
  * R196 biome spawnable tables (audit 14 §3 — BiomeGenBase :141-186 base +
  * :3.2 biome overrides), filtered to entity classes ETIM currently has.
  *
- * <p>MITE-exclusive classes (ghoul, wight, invisibleStalker, demonSpider,
+ * <p>MITE-exclusive classes (ghoul, wight, invisibleStalker,
  * hellhound, woodSpider, shadow, revenant, earthElemental, jelly, blob, ooze,
- * pudding, clayGolem, boneLord, phaseSpider, vampireBat, nightwing, direWolf,
- * blackWidowSpider, infernal creeper variant, guardians) have no 1.12 entity
- * yet — their weight rows stay in the gap list (audit 14 §3.1/§3.2) and are
- * filled back in when each class lands. Class-fine rules that survive the
+ * pudding, clayGolem, boneLord, vampireBat, nightwing, direWolf,
+ * infernal creeper variant, guardians) have no 1.12 entity yet — their weight
+ * rows stay in the gap list (audit 14 §3.1/§3.2) and are filled back in when
+ * each class lands. The three spiders LANDED 2026-10-23 (审计补46/47):
+ * DemonSpider/PhaseSpider/BlackWidowSpider rows are live above and their
+ * spawn gates (50% pass / y≤32 / 64-attempt) are wired here and in
+ * {@link ETIMSpawnCycle}. Class-fine rules that survive the
  * filter here: the ghast 48² dedup; the slime structure rule rides on the
  * vanilla slime {@code getCanSpawnHere} body.</p>
  */
@@ -81,6 +84,11 @@ public final class ETIMSpawnTables {
         monster.add(entry(EntityCreeper.class, 100, 1, 2));
         monster.add(entry(EntitySlime.class, 100, 1, 4));
         monster.add(entry(EntityEnderman.class, 10, 1, 4));
+        // Three-spider round (审计补46/47): R196 BiomeGenBase :174 DemonSpider
+        // 10(1,1) and :186 PhaseSpider 5(1,4) sit in the base ctor = every
+        // biome (WoodSpider :176 20(1,1) stays OUT — carrier-only per verdict).
+        monster.add(entry(ETIMEntityDemonSpider.class, 10, 1, 1));
+        monster.add(entry(ETIMEntityPhaseSpider.class, 5, 1, 4));
         BASE.put(EnumCreatureType.MONSTER, monster);
 
         List<Biome.SpawnListEntry> water = new ArrayList<>();
@@ -155,6 +163,9 @@ public final class ETIMSpawnTables {
         override(Biomes.PLAINS, EnumCreatureType.CREATURE, entry(EntityHorse.class, 5, 1, 2));
         override(Biomes.JUNGLE, EnumCreatureType.CREATURE, entry(EntityOcelot.class, 10, 1, 1),
                 entry(EntityChicken.class, 10, 1, 1));
+        // Three-spider round: R196 BiomeGenJungle:13 — BlackWidowSpider 10(1,1)
+        // is the ONLY jungle row (verdict G-S5 correction; NOT in BiomeGenBase).
+        override(Biomes.JUNGLE, EnumCreatureType.MONSTER, entry(ETIMEntityBlackWidowSpider.class, 10, 1, 1));
         override(Biomes.SWAMPLAND, EnumCreatureType.MONSTER, entry(EntitySlime.class, 10, 1, 1));
         // Hell: all clear + ghast 50(1,2) / pigZombie 100(1,4) / magma 10(4,4).
         overrideAll(Biomes.HELL, entry(EntityGhast.class, 50, 1, 2), entry(EntityPigZombie.class, 100, 1, 4),
@@ -163,11 +174,13 @@ public final class ETIMSpawnTables {
         overrideAll(Biomes.SKY, entry(EntityEnderman.class, 100, 4, 4));
     }
 
-    private static List<Biome.SpawnListEntry> baseOf(EnumCreatureType type) {
-        return BASE.get(type);
+    private static String posToString(BlockPos p) {
+        return "(" + p.getX() + "," + p.getY() + "," + p.getZ() + ")";
     }
 
-    /**
+    private static List<Biome.SpawnListEntry> baseOf(EnumCreatureType type) {
+        return BASE.get(type);
+    }    /**
      * MITE-biome table pick at a position (replaces the vanilla
      * {@code getSpawnListEntryForTypeAt} read point).
      *
@@ -219,6 +232,30 @@ public final class ETIMSpawnTables {
                     continue; // 1/4 drop on lit outdoors (day-independent per the one-hand gate)
                 }
                 return picked;
+            }
+            // 三蜘蛛轮门1（R196 WorldServer:714-716 一手，勘正面）：BlackWidow 专属
+            // 50% 通过门——nextFloat<0.5F 拒（continue 重掷），≥0.5 接受；per-attempt
+            // 语义，外层 16-attempt 循环承接。
+            if (cls == ETIMEntityBlackWidowSpider.class) {
+                float dice = w.rand.nextFloat();
+                if (dice < 0.5F) {
+                    if (ETIMConfig.mobDebugLog) {
+                        ETIM.LOGGER.info("[SpawnLog] blackwidow-gate reject nextFloat="
+                                + Math.round(dice * 100.0F) / 100.0F + " at " + posToString(pos));
+                    }
+                    continue;
+                }
+                return picked;
+            }
+            // 三蜘蛛轮门2（R196 :682+:718-720，check_depth = isOverworld 一手
+            // :604）：Demon/Phase 专属地下支——主世界 y>32 拒。
+            if ((cls == ETIMEntityDemonSpider.class || cls == ETIMEntityPhaseSpider.class)
+                    && w.provider.getDimension() == 0 && pos.getY() > 32) {
+                if (ETIMConfig.mobDebugLog) {
+                    ETIM.LOGGER.info("[SpawnLog] depth-gate reject cls=" + cls.getSimpleName()
+                            + " y=" + pos.getY() + " at " + posToString(pos));
+                }
+                continue;
             }
             if (cls == EntityGhast.class && ghastDedup(w, pos)) {
                 // ❗B2-6（会话七终验回执）：dedup was a silent null — verdict

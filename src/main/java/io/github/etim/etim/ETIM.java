@@ -27,6 +27,10 @@ import org.apache.logging.log4j.Logger;
 @Mod(modid = Tags.MOD_ID, name = Tags.MOD_NAME, version = Tags.VERSION)
 public final class ETIM {
 
+    /** Forge-injected mod instance (entity registration carrier). */
+    @Mod.Instance(Tags.MOD_ID)
+    private static ETIM instance;
+
     /** Value of the {@code mod_id} gradle property at build time. */
     public static final String MOD_ID = Tags.MOD_ID;
     /** Value of the {@code mod_name} gradle property at build time. */
@@ -35,6 +39,11 @@ public final class ETIM {
     public static final String VERSION = Tags.VERSION;
 
     public static final Logger LOGGER = LogManager.getLogger(Tags.MOD_NAME);
+
+    /** Mod-instance accessor for the Forge registries. */
+    public static ETIM instance() {
+        return instance;
+    }
 
     /**
      * <a href="https://cleanroommc.com/wiki/forge-mod-development/event#overview">
@@ -52,6 +61,7 @@ public final class ETIM {
         io.github.etim.etim.death.ETIMDeathXp.register();
         io.github.etim.etim.mob.ETIMLivestock.register();
         io.github.etim.etim.mob.ETIMDigging.register();
+        io.github.etim.etim.mob.ETIMSpiderEntities.register();
         io.github.etim.etim.furnace.FurnaceHeat.addJudgedRecipes();
         ETIMEnchantments.register();
         ETIMConfig.init(event);

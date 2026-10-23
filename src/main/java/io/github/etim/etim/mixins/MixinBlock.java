@@ -48,6 +48,28 @@ public abstract class MixinBlock {
     }
 
     /**
+     * Three-spider round carry-over: U-04 slab explosion resistance (verdict
+     * S-R1 = A, 一手 u04-slab-抗性判词.md). R196 getExplosionResistance
+     * returns blockHardness (Block.java:2105-2107) and setResistance is an
+     * empty impl (:1400-1402) with zero slab setHardness calls → the whole
+     * R196 slab family resists explosions at 0.0F. The 1.12
+     * location-sensitive overload delegates to this classic one (Block.java
+     * :1875-1877 → :856-858), so this single HEAD hook covers every consumer.
+     * Third-party slabs are swept too — direction-consistent with the R196
+     * whole-tree semantics (register).
+     */
+    @Inject(
+            method = "getExplosionResistance(Lnet/minecraft/entity/Entity;)F",
+            at = @At("HEAD"),
+            cancellable = true)
+    private void etim$r196SlabExplosionResistance(net.minecraft.entity.Entity exploder,
+            CallbackInfoReturnable<Float> cir) {
+        if ((Object) this instanceof net.minecraft.block.BlockSlab) {
+            cir.setReturnValue(0.0F);
+        }
+    }
+
+    /**
      * Task 2.4 diagnosis workbench: raw probe on cake placement (the vanilla
      * funnel every placement path ends in). Both sides run it, so a placement
      * executed locally (prediction) still shows up as its own [client] line.
