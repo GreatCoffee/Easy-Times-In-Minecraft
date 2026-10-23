@@ -36,7 +36,9 @@ import net.minecraft.util.math.MathHelper;
  * the drain inherits the vanilla counting semantics by construction. Branch
  * classification re-evaluates the vanilla conditions in the same order (终审
  * movement-drain G-M1..M4 = A; boat :1727-1728 and water jump
- * EntityLivingBase:2167 are client-only in R196 and not ported).</p>
+ * EntityLivingBase:2153-2168 are client-only in R196 — ported server-side by
+ * the relocation line, 终审 boat-waterjump G-B1=α/G-B4=A: the boat face via
+ * MixinNetHandlerPlayServer, the water-jump face as the proxy below).</p>
  */
 public final class ETIMEndurance {
 
@@ -96,6 +98,17 @@ public final class ETIMEndurance {
     }
 
     /**
+     * R196 EntityPlayer:1727-1728 boat paddle — per steering-input tick,
+     * × |moveForward|, bare (no endurance modifier). Called from the α hook
+     * (MixinNetHandlerPlayServer processInput TAIL, ExactlyOnce per riding
+     * tick; 终审 boat-waterjump G-B1 = A). The +2% raw-vs-0.98 angle is
+     * D-B1, accepted.
+     */
+    public static void chargeBoat(EntityPlayer player, float moveForward) {
+        charge(player, ETIMConfig.boatHungerPerTick * Math.abs(moveForward), 1.0F, "boatDrain");
+    }
+
+    /**
      * R196 EntityPlayer:1680-1730 five-branch movement drain — bare (no
      * endurance modifier, mod = 1.0). Branch order mirrors the vanilla stats
      * method (rfg :2005-2070); the 1.12 walk branch splits crouch stats the
@@ -136,6 +149,20 @@ public final class ETIMEndurance {
             }
         }
         // else: airborne / elytra — stats only, no drain (R196 :1721-1726 same face).
+
+        // Water/lava jump drain, the R196 client-only face relocated (终审
+        // boat-waterjump G-B4 = A, 位移代理). R196 EntityLivingBase:2153-2168
+        // charges 0.01/tick while isJumping in water||lava, non-riding — the
+        // intent bit is unobservable server-side for non-riding players (C0C
+        // ships only while riding; G-B3 = C), so the proxy keys on the
+        // upward C03 displacement packet instead: same rate, D-B3 drift both
+        // ways (surface push/bubble over-charge ≤0.01/packet, hover-paddle
+        // under-charge). Parallel to the chain above on purpose: the R196
+        // jump section and addMovementStat are two independent event faces
+        // and double-charge on the same packet by construction.
+        if ((player.isInWater() || player.isInLava()) && dy > 0.0D) {
+            charge(player, ETIMConfig.waterJumpHungerPerTick, 1.0F, "waterJumpDrain dy=" + dy);
+        }
     }
 
     /**
@@ -143,9 +170,12 @@ public final class ETIMEndurance {
      * cap, with the foodModel master switch. The [FoodLog] row carries the
      * base/mod/amount decomposition for the harness judgment. Movement
      * branches pass mod = 1.0 (bare addHunger, no endurance coupling).
+     * The disableDamage gate mirrors R196 addHungerClientSide/addHungerServerSide
+     * :1875/:1881 (终审 boat-waterjump D-B5, 全站八支生效面).
      */
     private static void charge(EntityPlayer player, float base, float mod, String tag) {
-        if (player.world.isRemote || !ETIMConfig.foodModel || player.capabilities.isCreativeMode) {
+        if (player.world.isRemote || !ETIMConfig.foodModel || player.capabilities.isCreativeMode
+                || player.capabilities.disableDamage) {
             return;
         }
         float amount = base * mod;

@@ -133,6 +133,10 @@ public final class ETIMConfig {
     public static float walkHungerPerMeter = 0.01F;
     /** Hunger-pool drain per meter sprinted (R196 EntityPlayer:1715 = 0.05, bare). 疾跑每米饥饿池消耗（R196 :1715 = 0.05，裸充）。 */
     public static float sprintHungerPerMeter = 0.05F;
+    /** Boat-paddle drain per steering-input tick, × |moveForward| (R196 EntityPlayer:1728 = |moveForward|×0.01, bare; server hook α per 终审 boat-waterjump G-B1). 驾船每输入 tick 的饥饿池消耗，乘 |moveForward|（R196 EntityPlayer:1728 = |moveForward|×0.01，裸充；服务端挂点 α，终审 G-B1）。 */
+    public static float boatHungerPerTick = 0.01F;
+    /** Water/lava jump-drain per upward displacement packet (R196 EntityLivingBase:2167 = 0.01/tick bare; C03 dy>0 proxy per 终审 G-B4). 水/岩浆中每个上升位移包的饥饿池消耗（R196 = 0.01/tick 裸充；C03 dy>0 位移代理，终审 G-B4）。 */
+    public static float waterJumpHungerPerTick = 0.01F;
     /** TEST compression: hunger accrual and starve progress ×5 (burn a unit every 20 s, a starve strike every 5 s). 测试压缩：饥饿积攒与饿伤进度 ×5（每 20 s 烧掉 1 点食物，每 5 s 掉一次饿伤）。 */
     public static boolean foodTestMode = false;
     /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). 每次池变动/进食/饿伤判定都写一行 [FoodLog] 服务端日志（开发通道）。 */
@@ -501,6 +505,12 @@ public final class ETIMConfig {
         sprintHungerPerMeter = config.getFloat("sprintHungerPerMeter", "food", sprintHungerPerMeter, 0.0F, 1.0F,
                 comment("Hunger-pool drain per meter sprinted (R196 EntityPlayer:1715 = 0.05, no modifier)",
                         "疾跑每米饥饿池消耗（R196 EntityPlayer:1715 = 0.05，无修饰量）"));
+        boatHungerPerTick = config.getFloat("boatHungerPerTick", "food", boatHungerPerTick, 0.0F, 1.0F,
+                comment("Boat-paddle drain per steering-input tick, times |moveForward| (R196 EntityPlayer:1728 = |moveForward| x 0.01, no modifier)",
+                        "驾船每输入 tick 的饥饿池消耗，乘 |moveForward|（R196 EntityPlayer:1728 = |moveForward|×0.01，无修饰量）"));
+        waterJumpHungerPerTick = config.getFloat("waterJumpHungerPerTick", "food", waterJumpHungerPerTick, 0.0F, 1.0F,
+                comment("Water/lava jump-drain per upward displacement packet while swimming (R196 EntityLivingBase:2167 = 0.01/tick, no modifier)",
+                        "水/岩浆中游泳时每个上升位移包的饥饿池消耗（R196 EntityLivingBase:2167 = 0.01/tick，无修饰量）"));
         foodTestMode = config.getBoolean("foodTestMode", "food", false,
                 comment("TEST compression: hunger accrual and starve progress ×5 (a food unit burns every 20 s, a starve strike every 5 s)",
                         "测试压缩：饥饿积累与饿伤进度×5（每20秒烧掉1点食物、每5秒掉一次饿伤）"));
