@@ -62,13 +62,15 @@ public abstract class MixinTileEntityHopper {
             return;
         }
         if (index == 1) {
+            int cap = FurnaceHeat.getCapFor(destination);
             int heat = FurnaceHeat.getHeatOf(stack);
-            if (heat <= 0 || heat > FurnaceHeat.getVanillaCap()) {
+            if (heat <= 0 || heat > cap) {
                 String sig = item + "@fuel" + heat;
                 if (ETIMConfig.furnaceDebugLog && !sig.equals(etim$lastPushSig)) {
                     etim$lastPushSig = sig;
                     ETIM.LOGGER.info("[FurnaceLog] hopper push denied fuel heat=" + heat
-                            + " cap=" + FurnaceHeat.getVanillaCap() + " item=" + item + " [server]");
+                            + " cap=" + cap + " furnace=" + FurnaceHeat.getNameFor(destination)
+                            + " item=" + item + " [server]");
                 }
                 cir.setReturnValue(stack);
                 return;

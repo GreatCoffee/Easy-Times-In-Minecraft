@@ -62,7 +62,7 @@ public abstract class MixinGuiFurnace {
                 self.drawHoveringText(
                         TextFormatting.GOLD + I18n.format("etim.furnace.notFuel"), mouseX, mouseY);
                 GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-            } else if (heat > FurnaceHeat.getVanillaCap()) {
+            } else if (heat > FurnaceHeat.getCapFor(hovered.inventory)) {
                 self.drawHoveringText(
                         TextFormatting.GOLD + I18n.format("etim.furnace.tooHot"), mouseX, mouseY);
                 GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);

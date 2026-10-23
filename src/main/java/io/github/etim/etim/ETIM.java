@@ -62,7 +62,14 @@ public final class ETIM {
         io.github.etim.etim.mob.ETIMLivestock.register();
         io.github.etim.etim.mob.ETIMDigging.register();
         io.github.etim.etim.mob.ETIMSpiderEntities.register();
+        // Batch B1 metal content: items first (XP rows), blocks + recipes second.
+        io.github.etim.etim.metal.ETIMItems.register();
+        io.github.etim.etim.metal.ETIMBlocks.register();
         io.github.etim.etim.furnace.FurnaceHeat.addJudgedRecipes();
+        // Batch B1: ETIM's first GuiHandler (批文项2) + the dungeon-chest loot hook (B-2(a)).
+        net.minecraftforge.fml.common.network.NetworkRegistry.INSTANCE.registerGuiHandler(
+                ETIM.instance(), new io.github.etim.etim.fml.ETIMGuiHandler());
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.metal.ETIMMetalLoot.class);
         ETIMEnchantments.register();
         ETIMConfig.init(event);
         // The nutrition-mirror and crafting-progress handlers carry

@@ -3,12 +3,20 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.furnace.FurnaceHeat;
+import io.github.etim.etim.metal.ETIMFurnaceGate;
+import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityFurnace;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.NonNullList;
+import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -57,6 +65,9 @@ public abstract class MixinTileEntityFurnace {
      */
     @Shadow
     private int furnaceBurnTime;
+
+    @Shadow
+    private int cookTime;
 
     @Unique
     private int etim$heatLevel = 0;
@@ -178,10 +189,12 @@ public abstract class MixinTileEntityFurnace {
      * itself is still being hunted, the BEHAVIOR layer clamps the decisive
      * heat to the fleet cap so a misplaced fuel can never demote/upset the
      * furnace's tier — exactly what R196's admission layer would net out.
+     * Batch B1: the cap reads PER FURNACE (ETIM tier block → tier cap,
+     * vanilla furnace → the config cobble cap).
      */
     @Unique
     private int etim$decisiveHeat(int heat) {
-        return Math.min(heat, FurnaceHeat.getVanillaCap());
+        return Math.min(heat, FurnaceHeat.getCapFor((TileEntityFurnace) (Object) this));
     }
     @Inject(
             method = "canSmelt",
@@ -195,6 +208,23 @@ public abstract class MixinTileEntityFurnace {
         // TileEntityFurnace.furnaceItemStacks index order (vanilla container
         // layout): 0=input, 1=fuel, 2=output.
         ItemStack input = this.furnaceItemStacks.get(0);
+        // 批文项4 — the canSmelt layer of the large-item triple gate: the clay
+        // tier refuses a large-item INPUT regardless of heat (the R196
+        // canSmelt :273 face; slot/isItemValidForSlot are the other two).
+        if (!input.isEmpty()
+                && !FurnaceHeat.acceptsLargeItems((TileEntityFurnace) (Object) this)
+                && ETIMFurnaceGate.isLargeItem(input)) {
+            String sig = etim$sig(input, -1);
+            if (!Objects.equals(sig, this.etim$lastDenySig) && ETIMConfig.furnaceDebugLog) {
+                this.etim$lastDenySig = sig;
+                ETIM.LOGGER.info("[FurnaceLog] smelt blocked large-item furnace="
+                        + FurnaceHeat.getNameFor((TileEntityFurnace) (Object) this)
+                        + " input=" + input.getItem().getRegistryName().toString()
+                        + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));
+            }
+            cir.setReturnValue(false);
+            return;
+        }
         int heat = etim$decisiveHeat(etim$currentHeat());
         int required = FurnaceHeat.getRequiredHeat(input);
         ItemStack result = FurnaceHeat.getSmeltingResult(input, heat);
@@ -232,6 +262,7 @@ public abstract class MixinTileEntityFurnace {
                 this.etim$lastDenySig = sig;
                 ETIM.LOGGER.info("[FurnaceLog] smelt blocked heat=" + heat + " required=" + required
                         + " input=" + input.getItem().getRegistryName().toString()
+                        + " furnace=" + FurnaceHeat.getNameFor((TileEntityFurnace) (Object) this)
                         + " result=" + (heat >= required ? (result.isEmpty() ? "null (sand<4 or unknown)" : "output-slot-blocked") : "heat-gated")
                         + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));
             }
@@ -389,7 +420,7 @@ public abstract class MixinTileEntityFurnace {
                     .getSmeltingResult(stack).isEmpty();
         } else if (index == 1 && !stack.isEmpty() && ETIMConfig.furnaceHeatSystem) {
             int heat = FurnaceHeat.getHeatOf(stack);
-            outlaw = heat < 0 || heat > FurnaceHeat.getVanillaCap();
+            outlaw = heat < 0 || heat > FurnaceHeat.getCapFor((TileEntityFurnace) (Object) this);
         }
         StringBuilder sb = new StringBuilder("[FurnaceLog] write slot=" + index + " item=" + item);
         if (outlaw) {
@@ -420,6 +451,25 @@ public abstract class MixinTileEntityFurnace {
         if (!ETIMConfig.furnaceHeatSystem || !FurnaceHeat.isEnabled()) {
             return;
         }
+        // 批文项4 — the isItemValidForSlot layer of the large-item triple gate
+        // (R196 :363 face): the clay tier refuses large items on BOTH the
+        // input and fuel slots (hopper path).
+        if (!FurnaceHeat.acceptsLargeItems((TileEntityFurnace) (Object) this)
+                && ETIMFurnaceGate.isLargeItem(stack)) {
+            String sig = stack.getItem().getRegistryName().toString() + "#large";
+            if (Objects.equals(sig, etim$lastAdmitSig)) {
+                return;
+            }
+            etim$lastAdmitSig = sig;
+            if (ETIMConfig.furnaceDebugLog) {
+                ETIM.LOGGER.info("[FurnaceLog] item denied large-item furnace="
+                        + FurnaceHeat.getNameFor((TileEntityFurnace) (Object) this)
+                        + " slot=" + index + " item=" + stack.getItem().getRegistryName().toString()
+                        + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));
+            }
+            cir.setReturnValue(false);
+            return;
+        }
         if (index == 0) {
             // R196 §3.1 (TileEntityFurnace.java:360-368): the INPUT slot only
             // admits items with an existing smelting recipe — GUI drag and
@@ -447,7 +497,8 @@ public abstract class MixinTileEntityFurnace {
             return;
         }
         int heat = FurnaceHeat.getHeatOf(stack);
-        if (heat > 0 && heat <= FurnaceHeat.getVanillaCap()) {
+        int cap = FurnaceHeat.getCapFor((TileEntityFurnace) (Object) this);
+        if (heat > 0 && heat <= cap) {
             etim$lastAdmitSig = "";
             return;
         }
@@ -461,10 +512,130 @@ public abstract class MixinTileEntityFurnace {
         etim$lastAdmitSig = sig;
         if (ETIMConfig.furnaceDebugLog) {
             ETIM.LOGGER.info("[FurnaceLog] fuel admit denied heat=" + heat
-                    + " cap=" + FurnaceHeat.getVanillaCap()
+                    + " cap=" + cap
+                    + " furnace=" + FurnaceHeat.getNameFor((TileEntityFurnace) (Object) this)
                     + " item=" + stack.getItem().getRegistryName().toString()
                     + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));
         }
         cir.setReturnValue(false);
+    }
+
+    // ---------------------------------------------------------------- batch B1: F-8-16 + F-8-20
+
+    /**
+     * ❗F-8-16（batch B1 并修）：heat_level NBT persistence — the R196
+     * furnace keeps a dedicated heat_level field (decisive heat while
+     * burning); the batch-A derivation vanishes across a save/reload mid-burn
+     * (the empty fuel slot collapses the derived heat to 0). The byte rides
+     * the vanilla readFromNBT/writeToNBT bodies.
+     */
+    @Inject(
+            method = "readFromNBT",
+            at = @At("TAIL"),
+            remap = true
+    )
+    private void etim$readHeatLevel(NBTTagCompound compound, CallbackInfo ci) {
+        this.etim$heatLevel = compound.getByte("heat_level");
+        if (ETIMConfig.furnaceDebugLog && this.etim$heatLevel > 0 && this.furnaceBurnTime > 0) {
+            ETIM.LOGGER.info("[FurnaceLog] heat load level=" + this.etim$heatLevel
+                    + " burn=" + this.furnaceBurnTime
+                    + " furnace=" + FurnaceHeat.getNameFor((TileEntityFurnace) (Object) this)
+                    + " [server]");
+        }
+    }
+
+    @Inject(
+            method = "writeToNBT",
+            at = @At("RETURN"),
+            remap = true
+    )
+    private void etim$writeHeatLevel(NBTTagCompound compound, CallbackInfoReturnable<NBTTagCompound> cir) {
+        cir.getReturnValue().setByte("heat_level", (byte) this.etim$heatLevel);
+    }
+
+    /**
+     * ❗F-8-20（batch B1 并修）：the R196 extinguish face
+     * (TileEntityFurnace.updateEntity :160/:205-216) — a furnace whose FRONT
+     * neighbor floods (Material.water) or smothers (a solid face toward the
+     * furnace) skips the whole tick: steam FX when flooded, the idle twin
+     * swap, burnTime AND cookTime zeroed. The last burn tick is exempt
+     * ({@code furnaceBurnTime == 1} takes the normal branch and burns out
+     * naturally, R196 :160).
+     */
+    @Inject(
+            method = "update",
+            at = @At("HEAD"),
+            cancellable = true,
+            remap = true
+    )
+    private void etim$extinguish(CallbackInfo ci) {
+        if (!ETIMConfig.furnaceHeatSystem || !FurnaceHeat.isEnabled()) {
+            return;
+        }
+        TileEntityFurnace self = (TileEntityFurnace) (Object) this;
+        if (self.getWorld() == null || self.getWorld().isRemote) {
+            return;
+        }
+        if (this.furnaceBurnTime == 1) {
+            return;
+        }
+        boolean flooded = etim$isFlooded(self);
+        if (!flooded && !etim$isSmothered(self)) {
+            return;
+        }
+        if (this.furnaceBurnTime > 0) {
+            if (flooded) {
+                // R196 blockFX steam :207-208 — the 1.12 broadcast face: smoke
+                // particles (playEvent 2000) + the extinguish fizz.
+                self.getWorld().playEvent(2000, self.getPos(), 0);
+                self.getWorld().playSound(null, self.getPos(), SoundEvents.BLOCK_FIRE_EXTINGUISH,
+                        SoundCategory.BLOCKS, 1.0F, 1.0F);
+            }
+            if (ETIMConfig.furnaceDebugLog) {
+                ETIM.LOGGER.info("[FurnaceLog] extinguished " + (flooded ? "flooded" : "smothered")
+                        + " furnace=" + FurnaceHeat.getNameFor(self)
+                        + " burn=" + this.furnaceBurnTime + " cook=" + this.cookTime
+                        + " [server]");
+            }
+            // Idle twin (vanilla or ETIM — MixinBlockFurnace routes the ETIM
+            // pair), the R196 :211 face.
+            net.minecraft.block.BlockFurnace.setState(false, self.getWorld(), self.getPos());
+        }
+        this.furnaceBurnTime = 0;
+        this.cookTime = 0;
+        this.etim$heatLevel = 0;
+        ci.cancel();
+    }
+
+    /** R196 isFlooded :136-146 — the front-neighbor material is water. */
+    @Unique
+    private static boolean etim$isFlooded(TileEntityFurnace furnace) {
+        EnumFacing facing = etim$frontFacing(furnace);
+        if (facing == null) {
+            return false;
+        }
+        BlockPos front = furnace.getPos().offset(facing);
+        return furnace.getWorld().getBlockState(front).getMaterial() == Material.WATER;
+    }
+
+    /** R196 isSmotheredBySolidBlock :148-156 — the front neighbor presents a solid face toward the furnace. */
+    @Unique
+    private static boolean etim$isSmothered(TileEntityFurnace furnace) {
+        EnumFacing facing = etim$frontFacing(furnace);
+        if (facing == null) {
+            return false;
+        }
+        BlockPos front = furnace.getPos().offset(facing);
+        return furnace.getWorld().getBlockState(front).isSideSolid(furnace.getWorld(), front, facing.getOpposite());
+    }
+
+    /** The furnace's FACING front (the vanilla and the ETIM blocks share BlockHorizontal.FACING). */
+    @Unique
+    private static EnumFacing etim$frontFacing(TileEntityFurnace furnace) {
+        net.minecraft.block.state.IBlockState state = furnace.getWorld().getBlockState(furnace.getPos());
+        if (state.getPropertyKeys().contains(net.minecraft.block.BlockHorizontal.FACING)) {
+            return state.getValue(net.minecraft.block.BlockHorizontal.FACING);
+        }
+        return null;
     }
 }

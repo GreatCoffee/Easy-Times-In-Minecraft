@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"etim:furnace_sandstone_lit"},"facing=east":{"model":"etim:furnace_sandstone_lit","y":90},"facing=south":{"model":"etim:furnace_sandstone_lit","y":180},"facing=west":{"model":"etim:furnace_sandstone_lit","y":270}}}

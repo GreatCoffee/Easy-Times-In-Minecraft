@@ -127,10 +127,12 @@ public abstract class MixinSlot {
             deny = true;
             why = "no-recipe";
         } else if (this.slotNumber == 1) {
+            int cap = io.github.etim.etim.furnace.FurnaceHeat.getCapFor(this.inventory);
             int heat = io.github.etim.etim.furnace.FurnaceHeat.getHeatOf(stack);
-            if (heat <= 0 || heat > io.github.etim.etim.furnace.FurnaceHeat.getVanillaCap()) {
+            if (heat <= 0 || heat > cap) {
                 deny = true;
-                why = "heat=" + heat + " cap=" + io.github.etim.etim.furnace.FurnaceHeat.getVanillaCap();
+                why = "heat=" + heat + " cap=" + cap
+                        + " furnace=" + io.github.etim.etim.furnace.FurnaceHeat.getNameFor(this.inventory);
             }
         }
         if (!deny) {
@@ -161,7 +163,28 @@ public abstract class MixinSlot {
     private void etim$furnaceInputRecipeGate(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValueZ()
                 || !ETIMConfig.furnaceHeatSystem
-                || !ETIMConfig.furnaceInputRecipeGate
+                || !io.github.etim.etim.furnace.FurnaceHeat.isEnabled()) {
+            return;
+        }
+        // 批文项4 — the SLOT layer of the large-item triple gate (R196 SlotFuel
+        // 构造传 furnace.acceptsLargeItems, Slot.java 通用门): the clay tier
+        // refuses large items in BOTH GUI slots. Slots 2+ keep vanilla.
+        if ((this.slotNumber == 0 || this.slotNumber == 1)
+                && this.inventory instanceof TileEntityFurnace
+                && !io.github.etim.etim.furnace.FurnaceHeat.acceptsLargeItems((TileEntityFurnace) this.inventory)
+                && io.github.etim.etim.metal.ETIMFurnaceGate.isLargeItem(stack)) {
+            cir.setReturnValue(false);
+            String sig = stack.getItem().getRegistryName().toString() + "#large-slot";
+            if (!sig.equals(etim$lastInputDenySig) && ETIMConfig.furnaceDebugLog) {
+                etim$lastInputDenySig = sig;
+                ETIM.LOGGER.info("[FurnaceLog] slot denied large-item furnace="
+                        + io.github.etim.etim.furnace.FurnaceHeat.getNameFor(this.inventory)
+                        + " slot=" + this.slotNumber + " item=" + sig.split("#")[0]
+                        + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));
+            }
+            return;
+        }
+        if (!ETIMConfig.furnaceInputRecipeGate
                 || this.slotNumber != 0
                 || !etim$isFurnaceInventory(this.inventory)) {
             return;

@@ -47,8 +47,29 @@ public abstract class MixinSlotFurnaceFuel {
         if (!cir.getReturnValueZ() || !ETIMConfig.furnaceHeatSystem || !FurnaceHeat.isEnabled()) {
             return;
         }
+        // `inventory` lives on the Slot superclass — the mixin reaches it via
+        // the cast (no shadow for inherited fields).
+        net.minecraft.inventory.Slot self = (net.minecraft.inventory.Slot) (Object) this;
+        net.minecraft.inventory.IInventory inv = self.inventory;
+        int cap = FurnaceHeat.getCapFor(inv);
+        // 批文项4 — the slot layer's fuel face: the clay tier refuses large
+        // items here too (boats/doors ARE fuels — the R196 SlotFuel gate).
+        if (inv instanceof net.minecraft.tileentity.TileEntityFurnace
+                && !FurnaceHeat.acceptsLargeItems((net.minecraft.tileentity.TileEntityFurnace) inv)
+                && io.github.etim.etim.metal.ETIMFurnaceGate.isLargeItem(stack)) {
+            cir.setReturnValue(false);
+            String sig = stack.getItem().getRegistryName().toString() + "#large";
+            if (!sig.equals(etim$lastFuelDenySig) && ETIMConfig.furnaceDebugLog) {
+                etim$lastFuelDenySig = sig;
+                ETIM.LOGGER.info("[FurnaceLog] fuel denied large-item furnace="
+                        + FurnaceHeat.getNameFor(inv)
+                        + " item=" + sig.split("#")[0]
+                        + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));
+            }
+            return;
+        }
         int heat = FurnaceHeat.getHeatOf(stack);
-        if (heat > 0 && heat <= FurnaceHeat.getVanillaCap()) {
+        if (heat > 0 && heat <= cap) {
             return;
         }
         cir.setReturnValue(false);
@@ -59,7 +80,8 @@ public abstract class MixinSlotFurnaceFuel {
         etim$lastFuelDenySig = sig;
         if (ETIMConfig.furnaceDebugLog) {
             ETIM.LOGGER.info("[FurnaceLog] fuel admit denied heat=" + heat
-                    + " cap=" + FurnaceHeat.getVanillaCap()
+                    + " cap=" + cap
+                    + " furnace=" + FurnaceHeat.getNameFor(inv)
                     + " item=" + sig.split("#")[0]
                     + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));
         }

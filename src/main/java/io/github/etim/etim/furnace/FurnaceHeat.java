@@ -1,10 +1,16 @@
 package io.github.etim.etim.furnace;
 
+import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityFurnace;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.inventory.IInventory;
+
+import io.github.etim.etim.metal.ETIMBlockFurnace;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -152,6 +158,64 @@ public final class FurnaceHeat {
 
     public static int getVanillaCap() {
         return vanillaCap;
+    }
+
+    // ---------------------------------------------------------------- batch B1: per-furnace queries
+
+    /**
+     * Batch B1 (批文项3): the cap of the furnace a TE SITS IN — an ETIM tier
+     * block carries its own R196 cap (clay/sandstone/hardenedClay 1,
+     * obsidian 3, netherrack 4), the vanilla furnace keeps the config cobble
+     * cap. The TE public getters (getBlockType) reach the block with ZERO
+     * accessors (终审 G-FB-5 seam).
+     */
+    public static int getCapFor(TileEntityFurnace furnace) {
+        if (furnace != null && furnace.getBlockType() instanceof ETIMBlockFurnace) {
+            return ((ETIMBlockFurnace) furnace.getBlockType()).getTier().heatCap;
+        }
+        return getVanillaCap();
+    }
+
+    /**
+     * IInventory-facing overload for the slot/container/hopper consumers: the
+     * GUI-side furnace slots bind the real TileEntityFurnace on BOTH ends
+     * (the FML GuiHandler pos packet), so an instanceof is the whole story.
+     * Non-furnace inventories answer the vanilla cap (their callers' gates
+     * never consult it).
+     */
+    public static int getCapFor(IInventory inventory) {
+        return inventory instanceof TileEntityFurnace
+                ? getCapFor((TileEntityFurnace) inventory)
+                : getVanillaCap();
+    }
+
+    /**
+     * Furnace identity for [FurnaceLog] deny rows ({@code furnace=etim:furnace_obsidian}
+     * style, 批文判行通道); the vanilla furnace keeps its own name.
+     */
+    public static String getNameFor(IInventory inventory) {
+        if (inventory instanceof TileEntityFurnace) {
+            ResourceLocation name = ((TileEntityFurnace) inventory).getBlockType().getRegistryName();
+            return name != null ? name.toString() : "minecraft:furnace";
+        }
+        return "minecraft:furnace";
+    }
+
+    /**
+     * Batch B1 (批文项4): the R196 acceptsLargeItems face — ONLY the clay tier
+     * refuses large items; every other tier AND the vanilla (cobble) furnace
+     * accept them (R196 BlockFurnace.java:240-242 base, G-FB-5).
+     */
+    public static boolean acceptsLargeItems(TileEntityFurnace furnace) {
+        if (furnace != null && furnace.getBlockType() instanceof ETIMBlockFurnace) {
+            return ((ETIMBlockFurnace) furnace.getBlockType()).getTier().acceptsLargeItems;
+        }
+        return true;
+    }
+
+    /** Batch B1 registration hook: the ETIM ore rows land here (R196 :219-241 same numbers). */
+    public static void addRequiredHeat(Item input, int heat) {
+        REQUIRED.put(input, heat);
     }
 
     /**

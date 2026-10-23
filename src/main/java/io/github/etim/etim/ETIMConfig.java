@@ -308,6 +308,12 @@ public final class ETIMConfig {
     /** Furnace input slot only admits items that HAVE a smelting recipe (R196 TileEntityFurnace:360-368 — GUI drag and hopper alike). 熔炉输入槽只收有熔炼配方的物品（R196 TileEntityFurnace:360-368 — GUI 拖放与漏斗同门）。 */
     public static boolean furnaceInputRecipeGate = true;
 
+    // metal (stage 4 batch B1: five furnace tiers + four ores + five metal materials) -------------
+    /** Master switch of the ETIM metal system: the dungeon-chest ancient-metal loot. The furnace tiers/ores themselves are R196 judged content. 金属体系总开关：地牢箱远古金属注入面；炉型与矿石本体是 R196 判值内容。 */
+    public static boolean metalSystem = true;
+    /** Main-world generation of the three ETIM ores (R196 BiomeDecorator :344-357: copper freq 40 / silver 10 / mithril 10, the nextInt(10)==0 gate). Off = no ETIM ore veins (blocks still craftable in creative). 三矿主世界生成开关（R196 BiomeDecorator：铜 40/银 10/秘银 10，nextInt(10)==0 频率门）；关闭则无 ETIM 矿脉（方块创造栏仍可取）。 */
+    public static boolean metalOreGen = true;
+
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
     public static boolean deathXpOrbs = false;
@@ -718,6 +724,13 @@ public final class ETIMConfig {
         furnaceInputRecipeGate = config.getBoolean("furnaceInputRecipeGate", "furnace", true,
                 comment("Furnace input slot only admits items that HAVE a smelting recipe (R196 TileEntityFurnace:360-368 — GUI drag and hopper alike); off = vanilla open-input acceptance",
                         "熔炉输入槽只收有熔炼配方的物品（R196 TileEntityFurnace:360-368 — GUI 拖放与漏斗同门）；关闭则回到原版输入槽全部放行"));
+
+        metalSystem = config.getBoolean("metalSystem", "metal", true,
+                comment("Master switch of the ETIM metal system (stage 4 batch B1): the main-world dungeon-chest ancient-metal loot injection (B-2(a) 主会话裁定, 1-4 @ weight 10 verbatim from the R196 underworld chest table). The furnace tiers and ores themselves are R196 judged content and stay registered",
+                        "金属体系总开关（阶段四批 B1）：主世界地牢箱远古金属注入（B-2(a) 主会话裁定，1-4 权重 10，逐位照抄 R196 幽冥箱表）；炉型与矿石本体是 R196 判值内容，照常注册"));
+        metalOreGen = config.getBoolean("metalOreGen", "metal", true,
+                comment("Main-world generation of the three ETIM ores (R196 BiomeDecorator :344-357): copper frequency 40 / silver 10 / mithril 10 (one vein attempt per nextInt(10)==0 roll), veins 6/6/3, bands 0-128/0-96/0-32 with the R196 height draws. Adamantium generates NOWHERE (R196 :345-357 — stage 7). Off = no ETIM ore veins",
+                        "三矿主世界生成（R196 BiomeDecorator :344-357）：铜频率 40/银 10/秘银 10（每次 nextInt(10)==0 掷中才尝试一条矿脉），脉宽 6/6/3，带 0-128/0-96/0-32 走 R196 高度分布；艾德曼主世界零生成（阶段七）。关闭则无 ETIM 矿脉"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",

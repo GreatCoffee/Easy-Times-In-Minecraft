@@ -71,13 +71,15 @@ public abstract class MixinSidedInvWrapper {
             return;
         }
         if (sideSlot == 1) {
+            int cap = FurnaceHeat.getCapFor(this.inv);
             int heat = FurnaceHeat.getHeatOf(stack);
-            if (heat <= 0 || heat > FurnaceHeat.getVanillaCap()) {
+            if (heat <= 0 || heat > cap) {
                 String sig = stack.getItem().getRegistryName().toString() + "@fuel" + heat;
                 if (ETIMConfig.furnaceDebugLog && !sig.equals(etim$lastSinkSig)) {
                     etim$lastSinkSig = sig;
                     ETIM.LOGGER.info("[FurnaceLog] sink denied fuel heat=" + heat
-                            + " cap=" + FurnaceHeat.getVanillaCap()
+                            + " cap=" + cap
+                            + " furnace=" + FurnaceHeat.getNameFor(this.inv)
                             + " item=" + stack.getItem().getRegistryName().toString()
                             + " sim=" + simulate
                             + (Thread.currentThread().getName().contains("Server") ? " [server]" : " [client]"));

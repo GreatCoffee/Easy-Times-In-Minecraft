@@ -42,6 +42,15 @@ public final class FurnaceXpRewards {
         REWARDS.put(item, reward);
     }
 
+    /**
+     * Batch-B1 registration hook: the five metal rows land here when the
+     * metal content registers (copper 10 / silver 15 / mithril 40 /
+     * ancient 20 / adamantium 100 — 终审 G-FB-9).
+     */
+    public static void addReward(Item item, int reward) {
+        put(item, reward);
+    }
+
     /** Called from ETIMConfig.init. */
     public static void setEnabled(boolean value) {
         enabled = value;

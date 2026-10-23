@@ -182,7 +182,7 @@ public abstract class MixinGuiContainer {
                 int heat = io.github.etim.etim.furnace.FurnaceHeat.getHeatOf(stack);
                 if (heat > 0) {
                     row = net.minecraft.client.resources.I18n.format("etim.furnace.curheat", heat,
-                            io.github.etim.etim.furnace.FurnaceHeat.getVanillaCap());
+                            io.github.etim.etim.furnace.FurnaceHeat.getCapFor(this.hoveredSlot.inventory));
                 }
             }
         }

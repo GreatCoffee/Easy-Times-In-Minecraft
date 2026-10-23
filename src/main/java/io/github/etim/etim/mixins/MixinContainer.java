@@ -92,10 +92,13 @@ public abstract class MixinContainer {
             deny = true;
             why = "no-recipe";
         } else if (slotId == 1) {
+            net.minecraft.inventory.Slot fuelSlot = ((net.minecraft.inventory.Container) (Object) this).getSlot(1);
+            int cap = io.github.etim.etim.furnace.FurnaceHeat.getCapFor(fuelSlot.inventory);
             int heat = io.github.etim.etim.furnace.FurnaceHeat.getHeatOf(carried);
-            if (heat <= 0 || heat > io.github.etim.etim.furnace.FurnaceHeat.getVanillaCap()) {
+            if (heat <= 0 || heat > cap) {
                 deny = true;
-                why = "heat=" + heat + " cap=" + io.github.etim.etim.furnace.FurnaceHeat.getVanillaCap();
+                why = "heat=" + heat + " cap=" + cap
+                        + " furnace=" + io.github.etim.etim.furnace.FurnaceHeat.getNameFor(fuelSlot.inventory);
             }
         }
         if (deny) {

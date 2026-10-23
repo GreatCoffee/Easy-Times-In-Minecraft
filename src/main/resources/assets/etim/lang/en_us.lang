@@ -79,3 +79,23 @@ tile.bed.obstructed=The bed is obstructed
 tile.bed.poisoned=You cannot sleep while poisoned
 
 tile.bed.mobsDigging=Monsters are digging nearby - get up
+
+tile.etim.furnace_clay.name=Clay Oven
+tile.etim.furnace_sandstone.name=Sandstone Oven
+tile.etim.furnace_hardened_clay.name=Hardened Clay Oven
+tile.etim.furnace_obsidian.name=Obsidian Furnace
+tile.etim.furnace_netherrack.name=Netherrack Furnace
+tile.etim.ore_copper.name=Copper Ore
+tile.etim.ore_silver.name=Silver Ore
+tile.etim.ore_mithril.name=Mithril Ore
+tile.etim.ore_adamantium.name=Adamantium Ore
+item.etim.nugget_copper.name=Copper Nugget
+item.etim.nugget_silver.name=Silver Nugget
+item.etim.nugget_mithril.name=Mithril Nugget
+item.etim.nugget_adamantium.name=Adamantium Nugget
+item.etim.nugget_ancient_metal.name=Ancient Metal Nugget
+item.etim.ingot_copper.name=Copper Ingot
+item.etim.ingot_silver.name=Silver Ingot
+item.etim.ingot_mithril.name=Mithril Ingot
+item.etim.ingot_adamantium.name=Adamantium Ingot
+item.etim.ingot_ancient_metal.name=Ancient Metal Ingot

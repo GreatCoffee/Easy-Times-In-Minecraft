@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"etim:furnace_netherrack"},"facing=east":{"model":"etim:furnace_netherrack","y":90},"facing=south":{"model":"etim:furnace_netherrack","y":180},"facing=west":{"model":"etim:furnace_netherrack","y":270}}}
