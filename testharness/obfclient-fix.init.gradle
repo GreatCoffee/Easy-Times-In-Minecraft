@@ -1,0 +1,61 @@
+// ETIM test harness: runObfClient pre-launch hygiene.
+// runObfClient's prepareObfModsFolder copies a plain mixinbooter-11.13.jar into
+// run/obfuscated/mods while the force-load copy !mixinbooter-11.13.jar is also
+// present (restoreCompatMods). Two copies of the same MixinBooter coremod make
+// Forge/Mixin apply twice and ReBind's init lands after the narrator hook
+// (ReBindMain.keyBindingNarrator == null -> NPE in isNarratorKeyPressed).
+// Delete the plain duplicate immediately before the game process starts.
+allprojects {
+    tasks.matching { it.name == 'runObfClient' }.configureEach {
+        doFirst {
+            def dup = file('run/obfuscated/mods/mixinbooter-11.13.jar')
+            if (dup.exists()) {
+                dup.delete()
+                println '[etim-harness] removed duplicate plain mixinbooter (kept !mixinbooter-11.13.jar)'
+            }
+            // batch2: prepareObfModsFolder wipes/repopulates the obf mods folder
+            // and restoreCompatMods never carries the project's release jar, so
+            // a client round would otherwise load a stale etim jar (release-a45
+            // C2: a 324643B pre-F-15-F1 jar survived in run/obfuscated/mods).
+            // Standing gate (receipt 补22 挂账①): the pinned build/libs artifact
+            // MUST exist — abort rather than launch on a stale/unknown folder —
+            // then sync it and verify the copy by length + SHA256. This script
+            // never builds; cross-check the logged fingerprint against the
+            // window pin (纪律节增补③) before judging any readings.
+            def built = file('build/libs/etim-1.0.0.jar')
+            def dst = file('run/obfuscated/mods/etim-1.0.0.jar')
+            if (!built.exists()) {
+                throw new GradleException('[etim-harness] pinned release jar missing: build/libs/etim-1.0.0.jar — refusing to launch on a stale/unknown obf mods folder; restore the pinned artifact first (never rebuild inside a pinned verification window)')
+            }
+            dst.parentFile.mkdirs()
+            java.nio.file.Files.copy(built.toPath(), dst.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            if (dst.length() != built.length()) {
+                throw new GradleException('[etim-harness] sync verify failed: run/obfuscated/mods/etim-1.0.0.jar ' + dst.length() + 'B != build/libs ' + built.length() + 'B')
+            }
+            def md = java.security.MessageDigest.getInstance('SHA-256')
+            dst.withInputStream { ins ->
+                def buf = new byte[65536]
+                int n
+                while ((n = ins.read(buf)) > 0) { md.update(buf, 0, n) }
+            }
+            def sha = String.format('%064x', new java.math.BigInteger(1, md.digest())).toUpperCase()
+            println '[etim-harness] pinned etim jar synced+verified: ' + dst.length() + 'B  SHA256 ' + sha
+        }
+    }
+}
+
+// Session 7 (three-spider round): optional client quick-connect.
+// 1.12.2 net.minecraft.client.main.Main accepts --server/--port and
+// FMLClientHandler.connectToServerAtStartup consumes GameConfig.serverInfo,
+// so the obf client can join without UI automation. Armed only with
+// -PetimQuickConnect=1 — the default launch shape (main menu) is unchanged.
+allprojects {
+    tasks.matching { it.name == 'runObfClient' }.configureEach {
+        if (project.hasProperty('etimQuickConnect')) {
+            def host = project.hasProperty('etimQuickHost') ? project.property('etimQuickHost') : 'localhost'
+            def port = project.hasProperty('etimQuickPort') ? project.property('etimQuickPort') : '25565'
+            args '--server', host, '--port', port
+            println '[etim-harness] quick-connect args armed: ' + host + ':' + port
+        }
+    }
+}

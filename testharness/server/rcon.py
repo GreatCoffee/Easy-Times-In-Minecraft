@@ -38,8 +38,10 @@ def main():
     authed = False
     while not authed:
         p_id, p_type, _ = read_packet(sock)
-        if p_type == AUTH:
-            authed = p_id != -1  # -1 = the login-failed reply
+        # vanilla 1.12.2 answers AUTH with type=2 (EXEC), not type=3; -1 = login failed
+        if p_type == EXEC:
+            authed = p_id != -1
+            break
     if not authed:
         print("auth failed")
         sys.exit(2)

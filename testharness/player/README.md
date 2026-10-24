@@ -33,6 +33,37 @@ mineflayer + FML|HS 握手，连主会话起好的 runServer（etim 已装）。
 - FML 握手摘要走 stdout 前缀 `[fmlhs]`、聊天回文前缀 `[chat]`；registry 帧只计数量（`LOGIN OK … registry_data 帧=N`）。
 - 判定基准：`D:\OpenCodeWorkspace\Easy Times In Minecraft\mite-src\run27 测试书.md` 判定列 `[AILog]` 行文案，判读器以「首个出现」为准（每 entity 每理由恰 1 行的和已内含去重语义）。
 
+## 通道纪律（RCON vs bot chat）—— 位置语义归属
+
+**裁定**：`playground/audit/audit19-w3-close.md`；事故面详录 `testharness/reports/spawn-cycle-02-verdict.md` W3 追加系列 §六。
+
+**根因**：Minecraft RCON 的 command sender **没有实体位置**（1.12 行为），故凡以 sender 位置为基准的语义一律失效：
+
+| 失效项 | 实测 | 归属通道 |
+|---|---|---|
+| `@e[r=N]` 半径选择器 | 统计**原点附近**，非玩家附近 | **bot chat** |
+| `/kill @e[...,r=N]` | 同上 | **bot chat** |
+| `/testfor`（含空间限定） | 同上 | **bot chat** |
+| `/execute <x> <y> <z> run …` | **同样无效**——不带 `r` 的 `testfor @e[type=zombie]` 亦返 0，同刻全局返 20 | **bot chat** |
+
+**分工**：
+
+- **bot chat 面**（`box-ops-via-bot.js` 等，发令实体有位置）：`@e[r=]`、`/kill`、`/testfor` 空间面、`/summon`、`/gamemode`。
+- **RCON 面**（`rcon-client.js`，仅限无位置语义命令）：`gamerule`、`time set/add`、`time query`、**无位置限定的全维 `testfor`**、`stop`。
+
+**使用禁令**：
+
+1. 任何「玩家／bot 附近有多少某类实体」的判读，**禁止**走 RCON；必须 bot chat 面，或改用 `[SpawnLog]` 行内自含计数（如 `cap-comp`／`density-skip` 的 `imobs=`——后者与位置锚定无关，天然可靠）。
+2. 已由 RCON 位置面产出并写进报告的判读（W2h/W2i testfor 四型零值面等）**须加通道更正标记**，已在 `moon6-backend-verdict.md` W2j 节与 `spawn-cycle-02-verdict.md` W3 §5.2/§5.3 落标记。
+
+**附带纪律（同源事故）**：
+
+- **同名 bot 互踢**：两脚本同用 `ETIM_Harn04` 会触发 `KICKED "multiplayer.disconnect.duplicate_login"`，被踢方的 heartbeat 仍会继续打印（socket 已闭而定时器未停）→ **heartbeat 不断 ≠ 在线**。需并行时用不同账号，或令两者**不同时在线**（本仓现采后者：`hold` 收线后再跑工步）。
+- **`summon` 存活率**：同点批量投放的敌对生物会堆叠互殴／摔落致死（W3b2 首投 11 头仅存活 1）。投放须带 `{NoAI:1b,Silent:1b,Health:20.0f,…}` 并让 bot **延长在线**，以覆盖密度门求值拍。
+- **`exceptions` 哨分层**：harness bot 退场产生的 `NetworkDispatcher exception / java.io.IOException: 远程主机强迫关闭` 属**连接层噪声**，非 mod 异常；判读时与 mod 异常**分列**（口径是否改判由主会话裁定，会话七仅按实况登记）。
+
+---
+
 ## 已知限制 / 风险
 
 - `minecraft-protocol-forge` 是 deathcap 2016 版（npm 最新即 1.0.0），FML|HS 1.12.2 registry burst 若失败，需脚本层补 ACK 处理——出现即按偏差登记报主会话。

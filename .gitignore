@@ -24,3 +24,8 @@ build
 eclipse
 run
 build-logs/
+
+# runtime backups & raw logs
+testharness/playerdata-backup/
+testharness/reports/*.log
+testharness/reports/logs/
