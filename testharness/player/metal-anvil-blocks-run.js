@@ -248,35 +248,51 @@ async function w2() {
     await clearCount('etim:storage_copper', true);
   }
   mark(`[AnvilLog] w2 ingots->block got=${gotBlock} want=1 | ${gotBlock === 1 ? 'PASS' : 'FAIL'}`);
+  results.push({ v: 'W2a', gotBlock });
+  await w2b();
+  await say('w2-end');
+}
 
-  // 1 storage block → 9 ingots (one slot)
+/** W2b: 1 storage block → 9 ingots. Its OWN phase/window: riding W2a's
+ *  just-closed window made the result click land on a stale window id (the
+ *  server never took the stack; batch smoke 19:45 read got=0). Fresh bot +
+ *  fresh window here. */
+async function w2b() {
+  await say('w2b-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
   await clearAll();
   await giveItem('etim:storage_copper', 1);
-  await sleep(300);
-  const block2 = await waitForBlock(RIG.table.x, RIG.table.y, RIG.table.z);
-  const w2b = block2 ? await bot.openBlock(block2) : null;
-  await sleep(700);
-  const win2 = bot.currentWindow || w2b;
-  let gotIngots = 0;
-  if (win2) {
-    await wclick(37); await sleep(200);
-    await wclick(1, 1); await sleep(200);
-    await wclick(37); await sleep(200);
-    await wclick(0); await sleep(400); // arms the craft timer
-    // result dump: did the server ever match the shapeless recipe?
-    const rOut = slotStack(bot.currentWindow || w2b, 0);
-    for (let i = 0; i < 75 && gotIngots < 9; i++) {
-      await sleep(800);
-      gotIngots = (await clearCount('etim:ingot_copper', false)).n;
-    }
-    await closeWin(w2b);
-    await sleep(200);
-    mark(`[AnvilLog] w2b result-after-put=${JSON.stringify(rOut)}`);
+  await cmd(`/tp ${NAME} ${RIG.table.x + 0.5} 100 ${RIG.table.z + 1.5} 180 0`);
+  await sleep(900);
+  const block = await waitForBlock(RIG.table.x, RIG.table.y, RIG.table.z);
+  const w = block ? await bot.openBlock(block) : null;
+  await sleep(900);
+  const win = bot.currentWindow || w;
+  let got = 0;
+  let rPre = null;
+  let rOut = null;
+  if (win) {
+    await wclick(37); await sleep(300);
+    await wclick(1, 1); await sleep(400);
+    await wclick(37); await sleep(300);
+    // preview BEFORE the take click — the recipe face (9 = the 9-ingot row)
+    rPre = slotStack(win, 0);
+    await wclick(0); await sleep(700);
+    rOut = slotStack(bot.currentWindow || win, 0);
+    // the take may leave the product on the cursor (vanilla creative face):
+    // count with the window open first, then after the close (cursor returns)
+    got = (await clearCount('etim:ingot_copper', false)).n;
+    await closeWin(w);
+    await sleep(600);
+    if (got < 9) got = (await clearCount('etim:ingot_copper', false)).n;
+    mark(`[AnvilLog] w2b result-before=${JSON.stringify(rPre)} result-after=${JSON.stringify(rOut)}`
+      + ` got=${got} want=9 | ${got === 9 ? 'PASS' : 'FAIL'}`);
     await clearCount('etim:ingot_copper', true);
+  } else {
+    mark('[AnvilLog] w2b NO-WINDOW | FAIL');
   }
-  mark(`[AnvilLog] w2 block->ingots got=${gotIngots} want=9 | ${gotIngots === 9 ? 'PASS' : 'FAIL'}`);
-  results.push({ v: 'W2', gotBlock, gotIngots });
-  await say('w2-end');
+  results.push({ v: 'W2b', got, rPre, rOut });
+  await say('w2b-end');
 }
 
 /** W3: the copper anvil craft on the grid. */
@@ -419,6 +435,56 @@ async function w5() {
   await say('w5-end');
 }
 
+/** W5b: the per-anvil CAPACITY face. Drives the copper anvil's ledger past
+ *  0.5 × capacity and judges the stage-1 transition total: copper factor 4 →
+ *  capacity 1600×31×4 = 198,400 → stage 1 at total ≥ 99,200; the vanilla/iron
+ *  8.0 face (396,800) would need ≥ 198,400. A full-damage repair (damage 3200)
+ *  consumes 4 chunks → wear 3,200 per take, so 24 takes from the 23,200 base
+ *  land exactly on 100,000. */
+async function w5cap() {
+  await say('w5cap-begin');
+  const TARGET = 100000;
+  const takeRows0 = logLines().filter((l) => l.includes('anvil wear stage=')).length;
+  let n = 0;
+  let wear = await wearAt(RIG.anvCu.x, RIG.anvCu.y, RIG.anvCu.z);
+  const wear0 = wear;
+  let lastTake = '';
+  for (; n < 40 && wear < TARGET; n++) {
+    await cmd(`/gamemode 1 ${NAME}`);
+    await clearAll();
+    await giveItem('etim:scythe_copper', 1);
+    await cmd(`/etest damage 3200 ${NAME}`);
+    await giveItem('etim:nugget_copper', 9);
+    await cmd(`/etest level 200 ${NAME}`);
+    await tpAnvil(RIG.anvCu);
+    const w = await openAnvilWindow(RIG.anvCu.x, RIG.anvCu.y, RIG.anvCu.z);
+    if (!w) { mark('[AnvilLog] w5cap NO-WINDOW | FAIL'); break; }
+    await sleep(250);
+    await placeAll(w.id, 0, 0);
+    await placeAll(w.id, 1, 1);
+    await sleep(450);
+    await takeOutput();
+    await closeWin(w);
+    await sleep(250);
+    await clearCount('etim:scythe_copper', true);
+    await clearCount('etim:nugget_copper', true);
+    const rows = logLines().filter((l) => l.includes('repair take') && l.includes('repaired=3200'));
+    lastTake = rows.length ? firstLine(rows[rows.length - 1]) : '';
+    wear = await wearAt(RIG.anvCu.x, RIG.anvCu.y, RIG.anvCu.z);
+  }
+  const stageRows = logLines().filter((l) => l.includes('anvil wear stage=')).slice(takeRows0);
+  const stageRow = stageRows.length ? firstLine(stageRows[stageRows.length - 1]) : '';
+  const stage1 = /stage=1 .*total=(\d+)/.exec(stageRow);
+  const total = stage1 ? parseInt(stage1[1], 10) : null;
+  const ok = wear === TARGET && total !== null && total >= 99200 && total < 198400;
+  mark(`[AnvilLog] w5cap takes=${n} wear=${wear0}->${wear} want=${TARGET}`
+    + ` stageRow=${JSON.stringify(stageRow)} transitionTotal=${total}`
+    + ` (capacity 198,400 → 50% = 99,200; vanilla 396,800 → 198,400) | ${ok ? 'PASS' : 'FAIL'}`);
+  mark(`[AnvilLog] w5cap lastTake=${JSON.stringify(lastTake)}`);
+  results.push({ v: 'W5b', takes: n, wear0, wear, total, ok });
+  await say('w5cap-end');
+}
+
 /** W6: the T4① above-cell gate. */
 async function w6() {
   await say('w6-begin');
@@ -487,9 +553,11 @@ async function w7() {
   await rigFloor();
 
   if (phase === 'all' || phase === 'w2') await w2();
+  if (phase === 'all' || phase === 'w2b') await w2b();
   if (phase === 'all' || phase === 'w3') await w3();
   if (phase === 'all' || phase === 'w4') await w4();
   if (phase === 'all' || phase === 'w5') await w5();
+  if (phase === 'all' || phase === 'w5cap') await w5cap();
   if (phase === 'all' || phase === 'w6') await w6();
   if (phase === 'all' || phase === 'w7') await w7();
 
