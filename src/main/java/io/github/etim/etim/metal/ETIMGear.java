@@ -91,7 +91,7 @@ public final class ETIMGear {
         for (ETIMMetals metal : ETIMMetals.values()) {
             register("scythe_" + metal.name, new ETIMItemScythe(metal));
         }
-        register("knife_flint", new ETIMItemKnifeFlint());
+        knifeFlint = register("knife_flint", new ETIMItemKnifeFlint());
         CRAFT_ARROWS.put(ETIMMetals.COPPER, register("arrow_copper", new ETIMItemArrow(ETIMMetals.COPPER)));
         CRAFT_ARROWS.put(ETIMMetals.SILVER, register("arrow_silver", new ETIMItemArrow(ETIMMetals.SILVER)));
         CRAFT_ARROWS.put(ETIMMetals.MITHRIL, register("arrow_mithril", new ETIMItemArrow(ETIMMetals.MITHRIL)));
@@ -109,6 +109,17 @@ public final class ETIMGear {
             new ArmorPiece("leggings", net.minecraft.inventory.EntityEquipmentSlot.LEGS),
             new ArmorPiece("boots", net.minecraft.inventory.EntityEquipmentSlot.FEET),
     };
+
+    /** The etim-domain recipe count in the vanilla REGISTRY (C-SK-3 runtime face). */
+    private static int etimRecipeCount() {
+        int count = 0;
+        for (ResourceLocation key : net.minecraft.item.crafting.CraftingManager.REGISTRY.getKeys()) {
+            if (ETIM.MOD_ID.equals(key.getNamespace())) {
+                count++;
+            }
+        }
+        return count;
+    }
 
     private static final class ArmorPiece {
         final String name;
@@ -222,8 +233,21 @@ public final class ETIMGear {
         }
 
         // scythe/knife + 箭合成面 批 17 rows (批文 §〇, R196 一手):
+        // C-SK-3 (verdict A-SK-1 round): the count is the RUNTIME delta of the
+        // vanilla recipe REGISTRY across registerBatchRecipes() — the literal
+        // "111 rows" string was dead data (hardcoded, would not catch a
+        // skipped addRecipe). Only the BATCH delta is fail-fasted: the etim
+        // domain total evolves every batch (126 at this commit — B1/B2 rows
+        // included), so no total expectation exists.
+        int before = etimRecipeCount();
         registerBatchRecipes();
-        ETIM.LOGGER.info("[TestLog] gear recipes registered: 111 rows (94 legacy: 90 ingot-based + 4 rusted chain-armor; +17: 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint) [server]");
+        int added = etimRecipeCount() - before;
+        if (added != 17) {
+            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 17 batch rows (5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint), registered " + added);
+        }
+        ETIM.LOGGER.info("[TestLog] gear recipes registered: " + added
+                + " batch rows ok (runtime REGISTRY delta; etim-domain total " + etimRecipeCount()
+                + " incl legacy 94: 90 ingot-based + 4 rusted chain-armor) [server]");
     }
 
     /** The scythe/knife/arrow recipe face — R196 RecipesTools:102 / RecipesWeapons:73,85 / RecipesMITE:252,257. */
