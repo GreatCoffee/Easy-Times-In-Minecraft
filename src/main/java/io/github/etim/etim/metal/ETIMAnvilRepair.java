@@ -14,10 +14,12 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.event.entity.player.AnvilRepairEvent;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 /**
@@ -56,11 +58,38 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  */
 public final class ETIMAnvilRepair {
 
-    /** The vanilla-iron-anvil metal gate (R196 :74-76/:88-92 strict >; EnumEquipmentMaterial :12 iron 8.0F). */
+    /**
+     * The vanilla-iron-anvil metal-gate fallback (金属砧块批: the gate value is
+     * per-anvil now — {@link #anvilMetalDurability}; this constant covers the
+     * vanilla iron anvil, R196 EnumEquipmentMaterial :12 iron 8.0F).
+     */
     public static final float ANVIL_METAL_DURABILITY = 8.0F;
 
-    /** The iron-anvil wear capacity: 1600 × 31 × 8.0 (R196 BlockAnvil :191-197). */
+    /**
+     * The iron-anvil wear capacity: 1600 × 31 × 8.0 (R196 BlockAnvil :191-197)
+     * — the vanilla-fallback face; metal anvils scale per
+     * {@link #anvilWearCapacity(World, BlockPos)}.
+     */
     public static final int ANVIL_WEAR_CAPACITY = (int) (1600F * 31F * ANVIL_METAL_DURABILITY);
+
+    /**
+     * 金属砧块批 — the per-anvil metal gate (R196 ContainerRepair :73-78/:87-93
+     * read the ANVIL BLOCK's metal_type.durability, not a constant). The ETIM
+     * metal anvils carry their metal's durability factor; the vanilla iron
+     * anvil (and anything else) falls back to iron 8.0F.
+     */
+    public static float anvilMetalDurability(World world, BlockPos pos) {
+        IBlockState state = world.getBlockState(pos);
+        if (state.getBlock() instanceof ETIMBlockAnvil) {
+            return ((ETIMBlockAnvil) state.getBlock()).etimAnvilDurability();
+        }
+        return ANVIL_METAL_DURABILITY;
+    }
+
+    /** The per-anvil wear capacity: 1600 × 31 × gate value (R196 :191-197 式). */
+    public static int anvilWearCapacity(World world, BlockPos pos) {
+        return (int) (1600F * 31F * anvilMetalDurability(world, pos));
+    }
 
     /** R196 ContainerRepairINNER2 :35 armor ratio (mattockIron 12800 ÷ bootsIron 64, 终审补-4). */
     private static final int ARMOR_WEAR_RATIO = 200;
@@ -93,6 +122,9 @@ public final class ETIMAnvilRepair {
         public Kind kind = Kind.NONE;
         /** 1 = quality over budget, 2 = anvil too soft (only when kind == FAIL). */
         public int fail = 0;
+        /** fail-2 judgment values: the material that beat the anvil (金属砧块批判行). */
+        public float failMaterial;
+        public float failAnvil;
         /** The output stack (EMPTY on FAIL). */
         public ItemStack output = ItemStack.EMPTY;
         /** Nuggets consumed on take (R196 stackSizeToBeUsedInRepair). */
@@ -173,8 +205,12 @@ public final class ETIMAnvilRepair {
      * The takeover brain (R196 isRepairing :52-119 + the updateRepairOutput
      * repair faces :121-269). Pure — both sides run it; the vanilla flow
      * stays untouched unless a repair context exists (T4①).
+     *
+     * <p>金属砧块批: {@code anvilDurability} = the anvil block's gate value
+     * (the caller reads it via {@link #anvilMetalDurability} — R196 reads the
+     * block's metal_type inside the container; the ETIM plan stays pure).</p>
      */
-    public static Plan plan(EntityPlayer player, ItemStack first, ItemStack second) {
+    public static Plan plan(EntityPlayer player, ItemStack first, ItemStack second, float anvilDurability) {
         Plan plan = new Plan();
         if (first == null || first.isEmpty() || !(first.getItem() instanceof ETIMMetalGear)) {
             return plan;
@@ -205,8 +241,10 @@ public final class ETIMAnvilRepair {
             }
             if (first.isItemEnchanted() || second.isItemDamaged()) {
                 combo = true;
-                if (gear.etimMaterialDurability() > ANVIL_METAL_DURABILITY) {
+                if (gear.etimMaterialDurability() > anvilDurability) {
                     fail = 2; // :73-78 — the TOOL's material vs the anvil
+                    plan.failMaterial = gear.etimMaterialDurability();
+                    plan.failAnvil = anvilDurability;
                 }
             } else {
                 deniedPair = true; // :67-71 — the clean-twin denial, claimed
@@ -219,8 +257,10 @@ public final class ETIMAnvilRepair {
         if (first.isItemDamaged() && divisor > 0
                 && secondThere && second.getItem() == gear.etimRepairItem()) {
             consumable = true;
-            if (repairMaterialDurability(second) > ANVIL_METAL_DURABILITY) {
+            if (repairMaterialDurability(second) > anvilDurability) {
                 fail = 2; // :86-92 — the NUGGET's material vs the anvil
+                plan.failMaterial = repairMaterialDurability(second);
+                plan.failAnvil = anvilDurability;
             }
         }
 
@@ -335,5 +375,36 @@ public final class ETIMAnvilRepair {
     /** Registers the event face (ETIM preInit). */
     public static void register() {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(ETIMAnvilRepair.class);
+    }
+
+    /**
+     * 金属砧块批 T3② 防脏面 — a mined anvil must not leave its per-pos wear
+     * entry behind (the R196 TE face dies with the block; a stale WorldSavedData
+     * entry would let a NEW anvil at the same pos inherit the OLD wear).
+     */
+    @SubscribeEvent
+    public static void onAnvilBreak(BlockEvent.BreakEvent event) {
+        if (event.getWorld().isRemote) {
+            return;
+        }
+        if (event.getState().getBlock() instanceof net.minecraft.block.BlockAnvil) {
+            ETIMAnvilDamageData.removeWear(event.getWorld(), event.getPos());
+            ETIM.LOGGER.info("[TestLog] anvil break face: wear ledger cleared at " + event.getPos() + " [server]");
+        }
+    }
+
+    /**
+     * 金属砧块批 T3② 防脏面 — a placed anvil starts a FRESH ledger (clears any
+     * stale entry at that pos, covering the fall/explosion paths BreakEvent
+     * cannot see).
+     */
+    @SubscribeEvent
+    public static void onAnvilPlace(BlockEvent.PlaceEvent event) {
+        if (event.getWorld().isRemote) {
+            return;
+        }
+        if (event.getPlacedBlock().getBlock() instanceof net.minecraft.block.BlockAnvil) {
+            ETIMAnvilDamageData.removeWear(event.getWorld(), event.getPos());
+        }
     }
 }

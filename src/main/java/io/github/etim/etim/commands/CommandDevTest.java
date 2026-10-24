@@ -138,6 +138,9 @@ public class CommandDevTest extends CommandBase {
             case "quality":
                 executeQuality(server, sender, args);
                 break;
+            case "anvilwear":
+                executeAnvilWear(server, sender, args);
+                break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
         }
@@ -402,6 +405,18 @@ public class CommandDevTest extends CommandBase {
      *       the fail-1 (quality over budget) probe.</li>
      * </ul>
      */
+    /** 金属砧块批 — the per-pos anvil-wear query (W4/W6 判据通道): /etest anvilwear <x> <y> <z>. */
+    private static void executeAnvilWear(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = new BlockPos(CommandBase.parseInt(args[1]), CommandBase.parseInt(args[2]), CommandBase.parseInt(args[3]));
+        int wear = io.github.etim.etim.metal.ETIMAnvilDamageData.wearAt(server.getWorld(0), pos);
+        io.github.etim.etim.ETIM.LOGGER.info("[TestLog] anvilwear " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " = " + wear + " [server]");
+        sender.sendMessage(new net.minecraft.util.text.TextComponentString(
+                "[TestLog] anvilwear " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " = " + wear));
+    }
+
     private static void executeDamage(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");

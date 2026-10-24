@@ -55,11 +55,28 @@ public final class ETIMBlocks {
     public static ETIMBlockOre ORE_MITHRIL;
     public static ETIMBlockOre ORE_ADAMANTIUM;
 
+    /** 金属砧块批 — the six metal anvils (R196 Block :876-888/:959-961). */
+    public static ETIMBlockAnvil ANVIL_COPPER;
+    public static ETIMBlockAnvil ANVIL_SILVER;
+    public static ETIMBlockAnvil ANVIL_GOLD;
+    public static ETIMBlockAnvil ANVIL_MITHRIL;
+    public static ETIMBlockAnvil ANVIL_ADAMANTIUM;
+    public static ETIMBlockAnvil ANVIL_ANCIENT_METAL;
+
+    /** 金属砧块批 T2① — the five metal storage blocks (gold/iron stay vanilla). */
+    public static ETIMBlockStorage STORAGE_COPPER;
+    public static ETIMBlockStorage STORAGE_SILVER;
+    public static ETIMBlockStorage STORAGE_MITHRIL;
+    public static ETIMBlockStorage STORAGE_ADAMANTIUM;
+    public static ETIMBlockStorage STORAGE_ANCIENT_METAL;
+
     private static ETIMBlockFurnace[][] twins = new ETIMBlockFurnace[ETIMFurnaceTier.values().length][2];
 
     public static void register() {
         registerFurnaces();
         registerOres();
+        registerAnvils();
+        registerStorageBlocks();
         registerRecipes();
     }
 
@@ -95,6 +112,53 @@ public final class ETIMBlocks {
     private static ETIMBlockOre registerOre(ETIMBlockOre block) {
         net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS.register(block);
         ItemBlock item = new ItemBlock(block);
+        item.setRegistryName(block.getRegistryName());
+        net.minecraftforge.fml.common.registry.ForgeRegistries.ITEMS.register(item);
+        return block;
+    }
+
+    /**
+     * 金属砧块批 — the six metal anvils (R196 Block :876-888/:959-961 对位).
+     * Durability column (EnumEquipmentMaterial :9-15): copper/silver/gold 4.0,
+     * ancient 16.0, mithril 64.0, adamantium 256.0 → the repair gate + the
+     * wear capacity (1600 × 31 × value, R196 BlockAnvil :191-197). Item stack
+     * 1 (R196 BlockAnvil :19).
+     */
+    private static void registerAnvils() {
+        ANVIL_COPPER = registerAnvil(new ETIMBlockAnvil("anvil_copper", 4.0F));
+        ANVIL_SILVER = registerAnvil(new ETIMBlockAnvil("anvil_silver", 4.0F));
+        ANVIL_GOLD = registerAnvil(new ETIMBlockAnvil("anvil_gold", 4.0F));
+        ANVIL_ANCIENT_METAL = registerAnvil(new ETIMBlockAnvil("anvil_ancient_metal", 16.0F));
+        ANVIL_MITHRIL = registerAnvil(new ETIMBlockAnvil("anvil_mithril", 64.0F));
+        ANVIL_ADAMANTIUM = registerAnvil(new ETIMBlockAnvil("anvil_adamantium", 256.0F));
+    }
+
+    private static ETIMBlockAnvil registerAnvil(ETIMBlockAnvil block) {
+        net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS.register(block);
+        ItemBlock item = new ItemBlock(block);
+        item.setMaxStackSize(1); // R196 BlockAnvil :19
+        item.setRegistryName(block.getRegistryName());
+        net.minecraftforge.fml.common.registry.ForgeRegistries.ITEMS.register(item);
+        return block;
+    }
+
+    /**
+     * 金属砧块批 T2① — the five metal storage blocks (补-2: R196 BlockOreStorage
+     * :4-10 — harvest = grade + 1, stack 4, hardness = the 1.2 × durability
+     * relative form; gold/iron stay vanilla, A-1 定谳).
+     */
+    private static void registerStorageBlocks() {
+        STORAGE_COPPER = registerStorage(new ETIMBlockStorage("storage_copper", ETIMMetals.COPPER.grade + 1, 4.8F));
+        STORAGE_SILVER = registerStorage(new ETIMBlockStorage("storage_silver", ETIMMetals.SILVER.grade + 1, 4.8F));
+        STORAGE_ANCIENT_METAL = registerStorage(new ETIMBlockStorage("storage_ancient_metal", ETIMMetals.ANCIENT_METAL.grade + 1, 19.2F));
+        STORAGE_MITHRIL = registerStorage(new ETIMBlockStorage("storage_mithril", ETIMMetals.MITHRIL.grade + 1, 76.8F));
+        STORAGE_ADAMANTIUM = registerStorage(new ETIMBlockStorage("storage_adamantium", ETIMMetals.ADAMANTIUM.grade + 1, 307.2F));
+    }
+
+    private static ETIMBlockStorage registerStorage(ETIMBlockStorage block) {
+        net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS.register(block);
+        ItemBlock item = new ItemBlock(block);
+        item.setMaxStackSize(4); // R196 BlockOreStorage :8
         item.setRegistryName(block.getRegistryName());
         net.minecraftforge.fml.common.registry.ForgeRegistries.ITEMS.register(item);
         return block;
@@ -140,8 +204,44 @@ public final class ETIMBlocks {
         FurnaceHeat.addRequiredHeat(Item.getItemFromBlock(ORE_SILVER), 2);
         FurnaceHeat.addRequiredHeat(Item.getItemFromBlock(ORE_MITHRIL), 3);
         FurnaceHeat.addRequiredHeat(Item.getItemFromBlock(ORE_ADAMANTIUM), 4);
+
+        // --- 金属砧块批: storage block ↔ ingot, both directions (A-1 正本 =
+        //     R196 RecipesIngots recipeItems :29-45 — 9 ingots → 1 block
+        //     "###"×3; 1 block → 9 ingots "#"; skillsets dropped F-8-23=B)
+        registerStorageRecipe(STORAGE_COPPER, ETIMItems.ingotCopper, "copper");
+        registerStorageRecipe(STORAGE_SILVER, ETIMItems.ingotSilver, "silver");
+        registerStorageRecipe(STORAGE_MITHRIL, ETIMItems.ingotMithril, "mithril");
+        registerStorageRecipe(STORAGE_ADAMANTIUM, ETIMItems.ingotAdamantium, "adamantium");
+        registerStorageRecipe(STORAGE_ANCIENT_METAL, ETIMItems.ingotAncientMetal, "ancient_metal");
+
+        // --- 金属砧块批: the six metal anvils (R196 RecipesMITE :264-275 —
+        //     "III" / " i " / "iii": 3 storage blocks + 7 ingots; the gold
+        //     row rides the vanilla block/ingot, A-1 定谳)
+        GameRegistry.addShapedRecipe(key("anvil_copper"), null, new ItemStack(ANVIL_COPPER),
+                "III", " i ", "iii", 'I', STORAGE_COPPER, 'i', ETIMItems.ingotCopper);
+        GameRegistry.addShapedRecipe(key("anvil_silver"), null, new ItemStack(ANVIL_SILVER),
+                "III", " i ", "iii", 'I', STORAGE_SILVER, 'i', ETIMItems.ingotSilver);
+        GameRegistry.addShapedRecipe(key("anvil_gold"), null, new ItemStack(ANVIL_GOLD),
+                "III", " i ", "iii", 'I', Blocks.GOLD_BLOCK, 'i', Items.GOLD_INGOT);
+        GameRegistry.addShapedRecipe(key("anvil_mithril"), null, new ItemStack(ANVIL_MITHRIL),
+                "III", " i ", "iii", 'I', STORAGE_MITHRIL, 'i', ETIMItems.ingotMithril);
+        GameRegistry.addShapedRecipe(key("anvil_adamantium"), null, new ItemStack(ANVIL_ADAMANTIUM),
+                "III", " i ", "iii", 'I', STORAGE_ADAMANTIUM, 'i', ETIMItems.ingotAdamantium);
+        GameRegistry.addShapedRecipe(key("anvil_ancient_metal"), null, new ItemStack(ANVIL_ANCIENT_METAL),
+                "III", " i ", "iii", 'I', STORAGE_ANCIENT_METAL, 'i', ETIMItems.ingotAncientMetal);
+
         ETIM.LOGGER.info("[FurnaceLog] batch B1 metal content registered: 10 furnace blocks, 4 ores, 10 metal items, "
                 + "4 smelting rows, 9:1 conversions, 4 heat rows [server]");
+        ETIM.LOGGER.info("[TestLog] metal anvil batch registered: 6 anvil blocks, 5 storage blocks, "
+                + "6 anvil recipes, 10 storage-recipes [server]");
+    }
+
+    /** 金属砧块批 — the RecipesIngots pair for one storage block (§一 正本). */
+    private static void registerStorageRecipe(ETIMBlockStorage block, Item ingot, String metal) {
+        GameRegistry.addShapedRecipe(key("storage_" + metal + "_from_ingots"), null,
+                new ItemStack(block), "###", "###", "###", '#', ingot);
+        GameRegistry.addShapelessRecipe(key("ingots_from_storage_" + metal), null,
+                new ItemStack(ingot, 9), net.minecraft.item.crafting.Ingredient.fromStacks(new ItemStack(block)));
     }
 
     private static ResourceLocation key(String path) {

@@ -1,0 +1,6 @@
+{
+    "parent": "minecraft:block/cube_all",
+    "textures": {
+        "all": "etim:blocks/storage_ancient_metal"
+    }
+}

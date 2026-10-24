@@ -1,1 +1,5 @@
-{"variants":{"normal":{"model":"etim:
+{
+    "variants": {
+        "normal": { "model": "etim:block/ore_mithril" }
+    }
+}

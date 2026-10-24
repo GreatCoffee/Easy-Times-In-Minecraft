@@ -1,0 +1,5 @@
+{   "parent": "etim:block/anvilgold",
+    "textures": {
+        "top": "etim:blocks/anvilgold_top"
+    }
+}

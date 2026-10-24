@@ -6,7 +6,6 @@ import net.minecraft.client.gui.GuiRepair;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.inventory.Slot;
 import net.minecraft.util.text.TextFormatting;
-import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,6 +20,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * the SAME plan face on the client's own container instance (the plan is
  * pure) — no network state.
  *
+ * <p>B-ANV-1 修 (金属砧块批): the hint rides {@code drawScreen} TAIL —
+ * SCREEN space, after the GUI's popMatrix (GuiContainer.drawScreen :100-101
+ * translates the matrix for the foreground layer and pops it afterwards, and
+ * the vanilla tooltip face :193 runs outside it). The batch-3 face injected
+ * {@code drawGuiContainerForegroundLayer} TAIL with the raw screen
+ * mouseX/mouseY → the GL translate shifted the tooltip a second time and
+ * clipped it. drawScreen TAIL also keeps the tooltip topmost.</p>
+ *
  * <p>Client render only ([AGENTS rule 9]: the gates behind it are
  * log-judged server-side via [CraftingLog] fail/take rows).</p>
  */
@@ -28,10 +35,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinGuiRepair {
 
     @Inject(
-            method = "drawGuiContainerForegroundLayer(II)V",
+            method = "drawScreen(IIF)V",
             at = @At("TAIL")
     )
-    private void etim$repairFailHints(int mouseX, int mouseY, CallbackInfo ci) {
+    private void etim$repairFailHints(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         if (!ETIMConfig.metalAnvilRepair) {
             return;
         }
@@ -51,6 +58,5 @@ public abstract class MixinGuiRepair {
                 ? "container.repair.needsHarderAnvil"
                 : "container.repair.insufficientSkill";
         self.drawHoveringText(TextFormatting.GOLD + I18n.format(key), mouseX, mouseY);
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
     }
 }

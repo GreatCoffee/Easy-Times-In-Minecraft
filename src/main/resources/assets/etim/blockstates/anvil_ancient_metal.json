@@ -1,0 +1,16 @@
+{
+    "variants": {
+        "damage=0,facing=south": { "model": "etim:block/anvil_ancient_metal" },
+        "damage=0,facing=west": { "model": "etim:block/anvil_ancient_metal", "y": 90 },
+        "damage=0,facing=north": { "model": "etim:block/anvil_ancient_metal", "y": 180 },
+        "damage=0,facing=east": { "model": "etim:block/anvil_ancient_metal", "y": 270 },
+        "damage=1,facing=south": { "model": "etim:block/anvil_ancient_metal_damaged" },
+        "damage=1,facing=west": { "model": "etim:block/anvil_ancient_metal_damaged", "y": 90 },
+        "damage=1,facing=north": { "model": "etim:block/anvil_ancient_metal_damaged", "y": 180 },
+        "damage=1,facing=east": { "model": "etim:block/anvil_ancient_metal_damaged", "y": 270 },
+        "damage=2,facing=south": { "model": "etim:block/anvil_ancient_metal_damaged" },
+        "damage=2,facing=west": { "model": "etim:block/anvil_ancient_metal_damaged", "y": 90 },
+        "damage=2,facing=north": { "model": "etim:block/anvil_ancient_metal_damaged", "y": 180 },
+        "damage=2,facing=east": { "model": "etim:block/anvil_ancient_metal_damaged", "y": 270 }
+    }
+}

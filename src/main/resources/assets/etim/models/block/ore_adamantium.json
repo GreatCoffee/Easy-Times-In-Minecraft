@@ -1,1 +1,6 @@
-{"parent":"minecraft:block/cube_all","textures":{"particle":"etim:blocks/ore_adamantium","all":"etim:blocks/ore_adamantium"}}
+{
+    "parent": "minecraft:block/cube_all",
+    "textures": {
+        "all": "etim:blocks/ore_adamantium"
+    }
+}

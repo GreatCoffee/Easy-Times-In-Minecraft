@@ -67,7 +67,8 @@ public class ETIMAnvilDamageData extends WorldSavedData {
         data.wear.put(key, total);
         data.markDirty();
 
-        float factor = (float) total / ETIMAnvilRepair.ANVIL_WEAR_CAPACITY;
+        float capacity = 1600F * 31F * ETIMAnvilRepair.anvilMetalDurability(world, pos); // 金属砧块批: per-anvil (R196 :191-197 式)
+        float factor = (float) total / capacity;
         net.minecraft.block.state.IBlockState state = world.getBlockState(pos);
         int current = state.getValue(net.minecraft.block.BlockAnvil.DAMAGE);
         int stage;
@@ -82,6 +83,8 @@ public class ETIMAnvilDamageData extends WorldSavedData {
         }
         if (stage == 3) {
             world.setBlockToAir(pos);
+            data.wear.remove(key); // T3② — the block is gone, its ledger dies with it
+            data.markDirty();
             world.playEvent(1029, pos, 0); // the break event
             ETIM.LOGGER.info("[CraftingLog] anvil broken by wear at " + pos
                     + " total=" + total + " [server]");
@@ -97,6 +100,17 @@ public class ETIMAnvilDamageData extends WorldSavedData {
     public static int wearAt(World world, BlockPos pos) {
         ETIMAnvilDamageData data = get(world);
         return data.wear.getOrDefault(pos.toLong(), 0);
+    }
+
+    /**
+     * 金属砧块批 T3② 防脏面 — drop the entry at a pos (the mined/placed anvil
+     * must not leak its ledger to whatever comes next at that position).
+     */
+    public static void removeWear(World world, BlockPos pos) {
+        ETIMAnvilDamageData data = get(world);
+        if (data.wear.remove(pos.toLong()) != null) {
+            data.markDirty();
+        }
     }
 
     @Override
