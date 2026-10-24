@@ -323,8 +323,7 @@ public final class ETIMDigging {
     private static final java.util.Map<EntitySkeleton, int[]> FRENZY =
             new java.util.WeakHashMap<>();
 
-    /** C-1 dedup: the last logged (frenzy state) per skeleton — the 20-tick
-     * re-set face is silent unless the target changed or the frenzy expired. */
+    /** C-1 dedup: [0] = last log tick, [1] = last logged target entityId (-1 = none). */
     private static final java.util.Map<EntitySkeleton, int[]> FRENZY_LOG_SIG =
             new java.util.WeakHashMap<>();
 
@@ -333,23 +332,29 @@ public final class ETIMDigging {
         if (skeleton.world.isRemote) {
             return;
         }
-        int[] old = FRENZY.get(skeleton);
-        boolean wasActive = old != null && old[0] > 0;
         FRENZY.put(skeleton, new int[]{20});
         if (target instanceof net.minecraft.entity.EntityLiving
                 && skeleton.getAttackTarget() == null) {
             skeleton.setAttackTarget((net.minecraft.entity.EntityLiving) target);
         }
-        // C-1: log only the state-change face (first set / expired-refetch /
-        // target change), not every 20-tick window re-set.
+        // C-1: the row = the state-change face ONLY. The countdown (20) equals
+        // the re-set window (20 ticks), so every re-set lands on an
+        // exactly-zero counter — an expiry-based sig is always "changed" and
+        // the flood survives (verdict W7-R). Dedup = suppression window
+        // (>40 ticks since the last row = a real resumption) + the target
+        // change bypasses the window (a re-target is the AI-visible face).
         int[] sig = FRENZY_LOG_SIG.get(skeleton);
-        boolean sigChanged = !wasActive || sig == null
-                || (target == null ? sig[0] != -1 : sig[0] != target.getEntityId());
-        if (ETIMConfig.mobDebugLog && sigChanged) {
-            ETIM.LOGGER.info("[AILog] frenzy set entity=" + skeleton.getName()
-                    + " target=" + (target == null ? "none" : target.getName()) + " [server]");
+        int tick = skeleton.ticksExisted;
+        int targetId = target == null ? -1 : target.getEntityId();
+        boolean targetChanged = sig == null || sig[1] != targetId;
+        boolean gapElapsed = sig == null || tick - sig[0] > 40;
+        if (targetChanged || gapElapsed) {
+            if (ETIMConfig.mobDebugLog) {
+                ETIM.LOGGER.info("[AILog] frenzy set entity=" + skeleton.getName()
+                        + " target=" + (target == null ? "none" : target.getName()) + " [server]");
+            }
+            FRENZY_LOG_SIG.put(skeleton, new int[]{tick, targetId});
         }
-        FRENZY_LOG_SIG.put(skeleton, new int[]{target == null ? -1 : target.getEntityId()});
     }
 
     /** R196 :55-60 isFrenziedByBoneLord — countdown > 0. */

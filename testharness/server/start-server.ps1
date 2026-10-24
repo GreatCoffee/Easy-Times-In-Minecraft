@@ -77,7 +77,10 @@ $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $stdoutLog = Join-Path $LogDir ("server_" + $stamp + ".out")
 
 $argString = ($allJvmArgs | ForEach-Object { if ($_ -match ' ') { '"' + $_ + '"' } else { $_ } }) -join ' '
-$argString += ' -cp "' + ($cp + ";" + $cpAppend) + '" ' + $mainClass + ' nogui'
+# 2026-10-25: no trailing ';' when no append (empty cp entry = cwd -> FML rescans .\mods -> DuplicateMods).
+$cpFull = $cp
+if ($cpAppend) { $cpFull = $cp + ";" + $cpAppend }
+$argString += ' -cp "' + $cpFull + '" ' + $mainClass + ' nogui'
 Write-Output ("ARGSPEC=" + $argString.Substring(0, [Math]::Min(400, $argString.Length)))
 Write-Output ("ARGSPECTAIL=" + $argString.Substring([Math]::Max(0, $argString.Length - 200)))
 # v5: WMI Create (detached from job tree / pipe-closing of the caller). Redirection
