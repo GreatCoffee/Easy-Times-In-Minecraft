@@ -38,6 +38,13 @@ public final class ETIMToolDurability {
             return;
         }
         for (Item item : ForgeRegistries.ITEMS.getValues()) {
+            if (item instanceof io.github.etim.etim.metal.ETIMMetalGear) {
+                // B3 A-1: ETIM gear carries its R196-judged maxDamage from the
+                // constructor; the vanilla-material mapping below would rewrite it
+                // through the IRON placeholder ctor material (pickaxe/axe 9600,
+                // shovel 3200, sword 6400 — adamantium pickaxe 307200→9600).
+                continue;
+            }
             int components = getNumComponentsForDurability(item);
             if (components <= 0) {
                 continue;

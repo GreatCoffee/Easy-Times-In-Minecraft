@@ -102,6 +102,8 @@ public final class ETIM {
     public void init(FMLInitializationEvent event) {
         // Vanilla tools carry R196 material durability (task 2.2 ToolSuite).
         ETIMToolDurability.apply();
+        // B3 A-1: fail-fast — gear rows must still carry their judged maxDamage.
+        io.github.etim.etim.metal.ETIMGear.reassertJudgedDurability();
         // All preInits complete by here: CT's config load covered (compat fix).
         io.github.etim.etim.compat.CraftingTweaksCompat.apply();
     }

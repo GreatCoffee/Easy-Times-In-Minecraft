@@ -123,8 +123,12 @@ public final class ETIMMetalLoot {
         LootFunction count = new SetCount(new LootCondition[0], new RandomValueRange(min, max));
         LootFunction[] functions;
         if (rustedDamage) {
-            // R196 (int)(3.0 + rand×7.0) = 3-9 → /10 fraction (ItemStack.java:1012).
-            LootFunction damage = new SetDamage(new LootCondition[0], new RandomValueRange(0.3F, 0.9F));
+            // R196 (int)(3.0 + rand×7.0) = 3-9/10 damage fraction (ItemStack.java:1012).
+            // 1.12 SetDamage.apply is INVERTED vs 1.13+: damage = (1 - f) × maxDamage
+            // (SetDamage.java:28-34, f = remaining fraction) — pass 0.1-0.7 remaining
+            // to land 0.3-0.9 damage (B3 A-2; continuous draw approximating the R196
+            // seven-band discrete face).
+            LootFunction damage = new SetDamage(new LootCondition[0], new RandomValueRange(0.1F, 0.7F));
             functions = new LootFunction[]{count, damage};
         } else {
             functions = new LootFunction[]{count};

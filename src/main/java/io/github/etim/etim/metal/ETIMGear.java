@@ -27,6 +27,9 @@ public final class ETIMGear {
 
     private static final List<Item> ALL = new ArrayList<>();
 
+    /** Constructor-judged maxDamage per gear row (B3 A-1 reassert face). */
+    private static final java.util.Map<Item, Integer> JUDGED_DURABILITY = new java.util.HashMap<>();
+
     public static Item chainCopper;
     public static Item chainSilver;
     public static Item chainMithril;
@@ -103,6 +106,7 @@ public final class ETIMGear {
         item.setTranslationKey("etim." + name);
         ForgeRegistries.ITEMS.register(item);
         ALL.add(item);
+        JUDGED_DURABILITY.put(item, item.getMaxDamage());
     }
 
     private static Item chain(String name) {
@@ -129,6 +133,24 @@ public final class ETIMGear {
             throw new IllegalStateException("etim gear item not registered: " + suffix);
         }
         return item;
+    }
+
+    /**
+     * B3 A-1 fail-fast: re-run after {@code ETIMToolDurability.apply()} — every
+     * gear row must still carry its constructor-judged maxDamage (the IRON
+     * placeholder ctor material made apply() rewrite B2+B3 tools to the vanilla
+     * mapping: adamantium pickaxe 307200→9600).
+     */
+    public static void reassertJudgedDurability() {
+        for (java.util.Map.Entry<Item, Integer> row : JUDGED_DURABILITY.entrySet()) {
+            if (row.getKey().getMaxDamage() != row.getValue()) {
+                throw new IllegalStateException("etim gear maxDamage drifted from the judged value: "
+                        + row.getKey().getRegistryName() + " " + row.getKey().getMaxDamage()
+                        + " != " + row.getValue());
+            }
+        }
+        ETIM.LOGGER.info("[EquipLog] durability reassert: " + JUDGED_DURABILITY.size()
+                + " gear rows ok [server]");
     }
 
     /**
