@@ -205,7 +205,13 @@ public class ETIMEntityBoneLord extends EntitySkeleton {
                         if (skeletonType == 0 || skeletonType != 2) {
                             return accept(w, skeleton, target);
                         }
-                        if (pathFinalWithin(w, skeleton, targetX, targetY, targetZ)) {
+                        // B-MOB-2: the type2 gate judgment row — separates
+                        // "never rolled" from "rolled and rejected".
+                        boolean pathOk = pathFinalWithin(w, skeleton, targetX, targetY, targetZ);
+                        if (ETIMConfig.mobDebugLog) {
+                            ETIM.LOGGER.info("[AILog] troop type2 gate pathOk=" + pathOk + " [server]");
+                        }
+                        if (pathOk) {
                             return accept(w, skeleton, target);
                         }
                     }
@@ -320,10 +326,22 @@ public class ETIMEntityBoneLord extends EntitySkeleton {
      * openDoors, ...) → the 1.12 navigator face (the 16F range and the
      * open-doors/avoid-water/swim flags ride the skeleton's own navigator
      * config — C 级 mapping).
+     *
+     * <p>A-MOB-1 (verdict W5): the 1.12 {@code PathNavigate.getPathToPos}
+     * starts with {@code canNavigate()} = {@code onGround || inLiquid() &&
+     * canSwim || isRiding()} — for the not-yet-in-world candidate the flag
+     * face is always false, so the path was always null and type2 troops
+     * could never pass (0/74 across the whole history). R196 :207-227 uses
+     * the world-level getEntityPathToXYZ with no such gate. Fix: fake the
+     * onGround flag for the gate pass; the spawn resets the physics face on
+     * the first tick.</p>
      */
     private static boolean pathFinalWithin(WorldServer w, EntitySkeleton skeleton, int x, int y, int z) {
+        boolean wasOnGround = skeleton.onGround;
+        skeleton.onGround = true;
         net.minecraft.pathfinding.Path path = skeleton.getNavigator()
                 .getPathToPos(new BlockPos(x, y, z));
+        skeleton.onGround = wasOnGround;
         if (path == null) {
             return false;
         }

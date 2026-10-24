@@ -323,20 +323,33 @@ public final class ETIMDigging {
     private static final java.util.Map<EntitySkeleton, int[]> FRENZY =
             new java.util.WeakHashMap<>();
 
+    /** C-1 dedup: the last logged (frenzy state) per skeleton — the 20-tick
+     * re-set face is silent unless the target changed or the frenzy expired. */
+    private static final java.util.Map<EntitySkeleton, int[]> FRENZY_LOG_SIG =
+            new java.util.WeakHashMap<>();
+
     /** R196 :393-399 setFrenziedByBoneLord — countdown 20 + target-if-none. */
     public static void setFrenziedByBoneLord(EntitySkeleton skeleton, EntityLivingBase target) {
         if (skeleton.world.isRemote) {
             return;
         }
+        int[] old = FRENZY.get(skeleton);
+        boolean wasActive = old != null && old[0] > 0;
         FRENZY.put(skeleton, new int[]{20});
         if (target instanceof net.minecraft.entity.EntityLiving
                 && skeleton.getAttackTarget() == null) {
             skeleton.setAttackTarget((net.minecraft.entity.EntityLiving) target);
         }
-        if (ETIMConfig.mobDebugLog) {
+        // C-1: log only the state-change face (first set / expired-refetch /
+        // target change), not every 20-tick window re-set.
+        int[] sig = FRENZY_LOG_SIG.get(skeleton);
+        boolean sigChanged = !wasActive || sig == null
+                || (target == null ? sig[0] != -1 : sig[0] != target.getEntityId());
+        if (ETIMConfig.mobDebugLog && sigChanged) {
             ETIM.LOGGER.info("[AILog] frenzy set entity=" + skeleton.getName()
                     + " target=" + (target == null ? "none" : target.getName()) + " [server]");
         }
+        FRENZY_LOG_SIG.put(skeleton, new int[]{target == null ? -1 : target.getEntityId()});
     }
 
     /** R196 :55-60 isFrenziedByBoneLord — countdown > 0. */
