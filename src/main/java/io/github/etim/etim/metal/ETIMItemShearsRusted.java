@@ -6,6 +6,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemShears;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -76,9 +77,33 @@ public class ETIMItemShearsRusted extends ItemShears implements ETIMMetalGear {
         return 100;
     }
 
+    /**
+     * 批三修理面: the R196 nugget map (Item :1229-1246 对位, :1237
+     * rusted_iron → ironNugget) — true iff the repair stack IS the iron
+     * nugget. Gates live in the container takeover; config off = vanilla
+     * flow (T4①).
+     */
     @Override
     public boolean getIsRepairable(ItemStack toRepair, ItemStack repair) {
-        return false;
+        return ETIMConfig.metalAnvilRepair && repair.getItem() == etimRepairItem();
+    }
+
+    /** R196 Item.getRepairItem :1229-1246 对位 — the :1237 iron/rusted 合流 (批三修理面). */
+    @Override
+    public Item etimRepairItem() {
+        return ETIMAnvilRepair.nuggetOf(metal);
+    }
+
+    /** R196 ItemTool.getRepairCost :290-292 — shears components 2 × 2 (批三修理面). */
+    @Override
+    public int etimRepairCost() {
+        return 4;
+    }
+
+    /** R196 Material.durability 列 — rusted_iron 4.0 (批三修理面). */
+    @Override
+    public float etimMaterialDurability() {
+        return metal.durabilityFactor;
     }
 
     /** The breaking-decay funnel — MixinItemTool cannot hook this class (Item, not ItemTool). */

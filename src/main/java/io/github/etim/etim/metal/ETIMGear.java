@@ -242,8 +242,8 @@ public final class ETIMGear {
         int before = etimRecipeCount();
         registerBatchRecipes();
         int added = etimRecipeCount() - before;
-        if (added != 17) {
-            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 17 batch rows (5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint), registered " + added);
+        if (added != 19) {
+            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 19 batch rows (2 iron-nugget 9:1 + 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint), registered " + added);
         }
         ETIM.LOGGER.info("[TestLog] gear recipes registered: " + added
                 + " batch rows ok (runtime REGISTRY delta; etim-domain total " + etimRecipeCount()
@@ -252,6 +252,22 @@ public final class ETIMGear {
 
     /** The scythe/knife/arrow recipe face — R196 RecipesTools:102 / RecipesWeapons:73,85 / RecipesMITE:252,257. */
     private static void registerBatchRecipes() {
+        // 批三修理面 T5②: the iron-nugget ↔ ingot pair (R196 RecipesIngots
+        // :65 ingot→9 nuggets shapeless / :66 nuggets→ingot 对位 — vanilla
+        // 1.12 has NO iron-nugget recipes; the R196 table covers iron at
+        // :5-6/:9 the same column). The vanilla iron items, no ETIM items.
+        Item ironIngot = Items.IRON_INGOT;
+        Item ironNugget = Items.IRON_NUGGET;
+        net.minecraft.item.crafting.Ingredient[] ironNuggets = new net.minecraft.item.crafting.Ingredient[9];
+        for (int n = 0; n < 9; n++) {
+            ironNuggets[n] = net.minecraft.item.crafting.Ingredient.fromStacks(new ItemStack(ironNugget));
+        }
+        GameRegistry.addShapelessRecipe(new ResourceLocation(ETIM.MOD_ID, "iron_ingot_from_nuggets"), null,
+                new ItemStack(ironIngot), ironNuggets);
+        GameRegistry.addShapelessRecipe(new ResourceLocation(ETIM.MOD_ID, "iron_nuggets_from_ingot"), null,
+                new ItemStack(ironNugget, 9),
+                net.minecraft.item.crafting.Ingredient.fromStacks(new ItemStack(ironIngot)));
+
         java.util.List<ETIMMetals> ingotMetals = java.util.Arrays.asList(
                 ETIMMetals.COPPER, ETIMMetals.SILVER, ETIMMetals.MITHRIL,
                 ETIMMetals.ADAMANTIUM, ETIMMetals.ANCIENT_METAL);

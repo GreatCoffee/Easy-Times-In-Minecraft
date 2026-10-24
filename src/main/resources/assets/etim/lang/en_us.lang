@@ -228,3 +228,9 @@ item.etim.arrow_mithril.name=Mithril Arrow
 item.etim.arrow_adamantium.name=Adamantium Arrow
 item.etim.arrow_ancient_metal.name=Ancient Metal Arrow
 item.etim.sinew.name=Sinew
+
+container.repair.insufficientSkill=Repairing this quality exceeds your crafting skill for it
+container.repair.needsHarderAnvil=This repair material is too hard for this anvil
+commands.etest.damage_set=Held item damage %s -> %s / %s
+commands.etest.damage_not_damageable=The held item is empty or not damageable
+commands.etest.quality_set=Held item quality set: %s

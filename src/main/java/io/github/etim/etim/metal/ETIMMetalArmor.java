@@ -4,8 +4,11 @@ import com.google.common.collect.Multimap;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
+
+import io.github.etim.etim.ETIMConfig;
 
 import java.util.UUID;
 
@@ -86,9 +89,33 @@ public class ETIMMetalArmor extends ItemArmor implements ETIMMetalGear {
         return metal.enchantability;
     }
 
+    /**
+     * 批三修理面: the R196 nugget map (Item :1229-1246 对位) — true iff the
+     * repair stack IS this piece's mapped nugget. Gates live in the
+     * container takeover; config off = vanilla flow (T4①).
+     */
     @Override
     public boolean getIsRepairable(ItemStack toRepair, ItemStack repair) {
-        return false;
+        return ETIMConfig.metalAnvilRepair && repair.getItem() == etimRepairItem();
+    }
+
+    /** R196 Item.getRepairItem :1229-1246 对位 (批三修理面). */
+    @Override
+    public Item etimRepairItem() {
+        return ETIMAnvilRepair.nuggetOf(metal);
+    }
+
+    /** R196 ItemArmor.getRepairCost :342-348 — components × 2, chain halved (批三修理面). */
+    @Override
+    public int etimRepairCost() {
+        int components = COMPONENTS[armorType.getIndex()];
+        return isChain ? components : components * 2;
+    }
+
+    /** R196 Material.durability 列 (批三修理面). */
+    @Override
+    public float etimMaterialDurability() {
+        return metal.durabilityFactor;
     }
 
     /** Exact-float armor modifier over the vanilla int face (批文 §二.1). */

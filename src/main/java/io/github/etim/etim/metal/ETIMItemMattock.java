@@ -12,4 +12,10 @@ public class ETIMItemMattock extends ETIMItemShovel implements ETIMMetalGear {
     public ETIMItemMattock(ETIMMetals metal) {
         super(metal, 1.0F, 4, 0.75F);
     }
+
+    /** R196 ItemTool.getRepairCost :290-292 — mattock components 4 × 2 (批三修理面; 基类 shovel 是 2). */
+    @Override
+    public int etimRepairCost() {
+        return 8;
+    }
 }

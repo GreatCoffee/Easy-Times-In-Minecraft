@@ -10,6 +10,8 @@ import net.minecraft.item.ItemTool;
 
 import com.google.common.collect.Sets;
 
+import io.github.etim.etim.ETIMConfig;
+
 /**
  * The ETIM metal scythe (R196 ItemScythe extends ItemTool, 一手
  * ItemScythe.java). Judged values:
@@ -91,10 +93,33 @@ public class ETIMItemScythe extends ItemTool implements ETIMMetalGear {
 		return 100;
 	}
 
-	/** R196 repairs via skillsets — no vanilla anvil face (C 级登记). */
+	/**
+	 * 批三修理面: the R196 nugget map (Item :1229-1246 对位) — true iff the
+	 * repair stack IS this item's mapped nugget (rusted iron rides :1237).
+	 * The anvil-metal/quality gates live in the container takeover
+	 * (ETIMAnvilRepair.plan); config off = the vanilla flow untouched (T4①).
+	 */
 	@Override
 	public boolean getIsRepairable(ItemStack toRepair, ItemStack repair) {
-		return false;
+		return ETIMConfig.metalAnvilRepair && repair.getItem() == etimRepairItem();
+	}
+
+	/** R196 Item.getRepairItem :1229-1246 对位 (批三修理面). */
+	@Override
+	public Item etimRepairItem() {
+		return ETIMAnvilRepair.nuggetOf(metal);
+	}
+
+	/** R196 ItemTool.getRepairCost :290-292 — components 2 × 2 (批三修理面). */
+	@Override
+	public int etimRepairCost() {
+		return 4;
+	}
+
+	/** R196 Material.durability 列 (EnumEquipmentMaterial 对位; 批三修理面). */
+	@Override
+	public float etimMaterialDurability() {
+		return metal.durabilityFactor;
 	}
 
 	/** Drop gate with the direct-read grade (G-FB-12 绕 fold, pickaxe mirror). */

@@ -28,4 +28,28 @@ public interface ETIMMetalGear {
 
     /** R196 EnumEquipmentMaterial max_quality of this metal (补59 裁决 3). */
     io.github.etim.etim.quality.EnumQuality etimQuality();
+
+    /**
+     * 批三修理面（砧修链）：R196 Item.getRepairItem :1229-1246 对位 — the
+     * nugget that consumable-repairs this item on the anvil. Rusted iron
+     * rides :1237 (ironNugget, 与 iron 合流); flint knife returns null
+     * (flint 不在珠映射 → 仅同物合并路径可修).
+     */
+    net.minecraft.item.Item etimRepairItem();
+
+    /**
+     * 批三修理面：R196 IDamageableItem.getRepairCost 对位 — the per-nugget
+     * durability divisor. Tools = components × 2 (ItemTool :290-292); armor =
+     * components × 2, chain halved (ItemArmor :342-348). 0 = no consumable
+     * repair face.
+     */
+    int etimRepairCost();
+
+    /**
+     * 批三修理面：the R196 Material.durability column of this item's material
+     * (EnumEquipmentMaterial :4-20; tools/armor/knife all carry it) — the
+     * combination-repair anvil gate reads the TOOL's value (ContainerRepair
+     * :73-78).
+     */
+    float etimMaterialDurability();
 }

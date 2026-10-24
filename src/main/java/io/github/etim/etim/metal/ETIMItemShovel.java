@@ -6,6 +6,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSpade;
 import net.minecraft.item.ItemTool;
 
+import io.github.etim.etim.ETIMConfig;
+
 /**
  * The ETIM metal shovel (R196 ItemShovel: 基伤 1.0 / 部件 1 / decay 破块
  * 0.5 攻击 1.0 / reach +0.75 — B2 批文 §〇 衰减全表).
@@ -64,9 +66,32 @@ public class ETIMItemShovel extends ItemSpade implements ETIMMetalGear {
         return 100; // R196 ItemTool:280-282 (wooden handle)
     }
 
+    /**
+     * 批三修理面: the R196 nugget map (Item :1229-1246 对位) — true iff the
+     * repair stack IS this item's mapped nugget. Gates live in the container
+     * takeover (ETIMAnvilRepair.plan); config off = vanilla flow (T4①).
+     */
     @Override
     public boolean getIsRepairable(ItemStack toRepair, ItemStack repair) {
-        return false;
+        return ETIMConfig.metalAnvilRepair && repair.getItem() == etimRepairItem();
+    }
+
+    /** R196 Item.getRepairItem :1229-1246 对位 (批三修理面). */
+    @Override
+    public Item etimRepairItem() {
+        return ETIMAnvilRepair.nuggetOf(metal);
+    }
+
+    /** R196 ItemTool.getRepairCost :290-292 — shovel component 1 × 2 (批三修理面). */
+    @Override
+    public int etimRepairCost() {
+        return 2;
+    }
+
+    /** R196 Material.durability 列 (批三修理面). */
+    @Override
+    public float etimMaterialDurability() {
+        return metal.durabilityFactor;
     }
 
     @Override

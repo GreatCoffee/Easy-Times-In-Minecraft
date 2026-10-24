@@ -8,6 +8,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 
+import io.github.etim.etim.ETIMConfig;
+
 /**
  * The ETIM metal sword (R196 ItemSword: 基伤 4.0 / 部件 2 / decay 破块 2.0
  * 攻击 0.5 — the decay face rides the MixinItemSword redirect / reach
@@ -67,9 +69,32 @@ public class ETIMItemSword extends ItemSword implements ETIMMetalGear {
         return 100; // R196 ItemTool:280-282
     }
 
+    /**
+     * 批三修理面: the R196 nugget map (Item :1229-1246 对位) — true iff the
+     * repair stack IS this item's mapped nugget. Gates live in the container
+     * takeover (ETIMAnvilRepair.plan); config off = vanilla flow (T4①).
+     */
     @Override
     public boolean getIsRepairable(ItemStack toRepair, ItemStack repair) {
-        return false;
+        return ETIMConfig.metalAnvilRepair && repair.getItem() == etimRepairItem();
+    }
+
+    /** R196 Item.getRepairItem :1229-1246 对位 (批三修理面). */
+    @Override
+    public Item etimRepairItem() {
+        return ETIMAnvilRepair.nuggetOf(metal);
+    }
+
+    /** R196 ItemTool.getRepairCost :290-292 — sword components 2 × 2 (批三修理面). */
+    @Override
+    public int etimRepairCost() {
+        return 4;
+    }
+
+    /** R196 Material.durability 列 (批三修理面). */
+    @Override
+    public float etimMaterialDurability() {
+        return metal.durabilityFactor;
     }
 
     /** Re-put the vanilla attack modifier with the R196 total damage. */

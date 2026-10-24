@@ -7,6 +7,7 @@ import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.playerstate.PlayerStatLimits;
+import io.github.etim.etim.quality.EnumQuality;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -130,6 +131,12 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "release":
                 executeRelease(server, sender, args);
+                break;
+            case "damage":
+                executeDamage(server, sender, args);
+                break;
+            case "quality":
+                executeQuality(server, sender, args);
                 break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
@@ -382,6 +389,53 @@ public class CommandDevTest extends CommandBase {
      * {@code @p}), otherwise the sender resolves the target and must then be
      * a player (RCON/console always passes the target explicitly).
      */
+    /**
+     * 批三修理面 (anvil-repair chain) test faces:
+     *
+     * <ul>
+     *   <li>{@code /etest damage <amount> [player]} — adds N points of
+     *       durability damage to the HELD main-hand item (capped at
+     *       maxDamage). Creates the damaged-gear state the repair window
+     *       needs; the damage value rides the [EtimTest] row.</li>
+     *   <li>{@code /etest quality <poor|fine|average|excellent|superb|masterwork|legendary> [player]} —
+     *       sets the carried quality of the held item (ETIMQuality.set) —
+     *       the fail-1 (quality over budget) probe.</li>
+     * </ul>
+     */
+    private static void executeDamage(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 2);
+        ItemStack held = player.getHeldItemMainhand();
+        if (held.isEmpty() || !held.isItemStackDamageable()) {
+            throw new CommandException("commands.etest.damage_not_damageable");
+        }
+        int amount = CommandBase.parseInt(args[1], 0, held.getMaxDamage());
+        int before = held.getItemDamage();
+        held.setItemDamage(Math.min(before + amount, held.getMaxDamage()));
+        respond(player, "commands.etest.damage_set", before, held.getItemDamage(), held.getMaxDamage());
+    }
+
+    private static void executeQuality(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 2);
+        ItemStack held = player.getHeldItemMainhand();
+        if (held.isEmpty()) {
+            throw new CommandException("commands.etest.damage_not_damageable");
+        }
+        EnumQuality quality;
+        try {
+            quality = EnumQuality.valueOf(args[1].toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        io.github.etim.etim.quality.ETIMQuality.set(held, quality);
+        respond(player, "commands.etest.quality_set", quality.name());
+    }
+
     private static EntityPlayerMP targetOrSender(MinecraftServer server, ICommandSender sender,
             String[] args, int targetIndex) throws CommandException {
         if (args.length > targetIndex) {

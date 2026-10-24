@@ -79,10 +79,32 @@ public class ETIMItemKnifeFlint extends ItemSword implements ETIMMetalGear {
 		return 100;
 	}
 
-	/** R196 repairs via skillsets — no vanilla anvil face (C 级登记). */
+	/**
+	 * R196 :1237 珠映射无 flint 行 → knife 无耗材修理面（getRepairItem
+	 * null → 耗材路径恒不成立）；同物合并路径照走（R196 Item :1229-1246
+	 * else 分支 null）。批三修理面采认。
+	 */
 	@Override
 	public boolean getIsRepairable(ItemStack toRepair, ItemStack repair) {
 		return false;
+	}
+
+	/** R196 Item.getRepairItem :1229-1246 对位 — flint 不在映射 (批三修理面). */
+	@Override
+	public Item etimRepairItem() {
+		return null;
+	}
+
+	/** R196 ItemTool.getRepairCost :290-292 — knife component 1 × 2 (批三修理面). */
+	@Override
+	public int etimRepairCost() {
+		return 2;
+	}
+
+	/** R196 Material.durability 列 — flint 1.0 (EnumEquipmentMaterial:6; 批三修理面). */
+	@Override
+	public float etimMaterialDurability() {
+		return 1.0F;
 	}
 
 	/** Re-put the vanilla attack modifier with the R196 total (ETIMItemSword mirror). */

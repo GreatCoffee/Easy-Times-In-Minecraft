@@ -72,6 +72,9 @@ public final class ETIM {
         net.minecraftforge.fml.common.network.NetworkRegistry.INSTANCE.registerGuiHandler(
                 ETIM.instance(), new io.github.etim.etim.fml.ETIMGuiHandler());
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.metal.ETIMMetalLoot.class);
+        // 批三修理面 (anvil-repair chain): the take face — breakChance 0 +
+        // proportional anvil wear + the [CraftingLog] judgment row.
+        io.github.etim.etim.metal.ETIMAnvilRepair.register();
         ETIMEnchantments.register();
         ETIMConfig.init(event);
         // The nutrition-mirror and crafting-progress handlers carry

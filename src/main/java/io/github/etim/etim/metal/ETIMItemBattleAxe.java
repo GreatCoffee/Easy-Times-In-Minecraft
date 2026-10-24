@@ -10,4 +10,10 @@ public class ETIMItemBattleAxe extends ETIMItemAxe implements ETIMMetalGear {
     public ETIMItemBattleAxe(ETIMMetals metal) {
         super(metal, 4.0F, 4, 0.75F);
     }
+
+    /** R196 ItemTool.getRepairCost :290-292 — battle axe components 4 × 2 (批三修理面; 基类 axe 是 6). */
+    @Override
+    public int etimRepairCost() {
+        return 8;
+    }
 }

@@ -13,6 +13,12 @@ public class ETIMItemHatchet extends ETIMItemAxe implements ETIMMetalGear {
         super(metal, 2.0F, 1, 0.5F);
     }
 
+    /** R196 ItemTool.getRepairCost :290-292 — hatchet component 1 × 2 (批三修理面; 基类 axe 是 6). */
+    @Override
+    public int etimRepairCost() {
+        return 2;
+    }
+
     @Override
     public float etimReachBonus() {
         return 0.5F; // R196 ItemHatchet:6 setReachBonus(0.5F)

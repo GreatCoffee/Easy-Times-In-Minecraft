@@ -10,4 +10,10 @@ public class ETIMItemWarHammer extends ETIMItemPickaxe implements ETIMMetalGear 
     public ETIMItemWarHammer(ETIMMetals metal) {
         super(metal, 2.0F, 5, 0.75F);
     }
+
+    /** R196 ItemTool.getRepairCost :290-292 — war hammer components 5 × 2 (批三修理面; 基类 pickaxe 是 6). */
+    @Override
+    public int etimRepairCost() {
+        return 10;
+    }
 }

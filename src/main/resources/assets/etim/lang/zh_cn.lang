@@ -227,3 +227,9 @@ item.etim.arrow_mithril.name=秘银箭
 item.etim.arrow_adamantium.name=精金箭
 item.etim.arrow_ancient_metal.name=远古金属箭
 item.etim.sinew.name=腱绳
+
+container.repair.insufficientSkill=修理该品质超出你当前的做工预算
+container.repair.needsHarderAnvil=修理材料太硬，这砧承受不了
+commands.etest.damage_set=手持物耐久损伤 %s -> %s / %s
+commands.etest.damage_not_damageable=手持物为空或不可损伤
+commands.etest.quality_set=手持物品质已设: %s
