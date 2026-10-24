@@ -197,6 +197,18 @@ public final class ETIMQuality {
 
     @Nullable
     private static EnumQuality materialMaxOf(Item item) {
+        // B3 批文 §〇-quality 面 (补59 裁决 3): ETIM metal gear reads the R196
+        // max_quality DIRECTLY — copper/silver excellent, ancient masterwork,
+        // mithril/adamantium legendary, rusted_iron poor. This branch MUST
+        // precede the ItemTool branch (the gear classes extend ItemTool).
+        if (item instanceof io.github.etim.etim.metal.ETIMMetalGear) {
+            return ((io.github.etim.etim.metal.ETIMMetalGear) item).etimQuality();
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemArrowRusted) {
+            // R196 multi-material rule (audit20-09 §2.4 note 2): wood + rusted
+            // → the LOWER rung (rusted poor) — ItemArrow.java:7-24 addMaterial face.
+            return EnumQuality.POOR;
+        }
         if (item instanceof ItemTool) {
             // ItemTool exposes only the material NAME (decompiled ItemTool:110).
             return ofToolMaterialName(((ItemTool) item).getToolMaterialName());

@@ -77,6 +77,11 @@ public class ETIMMetalArmor extends ItemArmor implements ETIMMetalGear {
     }
 
     @Override
+    public io.github.etim.etim.quality.EnumQuality etimQuality() {
+        return metal.quality;
+    }
+
+    @Override
     public int getItemEnchantability() {
         return metal.enchantability;
     }

@@ -32,6 +32,11 @@ public final class ETIMGear {
     public static Item chainMithril;
     public static Item chainAdamantium;
     public static Item chainAncientMetal;
+    public static Item chainRustedIron;
+
+    /** B3: the rusted-iron arrow + shears ride the batch (user ruling 裁决 2). */
+    public static Item arrowRustedIron;
+    public static Item shearsRustedIron;
 
     /** All B2 gear items in registration order (chains first, then tools, then armor). */
     public static List<Item> all() {
@@ -44,6 +49,7 @@ public final class ETIMGear {
         chainMithril = chain("chain_mithril");
         chainAdamantium = chain("chain_adamantium");
         chainAncientMetal = chain("chain_ancient_metal");
+        chainRustedIron = chain("chain_rusted_iron");
 
         for (ETIMMetals metal : ETIMMetals.values()) {
             register("pickaxe_" + metal.name, new ETIMItemPickaxe(metal));
@@ -62,6 +68,13 @@ public final class ETIMGear {
                 register("chain_" + piece.name + "_" + metal.name, new ETIMMetalArmor(metal, piece.slot, true));
             }
         }
+
+        // B3: the rusted-iron arrow + shears (批文 §〇; arrow is not gear —
+        // its dump row rides the material-item branch, shears is gear).
+        arrowRustedIron = new ETIMItemArrowRusted();
+        register("arrow_rusted_iron", arrowRustedIron);
+        shearsRustedIron = new ETIMItemShearsRusted();
+        register("shears_rusted_iron", shearsRustedIron);
 
         assertRegistered();
         registerRecipes();
@@ -109,6 +122,15 @@ public final class ETIMGear {
         }
     }
 
+    /** Registry lookup by suffix (asserted at boot) — the mob-equip face's accessor (B3). */
+    public static Item gear(String suffix) {
+        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(ETIM.MOD_ID, suffix));
+        if (item == null) {
+            throw new IllegalStateException("etim gear item not registered: " + suffix);
+        }
+        return item;
+    }
+
     /**
      * R196-shaped recipes (批文 §〇 配方形状表, 一手 RecipesTools/RecipesWeapons/
      * RecipesArmor): {@code X} = the metal ingot (chain variants use the chain
@@ -117,6 +139,19 @@ public final class ETIMGear {
      */
     private static void registerRecipes() {
         for (ETIMMetals metal : ETIMMetals.values()) {
+            if (metal == ETIMMetals.RUSTED_IRON) {
+                // B3 批文 §〇: rusted iron has NO ingot and NO ingot-based
+                // recipes (R196 无锭一手); only the chain-armor four exist
+                // (RecipesArmor.java:37 chainRustedIron). The chain item
+                // itself comes from the mineshaft chest (1-5, w5,
+                // StructureMineshaftPieces.java:24).
+                Object chain = chainOf(metal);
+                addShaped("chain_helmet_" + metal.name, chain, "XXX", "X X");
+                addShaped("chain_chestplate_" + metal.name, chain, "X X", "XXX", "XXX");
+                addShaped("chain_leggings_" + metal.name, chain, "XXX", "X X", "X X");
+                addShaped("chain_boots_" + metal.name, chain, "X X", "X X");
+                continue;
+            }
             Object ingot = ingotOf(metal);
             Object chain = chainOf(metal);
 
@@ -143,7 +178,7 @@ public final class ETIMGear {
             addShaped("chain_leggings_" + metal.name, chain, "XXX", "X X", "X X");
             addShaped("chain_boots_" + metal.name, chain, "X X", "X X");
         }
-        ETIM.LOGGER.info("[TestLog] gear recipes registered: 90 shaped rows (50 tools + 40 armor) [server]");
+        ETIM.LOGGER.info("[TestLog] gear recipes registered: 94 shaped rows (90 ingot-based + 4 rusted chain-armor) [server]");
     }
 
     /** One shaped recipe; {@code X} = component, {@code /} = stick (key added only when the shape uses it). */
@@ -187,6 +222,7 @@ public final class ETIMGear {
             case ANCIENT_METAL: return chainAncientMetal;
             case MITHRIL: return chainMithril;
             case ADAMANTIUM: return chainAdamantium;
+            case RUSTED_IRON: return chainRustedIron;
             default: throw new IllegalArgumentException("no chain for " + metal);
         }
     }

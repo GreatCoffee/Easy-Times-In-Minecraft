@@ -25,4 +25,7 @@ public interface ETIMMetalGear {
 
     /** R196 setReachBonus of this type (0.75 base; hatchet/dagger 0.5). */
     float etimReachBonus();
+
+    /** R196 EnumEquipmentMaterial max_quality of this metal (补59 裁决 3). */
+    io.github.etim.etim.quality.EnumQuality etimQuality();
 }

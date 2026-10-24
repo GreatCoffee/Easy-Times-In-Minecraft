@@ -309,6 +309,9 @@ public final class ETIMMining {
         if (item instanceof io.github.etim.etim.metal.ETIMItemMattock) {
             return 0.4F;
         }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
+            return 1.0F; // R196 ItemShears:37-39
+        }
         if (item instanceof ItemPickaxe) {
             return 1.0F;
         }
@@ -341,6 +344,9 @@ public final class ETIMMining {
         }
         if (item instanceof io.github.etim.etim.metal.ETIMItemMattock) {
             return 0.8F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
+            return 2.0F; // R196 ItemShears:42-44
         }
         if (item instanceof ItemSword) {
             return 0.5F;
@@ -425,6 +431,14 @@ public final class ETIMMining {
             }
             return ok;
         }
+        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
+            int grade = ((io.github.etim.etim.metal.ETIMItemShearsRusted) held.getItem()).etimGrade();
+            boolean ok = isShearsMaterial(state) && grade >= minLevel;
+            if (!ok) {
+                logGradeDeny(held, state, grade);
+            }
+            return ok;
+        }
         if (!(held.getItem() instanceof ItemTool)) {
             return false;
         }
@@ -469,6 +483,17 @@ public final class ETIMMining {
                 || material == net.minecraft.block.material.Material.GOURD
                 || material == net.minecraft.block.material.Material.VINE
                 || material == net.minecraft.block.material.Material.WEB;
+    }
+
+    /** R196 ItemShears:6-7 material list + trip wire block (B3 批文 §〇). */
+    private static boolean isShearsMaterial(IBlockState state) {
+        net.minecraft.block.material.Material material = state.getMaterial();
+        return material == net.minecraft.block.material.Material.CLOTH
+                || material == net.minecraft.block.material.Material.LEAVES
+                || material == net.minecraft.block.material.Material.PLANTS
+                || material == net.minecraft.block.material.Material.VINE
+                || material == net.minecraft.block.material.Material.WEB
+                || state.getBlock() == net.minecraft.init.Blocks.TRIPWIRE;
     }
 
     /** [MiningLog] grade-deny row, deduped per (item, block, grade/required) — the W2 matrix channel. */

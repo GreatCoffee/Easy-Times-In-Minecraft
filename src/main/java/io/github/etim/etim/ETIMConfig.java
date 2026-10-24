@@ -322,6 +322,9 @@ public final class ETIMConfig {
     /** [EquipLog] boot dump of all 95 gear items (dev channel, batch B2). [EquipLog] boot 期 95 件装备数值 dump（开发通道，批 B2）。 */
     public static boolean equipDebugLog = true;
 
+    /** [MobLog] mob-equipment rows for the B3 rusted-iron carriers (weapon/armor/quality faces, dev channel). [MobLog] 怪物装备判行：B3 锈铁获取载体（武器/护甲/品质面，开发通道）。 */
+    public static boolean mobEquipDebugLog = false;
+
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
     public static boolean deathXpOrbs = false;
@@ -748,6 +751,9 @@ public final class ETIMConfig {
         equipDebugLog = config.getBoolean("equipDebugLog", "metal", true,
                 comment("[EquipLog] boot dump of all 95 batch-B2 gear items (item/maxDamage/attackDamage/efficiency/grade/burn/armor) — the W1 verdict channel; off = no dump",
                         "[EquipLog] boot 期全 95 件批 B2 装备数值 dump（物品/最大耐久/攻击伤害/效率/采集级/燃烧/护甲值）——W1 判定通道；关闭则不 dump"));
+        mobEquipDebugLog = config.getBoolean("mobEquipDebugLog", "metal", false,
+                comment("[MobLog] rows for the B3 rusted-iron mob carriers: mob weapon (chance/weights/day gates), mob armor (tension gate/tier/slot walk), quality downgrade — the W2/W3 verdict channels; off = silent",
+                        "[MobLog] 判行（B3 锈铁怪物载体）：mob weapon（概率/权重/天数门）、mob armor（tension 门/档位/槽位行进）、品质降档——W2/W3 判定通道；关闭则静默"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",

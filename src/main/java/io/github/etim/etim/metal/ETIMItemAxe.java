@@ -54,6 +54,11 @@ public class ETIMItemAxe extends net.minecraft.item.ItemAxe implements ETIMMetal
     }
 
     @Override
+    public io.github.etim.etim.quality.EnumQuality etimQuality() {
+        return metal.quality;
+    }
+
+    @Override
     public int getItemEnchantability() {
         return metal.enchantability;
     }

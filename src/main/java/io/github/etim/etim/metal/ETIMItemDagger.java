@@ -15,4 +15,9 @@ public class ETIMItemDagger extends ETIMItemSword implements ETIMMetalGear {
     public float etimReachBonus() {
         return 0.5F; // R196 ItemDagger:6 setReachBonus(0.5F)
     }
+
+    @Override
+    public io.github.etim.etim.quality.EnumQuality etimQuality() {
+        return metal.quality;
+    }
 }
