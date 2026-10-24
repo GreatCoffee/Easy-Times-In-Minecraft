@@ -323,7 +323,7 @@ public final class ETIMDigging {
     private static final java.util.Map<EntitySkeleton, int[]> FRENZY =
             new java.util.WeakHashMap<>();
 
-    /** C-1 dedup: [0] = last log tick, [1] = last logged target entityId (-1 = none). */
+    /** C-1 dedup: [0] = last set tick (updated on EVERY call), [1] = last set target id (-1 = none). */
     private static final java.util.Map<EntitySkeleton, int[]> FRENZY_LOG_SIG =
             new java.util.WeakHashMap<>();
 
@@ -337,12 +337,14 @@ public final class ETIMDigging {
                 && skeleton.getAttackTarget() == null) {
             skeleton.setAttackTarget((net.minecraft.entity.EntityLiving) target);
         }
-        // C-1: the row = the state-change face ONLY. The countdown (20) equals
-        // the re-set window (20 ticks), so every re-set lands on an
-        // exactly-zero counter — an expiry-based sig is always "changed" and
-        // the flood survives (verdict W7-R). Dedup = suppression window
-        // (>40 ticks since the last row = a real resumption) + the target
-        // change bypasses the window (a re-target is the AI-visible face).
+        // C-1: the row = the state-change face ONLY. The suppression window is
+        // measured from the last SET tick (updated on every call), not the
+        // last logged tick: the lord re-sets every 20 ticks, so a last-log
+        // baseline walks the gap 20→40→60 and a row survives every third
+        // re-set (the 60-tick steady-state flood, verdict W7-R v2). With the
+        // set-tick baseline the steady-state gap is a constant 20 (silent);
+        // the first set after the lord stops for >40 ticks = the real
+        // resumption row; a target change still bypasses the window.
         int[] sig = FRENZY_LOG_SIG.get(skeleton);
         int tick = skeleton.ticksExisted;
         int targetId = target == null ? -1 : target.getEntityId();
@@ -353,8 +355,8 @@ public final class ETIMDigging {
                 ETIM.LOGGER.info("[AILog] frenzy set entity=" + skeleton.getName()
                         + " target=" + (target == null ? "none" : target.getName()) + " [server]");
             }
-            FRENZY_LOG_SIG.put(skeleton, new int[]{tick, targetId});
         }
+        FRENZY_LOG_SIG.put(skeleton, new int[]{tick, targetId});
     }
 
     /** R196 :55-60 isFrenziedByBoneLord — countdown > 0. */
