@@ -254,30 +254,37 @@ public final class ETIMMining {
      */
     public static int getToolDecayFromBreakingBlock(EntityPlayer player, IBlockState state, World world, BlockPos pos) {
         ItemStack held = player.getHeldItemMainhand();
+        int loss;
         if (held.isEmpty() || !held.getItem().isDamageable()) {
-            return 0;
+            loss = 0;
+        } else if (player.capabilities.isCreativeMode || isPortable(state)) {
+            loss = 0;
+        } else {
+            float hardness = getHardness(state, world, pos);
+            if (hardness <= 0.0F) {
+                loss = 0;
+            } else if (getCurrentPlayerStrVsBlock(player, state, world, pos, true) <= 1.0F) {
+                loss = 0;
+            } else {
+                float decay = 100.0F * getBaseDecayForBreakingBlocks(held, state);
+                loss = Math.max(Math.max((int) (hardness * decay), (int) (decay / 20.0F)), 1);
+            }
         }
-        if (player.capabilities.isCreativeMode || isPortable(state)) {
-            return 0;
-        }
-        float hardness = getHardness(state, world, pos);
-        if (hardness <= 0.0F) {
-            return 0;
-        }
-        if (getCurrentPlayerStrVsBlock(player, state, world, pos, true) <= 1.0F) {
-            return 0;
-        }
-        float decay = 100.0F * getBaseDecayForBreakingBlocks(held, state);
-        return Math.max(Math.max((int) (hardness * decay), (int) (decay / 20.0F)), 1);
+        logToolDecay("breaking", held, state, loss);
+        return loss;
     }
 
     /** MITE attack decay: {@code max((int)(100 × baseDecay), 1)} (getToolDecayFromAttackingEntity, offsets 0-13). */
     public static int getToolDecayFromAttackingEntity(ItemStack held) {
+        int loss;
         if (held.isEmpty() || !held.getItem().isDamageable()) {
-            return 0;
+            loss = 0;
+        } else {
+            float decay = 100.0F * getBaseDecayForAttackingEntity(held);
+            loss = Math.max((int) decay, 1);
         }
-        float decay = 100.0F * getBaseDecayForAttackingEntity(held);
-        return Math.max((int) decay, 1);
+        logToolDecay("attacking", held, null, loss);
+        return loss;
     }
 
     private static float getBaseDecayForBreakingBlocks(ItemStack held, IBlockState state) {
@@ -392,7 +399,10 @@ public final class ETIMMining {
      * class ({@code Block.getHarvestTool}). Batch-B2 metal hoes carry the
      * R196 ItemHoe:6 material list (grass/dirt/sand/snow/cake/craftedSnow
      * — the 1.12 GROUND/ORGANIC/SNOW/SAND/CAKE set) since the vanilla hoe
-     * lives outside the ItemTool tree.
+     * lives outside the ItemTool tree. Metal swords/daggers carry the
+     * R196 ItemSword:6 material list the same way (carpet/cloth/leaves/
+     * plants/pumpkin→GOURD/vine/web); vanilla swords stay untouched (not
+     * ItemTool in 1.12, not ETIMItemSword).
      */
     public static boolean isEffectiveAgainstBlock(ItemStack held, IBlockState state) {
         if (held.isEmpty()) {
@@ -402,6 +412,14 @@ public final class ETIMMining {
         if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemHoe) {
             int grade = ((io.github.etim.etim.metal.ETIMItemHoe) held.getItem()).etimGrade();
             boolean ok = isHoeMaterial(state) && grade >= minLevel;
+            if (!ok) {
+                logGradeDeny(held, state, grade);
+            }
+            return ok;
+        }
+        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemSword) {
+            int grade = ((io.github.etim.etim.metal.ETIMItemSword) held.getItem()).etimGrade();
+            boolean ok = isSwordMaterial(state) && grade >= minLevel;
             if (!ok) {
                 logGradeDeny(held, state, grade);
             }
@@ -441,6 +459,18 @@ public final class ETIMMining {
                 || material == net.minecraft.block.material.Material.CAKE;
     }
 
+    /** R196 ItemSword:6 material list (1.12 mapping); dagger inherits via ETIMItemDagger extends ETIMItemSword. */
+    private static boolean isSwordMaterial(IBlockState state) {
+        net.minecraft.block.material.Material material = state.getMaterial();
+        return material == net.minecraft.block.material.Material.CARPET
+                || material == net.minecraft.block.material.Material.CLOTH
+                || material == net.minecraft.block.material.Material.LEAVES
+                || material == net.minecraft.block.material.Material.PLANTS
+                || material == net.minecraft.block.material.Material.GOURD
+                || material == net.minecraft.block.material.Material.VINE
+                || material == net.minecraft.block.material.Material.WEB;
+    }
+
     /** [MiningLog] grade-deny row, deduped per (item, block, grade/required) — the W2 matrix channel. */
     private static final Map<String, String> LAST_DENY_SIGS = new HashMap<>();
 
@@ -477,6 +507,29 @@ public final class ETIMMining {
         }
         LAST_SPEED_SIGS.put(key, str);
         ETIM.LOGGER.info("[MiningLog] mine speed item=" + item + " block=" + block + " str=" + str + " [server]");
+    }
+
+    /** [MiningLog] tool-decay row, last-sig deduped per (face, item, block for the breaking face) — the W9 channel (loss=0 = negative-evidence row). */
+    private static final Map<String, String> LAST_DECAY_SIGS = new HashMap<>();
+
+    private static void logToolDecay(String face, ItemStack held, IBlockState state, int loss) {
+        if (!ETIMConfig.miningDebugLog || held.isEmpty()) {
+            return;
+        }
+        String item = held.getItem().getRegistryName().toString();
+        String key = face + "|" + item;
+        String row = "[MiningLog] tool decay face=" + face + " item=" + item;
+        if (state != null) {
+            String block = state.getBlock().getRegistryName().getPath();
+            key += "|" + block;
+            row += " block=" + block;
+        }
+        row += " loss=" + loss + " [server]";
+        if (Integer.toString(loss).equals(LAST_DECAY_SIGS.get(key))) {
+            return;
+        }
+        LAST_DECAY_SIGS.put(key, Integer.toString(loss));
+        ETIM.LOGGER.info(row);
     }
 
     /** R196 material efficiency mapped onto the vanilla operand levels; B2 metal tools read direct. */

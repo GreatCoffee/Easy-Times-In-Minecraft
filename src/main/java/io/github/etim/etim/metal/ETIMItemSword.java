@@ -39,7 +39,7 @@ public class ETIMItemSword extends ItemSword implements ETIMMetalGear {
 
     @Override
     public final float etimEfficiency() {
-        return metal.efficiency; // sword type multiplier ×1.0
+        return metal.efficiency * 0.5F; // R196 ItemSword:18-20 getBaseHarvestEfficiency = 2.0F = the 4.0 base's ×0.5 (判值修正 C)
     }
 
     @Override
