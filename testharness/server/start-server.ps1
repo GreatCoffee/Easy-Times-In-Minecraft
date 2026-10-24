@@ -8,9 +8,11 @@
 #   2) kill the GUI window: inject -Djava.awt.headless=true into allJvmArgs and
 #      append "nogui" to args; stops ServerGui WindowEvent shutdowns (18:35:04).
 #   3) mods-hold ownership rules: see testharness\server\README.md.
+# javaw.exe (no console window) — the launcher is WMI-detached and the verdict
+# source is log4j latest.log, so no console stdout is needed (2026-10-24 ruling).
 param(
     [string]$DumpFile = "D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\testharness\server\exec-dump.txt",
-    [string]$JavaExe  = "C:\Users\GreatCoffee\.gradle\jdks\azul_systems__inc_-8-amd64-windows.2\bin\java.exe",
+    [string]$JavaExe  = "C:\Users\GreatCoffee\.gradle\jdks\azul_systems__inc_-8-amd64-windows.2\bin\javaw.exe",
     [string]$WorkDir  = "D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\run\obfuscated",
     [string]$LogDir   = "D:\OpenCodeWorkspace\Easy Times In Minecraft\git-workspace\etim\testharness\server\logs"
 )

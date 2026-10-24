@@ -11,6 +11,8 @@ const OUT = path.join(ROOT, 'build-logs', 'b2-equip-check.json');
 const ASSETS = path.join(ROOT, 'src', 'main', 'resources', 'assets', 'etim');
 
 const MAT = {
+  // B3 批文 §〇 材质行: RUSTED_IRON(name, grade 2, damage 2.0F, durability 4, eff 1.25F, ench 0, armor 6)
+  rusted_iron:   { grade: 2, damage: 2.0, dur: 4,   eff: 1.25, armor: 6 },
   copper:        { grade: 2, damage: 3.0, dur: 4,   eff: 1.75, armor: 7 },
   silver:        { grade: 2, damage: 3.0, dur: 4,   eff: 1.75, armor: 7 },
   ancient_metal: { grade: 3, damage: 4.0, dur: 16,  eff: 2.0,  armor: 8 },
@@ -38,6 +40,9 @@ const ANCHORS = {
   'chain_helmet_copper': { maxDamage: 20, armor: 1.0416666666666667 },
   war_hammer_mithril: { maxDamage: 128000, attackDamage: 7.0, efficiency: 1.875, grade: 4 },
   pickaxe_adamantium: { maxDamage: 307200, grade: 5 },
+  // B3 anchors (批文 §〇 判值)
+  sword_rusted_iron: { maxDamage: 3200, attackDamage: 6.0, efficiency: 0.625, grade: 2, burn: 100 },
+  shears_rusted_iron: { maxDamage: 3200, attackDamage: 0.0, efficiency: 1.25, grade: 2, burn: 100 },
 };
 
 const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
@@ -70,6 +75,16 @@ function expected(name) {
   if (!metal) return { err: 'no material suffix' };
   const stem = body.slice(0, body.length - metal.length - 1);
   const m = MAT[metal];
+  if (stem === 'shears') {
+    // B3 批文 §〇 锈铁剪: durability (int)(4.0×2×4×100)=3200 (components 2),
+    // base efficiency 4.0 → etimEfficiency = material 1.25, base damage 0.0,
+    // burn 100 (ItemShears extends Item in 1.12 → no ItemTool dump face).
+    return {
+      kind: 'shears', metal, type: stem,
+      maxDamage: 3200, attackDamage: 0, efficiency: m.eff,
+      grade: m.grade, burn: 100, armor: 0,
+    };
+  }
   if (TOOLS[stem]) {
     const t = TOOLS[stem];
     return {
