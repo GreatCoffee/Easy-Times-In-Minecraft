@@ -661,6 +661,7 @@ async function chestSample(label, table, opens) {
   const found = {};      // id -> count
   const damages = [];    // {id, damage, max, fraction}
   const countSamples = []; // {id, count} for the rusted rows (chain 1-5 face)
+  const chainSums = [];  // per-open cross-slot sum of chain_rusted_iron counts
   const rolls = [];      // per-open item id list
   let failOpen = 0;
   for (let i = 0; i < opens; i++) {
@@ -692,6 +693,9 @@ async function chestSample(label, table, opens) {
       }
       if (it.id && it.id.includes('rusted_iron')) countSamples.push({ id: it.id, count: it.count });
     }
+    // shuffleItems conserves totals per fill (LootTable.java:105-128 splitStack),
+    // so this equals the chest's chain roll total for that open.
+    chainSums.push(items.filter((x) => x.id === 'etim:chain_rusted_iron').reduce((a, x) => a + x.count, 0));
   }
   const rusted = Object.keys(found).filter((id) => id.startsWith('etim:') && id.includes('rusted_iron'));
   const ancient = Object.keys(found).filter((id) => id.includes('ancient_metal'));
@@ -707,6 +711,7 @@ async function chestSample(label, table, opens) {
     sampleRolls: rolls.slice(0, 5),
     damageSamplesList: damages.slice(0, 60),
     countSamples: countSamples.slice(0, 200),
+    chainSums,
   };
 }
 
@@ -776,14 +781,60 @@ async function w4c() {
   await rigFloor();
   await cmd(`/fill -52 100 28 -16 103 36 minecraft:air`);
   await sleep(250);
-  const mine = await chestSample('mineshaft-b', { x: RIG.mineshaftChest.x, y: 100, z: 31, loot: 'minecraft:chests/abandoned_mineshaft' }, 300);
+  const mine = await chestSample('mineshaft-b', { x: RIG.mineshaftChest.x, y: 100, z: 31, loot: 'minecraft:chests/abandoned_mineshaft' }, 500);
   results.push(mine);
-  const chain = (mine.countSamples || []).filter((x) => x.id === 'etim:chain_rusted_iron').map((x) => x.count);
+  const chain = (mine.countSamples || []).filter((x) => x.id === 'etim:chain_rusted_iron');
   const hist = {};
-  for (const c of chain) hist[c] = (hist[c] || 0) + 1;
-  mark(`w4c mineshaft-b opens=${mine.opens} fail=${mine.failOpen} chainN=${chain.length} hist=${JSON.stringify(hist)} rusted=${JSON.stringify(mine.rustedIds)}`);
+  for (const c of chain) hist[c.count] = (hist[c.count] || 0) + 1;
+  // A-face gates (loot-chain-setcount batch, session-5 approved):
+  // per-stack 1-5 gate is dropped — 1.12 shuffleItems splits stacks while free
+  // slots remain, so a landed count=5 is structurally unreachable (LootTable
+  // budget is fixed once, never decremented in the loop). The "5" face is judged
+  // by the conserved per-chest sum in w4probe instead.
+  const cs = chain.length;
+  const ci = chain.reduce((a, x) => a + x.count, 0);
+  const over5 = chain.filter((x) => x.count > 5).length;
+  const zero = chain.filter((x) => x.count === 0).length;
+  const a1 = cs >= 20 && ci >= 25;
+  const a2 = (hist[1] || 0) >= 1 && (hist[2] || 0) >= 1;
+  const a3 = over5 === 0 && zero === 0;
+  mark(`w4c mineshaft-b opens=${mine.opens} fail=${mine.failOpen} chainN=${cs} hist=${JSON.stringify(hist)} rusted=${JSON.stringify(mine.rustedIds)}`);
+  mark(`[LootLog] w4c-a1 chainStacks=${cs} chainItems=${ci} gate stacks>=20 items>=25 | ${a1 ? 'PASS' : 'FAIL'}`);
+  mark(`[LootLog] w4c-a2 c1=${hist[1] || 0} c2=${hist[2] || 0} gate each>=1 (c3/c4 record-only) | ${a2 ? 'PASS' : 'FAIL'}`);
+  mark(`[LootLog] w4c-a3 over5=${over5} zeroRows=${zero} gate=0 | ${a3 ? 'PASS' : 'FAIL'}`);
   await cmd(`/gamemode 1 ${NAME}`);
   await say('b3w4c-end');
+}
+
+// W4-probe: controlled single-roll loot table etimtest:chains (rolls=1, one
+// chain entry with set_count(1,5)) — the per-chest cross-slot sum equals the
+// exact SetCount draw (shuffleItems conserves totals; single stack <= 5 <= 27
+// slots, no over-fill), so the judged count face 1..5 is directly observable.
+// Zero product code: the json lives in the world save at
+// <level>/data/loot_tables/etimtest/chains.json (WorldServer.java:160).
+async function w4probe() {
+  await say('b3w4p-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await rigFloor();
+  await cmd(`/fill -52 100 28 -16 103 36 minecraft:air`);
+  await sleep(250);
+  const probe = await chestSample('probe', { x: RIG.mineshaftChest.x, y: 100, z: 31, loot: 'etimtest:chains' }, 100);
+  results.push(probe);
+  const sums = probe.chainSums || [];
+  const hist = {};
+  for (const s of sums) hist[s] = (hist[s] || 0) + 1;
+  const over5 = sums.filter((s) => s > 5).length;
+  const zero = sums.filter((s) => s === 0).length;
+  const bad = sums.filter((s) => s < 1 || s > 5).length;
+  const b1 = bad === 0;
+  const b2 = [1, 2, 3, 4, 5].every((v) => (hist[v] || 0) >= 1);
+  const b3 = zero === 0 && over5 === 0;
+  mark(`w4probe opens=${probe.opens} fail=${probe.failOpen} hist=${JSON.stringify(hist)}`);
+  mark(`[LootLog] w4p-b1 outOfRange=${bad} gate=0 | ${b1 ? 'PASS' : 'FAIL'}`);
+  mark(`[LootLog] w4p-b2 coverage 1..5 each>=1 hist=${JSON.stringify(hist)} | ${b2 ? 'PASS' : 'FAIL'}`);
+  mark(`[LootLog] w4p-b3 zero=${zero} over5=${over5} gate=0 | ${b3 ? 'PASS' : 'FAIL'}`);
+  await cmd(`/gamemode 1 ${NAME}`);
+  await say('b3w4p-end');
 }
 
 async function w5() {
@@ -1243,7 +1294,7 @@ async function probe() {
   await cmd(`/gamemode 1 ${NAME}`, 160);
   await sleep(400);
 
-  const phases = { setup: async () => { await rigFloor(); await say('b3setup-done'); }, probe, probe2, probe3, probe4, probe5, probe6, probe7, probe8, probe9, probe10, typemap, maxprobe, w2, w2d, w3, w3b, w4, w4c, w5, w6 };
+  const phases = { setup: async () => { await rigFloor(); await say('b3setup-done'); }, probe, probe2, probe3, probe4, probe5, probe6, probe7, probe8, probe9, probe10, typemap, maxprobe, w2, w2d, w3, w3b, w4, w4c, w4probe, w5, w6 };
   if (!phases[phase]) { console.error(`unknown phase ${phase}`); process.exit(2); }
   try {
     await phases[phase]();
