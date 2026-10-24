@@ -138,32 +138,14 @@ function maxDamageOf(id) {
 }
 
 /**
- * The RUNTIME maxDamage — NOT the [EquipLog] value.
- * ETIMToolDurability.apply() (ETIM.init, AFTER preInit's [EquipLog] dump) walks
- * every registered ItemPickaxe/ItemAxe/ItemSpade/ItemSword and rewrites
- * maxDamage from the ToolMaterial name. The ETIM gear classes use the IRON
- * placeholder material, so the rewrite lands at 4.0 * components * 8.0 * 100:
- *   pickaxe/axe(4 types) 3 comp -> 9600, spade(2 types) 1 -> 3200, sword(2) 2 -> 6400.
- * ItemHoe / ItemShears / ItemArmor are NOT in that list and keep the dump value.
- * A-1 (b3 report): the runtime durability therefore disagrees with the batch
- * judged values — loot/mob damage must be denormalised against THIS table.
+ * The RUNTIME maxDamage == the judged value since the A-1 fix (f2d2cd2):
+ * ETIMToolDurability.apply() now skips every ETIMMetalGear instance, so the
+ * IRON-placeholder ctor material no longer rewrites the judged table
+ * (4.0 * components * durability * 100). ETIMGear.reassertJudgedDurability()
+ * fails fast if that ever drifts again — there is no second table to model.
  */
-const RUNTIME_IRON = { pickaxe: 3, axe: 3, shovel: 1, sword: 2, hatchet: 3, mattock: 1, dagger: 2, battle_axe: 3, war_hammer: 3 };
 function runtimeMaxDamageOf(id) {
-  if (!id) return null;
-  if (!id.startsWith('etim:')) {
-    if (id === 'minecraft:wooden_shovel') return 200; // WOOD 0.5 → 4*1*0.5*100
-    return VANILLA_MAX[id.slice(10)] ?? null;
-  }
-  const s = id.slice(5);
-  const chain = s.startsWith('chain_');
-  const body = chain ? s.slice(6) : s;
-  let mat = null;
-  for (const m of Object.keys(MAT_DUR)) if (body.endsWith('_' + m)) { mat = m; break; }
-  if (!mat) return null;
-  const stem = body.slice(0, body.length - mat.length - 1);
-  if (RUNTIME_IRON[stem]) return 4 * RUNTIME_IRON[stem] * 8 * 100;
-  return maxDamageOf(id); // hoe / shears / armor keep the judged value
+  return maxDamageOf(id);
 }
 
 // ------------------------------------------------------------------ NBT helpers
@@ -1151,13 +1133,18 @@ async function maxprobe() {
   await say('b3maxprobe-begin');
   await rigFloor();
   const out = [];
+  // [item, startDamage, block, holdMs, expectToolBreak]
+  // startDamage = judged max - 5 (one dig crosses the cap) except the two
+  // far-from-cap anchors, which start at the old A-1 probe value.
   const cases = [
-    ['etim:shovel_rusted_iron', 1595, 'minecraft:dirt', 700],
-    ['etim:sword_rusted_iron', 3150, 'minecraft:dirt', 700],
-    ['etim:pickaxe_copper', 4795, 'minecraft:stone', 2200],
-    ['etim:pickaxe_adamantium', 9595, 'minecraft:stone', 2200],
+    ['etim:shovel_rusted_iron', 1595, 'minecraft:dirt', 700, true],
+    ['etim:sword_rusted_iron', 3150, 'minecraft:dirt', 700, true],
+    ['etim:pickaxe_copper', 4795, 'minecraft:stone', 2200, true],
+    ['etim:pickaxe_adamantium', 9595, 'minecraft:stone', 2200, false],
+    ['etim:war_hammer_mithril', 9595, 'minecraft:stone', 2200, false],
+    ['etim:shears_rusted_iron', 3200, 'minecraft:leaves', 700, true],
   ];
-  for (const [item, dmg, block, holdMs] of cases) {
+  for (const [item, dmg, block, holdMs, expectBreak] of cases) {
     await cmd(`/gamemode 1 ${NAME}`);
     await clearAll();
     await cmd(`/give ${NAME} ${item} 1 ${dmg}`, 220);
@@ -1183,12 +1170,18 @@ async function maxprobe() {
     await sleep(700);
     const after = heldMeta();
     const decay = rowsMatching(since(n0), 'tool decay');
-    out.push({ item, startDamage: dmg, block, before, broke, after, decay });
-    mark(`maxprobe ${item} start=${dmg} before=${JSON.stringify(before)} broke=${broke} after=${JSON.stringify(after)} decay=${JSON.stringify(decay.slice(0, 2))}`);
+    const judgedMax = maxDamageOf(item);
+    // The hotbar slot refills with the block drop right after a tool breaks —
+    // so "the tool is gone" means the held stack CHANGED ITEM, not "slot empty".
+    const toolBroken = !after || (before && after.type !== before.type);
+    const pass = toolBroken === expectBreak;
+    out.push({ item, judgedMax, startDamage: dmg, block, expectBreak, toolBroken, pass, before, broke, after, decay });
+    mark(`maxprobe ${item} judgedMax=${judgedMax} start=${dmg} expectBreak=${expectBreak} toolBroken=${toolBroken} | ${pass ? 'PASS' : 'FAIL'} | before=${JSON.stringify(before)} blockBroke=${broke} after=${JSON.stringify(after)}`);
     await cmd(`/setblock ${p.x} ${p.y} ${p.z} minecraft:air`, 100);
     await cmd(`/gamemode 1 ${NAME}`);
   }
   results.push({ v: 'maxprobe', out });
+  mark(`maxprobe total=${out.length} pass=${out.filter((o) => o.pass).length}`);
   await say('b3maxprobe-end');
 }
 
