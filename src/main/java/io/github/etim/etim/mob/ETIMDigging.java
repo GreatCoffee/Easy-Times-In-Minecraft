@@ -3,6 +3,7 @@ package io.github.etim.etim.mob;
 import javax.annotation.Nullable;
 
 import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
 import io.github.etim.etim.mining.ETIMMining;
 import io.github.etim.etim.playerstate.ETIMBedSafety;
@@ -19,6 +20,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.monster.EntitySkeleton;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -282,20 +284,73 @@ public final class ETIMDigging {
     }
 
     /**
-     * R196 EntityZombie.isDiggingEnabled (:404-411) with {@code is_smart} as
-     * the constant false (B 级登记): {@code !is_smart && !isFrenzied ? held
-     * instanceof ItemTool : true} — a frenzied (blood-moon) zombie digs
-     * bare-handed;平日 requires a held ItemTool.
+     * mob 批 T5① (A-4): the R196 is_smart face activated — the revenant
+     * subclass is always smart (R196 EntityZombie :35 {@code is_smart =
+     * isRevenant() || 1/8}); the 1/8 roll and the player-hit upgrade stay
+     * parked (T5② 挂账 B-2, regular-zombie behavior change). The pre-batch
+     * constant-false B 级登记 is superseded.
+     */
+    public static boolean isSmart(EntityZombie digger) {
+        return digger instanceof ETIMEntityRevenant;
+    }
+
+    /**
+     * R196 EntityZombie.isDiggingEnabled (:404-411): {@code !is_smart &&
+     * !isFrenzied ? held instanceof ItemTool : true} — a frenzied
+     * (blood-moon) or smart (revenant) zombie digs bare-handed; 平日 requires
+     * a held ItemTool.
      */
     public static boolean isDiggingEnabled(EntityZombie digger) {
         if (isHoldingItemThatPreventsDigging(digger)) { // R196 EntityZombie:404-411 最外项（狂化+持剑不可挖）
             return false;
         }
-        if (isFrenzied(digger)) {
+        if (isFrenzied(digger) || isSmart(digger)) {
             return true;
         }
         ItemStack held = digger.getHeldItemMainhand();
         return held != null && held.getItem() instanceof ItemTool;
+    }
+
+    // ==================== bone-lord frenzy (R196 EntitySkeleton :44-60/:393-399) ====================
+
+    /**
+     * The bone-lord frenzy countdown (A-3/A-4): server-side, WeakHashMap
+     * keyed by the frenzied skeleton. R196 carries the countdown on a
+     * data-watcher object (client-visible face); the ETIM port drops the
+     * client sync (C 级) — the 20-tick countdown is ephemeral and needs no
+     * persistence.
+     */
+    private static final java.util.Map<EntitySkeleton, int[]> FRENZY =
+            new java.util.WeakHashMap<>();
+
+    /** R196 :393-399 setFrenziedByBoneLord — countdown 20 + target-if-none. */
+    public static void setFrenziedByBoneLord(EntitySkeleton skeleton, EntityLivingBase target) {
+        if (skeleton.world.isRemote) {
+            return;
+        }
+        FRENZY.put(skeleton, new int[]{20});
+        if (target instanceof net.minecraft.entity.EntityLiving
+                && skeleton.getAttackTarget() == null) {
+            skeleton.setAttackTarget((net.minecraft.entity.EntityLiving) target);
+        }
+        if (ETIMConfig.mobDebugLog) {
+            ETIM.LOGGER.info("[AILog] frenzy set entity=" + skeleton.getName()
+                    + " target=" + (target == null ? "none" : target.getName()) + " [server]");
+        }
+    }
+
+    /** R196 :55-60 isFrenziedByBoneLord — countdown > 0. */
+    public static boolean isFrenziedByBoneLord(EntitySkeleton skeleton) {
+        int[] countdown = FRENZY.get(skeleton);
+        return countdown != null && countdown[0] > 0;
+    }
+
+    /** R196 :112 — the per-tick decrement, ridden by ETIMDiggingEvents. */
+    public static void tickFrenzy(EntitySkeleton skeleton) {
+        int[] countdown = FRENZY.get(skeleton);
+        if (countdown != null && countdown[0] > 0) {
+            countdown[0]--;
+        }
     }
 
     /**

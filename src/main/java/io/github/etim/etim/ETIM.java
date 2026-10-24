@@ -62,6 +62,7 @@ public final class ETIM {
         io.github.etim.etim.mob.ETIMLivestock.register();
         io.github.etim.etim.mob.ETIMDigging.register();
         io.github.etim.etim.mob.ETIMSpiderEntities.register();
+        io.github.etim.etim.mob.ETIMMobEntities.register();
         // Batch B1 metal content: items first (XP rows), blocks + recipes second.
         io.github.etim.etim.metal.ETIMItems.register();
         io.github.etim.etim.metal.ETIMBlocks.register();

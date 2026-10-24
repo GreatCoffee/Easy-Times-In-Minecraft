@@ -11,19 +11,23 @@ import net.minecraft.entity.monster.EntityZombie;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Stage 5 slice 2: the R196 per-class attribute table (audit 11 §3.1,
  * A-grade javap'd) applied onto the vanilla-faithful classes. MITE-specific
- * mobs (the Arachnid Cave/Demon/Phantom spider strains, Ghost, Ghoul, Fire,
- * BoneLord, ...) have no 1.12 counterparts and are not touched by this
- * batch; rows whose value already equals the vanilla constant are left
- * untouched. The movement-speed rows are NOT ported this pass — the 1.6.4
- * and 1.12 speed attribute scales are different units, and the audit gives
- * no 1.12 value; they are parked on the pending-list for a session-five
- * audit follow-up.
+ * mobs with no 1.12 counterpart are served when their class lands: the
+ * revenant/bone-lord classes carry their R196 attributes in-class (mob 批
+ * T1①) and are skipped here, and the pre-batch "BoneLord has no 1.12
+ * counterpart" claim is superseded. Rows whose value already equals the
+ * vanilla constant are left untouched. The movement-speed rows stay parked
+ * for the vanilla classes — the R196/1.12 scales were audited SAME
+ * (mob 批终审 item 1, byte-equal zombie base), so a landing is possible, but
+ * the skeleton 0.3F row is a vanilla behavior change and stays out of the
+ * mob batch (挂账 B-1).
  *
  * <p>Vanilla 1.12 anchors (this repo's deobf sources) against the R196
  * table:</p>
@@ -45,7 +49,10 @@ import java.util.Map;
  * retries on every chunk reload because {@code readFromNBT} reconstructs the
  * fresh entity via the constructor, re-writing the vanilla per-row
  * constants; a repeat apply of the same base equals a no-op (and no
- * [AILog] line is emitted when the value did not change).</p>
+ * [AILog] line is emitted when the value did not change). Matching rows
+ * apply in class-hierarchy order (superclass first, subclass last — mob 批
+ * T7①), which fixes the pre-batch pigzombie nondeterminism (zombie row and
+ * pigzombie row both matched in HashMap order).</p>
  */
 public final class ETIMMobStats {
 
@@ -86,11 +93,41 @@ public final class ETIMMobStats {
             return;
         }
         Entity e = event.getEntity();
+        // mob 批 T1①: ETIM-owned entity classes carry their R196 attributes
+        // in-class (the ETIMEntityArachnid precedent) — the vanilla-class rows
+        // below must not clobber them (the revenant 7.0 attack / the bone
+        // lord 20.0 hp would be overwritten by the zombie/skeleton rows).
+        if (e.getClass().getName().startsWith("io.github.etim.etim.")) {
+            return;
+        }
+        // mob 批 T7①: collect every matching row and apply in class-hierarchy
+        // order (superclass first, subclass last) — the R196
+        // applyEntityAttributes chain parity. Fixes the pre-existing pigzombie
+        // coin flip: the zombie row (attack 5) applied before the pigzombie
+        // row (attack 8) makes the final value deterministic (8, R196 PigZ :22).
+        List<Map.Entry<Class<?>, Row>> matches = new ArrayList<>();
         for (Map.Entry<Class<?>, Row> entry : ROWS.entrySet()) {
             if (entry.getKey().isInstance(e)) {
-                apply((net.minecraft.entity.EntityLivingBase) e, entry.getValue());
+                matches.add(entry);
             }
         }
+        if (matches.isEmpty()) {
+            return;
+        }
+        matches.sort(java.util.Comparator.comparingInt(en -> classDepth(en.getKey())));
+        for (Map.Entry<Class<?>, Row> entry : matches) {
+            apply((net.minecraft.entity.EntityLivingBase) e, entry.getValue());
+        }
+    }
+
+    /** superclass-hops depth for the hierarchy ordering. */
+    private static int classDepth(Class<?> c) {
+        int depth = 0;
+        while (c != null) {
+            depth++;
+            c = c.getSuperclass();
+        }
+        return depth;
     }
 
     private static void apply(net.minecraft.entity.EntityLivingBase e, Row row) {

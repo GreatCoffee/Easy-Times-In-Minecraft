@@ -31,7 +31,15 @@ public final class ETIMDiggingEvents {
 
     @SubscribeEvent
     public static void onLivingUpdate(LivingUpdateEvent event) {
-        if (event.getEntityLiving().world.isRemote || !io.github.etim.etim.ETIMConfig.zombieDigAI) {
+        if (event.getEntityLiving().world.isRemote) {
+            return;
+        }
+        // The bone-lord frenzy countdown ticks on every skeleton (mob 批 A-3),
+        // independent of the dig-AI config.
+        if (event.getEntityLiving() instanceof net.minecraft.entity.monster.EntitySkeleton) {
+            ETIMDigging.tickFrenzy((net.minecraft.entity.monster.EntitySkeleton) event.getEntityLiving());
+        }
+        if (!io.github.etim.etim.ETIMConfig.zombieDigAI) {
             return;
         }
         if (event.getEntityLiving() instanceof EntityZombie) {

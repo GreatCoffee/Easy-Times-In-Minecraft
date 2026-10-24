@@ -34,6 +34,7 @@ public final class ClientNetworkHooks {
 
     public static void register() {
         ETIMSpiderRender.register();
+        io.github.etim.etim.client.ETIMMobRender.register();
         CraftingProgressNetwork.CHANNEL.registerMessage(
                 ProgressSyncHandler.class,
                 CraftingProgressNetwork.PacketProgress.class,

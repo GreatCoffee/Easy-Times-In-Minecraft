@@ -620,6 +620,10 @@ public final class ETIMSpawnCycle {
         if (cls == EntityGhast.class) {
             return 1;
         }
+        // mob 批: R196 EntityRevenant :68-70 / EntityBoneLord :67-69 — cap 1.
+        if (cls == ETIMEntityRevenant.class || cls == ETIMEntityBoneLord.class) {
+            return 1;
+        }
         if (cls == EntityHorse.class) {
             return 6;
         }

@@ -7,6 +7,7 @@ import io.github.etim.etim.quality.ETIMQuality;
 import io.github.etim.etim.quality.EnumQuality;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -225,8 +226,118 @@ public final class ETIMMobEquip {
 
     /** R196 zombie addRandomEquipment = addRandomWeapon + addRandomArmor (:203-206). */
     public static void zombieEquip(EntityZombie zombie) {
+        // B-M1: the static helper has no polymorphic dispatch — the revenant
+        // subclass rides the zombie call site, so branch first (R196
+        // EntityRevenant :38-44 = the constant full rusted-iron table, no
+        // chance gate).
+        if (zombie instanceof ETIMEntityRevenant) {
+            rustedLordEquip(zombie);
+            return;
+        }
         addRandomZombieWeapon(zombie);
         addRandomArmor(zombie);
+    }
+
+    /** R196 skeleton addRandomWeapon + addRandomArmor (:204-207). */
+    public static void skeletonEquip(EntityLiving skeleton) {
+        // B-M1 dispatch: the bone lord (constant rusted-iron table) and the
+        // bone-lord troop (pending type handoff, R196 onSpawnWithEgg :218-231)
+        // branch before the folded natural-skeleton face.
+        if (skeleton instanceof ETIMEntityBoneLord) {
+            rustedLordEquip(skeleton);
+            return;
+        }
+        Integer pendingType = PENDING_TROOP_TYPE.remove(skeleton);
+        if (pendingType != null) {
+            troopEquip(skeleton, pendingType);
+            return;
+        }
+        addRandomSkeletonWeapon(skeleton);
+        addRandomArmor(skeleton);
+    }
+
+    /**
+     * R196 EntityRevenant :22-44 / EntityBoneLord :23-45 — the constant
+     * rusted-iron face: the shared weapon table (sword w2, +battle axe
+     * day≥10, +war hammer day≥20) plus the full four-piece rusted armor,
+     * every stack randomizeForMob(true), no chance gate.
+     */
+    private static void rustedLordEquip(EntityLiving lord) {
+        int day = getDayOfWorld(lord.world);
+        List<Object[]> items = new ArrayList<>();
+        items.add(new Object[]{ETIMGear.gear("sword_rusted_iron"), 2}); // :24
+        if (day >= 10) {
+            items.add(new Object[]{ETIMGear.gear("battle_axe_rusted_iron"), 1}); // :26-27
+        }
+        if (day >= 20) {
+            items.add(new Object[]{ETIMGear.gear("war_hammer_rusted_iron"), 1}); // :30-31
+        }
+        Object[] entry = weightedRandom(lord, items);
+        Item weapon = (Item) entry[0];
+        lord.setItemStackToSlot(EntityEquipmentSlot.MAINHAND,
+                randomizeForMob(lord, new ItemStack(weapon), true));
+        // :40-43 — the full set, slot walk boots/legs/chest/head.
+        equipRustedPiece(lord, EntityEquipmentSlot.FEET, "boots_rusted_iron");
+        equipRustedPiece(lord, EntityEquipmentSlot.LEGS, "leggings_rusted_iron");
+        equipRustedPiece(lord, EntityEquipmentSlot.CHEST, "chestplate_rusted_iron");
+        equipRustedPiece(lord, EntityEquipmentSlot.HEAD, "helmet_rusted_iron");
+        log("mob lord equip entity=" + lord.getName() + " weapon=" + weapon.getRegistryName());
+    }
+
+    private static void equipRustedPiece(EntityLiving lord, EntityEquipmentSlot slot, String gearName) {
+        lord.setItemStackToSlot(slot,
+                randomizeForMob(lord, new ItemStack(ETIMGear.gear(gearName)), true));
+    }
+
+    /**
+     * R196 EntitySkeleton onSpawnWithEgg type faces (:218-231 + :189-202) —
+     * the bone-lord troop equip (T2① 兵团装备面): type 0 archer (bow +
+     * armor), type 1 nether melee (iron sword, quality POOR, attack 4, no
+     * armor), type 2 melee (1/20 + day≥10 rusted weapon else bare hands —
+     * the clubWood row drops, C-1 — + armor). The follow-up setCombatTask in
+     * onInitialSpawn binds the AI by the held item.
+     */
+    private static void troopEquip(EntityLiving skeleton, int type) {
+        if (type == 1) {
+            ItemStack sword = new ItemStack(net.minecraft.init.Items.IRON_SWORD);
+            io.github.etim.etim.quality.ETIMQuality.set(sword, io.github.etim.etim.quality.EnumQuality.POOR);
+            skeleton.setItemStackToSlot(EntityEquipmentSlot.MAINHAND, randomizeForMob(skeleton, sword, false));
+            skeleton.getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(4.0); // :226
+            log("mob troop equip entity=" + skeleton.getName() + " type=1 iron sword");
+            return;
+        }
+        if (type == 2) {
+            int day = getDayOfWorld(skeleton.world);
+            if (skeleton.getRNG().nextInt(20) == 0 && day >= 10) {
+                Item melee = day >= 20 && !skeleton.getRNG().nextBoolean()
+                        ? ETIMGear.gear("sword_rusted_iron") : ETIMGear.gear("dagger_rusted_iron");
+                skeleton.setItemStackToSlot(EntityEquipmentSlot.MAINHAND,
+                        randomizeForMob(skeleton, new ItemStack(melee), false));
+                log("mob troop equip entity=" + skeleton.getName() + " type=2 melee=" + melee.getRegistryName());
+            } else {
+                log("mob troop equip entity=" + skeleton.getName() + " type=2 bare (club dropped, C-1)");
+            }
+            addRandomArmor(skeleton); // :206 addRandomEquipment second half
+            return;
+        }
+        // type 0 — the archer: bow + armor (:201 fallback / :232 addRandomEquipment).
+        skeleton.setItemStackToSlot(EntityEquipmentSlot.MAINHAND,
+                randomizeForMob(skeleton, new ItemStack(Items.BOW), true));
+        addRandomArmor(skeleton);
+        log("mob troop equip entity=" + skeleton.getName() + " type=0 bow");
+    }
+
+    /**
+     * Pending troop-type handoff: the summon rolls the R196 skeleton type
+     * before the troop's own onInitialSpawn runs (the equip chain fires
+     * inside it via the mixin), so the rolled type parks here and
+     * {@link #skeletonEquip} picks it up (one-shot, WeakHashMap-cleaned).
+     */
+    private static final java.util.Map<EntityLiving, Integer> PENDING_TROOP_TYPE =
+            new java.util.WeakHashMap<>();
+
+    public static void setPendingTroopType(EntityLiving skeleton, int type) {
+        PENDING_TROOP_TYPE.put(skeleton, type);
     }
 
     /** R196 addRandomWeapon (:171-201) — chance/weights/day gates 1:1. */
@@ -244,8 +355,10 @@ public final class ETIMMobEquip {
             items.add(new Object[]{ETIMGear.gear("hatchet_rusted_iron"), 1}); // :176-178
         }
         if (villager) {
-            // :180-190 — scythe row dropped (no ETIM item, 裁决 2).
+            // :180-190 — the scythe row rides again (the item landed in the
+            // scythe/knife batch; T4① 载体行填回, no day gate in R196 :182).
             items.add(new Object[]{ETIMGear.gear("shears_rusted_iron"), 1});
+            items.add(new Object[]{ETIMGear.gear("scythe_rusted_iron"), 1});
             if (day >= 10) {
                 items.add(new Object[]{ETIMGear.gear("hoe_rusted_iron"), 1});
                 items.add(new Object[]{ETIMGear.gear("mattock_rusted_iron"), 1});
@@ -267,12 +380,6 @@ public final class ETIMMobEquip {
     }
 
     // ==================== skeleton (EntitySkeleton.java:189-206) ====================
-
-    /** R196 skeleton addRandomWeapon + addRandomArmor (:204-207). */
-    public static void skeletonEquip(EntityLiving skeleton) {
-        addRandomSkeletonWeapon(skeleton);
-        addRandomArmor(skeleton);
-    }
 
     /** R196 addRandomWeapon (:189-202) — the type-2 melee face maps onto normal skeletons (C 级登记). */
     private static void addRandomSkeletonWeapon(EntityLiving skeleton) {

@@ -42,14 +42,13 @@ import net.minecraft.world.biome.Biome;
  * :3.2 biome overrides), filtered to entity classes ETIM currently has.
  *
  * <p>MITE-exclusive classes (ghoul, wight, invisibleStalker,
- * hellhound, woodSpider, shadow, revenant, earthElemental, jelly, blob, ooze,
- * pudding, clayGolem, boneLord, vampireBat, nightwing, direWolf,
+ * hellhound, woodSpider, shadow, earthElemental, jelly, blob, ooze,
+ * pudding, clayGolem, vampireBat, nightwing, direWolf,
  * infernal creeper variant, guardians) have no 1.12 entity yet — their weight
  * rows stay in the gap list (audit 14 §3.1/§3.2) and are filled back in when
- * each class lands. The three spiders LANDED 2026-10-23 (审计补46/47):
- * DemonSpider/PhaseSpider/BlackWidowSpider rows are live above and their
- * spawn gates (50% pass / y≤32 / 64-attempt) are wired here and in
- * {@link ETIMSpawnCycle}. Class-fine rules that survive the
+ * each class lands. LANDED so far: the three spiders (2026-10-23, 审计补46/47)
+ * and the revenant + bone lord (mob 批 2026-10-24, R196 BiomeGenBase :178
+ * Revenant 10(1,1) / :185 BoneLord 5(1,1)) — those rows are live below. Class-fine rules that survive the
  * filter here: the ghast 48² dedup; the slime structure rule rides on the
  * vanilla slime {@code getCanSpawnHere} body.</p>
  */
@@ -89,6 +88,12 @@ public final class ETIMSpawnTables {
         // biome (WoodSpider :176 20(1,1) stays OUT — carrier-only per verdict).
         monster.add(entry(ETIMEntityDemonSpider.class, 10, 1, 1));
         monster.add(entry(ETIMEntityPhaseSpider.class, 5, 1, 4));
+        // mob 批 (2026-10-24): the revenant/bone-lord gap rows filled —
+        // R196 BiomeGenBase :178 Revenant 10(1,1) / :185 BoneLord 5(1,1),
+        // base-ctor rows = every biome. The gap-list javadoc above is
+        // updated accordingly.
+        monster.add(entry(ETIMEntityRevenant.class, 10, 1, 1));
+        monster.add(entry(ETIMEntityBoneLord.class, 5, 1, 1));
         BASE.put(EnumCreatureType.MONSTER, monster);
 
         List<Biome.SpawnListEntry> water = new ArrayList<>();

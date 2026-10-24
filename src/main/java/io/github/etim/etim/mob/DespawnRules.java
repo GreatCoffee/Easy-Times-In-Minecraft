@@ -166,6 +166,15 @@ public final class DespawnRules {
         return COUNTER_RESTORED.contains(e);
     }
 
+    /**
+     * mob 批 A-3: the R196 summon face (EntityBoneLord :235
+     * {@code refreshDespawnCounter(-9600)}) — the min-guarded refresh with
+     * the summoned-reason log row.
+     */
+    public static void refreshSummoned(EntityLiving e, int value) {
+        refresh(e, value, "summoned");
+    }
+
     private DespawnRules() {
     }
 
