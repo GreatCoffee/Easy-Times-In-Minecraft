@@ -1,5 +1,5 @@
 {
     "variants": {
-        "normal": { "model": "etim:block/ore_silver" }
+        "normal": { "model": "etim:ore_silver" }
     }
 }

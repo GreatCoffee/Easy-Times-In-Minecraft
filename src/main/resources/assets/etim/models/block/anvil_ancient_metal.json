@@ -7,9 +7,9 @@
         }
     },
     "textures": {
-        "particle": "etim:blocks/anvilancient_metal",
-        "body": "etim:blocks/anvilancient_metal",
-        "top": "etim:blocks/anvilancient_metal_top"
+        "particle": "etim:blocks/anvil_ancient_metal",
+        "body": "etim:blocks/anvil_ancient_metal",
+        "top": "etim:blocks/anvil_ancient_metal_top"
     },
     "elements": [
 {   "__comment": "Anvil base",

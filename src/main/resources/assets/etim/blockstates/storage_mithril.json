@@ -1,5 +1,5 @@
 {
     "variants": {
-        "normal": { "model": "etim:block/storage_mithril" }
+        "normal": { "model": "etim:storage_mithril" }
     }
 }

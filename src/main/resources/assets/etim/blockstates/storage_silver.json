@@ -1,5 +1,5 @@
 {
     "variants": {
-        "normal": { "model": "etim:block/storage_silver" }
+        "normal": { "model": "etim:storage_silver" }
     }
 }

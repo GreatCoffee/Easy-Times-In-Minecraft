@@ -1,5 +1,5 @@
 {
     "variants": {
-        "normal": { "model": "etim:block/storage_ancient_metal" }
+        "normal": { "model": "etim:storage_ancient_metal" }
     }
 }

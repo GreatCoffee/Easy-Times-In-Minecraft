@@ -7,9 +7,9 @@
         }
     },
     "textures": {
-        "particle": "etim:blocks/anvilmithril",
-        "body": "etim:blocks/anvilmithril",
-        "top": "etim:blocks/anvilmithril_top"
+        "particle": "etim:blocks/anvil_mithril",
+        "body": "etim:blocks/anvil_mithril",
+        "top": "etim:blocks/anvil_mithril_top"
     },
     "elements": [
 {   "__comment": "Anvil base",
