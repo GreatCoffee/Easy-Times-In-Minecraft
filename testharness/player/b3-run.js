@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * b3-run.js — Stage 4 batch B3 (rusted_iron) verdict window driver.
+ * b3-run.js 鈥?Stage 4 batch B3 (rusted_iron) verdict window driver.
  *
  * Phases
  *   setup     clear/floor the y=99 B2 rig, place the crafting table + chest pads
@@ -24,7 +24,7 @@ const { createHarnBot, log } = require('./fmlbot');
 const { Vec3 } = require('vec3');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const SERVER_LOG = path.join(ROOT, 'run', 'obfuscated-server', 'logs', 'latest.log');
+const SERVER_LOG = process.env.ETIM_LOG || path.join(ROOT, 'run', 'obfuscated-server', 'logs', 'latest.log');
 const OUT_DIR = path.join(ROOT, 'build-logs');
 const NAME = process.env.B3_BOT || 'ETIM_Harn04';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -82,7 +82,7 @@ let rcon;
 let usePlayer = false;
 /** Player-chat command path: 1.12 executes RCON commands on the RCON thread,
  *  which mutates chunk entity lists concurrently with the server tick
- *  (ConcurrentModificationException at Chunk.func_177414_a — b3-rcon-crash.log).
+ *  (ConcurrentModificationException at Chunk.func_177414_a 鈥?b3-rcon-crash.log).
  *  Player chat packets run on the server thread, so every mutating command in
  *  this window goes through the bot. */
 async function chatCmd(c, waitMs = 110) {
@@ -142,7 +142,7 @@ function maxDamageOf(id) {
  * ETIMToolDurability.apply() now skips every ETIMMetalGear instance, so the
  * IRON-placeholder ctor material no longer rewrites the judged table
  * (4.0 * components * durability * 100). ETIMGear.reassertJudgedDurability()
- * fails fast if that ever drifts again — there is no second table to model.
+ * fails fast if that ever drifts again 鈥?there is no second table to model.
  */
 function runtimeMaxDamageOf(id) {
   return maxDamageOf(id);
@@ -190,7 +190,7 @@ async function closeWin(win) {
 function selectSlot(s) { bot._client.write('held_item_slot', { slotId: s }); }
 
 /** Nearest tracked entity of a registry name (client-side view of the server's
- *  entity_equipment packets — 1.12 /entitydata is write-only). */
+ *  entity_equipment packets 鈥?1.12 /entitydata is write-only). */
 function nearestEntity(type, x, y, z) {
   let best = null;
   let bd = Infinity;
@@ -290,7 +290,7 @@ function tallyArmor(rows) {
   return { count: armor.length, byTier, byTierItem, rows: armor.slice(0, 40) };
 }
 
-/** Count (and optionally remove) a player item — 1.12 /clear receipt. */
+/** Count (and optionally remove) a player item 鈥?1.12 /clear receipt. */
 async function clearCount(item, remove = true) {
   const r = remove
     ? await cmd(`/clear ${NAME} ${item}`, 220)
@@ -666,7 +666,7 @@ async function chestSample(label, table, opens) {
   let failOpen = 0;
   for (let i = 0; i < opens; i++) {
     // 1.12 setblock returns noChange (and clears the TE first) on an identical
-    // block state — always go through air so the chest + LootTable are re-created.
+    // block state 鈥?always go through air so the chest + LootTable are re-created.
     await cmd(`/setblock ${c.x} ${c.y} ${c.z} minecraft:air`, 70);
     await cmd(`/setblock ${c.x} ${c.y} ${c.z} minecraft:chest 0 replace {LootTable:"${table.loot}"}`, 90);
     await sleep(130);
@@ -787,7 +787,7 @@ async function w4c() {
   const hist = {};
   for (const c of chain) hist[c.count] = (hist[c.count] || 0) + 1;
   // A-face gates (loot-chain-setcount batch, session-5 approved):
-  // per-stack 1-5 gate is dropped — 1.12 shuffleItems splits stacks while free
+  // per-stack 1-5 gate is dropped 鈥?1.12 shuffleItems splits stacks while free
   // slots remain, so a landed count=5 is structurally unreachable (LootTable
   // budget is fixed once, never decremented in the loop). The "5" face is judged
   // by the conserved per-chest sum in w4probe instead.
@@ -807,7 +807,7 @@ async function w4c() {
 }
 
 // W4-probe: controlled single-roll loot table etimtest:chains (rolls=1, one
-// chain entry with set_count(1,5)) — the per-chest cross-slot sum equals the
+// chain entry with set_count(1,5)) 鈥?the per-chest cross-slot sum equals the
 // exact SetCount draw (shuffleItems conserves totals; single stack <= 5 <= 27
 // slots, no over-fill), so the judged count face 1..5 is directly observable.
 // Zero product code: the json lives in the world save at
@@ -875,6 +875,602 @@ async function w6() {
   mark(`w6 recipe rows -> ${JSON.stringify(recipeRows.slice(-1))}`);
   await cmd(`/gamemode 1 ${NAME}`);
   await say('b3w6-end');
+}
+
+// ================================================================== SK batch
+// scythe/knife + arrow-crafting batch (鎵规枃 metal-scythe-knife-arrow 钀界爜鎵规枃
+// 搂涓?W2/W3/W4). Judged rows: [SkLog] (this harness) + the product's own
+// [MiningLog] tool-decay rows. Server-authoritative inputs only: window slot
+// packets, /clear count receipts and /testfor NBT receipts.
+const SK = {
+  table: { x: -36, y: 100, z: 12 },
+  stand: { x: -30.5, z: 22.5 },
+  block: { x: -30, y: 100, z: 20 },
+  wallZ: 16,
+};
+
+/** Window click through mineflayer: the packet carries the clicked slot's
+ *  stack, so the 1.12 server transaction check accepts it (a raw write with an
+ *  empty carried item makes the server resync and setCanCraft(false), which
+ *  silently drops the NEXT click — the run26-era alternate-click failure). */
+async function wclick(slot, button = 0, mode = 0) {
+  try { await bot.clickWindow(slot, button, mode); return true; }
+  catch (e) { mark(`[SkLog] wclick-fail slot=${slot} btn=${button} ${e && e.message}`); return false; }
+}
+
+/** Pick a hotbar stack up, right-click `slots` once each, put the rest back. */
+async function skPlace(win, step) {
+  await wclick(37 + step.hotbar); await sleep(150);
+  for (const s of step.slots) { await wclick(s, 1); await sleep(150); }
+  await wclick(37 + step.hotbar); await sleep(150);
+}
+
+/** W2: one workbench craft; the stage-3 timer drives, the driver auto-grants. */
+async function skCraft(key, give, plan, want, wantCount) {
+  await cmd(`/gamemode 1 ${NAME}`);
+  await clearAll();
+  for (const [n, c] of give) await giveItem(n, c);
+  await cmd(`/tp ${NAME} ${SK.table.x + 0.5} 100 ${SK.table.z + 1.5} 180 0`);
+  await sleep(600);
+  const w = await openTimed(SK.table.x, SK.table.y, SK.table.z, 4000);
+  if (!w) { mark(`[SkLog] skw2-${key} NO-TABLE-WINDOW | FAIL`); return { key, ok: false, err: 'no window' }; }
+  for (const step of plan) await skPlace(w, step);
+  await sleep(400);
+  const placed = [];
+  for (const s of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+    const it = w.slots[s];
+    placed.push(`${s}:` + (it ? `${it.name || 'unknown'}x${it.count}` : '-'));
+  }
+  await cmd(`/gamemode 0 ${NAME}`);
+  await cmd(`/etest level 200 ${NAME}`);
+  await cmd(`/etest food 20 20 ${NAME}`);
+  await sleep(400);
+  const nl = logLen();
+  await wclick(0); // arms the timer (result slot is canTakeStack-locked)
+  let n = 0;
+  for (let i = 0; i < 30 && n < wantCount; i++) {
+    await sleep(400);
+    n = (await clearCount(want, false)).n;
+  }
+  await sleep(300);
+  n = (await clearCount(want, false)).n;
+  await closeWin(w);
+  await sleep(200);
+  const ok = n === wantCount;
+  mark(`[SkLog] skw2-${key} placed=${JSON.stringify(placed)} want=${want} x${wantCount} got=${n} | ${ok ? 'PASS' : 'FAIL'}`);
+  mark(`[SkLog] skw2-${key} timer=${JSON.stringify(rowsMatching(since(nl), 'crafting').slice(-3))}`);
+  const out = { v: 'SKW2', key, give, want, wantCount, got: n, placed, ok };
+  await clearCount(want, true);
+  await cmd(`/gamemode 1 ${NAME}`);
+  return out;
+}
+
+async function skcraft() {
+  await say('skw2-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  // The rig chunks must be LOADED before /fill|/setblock (1.12 CommandFill and
+  // CommandSetBlock throw outOfWorld on an unloaded chunk). Teleport first.
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  const cells = [
+    ['sinew', [['minecraft:leather', 1]], [{ hotbar: 0, slots: [1] }], 'etim:sinew', 4],
+    ['scythe-copper', [['minecraft:stick', 3], ['etim:ingot_copper', 2]],
+      [{ hotbar: 0, slots: [1, 4, 7] }, { hotbar: 1, slots: [2, 6] }], 'etim:scythe_copper', 1],
+    ['arrow-copper', [['etim:nugget_copper', 1], ['minecraft:stick', 1], ['minecraft:feather', 1]],
+      [{ hotbar: 0, slots: [1] }, { hotbar: 1, slots: [4] }, { hotbar: 2, slots: [7] }], 'etim:arrow_copper', 1],
+    ['knife-flint', [['minecraft:flint', 1], ['minecraft:stick', 1], ['etim:sinew', 1]],
+      [{ hotbar: 0, slots: [1] }, { hotbar: 1, slots: [4] }, { hotbar: 2, slots: [2] }], 'etim:knife_flint', 1],
+    ['dismantle-arrow-copper', [['etim:arrow_copper', 1]],
+      [{ hotbar: 0, slots: [1] }], 'etim:nugget_copper', 1],
+  ];
+  const out = [];
+  for (const c of cells) out.push(await skCraft(...c));
+  results.push({ v: 'SKW2', cells: out });
+  await cmd(`/gamemode 1 ${NAME}`);
+  await say('skw2-end');
+}
+
+// ------------------------------------------------------------------ W3 decay
+const SK_DECAY = [
+  // [key, item, block, meta, holdMs, expect] expect: number = judged loss,
+  // 'deny' = gate refuses the break, 'noro' = vanilla ItemTool/ItemSword
+  // onBlockDestroyed skips damageItem entirely at blockHardness == 0 (no row).
+  ['scythe-wheat-mature', 'etim:scythe_copper', 'minecraft:wheat', '7', 1500, 'noro'],
+  ['scythe-tallgrass', 'etim:scythe_copper', 'minecraft:tallgrass', '1', 1500, 'noro'],
+  ['scythe-stone-deny', 'etim:scythe_copper', 'minecraft:stone', '0', 2500, 'deny'],
+  ['knife-wool-cloth', 'etim:knife_flint', 'minecraft:wool', '0', 10000, 40],
+  ['knife-tallgrass', 'etim:knife_flint', 'minecraft:tallgrass', '1', 1500, 'noro'],
+  ['knife-leaves', 'etim:knife_flint', 'minecraft:leaves', '0', 3500, 20],
+  ['knife-pumpkin', 'etim:knife_flint', 'minecraft:pumpkin', '0', 8000, 60],
+  ['knife-stone-deny', 'etim:knife_flint', 'minecraft:stone', '0', 2500, 'deny'],
+];
+
+/** Wait until the server log (log4j flush is asynchronous) carries a row that
+ *  matches pred, starting from line n0 — up to ms. The W3 face cannot read the
+ *  slice once: the row can land a second after the break completes. */
+async function waitRows(n0, pred, ms = 9000) {
+  const t0 = Date.now();
+  let rows = [];
+  while (Date.now() - t0 < ms) {
+    rows = since(n0).filter(pred);
+    if (rows.length) return rows;
+    await sleep(500);
+  }
+  return rows;
+}
+
+async function skBreakCell(key, item, block, meta, holdMs, expect) {
+  await cmd(`/gamemode 1 ${NAME}`);
+  await clearAll();
+  await giveItem(item, 1);
+  selectSlot(0);
+  await sleep(300);
+  const p = SK.block;
+  await cmd(`/setblock ${p.x} ${p.y} ${p.z} minecraft:air`, 100);
+  await cmd(`/setblock ${p.x} ${p.y} ${p.z} ${block} ${meta} replace`, 140);
+  await cmd(`/tp ${NAME} ${p.x + 0.5} 100 ${p.z + 2.5} 180 0`);
+  await sleep(600);
+  await cmd(`/gamemode 0 ${NAME}`);
+  await cmd(`/etest food 20 20 ${NAME}`);
+  await sleep(400);
+  const n0 = logLen();
+  startDig(p.x, p.y, p.z);
+  await sleep(holdMs);
+  stopDig(p.x, p.y, p.z);
+  let broke = false;
+  // bot.blockAt is the server block_change view (null until the chunk arrives —
+  // never treat null as "broken"); every 5th poll backs it with /testforblock.
+  for (let i = 0; i < 30; i++) {
+    await sleep(300);
+    const b = bot.blockAt(new Vec3(p.x, p.y, p.z));
+    if (b && b.name === 'air') { broke = true; break; }
+    if (i % 5 === 4) {
+      const r = (await cmd(`/testforblock ${p.x} ${p.y} ${p.z} ${block}`, 420) || '');
+      if (r && !r.includes('Successfully found')) { broke = true; break; }
+    }
+  }
+  await sleep(400);
+  const name = block.slice(10);
+  const minePred = (l) => l.includes(`item=${item}`) && l.includes(`block=${name}`);
+  // Presence over the whole session log: [MiningLog] rows are last-sig deduped
+  // per (face,item,block), so a repeat cell legitimately logs nothing while the
+  // judged value is already in the log. The value is a pure function of
+  // (item, block), so the deduped row is the same row.
+  await waitRows(n0, (l) => l.includes('tool decay') && minePred(l), expect === 'noro' ? 3500 : 6000);
+  const deny = logLines().filter((l) => l.includes('mine deny') && minePred(l));
+  const decay = logLines().filter((l) => l.includes('tool decay') && minePred(l));
+  const loss = decay.length ? parseInt(/loss=(-?\d+)/.exec(decay[decay.length - 1])[1], 10) : null;
+  let ok;
+  if (expect === 'deny') ok = !broke && decay.length === 0 && deny.length >= 1;
+  else if (expect === 'noro') ok = broke && decay.length === 0;
+  else ok = broke && loss === expect;
+  mark(`[SkLog] skw3-${key} item=${item} block=${block.slice(10)} broke=${broke} loss=${loss} decayRows=${decay.length} denyRows=${deny.length} expect=${expect} n0=${n0} now=${logLen()} | ${ok ? 'PASS' : 'FAIL'}`);  await cmd(`/setblock ${p.x} ${p.y} ${p.z} minecraft:air`, 100);
+  await cmd(`/gamemode 1 ${NAME}`);
+  return { v: 'SKW3', key, item, block, meta, holdMs, expect, broke, loss, decay, deny, ok };
+}
+
+/** 1.12 /testfor success receipt is "Found <name>" (commands.testfor.success);
+ *  a mismatch answers "did not match the required data structure". */
+function testOk(r) {
+  const s = (r || '').toLowerCase();
+  return s.length > 0 && !s.includes('did not match') && !s.includes('failed') && !s.includes('could not');
+}
+
+/** Exact entity health probe: 1.12 /testfor <selector> <dataTag> matches the
+ *  entity's own NBT (Entity.toNBT), so a float Health match is bit-exact.
+ *  (The scoreboard health criterion is READ-ONLY: "/scoreboard players set" is
+ *  refused and "players get" does not exist before 1.13.) */
+async function skPigHp(sel, lo, hi) {
+  for (let h = hi; h >= lo; h--) {
+    const r = await cmd(`/testfor ${sel} {Health:${h}.0f}`, 260);
+    if (testOk(r)) return h;
+  }
+  return null;
+}
+
+async function skAttackCell(key, item, expectLoss) {
+  await cmd(`/gamemode 1 ${NAME}`);
+  await clearAll();
+  await cmd(`/kill @e[type=!Player]`, 160);
+  await giveItem(item, 1);
+  selectSlot(0);
+  await sleep(300);
+  // MUST be inside reach: the reach gate answers etim.reach.deny_attack beyond it.
+  await cmd(`/summon minecraft:pig ${SK.stand.x} 100 ${SK.stand.z - 2} {NoAI:1b,Silent:1b,PersistenceRequired:1b,Attributes:[{Name:"generic.maxHealth",Base:1000.0},{Name:"generic.knockbackResistance",Base:1.0}],Health:1000.0f}`, 260);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(800);
+  await cmd(`/gamemode 0 ${NAME}`);
+  await cmd(`/etest food 20 20 ${NAME}`);
+  await sleep(500);
+  const alive0 = await skPigHp('@e[type=pig,r=6,c=1]', 1000, 1000);
+  const n0 = logLen();
+  const pig = nearestEntity('pig', SK.stand.x, 100, SK.stand.z - 2);
+  let swing = 'bot';
+  if (pig) {
+    bot.lookAt(new Vec3(pig.position.x, pig.position.y + 0.6, pig.position.z), true);
+    await sleep(250);
+    bot.attack(pig);
+  } else {
+    swing = 'etest';
+    await cmd(`/etest attack @e[type=pig,r=6,c=1] ${NAME}`, 400);
+  }
+  await sleep(1200);
+  const hp = await skPigHp('@e[type=pig,r=6,c=1]', 900, 999);
+  await waitRows(n0, (l) => l.includes('tool decay') && l.includes(`item=${item}`) && l.includes('face=attacking'), 8000);
+  const mine = logLines().filter((l) => l.includes('tool decay') && l.includes(`item=${item}`) && l.includes('face=attacking'));
+  const loss = mine.length ? parseInt(/loss=(-?\d+)/.exec(mine[mine.length - 1])[1], 10) : null;
+  const drop = hp === null ? null : 1000 - hp;
+  const ok = loss === expectLoss && alive0 === 1000 && drop !== null && drop > 0;
+  mark(`[SkLog] skw3-${key} item=${item} face=attacking swing=${swing} startHP=${alive0} endHP=${hp} hpDrop=${drop} loss=${loss} expect=${expectLoss} n0=${n0} now=${logLen()} | ${ok ? 'PASS' : 'FAIL'}`);
+  await cmd(`/kill @e[type=!Player]`, 120);
+  await cmd(`/gamemode 1 ${NAME}`);
+  return { v: 'SKW3', key, item, face: 'attacking', expect: expectLoss, loss, hp, drop, swing, mine, ok };
+}
+
+async function skdecay() {
+  await say('skw3-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  await cmd(`/scoreboard objectives add skhp health`, 160);
+  const out = [];
+  for (const c of SK_DECAY) out.push(await skBreakCell(...c));
+  out.push(await skAttackCell('scythe-attack', 'etim:scythe_copper', 400));
+  out.push(await skAttackCell('knife-attack', 'etim:knife_flint', 50));
+  results.push({ v: 'SKW3', cells: out });
+  await cmd(`/gamemode 1 ${NAME}`);
+  await say('skw3-end');
+}
+
+// ------------------------------------------------------------------ W4 arrows
+// EntityArrow#writeEntityToNBT stores the exact `damage` double; /testfor's
+// NBT argument compares it bit-exactly (NBTUtil.areNBTEquals 鈫?NBTTagDouble
+// equals), so the judged SetDamage value is verifiable without any product
+// logging. The in-world hit face rides a 1000-HP no-AI pig read through the
+// health scoreboard criterion (server-authoritative).
+const SK_ARROWS = [
+  ['arrow_copper', 2.0],
+  ['arrow_silver', 2.0],
+  ['arrow_ancient_metal', 2.5],
+  ['arrow_mithril', 3.0],
+  ['arrow_adamantium', 3.5],
+  ['arrow_rusted_iron', 1.5],
+];
+
+function numFor(n) {
+  // NBT double literal: always carry the ".0" so JsonToNBT makes an NBTTagDouble.
+  return Number.isInteger(n) ? n.toFixed(1) + 'd' : n + 'd';
+}
+
+/** 1.12 scoreboard range test (there is no `players get` before 1.13). */
+async function skTest(sel, obj, min, max) {
+  const r = (await cmd(`/scoreboard players test ${sel} ${obj} ${min} ${max}`, 380) || '').toLowerCase();
+  return { ok: r.includes('passed'), raw: (r || '').replace(/\n+/g, ' | ').slice(0, 120) };
+}
+
+async function skShoot(target) {
+  await bot.lookAt(target, true);
+  await sleep(250);
+  bot.activateItem();
+  await sleep(1300);
+  bot.deactivateItem();
+  await sleep(1000);
+}
+
+async function skarrow() {
+  await say('skw4-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  await cmd(`/scoreboard objectives add skhp health`, 160); // EEXIST on reruns is harmless
+  await cmd(`/fill -34 100 ${SK.wallZ} -26 103 ${SK.wallZ} minecraft:stone`, 200);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(600);
+  const out = [];
+  for (const [id, dmg] of SK_ARROWS) {
+    // (a) exact `damage` NBT face: shoot a wall, the stuck arrow keeps the value.
+    await cmd(`/kill @e[type=arrow]`, 120);
+    await cmd(`/gamemode 1 ${NAME}`);
+    await clearAll();
+    await giveItem('minecraft:bow', 1);
+    await giveItem(`etim:${id}`, 4);
+    selectSlot(0);
+    await sleep(300);
+    await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+    await sleep(400);
+    await cmd(`/gamemode 0 ${NAME}`);
+    await cmd(`/etest food 20 20 ${NAME}`);
+    await sleep(300);
+    await skShoot(new Vec3(SK.stand.x, 101.4, SK.wallZ + 0.5));
+    const exists = await cmd(`/testfor @e[type=arrow,c=1]`, 300);
+    const hit = await cmd(`/testfor @e[type=arrow,c=1] {damage:${numFor(dmg)}}`, 320);
+    const miss = await cmd(`/testfor @e[type=arrow,c=1] {damage:9.0d}`, 320);
+    const passExact = testOk(hit);
+    const passNeg = !testOk(miss);
+    // (b) in-world hit face on the 1000-HP pig (inside reach).
+    await cmd(`/kill @e[type=arrow]`, 120);
+    await cmd(`/gamemode 1 ${NAME}`);
+    await clearAll();
+    await giveItem('minecraft:bow', 1);
+    await giveItem(`etim:${id}`, 4);
+    selectSlot(0);
+    await sleep(250);
+    await cmd(`/kill @e[type=pig]`, 120);
+    await cmd(`/summon minecraft:pig ${SK.stand.x} 100 ${SK.stand.z - 3} {NoAI:1b,Silent:1b,PersistenceRequired:1b,Attributes:[{Name:"generic.maxHealth",Base:1000.0},{Name:"generic.knockbackResistance",Base:1.0}],Health:1000.0f}`, 260);
+    await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+    await sleep(800);
+    await cmd(`/gamemode 0 ${NAME}`);
+    await cmd(`/etest food 20 20 ${NAME}`);
+    await sleep(300);
+    const full = (await skPigHp('@e[type=pig,r=6,c=1]', 1000, 1000)) === 1000;
+    await skShoot(new Vec3(SK.stand.x, 100.9, SK.stand.z - 3));
+    await sleep(600);
+    const base = Math.ceil(3.0 * dmg);
+    const critMax = Math.ceil(base / 2) + 1;
+    let hp = await skPigHp('@e[type=pig,r=6,c=1]', 1000 - base - critMax, 1000 - base);
+    let stillFull = null;
+    let arrowAlive = null;
+    if (hp === null) {
+      stillFull = (await skPigHp('@e[type=pig,r=6,c=1]', 1000, 1000)) === 1000;
+      arrowAlive = testOk(await cmd(`/testfor @e[type=arrow,c=1]`, 300));
+      // widen once: any HP below full (a crit can overshoot the band)
+      if (!stillFull) hp = await skPigHp('@e[type=pig,r=6,c=1]', 900, 999);
+    }
+    const hurt = hp !== null;
+    const drop = hp === null ? null : 1000 - hp;
+    const ok = passExact && passNeg && full && hurt;
+    mark(`[SkLog] skw4-${id} damage=${dmg} nbtProbe=${passExact ? 'PASS' : 'FAIL'} negProbe=${passNeg ? 'PASS' : 'FAIL'} arrow=${testOk(exists) ? 'yes' : 'no'} fullHP=${full} hp=${hp} hpDrop=${drop} band=[${1000 - base - critMax}..${1000 - base}] base=${base} stillFull=${stillFull} arrowAlive=${arrowAlive} | ${ok ? 'PASS' : 'FAIL'}`);
+    out.push({ v: 'SKW4', id, dmg, passExact, passNeg, exists: (exists || '').slice(0, 40), hit: (hit || '').slice(0, 60), miss: (miss || '').slice(0, 60), full, hp, drop, base, ok });
+    await cmd(`/kill @e[type=!Player]`, 120);
+    await cmd(`/gamemode 1 ${NAME}`);
+  }
+  results.push({ v: 'SKW4', cells: out });
+  await say('skw4-end');
+}
+
+// ------------------------------------------------------------------ W2 diagnostic
+// Same clicks as skCraft but dumps the window after every single placement so
+// a missing/duplicated ingredient is visible instead of inferring from the
+// final result.
+async function skslots(key, give, plan) {
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1200);
+  await clearAll();
+  for (const [n, c] of give) await giveItem(n, c);
+  await cmd(`/tp ${NAME} ${SK.table.x + 0.5} 100 ${SK.table.z + 1.5} 180 0`);
+  await sleep(700);
+  const w = await openTimed(SK.table.x, SK.table.y, SK.table.z, 4000);
+  if (!w) { mark(`[SkLog] skslots-${key} NO-TABLE-WINDOW | FAIL`); return { key, ok: false }; }
+  const snap = (tag) => {
+    const s = [];
+    for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+      const it = w.slots[i];
+      s.push(`${i}:` + (it ? `${it.name || 'unknown'}x${it.count}` : '-'));
+    }
+    const inv = [];
+    for (const i of [37, 38, 39]) {
+      const it = w.slots[i];
+      inv.push(`${i}:` + (it ? `${it.name || 'unknown'}x${it.count}` : '-'));
+    }
+    mark(`[SkLog] skslots-${key} ${tag} grid=${s.join(',')} hotbar=${inv.join(',')}`);
+  };
+  snap('open');
+  for (const step of plan) {
+    await wclick(37 + step.hotbar); await sleep(200);
+    snap(`pick${step.hotbar}`);
+    for (const s of step.slots) { await wclick(s, 1); await sleep(200); snap(`place${s}`); }
+    await wclick(37 + step.hotbar); await sleep(200);
+    snap(`return${step.hotbar}`);
+  }
+  await sleep(600);
+  snap('final');
+  await closeWin(w);
+  await cmd(`/gamemode 1 ${NAME}`);
+  results.push({ v: 'SKSLOTS', key, give, plan });
+  return { key, ok: true };
+}
+
+async function skdebug() {
+  await say('skdbg-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  await skslots('knife-flint', [['minecraft:flint', 1], ['minecraft:stick', 1], ['etim:sinew', 1]],
+    [{ hotbar: 0, slots: [1] }, { hotbar: 1, slots: [4] }, { hotbar: 2, slots: [2] }]);
+  await skslots('scythe-copper', [['etim:ingot_copper', 2], ['minecraft:stick', 2]],
+    [{ hotbar: 1, slots: [1, 4] }, { hotbar: 0, slots: [2, 6] }]);
+  await say('skdbg-end');
+}
+
+async function skdebug2() {
+  await say('skdbg2-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  const cases = [
+    ['ingot-to-slot1', [['etim:ingot_copper', 2]], [{ hotbar: 0, slots: [1] }]],
+    ['ingot-to-slot2', [['etim:ingot_copper', 2]], [{ hotbar: 0, slots: [2] }]],
+    ['ingot-to-2-6', [['etim:ingot_copper', 2]], [{ hotbar: 0, slots: [2, 6] }]],
+    ['stick-to-slot2', [['minecraft:stick', 2]], [{ hotbar: 0, slots: [2] }]],
+    ['sinew-to-slot2', [['etim:sinew', 2]], [{ hotbar: 0, slots: [2] }]],
+  ];
+  for (const [key, give, plan] of cases) await skslots(key, give, plan);
+  await say('skdbg2-end');
+}
+
+async function skLayout(key, items, arm) {
+  await cmd(`/gamemode 1 ${NAME}`);
+  await clearAll();
+  for (const it of items) await giveItem(it.item, 1);
+  await cmd(`/tp ${NAME} ${SK.table.x + 0.5} 100 ${SK.table.z + 1.5} 180 0`);
+  await sleep(700);
+  const w = await openTimed(SK.table.x, SK.table.y, SK.table.z, 4000);
+  if (!w) { mark(`[SkLog] sklay-${key} NO-TABLE-WINDOW | FAIL`); return null; }
+  for (let i = 0; i < items.length; i++) {
+    await wclick(37 + i); await sleep(150);          // pick up the 1-item stack
+    await wclick(items[i].slot); await sleep(150);   // left click = place it whole
+  }
+  await sleep(700);
+  const res = w.slots[0];
+  const grid = [];
+  for (const s of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+    const it = w.slots[s];
+    grid.push(it ? `${s}:${it.name || 'unknown'}x${it.count}` : `${s}:-`);
+  }
+  mark(`[SkLog] sklay-${key} result=${res ? (res.name || 'unknown') + 'x' + res.count : '-'} grid=${grid.join(',')}`);
+  if (arm && res) {
+    await cmd(`/gamemode 0 ${NAME}`);
+    await cmd(`/etest level 200 ${NAME}`);
+    await cmd(`/etest food 20 20 ${NAME}`);
+    await sleep(300);
+    click(w.id, 0);
+    await sleep(2500);
+  }
+  results.push({ v: 'SKLAY', key, items, result: res ? { name: res.name, count: res.count } : null });
+  await closeWin(w);
+  await sleep(200);
+  const left = await clearCount('etim:knife_flint', false);
+  mark(`[SkLog] sklay-${key} knifeInInv=${left.n}`);
+  await clearAll();
+  return { key, res: res ? res.name : null, craft: left.n };
+}
+
+async function skdebug3() {
+  await say('skdbg3-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  // knife "Xs","# " at every 2x2 offset (vanilla ShapedRecipes tries mirrored too)
+  const F = 'minecraft:flint', S = 'minecraft:stick', N = 'etim:sinew';
+  await skLayout('knife-0-0', [{ item: F, slot: 1 }, { item: N, slot: 2 }, { item: S, slot: 4 }], true);
+  await skLayout('knife-1-0', [{ item: F, slot: 2 }, { item: N, slot: 3 }, { item: S, slot: 5 }], true);
+  await skLayout('knife-0-1', [{ item: F, slot: 4 }, { item: N, slot: 5 }, { item: S, slot: 7 }], true);
+  await skLayout('knife-1-1', [{ item: F, slot: 5 }, { item: N, slot: 6 }, { item: S, slot: 8 }], true);
+  await say('skdbg3-end');
+}
+
+async function skrecipe() {
+  await say('skrec-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  const out = [];
+  // harness self-check: vanilla 2x2 and the legacy ETIM 3x3 must both match.
+  out.push(await skCraft('vanilla-table', [['minecraft:planks', 4]],
+    [{ hotbar: 0, slots: [1, 2, 4, 5] }], 'minecraft:crafting_table', 1));
+  out.push(await skCraft('pickaxe-copper', [['etim:ingot_copper', 3], ['minecraft:stick', 2]],
+    [{ hotbar: 0, slots: [1, 2, 3] }, { hotbar: 1, slots: [5, 8] }], 'etim:pickaxe_copper', 1));
+  // ragged-pattern hypothesis: if the literal rows were "/X", "/ X", "/" the
+  // registered width would be 2 and the shape would be 3 sticks + 1 ingot.
+  out.push(await skCraft('scythe-ragged', [['minecraft:stick', 3], ['etim:ingot_copper', 1]],
+    [{ hotbar: 0, slots: [1, 4, 7] }, { hotbar: 1, slots: [2] }], 'etim:scythe_copper', 1));
+  results.push({ v: 'SKREC', cells: out });
+  await cmd(`/gamemode 1 ${NAME}`);
+  await say('skrec-end');
+}
+
+async function skrecipe2() {
+  await say('skrec2-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  const out = [];
+  out.push(await skCraft('dagger-copper', [['etim:ingot_copper', 1], ['minecraft:stick', 1]],
+    [{ hotbar: 0, slots: [1] }, { hotbar: 1, slots: [4] }], 'etim:dagger_copper', 1));
+  out.push(await skCraft('hatchet-copper', [['etim:ingot_copper', 1], ['minecraft:stick', 2]],
+    [{ hotbar: 1, slots: [1, 4] }, { hotbar: 0, slots: [2] }], 'etim:hatchet_copper', 1));
+  out.push(await skCraft('chain-helmet-rusted', [['etim:chain_rusted_iron', 5]],
+    [{ hotbar: 0, slots: [1, 2, 3, 4, 6] }], 'etim:chain_helmet_rusted_iron', 1));
+  results.push({ v: 'SKREC2', cells: out });
+  await cmd(`/gamemode 1 ${NAME}`);
+  await say('skrec2-end');
+}
+
+async function skrecipe3() {
+  await say('skrec3-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  const out = [];
+  // control: the vanilla iron pickaxe has the SAME shape as the ETIM one.
+  out.push(await skCraft('vanilla-iron-pickaxe', [['minecraft:iron_ingot', 3], ['minecraft:stick', 2]],
+    [{ hotbar: 0, slots: [1, 2, 3] }, { hotbar: 1, slots: [4, 7] }], 'minecraft:iron_pickaxe', 1));
+  // order control: sticks first, ingots second.
+  out.push(await skCraft('pickaxe-copper-rev', [['minecraft:stick', 2], ['etim:ingot_copper', 3]],
+    [{ hotbar: 0, slots: [4, 7] }, { hotbar: 1, slots: [1, 2, 3] }], 'etim:pickaxe_copper', 1));
+  // vanilla shape with an ETIM ingot only in one cell (ingredient-identity isolate)
+  out.push(await skCraft('vanilla-table-1', [['minecraft:planks', 4]],
+    [{ hotbar: 0, slots: [1, 2, 4, 5] }], 'minecraft:crafting_table', 1));
+  results.push({ v: 'SKREC3', cells: out });
+  await cmd(`/gamemode 1 ${NAME}`);
+  await say('skrec3-end');
+}
+
+async function skrecipe4() {
+  await say('skrec4-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  const out = [];
+  // scythe "/X ", "/ X", "/  " → sticks 1,4,7; ingots 2,6 (the col-0 slash column
+  // runs the full height — my first layout wrongly used slot 4 for the 2nd stick
+  // and left 7 empty).
+  out.push(await skCraft('scythe-correct', [['minecraft:stick', 3], ['etim:ingot_copper', 2]],
+    [{ hotbar: 0, slots: [1, 4, 7] }, { hotbar: 1, slots: [2, 6] }], 'etim:scythe_copper', 1));
+  const F = 'minecraft:flint', S = 'minecraft:stick', N = 'etim:sinew';
+  await skLayout('knife-stick-at-5', [{ item: F, slot: 1 }, { item: N, slot: 2 }, { item: S, slot: 5 }], true);
+  await skLayout('knife-swapped', [{ item: N, slot: 1 }, { item: F, slot: 2 }, { item: S, slot: 4 }], true);
+  results.push({ v: 'SKREC4', cells: out });
+  await cmd(`/gamemode 1 ${NAME}`);
+  await say('skrec4-end');
+}
+
+async function skknife() {
+  await say('skknife-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1500);
+  await rigFloor();
+  const F = 'minecraft:flint', S = 'minecraft:stick', N = 'etim:sinew';
+  const cells = [1, 2, 4];
+  const perms = [[F, S, N], [F, N, S], [S, F, N], [S, N, F], [N, F, S], [N, S, F]];
+  for (const p of perms) {
+    await skLayout(`knife-perm-${p.map((x) => x.split(':')[1]).join('-')}`,
+      p.map((item, i) => ({ item, slot: cells[i] })), false);
+  }
+  await say('skknife-end');
+}
+
+async function skprobe() {
+  await say('skpr-begin');
+  await cmd(`/gamemode 1 ${NAME}`);
+  await cmd(`/tp ${NAME} ${SK.stand.x} 100 ${SK.stand.z} 180 0`);
+  await sleep(1200);
+  await cmd(`/kill @e[type=!Player]`, 200);
+  await cmd(`/summon minecraft:pig ${SK.stand.x} 100 ${SK.stand.z - 3} {NoAI:1b,Silent:1b,PersistenceRequired:1b,Attributes:[{Name:"generic.maxHealth",Base:1000.0},{Name:"generic.knockbackResistance",Base:1.0}],Health:1000.0f}`, 400);
+  await sleep(600);
+  const bare = await cmd(`/testfor @e[type=pig,r=6,c=1]`, 400);
+  mark(`[SkLog] skpr bare=${JSON.stringify((bare || '').replace(/\n+/g, ' | '))}`);
+  for (const v of ['1000.0f', '1000f', '10.0f', '20.0f', '1000.0d']) {
+    const r = await cmd(`/testfor @e[type=pig,r=6,c=1] {Health:${v}}`, 400);
+    mark(`[SkLog] skpr Health:${v} -> ${JSON.stringify((r || '').replace(/\n+/g, ' | ').slice(0, 90))}`);
+  }
+  const nm = await cmd(`/scoreboard players set @e[type=pig,r=6,c=1] skhp 5`, 400);
+  const tt = await cmd(`/scoreboard players test @e[type=pig,r=6,c=1] skhp 0 999`, 400);
+  mark(`[SkLog] skpr sbSet=${JSON.stringify((nm || '').replace(/\n+/g, ' | ').slice(0, 90))} sbTest=${JSON.stringify((tt || '').replace(/\n+/g, ' | ').slice(0, 90))}`);
+  await cmd(`/kill @e[type=!Player]`, 150);
+  await say('skpr-end');
 }
 
 // ------------------------------------------------------------------ main
@@ -1222,8 +1818,7 @@ async function maxprobe() {
     const after = heldMeta();
     const decay = rowsMatching(since(n0), 'tool decay');
     const judgedMax = maxDamageOf(item);
-    // The hotbar slot refills with the block drop right after a tool breaks —
-    // so "the tool is gone" means the held stack CHANGED ITEM, not "slot empty".
+    // The hotbar slot refills with the block drop right after a tool breaks 鈥?    // so "the tool is gone" means the held stack CHANGED ITEM, not "slot empty".
     const toolBroken = !after || (before && after.type !== before.type);
     const pass = toolBroken === expectBreak;
     out.push({ item, judgedMax, startDamage: dmg, block, expectBreak, toolBroken, pass, before, broke, after, decay });
@@ -1294,7 +1889,7 @@ async function probe() {
   await cmd(`/gamemode 1 ${NAME}`, 160);
   await sleep(400);
 
-  const phases = { setup: async () => { await rigFloor(); await say('b3setup-done'); }, probe, probe2, probe3, probe4, probe5, probe6, probe7, probe8, probe9, probe10, typemap, maxprobe, w2, w2d, w3, w3b, w4, w4c, w4probe, w5, w6 };
+  const phases = { setup: async () => { await rigFloor(); await say('b3setup-done'); }, probe, probe2, probe3, probe4, probe5, probe6, probe7, probe8, probe9, probe10, typemap, maxprobe, w2, w2d, w3, w3b, w4, w4c, w4probe, w5, w6, skcraft, skdecay, skarrow, skdebug, skdebug2, skdebug3, skrecipe, skrecipe2, skrecipe3, skrecipe4, skknife, skprobe };
   if (!phases[phase]) { console.error(`unknown phase ${phase}`); process.exit(2); }
   try {
     await phases[phase]();
