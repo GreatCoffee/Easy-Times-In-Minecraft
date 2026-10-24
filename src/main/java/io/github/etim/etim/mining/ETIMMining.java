@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.ETIM;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.enchantment.Enchantment;
@@ -109,6 +110,13 @@ public final class ETIMMining {
         put("quartz_ore", 3.0F, 2);
         put("emerald_ore", 3.0F, 3);
         put("diamond_ore", 3.0F, 4);
+        // Batch-B2 four-ore rows (R196 BlockOre constructor third arg = the
+        // pickaxe harvest level 2/2/3/4; hardness 2.5/2.5/3.5/4.0 per the
+        // ETIMBlockOre javadoc anchors — 批文 §二.3).
+        put("ore_copper", 2.5F, 2);
+        put("ore_silver", 2.5F, 2);
+        put("ore_mithril", 3.5F, 3);
+        put("ore_adamantium", 4.0F, 4);
         put("glass", 2.0F, 0);
         // ❗F-5-31（audit20-05 R8）缺行补全（R196 行号见分卷 05 §2.4；清单不含 bed/planks
         // —— portable 面 pin 吸收、planks 硬度 0.8 在案 —— G 系 cooloff 判据面不受扰）：
@@ -193,10 +201,11 @@ public final class ETIMMining {
             // for the common case (max() only wins when modifiers exceed).
             str = floor = BASE_TOOL_STR * hardness;
         } else if (useTool && !held.isEmpty()) {
-            str = isEffectiveAgainstBlock(held, state) ? BASE_TOOL_STR * getMaterialEfficiency(held) : 0.0F;
+            str = isEffectiveAgainstBlock(held, state) ? BASE_TOOL_STR * getMaterialEfficiency(held, state) : 0.0F;
             if (str < 1.0F) {
                 return getCurrentPlayerStrVsBlock(player, state, world, pos, false);
             }
+            logMineSpeed(held, state, str);
             int efficiency = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, held);
             if (efficiency > 0) { // ❗F-5-24（audit20-05 R1）≡ R196 EntityPlayer:897-901：无附魔不加成
                 str += (efficiency * efficiency) + 1;
@@ -274,11 +283,30 @@ public final class ETIMMining {
     private static float getBaseDecayForBreakingBlocks(ItemStack held, IBlockState state) {
         Item item = held.getItem();
         String key = state.getBlock().getRegistryName().getPath();
+        boolean sandstone = key.equals("sandstone") || key.equals("red_sandstone");
+        // Batch-B2 metal tools first (批文 §〇 衰减全表): the specialized
+        // types override the vanilla-class bands below. The sandstone base
+        // for the axe family is R196 ItemAxe:34.
+        if (item instanceof io.github.etim.etim.metal.ETIMItemHatchet) {
+            return sandstone ? 1.875F * 4F / 3F : 4F / 3F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemBattleAxe) {
+            return sandstone ? 1.875F * 1.25F : 1.25F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemWarHammer) {
+            return 2F / 3F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemHoe) {
+            return 2.0F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemMattock) {
+            return 0.4F;
+        }
         if (item instanceof ItemPickaxe) {
             return 1.0F;
         }
         if (item instanceof ItemAxe) {
-            return key.equals("sandstone") || key.equals("red_sandstone") ? 1.875F : 1.0F;
+            return sandstone ? 1.875F : 1.0F;
         }
         if (item instanceof ItemSpade) {
             return 0.5F;
@@ -291,6 +319,22 @@ public final class ETIMMining {
 
     private static float getBaseDecayForAttackingEntity(ItemStack held) {
         Item item = held.getItem();
+        // Batch-B2 metal tools first (批文 §〇 衰减全表).
+        if (item instanceof io.github.etim.etim.metal.ETIMItemHatchet) {
+            return 4F / 3F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemBattleAxe) {
+            return 0.75F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemWarHammer) {
+            return 2F / 3F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemHoe) {
+            return 2.0F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemMattock) {
+            return 0.8F;
+        }
         if (item instanceof ItemSword) {
             return 0.5F;
         }
@@ -326,14 +370,17 @@ public final class ETIMMining {
     }
 
     /**
-     * R196 tool grade for the vanilla set (audit P0.2/P1.2: the R196 grade
-     * = metal ? material.min : material.min − 1). Vanilla operand levels map
-     * {wood 0, stone 1, iron 3, diamond 3, gold 0} — the divergence note on
-     * Iron(3) was confirmed by the grade table; gold stays 0 in vanilla
-     * numerals, which cannot currently be lifted without ToolMaterial
-     * identity, and gold tools losing grade parity is accepted for v1.
+     * R196 tool grade. Batch-B2 ETIM metal tools read the grade DIRECTLY
+     * (G-FB-12 绕 fold, 批文 §二.2 — copper keeps grade 2 and cannot mine
+     * mithril ore; adamantium is never folded down). The vanilla set keeps
+     * the audit-P1.2 fold ({@code <=1 ? level : 3}; vanilla operand levels
+     * map {wood 0, stone 1, iron 3, diamond 3, gold 0} — gold tools losing
+     * grade parity is accepted for v1).
      */
     private static int getToolGrade(ItemStack held, String toolClass) {
+        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMMetalGear) {
+            return ((io.github.etim.etim.metal.ETIMMetalGear) held.getItem()).etimGrade();
+        }
         int level = held.getItem().getHarvestLevel(held, toolClass, null, null);
         return Math.max(0, level) <= 1 ? level : 3;
     }
@@ -342,25 +389,106 @@ public final class ETIMMining {
      * Effective held tool (ItemTool.java:141-152, audit P1.2 final): material
      * list ∩ block material + grade ≥ block min. For the vanilla set the
      * R196 materials_effective_against lists collapse to the matching tool
-     * class ({@code Block.getHarvestTool}); exact per-material lists land
-     * with the 追加任务 5 dump.
+     * class ({@code Block.getHarvestTool}). Batch-B2 metal hoes carry the
+     * R196 ItemHoe:6 material list (grass/dirt/sand/snow/cake/craftedSnow
+     * — the 1.12 GROUND/ORGANIC/SNOW/SAND/CAKE set) since the vanilla hoe
+     * lives outside the ItemTool tree.
      */
     public static boolean isEffectiveAgainstBlock(ItemStack held, IBlockState state) {
-        if (held.isEmpty() || !(held.getItem() instanceof ItemTool)) {
+        if (held.isEmpty()) {
+            return false;
+        }
+        int minLevel = getMinHarvestLevel(state);
+        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemHoe) {
+            int grade = ((io.github.etim.etim.metal.ETIMItemHoe) held.getItem()).etimGrade();
+            boolean ok = isHoeMaterial(state) && grade >= minLevel;
+            if (!ok) {
+                logGradeDeny(held, state, grade);
+            }
+            return ok;
+        }
+        if (!(held.getItem() instanceof ItemTool)) {
             return false;
         }
         String requiredKind = state.getBlock().getHarvestTool(state);
         if (requiredKind == null) {
             // Blocks without a vanilla tool class: pickaxes stay the R196
             // stone-family carrier; the registry maps everything else.
-            return held.getItem() instanceof ItemPickaxe && getToolGrade(held, "pickaxe") >= getMinHarvestLevel(state);
+            int grade = getToolGrade(held, "pickaxe");
+            boolean ok = held.getItem() instanceof ItemPickaxe && grade >= minLevel;
+            if (!ok) {
+                logGradeDeny(held, state, grade);
+            }
+            return ok;
         }
         int grade = getToolGrade(held, requiredKind);
-        return grade >= 0 && grade >= getMinHarvestLevel(state);
+        boolean ok = grade >= 0 && grade >= minLevel;
+        if (!ok && grade >= 0) {
+            // The tool-class face (grade < 0) is a "wrong tool", not a grade deny.
+            logGradeDeny(held, state, grade);
+        }
+        return ok;
     }
 
-    /** R196 material efficiency (预核 §2.1 表) mapped onto the vanilla operand levels. */
-    private static float getMaterialEfficiency(ItemStack held) {
+    /** R196 ItemHoe:6 material list (1.12 mapping). */
+    private static boolean isHoeMaterial(IBlockState state) {
+        net.minecraft.block.material.Material material = state.getMaterial();
+        return material == net.minecraft.block.material.Material.GROUND
+                || material == net.minecraft.block.material.Material.GRASS
+                || material == net.minecraft.block.material.Material.SAND
+                || material == net.minecraft.block.material.Material.SNOW
+                || material == net.minecraft.block.material.Material.CRAFTED_SNOW
+                || material == net.minecraft.block.material.Material.CAKE;
+    }
+
+    /** [MiningLog] grade-deny row, deduped per (item, block, grade/required) — the W2 matrix channel. */
+    private static final Map<String, String> LAST_DENY_SIGS = new HashMap<>();
+
+    private static void logGradeDeny(ItemStack held, IBlockState state, int grade) {
+        if (!ETIMConfig.miningDebugLog || grade < 0) {
+            return;
+        }
+        String item = held.getItem().getRegistryName().toString();
+        String block = state.getBlock().getRegistryName().getPath();
+        int required = getMinHarvestLevel(state);
+        String sig = grade + "/" + required;
+        String key = item + "@" + block;
+        if (sig.equals(LAST_DENY_SIGS.get(key))) {
+            return;
+        }
+        LAST_DENY_SIGS.put(key, sig);
+        ETIM.LOGGER.info("[MiningLog] mine deny grade=" + grade + " required=" + required
+                + " item=" + item + " block=" + block + " [server]");
+    }
+
+    /** [MiningLog] effective-dig speed row, deduped per (item, block, str) — the W3 efficiency channel. */
+    private static final Map<String, Float> LAST_SPEED_SIGS = new HashMap<>();
+
+    private static void logMineSpeed(ItemStack held, IBlockState state, float str) {
+        if (!ETIMConfig.miningDebugLog || held.isEmpty()) {
+            return;
+        }
+        String item = held.getItem().getRegistryName().toString();
+        String block = state.getBlock().getRegistryName().getPath();
+        String key = item + "@" + block;
+        Float last = LAST_SPEED_SIGS.get(key);
+        if (last != null && last.floatValue() == str) {
+            return;
+        }
+        LAST_SPEED_SIGS.put(key, str);
+        ETIM.LOGGER.info("[MiningLog] mine speed item=" + item + " block=" + block + " str=" + str + " [server]");
+    }
+
+    /** R196 material efficiency mapped onto the vanilla operand levels; B2 metal tools read direct. */
+    private static float getMaterialEfficiency(ItemStack held, IBlockState state) {
+        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMMetalGear) {
+            float efficiency = ((io.github.etim.etim.metal.ETIMMetalGear) held.getItem()).etimEfficiency();
+            if (state != null && held.getItem() instanceof io.github.etim.etim.metal.ETIMItemAxe
+                    && (state.getBlock() == Blocks.SANDSTONE || state.getBlock() == Blocks.RED_SANDSTONE)) {
+                efficiency *= 0.5F; // R196 ItemAxe:19 sandstone half-efficiency
+            }
+            return efficiency;
+        }
         String kind = held.getItem() instanceof ItemPickaxe ? "pickaxe"
                 : held.getItem() instanceof ItemSpade ? "shovel" : "axe";
         int level = held.getItem().getHarvestLevel(held, kind, null, null);

@@ -5,6 +5,7 @@ import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import io.github.etim.etim.ETIM;
@@ -39,5 +40,25 @@ public class ETIMBlockOre extends Block {
     @Override
     public Item getItemDropped(net.minecraft.block.state.IBlockState state, java.util.Random rand, int fortune) {
         return Item.getItemFromBlock(this);
+    }
+
+    /**
+     * Batch-B2 fortune face (批文 §〇 待核① 闭, R196 BlockOre:99 +
+     * Block.java:2001-2040): the main unit always drops (chance ≥ 1) and
+     * the extra unit rides a separate {@code rand < fortune × 0.1} roll —
+     * the R196 {@code chance − 1.0} accumulator. The suppress face
+     * (BlockOre:94, metadata bit 1) never triggers: ETIM ore metadata is
+     * always 0/placement-1, bit 1 clear.
+     */
+    @Override
+    public java.util.List<ItemStack> getDrops(net.minecraft.world.IBlockAccess world, net.minecraft.util.math.BlockPos pos,
+                                              net.minecraft.block.state.IBlockState state, int fortune) {
+        ItemStack self = new ItemStack(Item.getItemFromBlock(this));
+        java.util.List<ItemStack> drops = new java.util.ArrayList<>();
+        drops.add(self);
+        if (RANDOM.nextFloat() < fortune * 0.1F) {
+            drops.add(self.copy());
+        }
+        return drops;
     }
 }

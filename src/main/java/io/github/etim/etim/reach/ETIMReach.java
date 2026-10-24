@@ -67,6 +67,11 @@ public final class ETIMReach {
 
     /** Per-item melee bonus mapping for the vanilla set (R196 clinit values). */
     public static float getReachBonus(net.minecraft.item.Item item) {
+        // Batch-B2 metal tools/armor carry the R196 per-type bonus directly
+        // (0.75 base; hatchet/dagger 0.5 — 批文 §〇 判值更正 B).
+        if (item instanceof io.github.etim.etim.metal.ETIMMetalGear) {
+            return ((io.github.etim.etim.metal.ETIMMetalGear) item).etimReachBonus();
+        }
         if (item instanceof ItemShears || item == Items.STICK || item == Items.BONE) {
             return ETIMConfig.reachBonusSmall;
         }
