@@ -41,6 +41,10 @@ public final class ETIMGear {
     public static Item arrowRustedIron;
     public static Item shearsRustedIron;
 
+    /** scythe/knife + 箭合成面 批: the flint knife + the five craftable metal arrows. */
+    public static Item knifeFlint;
+    private static final java.util.Map<ETIMMetals, Item> CRAFT_ARROWS = new java.util.EnumMap<>(ETIMMetals.class);
+
     /** All B2 gear items in registration order (chains first, then tools, then armor). */
     public static List<Item> all() {
         return Collections.unmodifiableList(ALL);
@@ -74,10 +78,25 @@ public final class ETIMGear {
 
         // B3: the rusted-iron arrow + shears (批文 §〇; arrow is not gear —
         // its dump row rides the material-item branch, shears is gear).
-        arrowRustedIron = new ETIMItemArrowRusted();
+        // scythe/knife 批: the arrow class generalized to ETIMItemArrow(metal).
+        arrowRustedIron = new ETIMItemArrow(ETIMMetals.RUSTED_IRON);
         register("arrow_rusted_iron", arrowRustedIron);
         shearsRustedIron = new ETIMItemShearsRusted();
         register("shears_rusted_iron", shearsRustedIron);
+
+        // scythe/knife + 箭合成面 批 (T1=①/T2/T3 user rulings, 2026-10-24):
+        // 6 scythes (5 metals craft + the rusted body, no recipe), the flint
+        // knife (A-1 定谳: metal knives are R196 dead data — skip), and the
+        // five metal arrows (the rusted arrow stays loot-only, no recipe).
+        for (ETIMMetals metal : ETIMMetals.values()) {
+            register("scythe_" + metal.name, new ETIMItemScythe(metal));
+        }
+        register("knife_flint", new ETIMItemKnifeFlint());
+        CRAFT_ARROWS.put(ETIMMetals.COPPER, register("arrow_copper", new ETIMItemArrow(ETIMMetals.COPPER)));
+        CRAFT_ARROWS.put(ETIMMetals.SILVER, register("arrow_silver", new ETIMItemArrow(ETIMMetals.SILVER)));
+        CRAFT_ARROWS.put(ETIMMetals.MITHRIL, register("arrow_mithril", new ETIMItemArrow(ETIMMetals.MITHRIL)));
+        CRAFT_ARROWS.put(ETIMMetals.ADAMANTIUM, register("arrow_adamantium", new ETIMItemArrow(ETIMMetals.ADAMANTIUM)));
+        CRAFT_ARROWS.put(ETIMMetals.ANCIENT_METAL, register("arrow_ancient_metal", new ETIMItemArrow(ETIMMetals.ANCIENT_METAL)));
 
         assertRegistered();
         registerRecipes();
@@ -101,12 +120,13 @@ public final class ETIMGear {
         }
     }
 
-    private static void register(String name, Item item) {
+    private static Item register(String name, Item item) {
         item.setRegistryName(new ResourceLocation(ETIM.MOD_ID, name));
         item.setTranslationKey("etim." + name);
         ForgeRegistries.ITEMS.register(item);
         ALL.add(item);
         JUDGED_DURABILITY.put(item, item.getMaxDamage());
+        return item;
     }
 
     private static Item chain(String name) {
@@ -200,7 +220,48 @@ public final class ETIMGear {
             addShaped("chain_leggings_" + metal.name, chain, "XXX", "X X", "X X");
             addShaped("chain_boots_" + metal.name, chain, "X X", "X X");
         }
-        ETIM.LOGGER.info("[TestLog] gear recipes registered: 94 shaped rows (90 ingot-based + 4 rusted chain-armor) [server]");
+
+        // scythe/knife + 箭合成面 批 17 rows (批文 §〇, R196 一手):
+        registerBatchRecipes();
+        ETIM.LOGGER.info("[TestLog] gear recipes registered: 111 rows (94 legacy: 90 ingot-based + 4 rusted chain-armor; +17: 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint) [server]");
+    }
+
+    /** The scythe/knife/arrow recipe face — R196 RecipesTools:102 / RecipesWeapons:73,85 / RecipesMITE:252,257. */
+    private static void registerBatchRecipes() {
+        java.util.List<ETIMMetals> ingotMetals = java.util.Arrays.asList(
+                ETIMMetals.COPPER, ETIMMetals.SILVER, ETIMMetals.MITHRIL,
+                ETIMMetals.ADAMANTIUM, ETIMMetals.ANCIENT_METAL);
+        for (ETIMMetals metal : ingotMetals) {
+            // Scythe (RecipesTools:102): stick column left, two ingots.
+            addShaped("scythe_" + metal.name, ingotOf(metal), "/X ", "/ X", "/  ");
+            // Arrow (RecipesWeapons:73): nugget over stick over feather → 1.
+            Item arrow = CRAFT_ARROWS.get(metal);
+            GameRegistry.addShapedRecipe(new ResourceLocation(ETIM.MOD_ID, "arrow_" + metal.name), null,
+                    new ItemStack(arrow), "?", "/", "F",
+                    '?', ingotToNugget(metal), '/', Items.STICK, 'F', Items.FEATHER);
+            // Dismantle (RecipesMITE:252): 1 arrow → 1 nugget, shapeless.
+            GameRegistry.addShapelessRecipe(new ResourceLocation(ETIM.MOD_ID, "arrow_dismantle_" + metal.name), null,
+                    new ItemStack(ingotToNugget(metal)),
+                    net.minecraft.item.crafting.Ingredient.fromStacks(new ItemStack(arrow)));
+        }
+        // Sinew (RecipesMITE:257): 1 leather → 4 sinew.
+        GameRegistry.addShapedRecipe(new ResourceLocation(ETIM.MOD_ID, "sinew_from_leather"), null,
+                new ItemStack(ETIMItems.sinew, 4), "#", '#', Items.LEATHER);
+        // Flint knife (RecipesWeapons:85): flint + stick + sinew.
+        GameRegistry.addShapedRecipe(new ResourceLocation(ETIM.MOD_ID, "knife_flint"), null,
+                new ItemStack(knifeFlint), "Xs", "# ",
+                'X', Items.FLINT, '#', Items.STICK, 's', ETIMItems.sinew);
+    }
+
+    private static Item ingotToNugget(ETIMMetals metal) {
+        switch (metal) {
+            case COPPER: return ETIMItems.nuggetCopper;
+            case SILVER: return ETIMItems.nuggetSilver;
+            case MITHRIL: return ETIMItems.nuggetMithril;
+            case ADAMANTIUM: return ETIMItems.nuggetAdamantium;
+            case ANCIENT_METAL: return ETIMItems.nuggetAncientMetal;
+            default: throw new IllegalArgumentException("no nugget for " + metal);
+        }
     }
 
     /** One shaped recipe; {@code X} = component, {@code /} = stick (key added only when the shape uses it). */

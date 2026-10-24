@@ -312,6 +312,18 @@ public final class ETIMMining {
         if (item instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
             return 1.0F; // R196 ItemShears:37-39
         }
+        // scythe/knife 批 (批文 §二.6): scythe = R196 ItemScythe:26-28; the
+        // flint knife = the dagger 2.0 base ÷4/÷2 (R196 ItemKnife:21-25).
+        if (item instanceof io.github.etim.etim.metal.ETIMItemScythe) {
+            return io.github.etim.etim.metal.ETIMItemScythe.isScytheBlock(state) ? 0.5F : 2.0F;
+        }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemKnifeFlint) {
+            net.minecraft.block.material.Material mat = state.getMaterial();
+            boolean clothLike = mat == net.minecraft.block.material.Material.CLOTH
+                    || mat == net.minecraft.block.material.Material.PLANTS
+                    || mat == net.minecraft.block.material.Material.VINE;
+            return clothLike ? 0.5F : 1.0F;
+        }
         if (item instanceof ItemPickaxe) {
             return 1.0F;
         }
@@ -348,8 +360,11 @@ public final class ETIMMining {
         if (item instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
             return 2.0F; // R196 ItemShears:42-44
         }
+        if (item instanceof io.github.etim.etim.metal.ETIMItemScythe) {
+            return 4.0F; // R196 ItemScythe:31-37 (sharpness/vampiric branches dead, C-4)
+        }
         if (item instanceof ItemSword) {
-            return 0.5F;
+            return 0.5F; // the flint knife rides here (no R196 override, ItemKnife)
         }
         if (item instanceof ItemPickaxe || item instanceof ItemAxe || item instanceof ItemSpade) {
             return 1.0F;
@@ -434,6 +449,25 @@ public final class ETIMMining {
         if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
             int grade = ((io.github.etim.etim.metal.ETIMItemShearsRusted) held.getItem()).etimGrade();
             boolean ok = isShearsMaterial(state) && grade >= minLevel;
+            if (!ok) {
+                logGradeDeny(held, state, grade);
+            }
+            return ok;
+        }
+        // scythe/knife 批 (批文 §二.6): R196 scythe effective set = tallGrass +
+        // crops (ItemScythe:6); the flint knife inherits the R196
+        // ItemSword:6 material list through ItemDagger (no override).
+        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemScythe) {
+            int grade = ((io.github.etim.etim.metal.ETIMItemScythe) held.getItem()).etimGrade();
+            boolean ok = io.github.etim.etim.metal.ETIMItemScythe.isScytheBlock(state) && grade >= minLevel;
+            if (!ok) {
+                logGradeDeny(held, state, grade);
+            }
+            return ok;
+        }
+        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemKnifeFlint) {
+            int grade = ((io.github.etim.etim.metal.ETIMItemKnifeFlint) held.getItem()).etimGrade();
+            boolean ok = isSwordMaterial(state) && grade >= minLevel;
             if (!ok) {
                 logGradeDeny(held, state, grade);
             }

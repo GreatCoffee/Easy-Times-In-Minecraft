@@ -31,6 +31,8 @@ public final class ETIMItems {
     public static Item ingotMithril;
     public static Item ingotAdamantium;
     public static Item ingotAncientMetal;
+    /** scythe/knife 批：the R196 sinew (RecipesMITE:257 皮革→4) — the flint-knife chain material. */
+    public static Item sinew;
 
     private static final List<Item> NUGGETS = new ArrayList<>();
     private static final List<Item> INGOTS = new ArrayList<>();
@@ -46,6 +48,7 @@ public final class ETIMItems {
         ingotMithril = simple("ingot_mithril");
         ingotAdamantium = simple("ingot_adamantium");
         ingotAncientMetal = simple("ingot_ancient_metal");
+        sinew = simple("sinew");
 
         Collections.addAll(NUGGETS, nuggetCopper, nuggetSilver, nuggetMithril, nuggetAdamantium, nuggetAncientMetal);
         Collections.addAll(INGOTS, ingotCopper, ingotSilver, ingotMithril, ingotAdamantium, ingotAncientMetal);

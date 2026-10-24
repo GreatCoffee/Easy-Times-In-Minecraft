@@ -204,10 +204,14 @@ public final class ETIMQuality {
         if (item instanceof io.github.etim.etim.metal.ETIMMetalGear) {
             return ((io.github.etim.etim.metal.ETIMMetalGear) item).etimQuality();
         }
-        if (item instanceof io.github.etim.etim.metal.ETIMItemArrowRusted) {
-            // R196 multi-material rule (audit20-09 §2.4 note 2): wood + rusted
-            // → the LOWER rung (rusted poor) — ItemArrow.java:7-24 addMaterial face.
-            return EnumQuality.POOR;
+        if (item instanceof io.github.etim.etim.metal.ETIMItemArrow) {
+            // R196 multi-material rule (audit20-09 §2.4 note 2): wood shaft +
+            // arrowhead → the LOWER rung of (wood fine, the metal quality) —
+            // ItemArrow.java:7-24 addMaterial face. All five craftable metals
+            // sit above fine → FINE; rusted (poor) keeps POOR.
+            io.github.etim.etim.metal.ETIMItemArrow arrow = (io.github.etim.etim.metal.ETIMItemArrow) item;
+            EnumQuality wood = EnumQuality.FINE;
+            return arrow.etimMetal().quality.ordinal() < wood.ordinal() ? arrow.etimMetal().quality : wood;
         }
         if (item instanceof ItemTool) {
             // ItemTool exposes only the material NAME (decompiled ItemTool:110).
