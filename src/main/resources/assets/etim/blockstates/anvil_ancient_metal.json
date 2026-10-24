@@ -8,9 +8,9 @@
         "damage=1,facing=west": { "model": "etim:anvil_ancient_metal_damaged", "y": 90 },
         "damage=1,facing=north": { "model": "etim:anvil_ancient_metal_damaged", "y": 180 },
         "damage=1,facing=east": { "model": "etim:anvil_ancient_metal_damaged", "y": 270 },
-        "damage=2,facing=south": { "model": "etim:anvil_ancient_metal_damaged" },
-        "damage=2,facing=west": { "model": "etim:anvil_ancient_metal_damaged", "y": 90 },
-        "damage=2,facing=north": { "model": "etim:anvil_ancient_metal_damaged", "y": 180 },
-        "damage=2,facing=east": { "model": "etim:anvil_ancient_metal_damaged", "y": 270 }
+        "damage=2,facing=south": { "model": "etim:anvil_ancient_metal_damaged2" },
+        "damage=2,facing=west": { "model": "etim:anvil_ancient_metal_damaged2", "y": 90 },
+        "damage=2,facing=north": { "model": "etim:anvil_ancient_metal_damaged2", "y": 180 },
+        "damage=2,facing=east": { "model": "etim:anvil_ancient_metal_damaged2", "y": 270 }
     }
 }

@@ -1,0 +1,5 @@
+{   "parent": "etim:block/anvil_ancient_metal",
+    "textures": {
+        "top": "etim:blocks/anvil_ancient_metal_top_damaged_2"
+    }
+}

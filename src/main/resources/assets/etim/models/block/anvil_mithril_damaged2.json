@@ -1,0 +1,5 @@
+{   "parent": "etim:block/anvil_mithril",
+    "textures": {
+        "top": "etim:blocks/anvil_mithril_top_damaged_2"
+    }
+}

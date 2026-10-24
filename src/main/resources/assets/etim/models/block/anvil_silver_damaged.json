@@ -1,5 +1,5 @@
 {   "parent": "etim:block/anvil_silver",
     "textures": {
-        "top": "etim:blocks/anvil_silver_top"
+        "top": "etim:blocks/anvil_silver_top_damaged_1"
     }
 }
