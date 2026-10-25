@@ -153,7 +153,7 @@ public abstract class MixinWorldServer {
             this.etim$lastUnderworldTimeFrozen = frozen;
             if (ETIMConfig.underworldDebugLog) {
                 ETIM.LOGGER.info("[DimLog] time " + (frozen ? "frozen" : "resumed")
-                        + " from=" + self.provider.getDimension()
+                        + " dim=" + self.provider.getDimension()
                         + " visited=" + ETIMDimensions.underworldVisited(self.getMinecraftServer())
                         + " [server]");
             }
