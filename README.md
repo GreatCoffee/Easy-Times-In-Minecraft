@@ -92,7 +92,7 @@ Implemented and verified (as of 2026-10):
 | Death | Death events and XP payout rules |
 | Mobs | R196 despawn chain (idle counters, animal/ocelot gates, holds & exemptions), mob attribute stats, livestock needs v1 (food/water/rain), spider species tint |
 | Metals & gear | Five-metal tool/armor grid (50 tools, 40 armor, 5 chains), quality rolls per metal, furnace storage recipes, anvil repair (nugget + combine), ore blocks, chest loot (rusted-iron damage face), mob-carried gear (zombie/skeleton random equipment) |
-| Underworld (landed 2026-10-25, verification passed) | Dimension id -2 with 120-block floor offset, dedicated biome (id 40), hell-noise terrain with full-height bedrock strata & cobwebs, unbreakable `mantle_or_core` floor, mycelium post fields, Longdead/Guardian/Ancient Bone Lord trio with troop summons, spider jockey swap, `/etim dim enter\|leave\|probe` entry, underworld time gate |
+| Underworld (landed 2026-10-25, verification passed) | Dimension id -2 with 120-block floor offset, native PORTALS (flint-ignited obsidian frames, destination metadata + full R196 teleporter),  dedicated biome (id 40), hell-noise terrain with full-height bedrock strata & cobwebs, unbreakable `mantle_or_core` floor (the nether-achievement dig gate),  mycelium post fields, dungeon spawners (16/chunk, 1/6 Guardian), cod metals + adamantium generation (x16 veins), gravel nugget chain,  spider jockey swap, `/etim dim enter\|leave\|probe` entry, underworld time gate |
 | Dev/test tooling | Config-gated `[AILog]` judgment channels, dev overlay, mineflayer test harness |
 
 Automated judgement drivers live in `testharness/` (fake players, server scripts,
