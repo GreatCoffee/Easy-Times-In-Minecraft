@@ -157,6 +157,7 @@ public class ETIMEntityLongdead extends EntitySkeleton {
         }
 
         ETIMMobEquip.mobLog("longdead drop arrows=" + arrows + " bones=" + numBones
+                + " hitByPlayer=" + recentlyHitByPlayer
                 + " entity=" + this.getName());
     }
 

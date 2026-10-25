@@ -67,11 +67,10 @@ public class ETIMChunkPostField {
         if (this.doesPostFieldRequireRegeneration(chunkX, chunkZ)) {
             this.lastOriginChunkX = chunkX;
             this.lastOriginChunkZ = chunkZ;
-            if (this.postList == null) {
-                this.postList = new ArrayList<>();
-            } else {
-                this.postList.clear();
-            }
+            // A-UW-1: always a fresh list — placeMycelium may still be iterating
+            // the previous one while a nested decorate origin triggers a rebuild
+            // (clear() in place broke the live iterator → CME, 3/3 boot crash).
+            this.postList = new ArrayList<>();
 
             for (int chunkDx = -this.fieldChunkRange; chunkDx <= this.fieldChunkRange; chunkDx++) {
                 for (int chunkDz = -this.fieldChunkRange; chunkDz <= this.fieldChunkRange; chunkDz++) {

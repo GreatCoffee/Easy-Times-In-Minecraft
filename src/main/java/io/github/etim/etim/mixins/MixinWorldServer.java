@@ -149,11 +149,12 @@ public abstract class MixinWorldServer {
     private void etim$underworldTimeGate(WorldServer self, long time) {
         boolean frozen = self.provider.getDimension() == ETIMDimensions.UNDERWORLD
                 && !ETIMDimensions.shouldUnderworldTimeProgress(self);
-        if (frozen != lastUnderworldTimeFrozen) {
-            lastUnderworldTimeFrozen = frozen;
+        if (frozen != this.etim$lastUnderworldTimeFrozen) {
+            this.etim$lastUnderworldTimeFrozen = frozen;
             if (ETIMConfig.underworldDebugLog) {
                 ETIM.LOGGER.info("[DimLog] time " + (frozen ? "frozen" : "resumed")
-                        + " dim=-2 visited=" + ETIMDimensions.underworldVisited(self.getMinecraftServer())
+                        + " from=" + self.provider.getDimension()
+                        + " visited=" + ETIMDimensions.underworldVisited(self.getMinecraftServer())
                         + " [server]");
             }
         }
@@ -163,7 +164,8 @@ public abstract class MixinWorldServer {
         self.setWorldTime(time);
     }
 
-    private static boolean lastUnderworldTimeFrozen = false;
+    /** per-world flag (B-UW-2): a static here would be rewritten by every world's tick. */
+    private boolean etim$lastUnderworldTimeFrozen = false;
 
     // ------------------- weather-01: the R196 lightning face (WorldServer.java:987-1010) -------------------
 

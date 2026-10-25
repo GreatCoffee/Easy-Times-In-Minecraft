@@ -4,6 +4,7 @@ import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMSpawnTables;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -92,7 +93,10 @@ public class ETIMBiomeUnderworld extends Biome {
             for (int z = chunkOriginZ; z < chunkOriginZ + 16; z++) {
                 List<ETIMChunkPost> posts = myceliumPosts.getNearbyPostsForBlockCoords(x, z);
 
-                for (ETIMChunkPost post : posts) {
+                // A-UW-1 hardening: iterate a snapshot so a nested decorate
+                // (WorldGenBigMushroom pulling a neighbour chunk) can never mutate
+                // under the iterator, even if the field rebuilds mid-loop.
+                for (ETIMChunkPost post : new ArrayList<>(posts)) {
                     if (post.getDistanceSqFromBlockCoords(x, z)
                             > myceliumPosts.getPostMaxRadiusOfEffectSq() + 4) {
                         continue; // :35 — R196's negated guard, kept in shape
