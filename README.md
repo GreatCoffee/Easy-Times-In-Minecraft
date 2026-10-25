@@ -90,7 +90,9 @@ Implemented and verified (as of 2026-10):
 | Furnace | Heat model, fuel slot rework, smelting XP rewards |
 | Item quality | Quality rolls with tooltips |
 | Death | Death events and XP payout rules |
-| Mobs | R196 despawn chain (idle counters, animal/ocelot gates, holds & exemptions), mob attribute stats, livestock needs v1 (food/water/rain) |
+| Mobs | R196 despawn chain (idle counters, animal/ocelot gates, holds & exemptions), mob attribute stats, livestock needs v1 (food/water/rain), spider species tint |
+| Metals & gear | Five-metal tool/armor grid (50 tools, 40 armor, 5 chains), quality rolls per metal, furnace storage recipes, anvil repair (nugget + combine), ore blocks, chest loot (rusted-iron damage face), mob-carried gear (zombie/skeleton random equipment) |
+| Underworld (landed 2026-10-25, verification window pending) | Dimension id -2 with 120-block floor offset, dedicated biome (id 40), hell-noise terrain with full-height bedrock strata & cobwebs, unbreakable `mantle_or_core` floor, mycelium post fields, Longdead/Guardian/Ancient Bone Lord trio with troop summons, spider jockey swap, `/etim dim enter\|leave\|probe` entry, underworld time gate |
 | Dev/test tooling | Config-gated `[AILog]` judgment channels, dev overlay, mineflayer test harness |
 
 Automated judgement drivers live in `testharness/` (fake players, server scripts,
@@ -227,9 +229,19 @@ truth. Invalid combinations abort the mod load instead of falling back.
 
 ### `death`
 
-- `deathXpOrbs` (bool, `true`) — Death drops total/3 as XP orbs at the death spot (suppressed by `keepInventory`).
+- `deathXpOrbs` (bool, `false`) — Death drops total/3 as XP orbs at the death spot (suppressed by `keepInventory`); default off converges to the R196 pool-only semantics, the key is kept for players who want the loss softened.
 - `deathXpSettle` (bool, `true`) — Death settles the XP balance; `false` = vanilla carryover.
 - `deathDebugLog` (bool, `false`) — Server-log `[DeathLog]` lines (dev channel).
+
+### `metal`
+
+- `metalSystem` (bool, `true`) — Master switch of the five-metal system (gear, ores, loot, anvil repair); `false` = vanilla untouched.
+- `metalOreGen` (bool, `true`) — The four ore blocks (copper/silver/mithril/adamantium) generate in the overworld; ancient metal has no ore — it is chest/mob loot.
+- `metalAnvilRepair` (bool, `true`) — The R196 anvil repair on ETIM gear via the vanilla anvil: consumable nugget repair + same-item combination (pure sum, capped), 0 XP, proportional anvil wear with 0.5/0.8/1.0 stages; fail 1 = quality over budget, fail 2 = material durability strictly over iron 8.0.
+- `metalDebugLog` (bool, `true`) — Server-log `[OreLog]` rows for ore generation (dev channel).
+- `miningDebugLog` (bool, `true`) — Server-log `[MiningLog]` rows: mine deny (material grade vs block) and the effective dig strength.
+- `equipDebugLog` (bool, `true`) — Boot dump of all 95 gear items to `[EquipLog]` (dev channel).
+- `mobEquipDebugLog` (bool, `false`) — Server-log `[MobLog]` rows for mob-carried gear (weapon/armor/quality faces, dev channel).
 
 ### `mobs`
 
@@ -242,7 +254,9 @@ truth. Invalid combinations abort the mod load instead of falling back.
 - `spawnCapAmbient` (int, `5`) — Ambient cap before the ×chunks/256 conversion.
 - `spawnCapAquatic` (int, `5`) — Aquatic cap before the ×chunks/256 conversion.
 - `moonStateOverride` (string, `""`) — Force the spawn-cycle moon state (`""`, `blue`, `blood`, `full`, `new`) for test determinism; the stage-6 moon slice replaces the backend.
+- `zombieDigAI` (bool, `true`) — The R196 zombie dig-through AI (walls are not cover); `false` = vanilla.
 - `mobDebugLog` (bool, `false`) — Server-log `[AILog]` lines (dev channel).
+- `underworldDebugLog` (bool, `false`) — The underworld batch's `[DimLog]` rows (dimension register, provider faces, enter/leave with landing y, the column probe, biome registration, the underworld time gate); also arms the underworld `[MobLog]` rows (troop type, arrow face, guardian hand swap, attributes). Off = silent.
 
 ### `compat` / `devtools`
 

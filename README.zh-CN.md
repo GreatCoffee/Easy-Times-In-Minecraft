@@ -86,7 +86,9 @@ ETIM 按系统逐块重现 MITE 机制。每个数值都以 R196（MITE 1.6.4）
 | 熔炉 | 热量模型、燃料槽改造、熔炼经验回报 |
 | 物品品质 | 品质掷取与提示 |
 | 死亡 | 死亡事件与经验回报规则 |
-| 生物 | R196 消散链（闲置计数、动物/豹猫门、挽留与豁免）、生物属性表、家畜需求 v1（食/水/雨） |
+| 生物 | R196 消散链（闲置计数、动物/豹猫门、挽留与豁免）、生物属性表、家畜需求 v1（食/水/雨）、蜘蛛物种 tint |
+| 金属与装备 | 五金属工具/护甲矩阵（50 工具、40 护甲、5 链条件）、逐金属品质掷取、熔炉储块配方、铁砧修理（珠耗材 + 同物合并）、矿石方块、箱战利品（锈铁损耗面）、怪物随身装备（僵尸/骷髅随机装备链） |
+| 下界 underworld（已落码 2026-10-25，验证窗待过） | 维度 id -2（底部 y +120 偏移）、专属群系（id 40）、地狱噪声地形 + 全高基岩层带与蛛网、不可破坏的 `mantle_or_core` 地面方块、菌丝 post 场、Longdead/守护者/远古骨霸三实体与兵团召唤、蜘蛛骑士换骑、`/etim dim enter\|leave\|probe` 入口、下界时间门 |
 | 开发/测试工具 | 配置门控的 `[AILog]` 判定通道、开发覆盖层、mineflayer 测试 harness |
 
 自动化判定驱动在 `testharness/`（假玩家、服务端脚本、报告输出）；该目录仅开发用，
@@ -222,9 +224,19 @@ ETIM 按系统逐块重现 MITE 机制。每个数值都以 R196（MITE 1.6.4）
 
 ### `death`
 
-- `deathXpOrbs`（bool，`true`）—— 死亡时在死亡点掉落 total/3 的经验球（`keepInventory` 下不生效）。
+- `deathXpOrbs`（bool，`false`）—— 死亡时在死亡点掉落 total/3 的经验球（`keepInventory` 下不生效）；默认关闭 = 收敛至 R196 pool-only 语义，键保留供玩家自行放宽。
 - `deathXpSettle`（bool，`true`）—— 死亡结算经验收支；`false` = 原版经验全保留。
 - `deathDebugLog`（bool，`false`）—— 服务端日志 `[DeathLog]` 行（开发通道）。
+
+### `metal`
+
+- `metalSystem`（bool，`true`）—— 五金属系统总开关（装备/矿石/战利品/铁砧修理）；`false` = 原版原样。
+- `metalOreGen`（bool，`true`）—— 四种矿石方块（铜/银/秘银/艾德曼）在主世界生成；远古金属无矿石——只出自箱战利品与怪物掉落。
+- `metalAnvilRepair`（bool，`true`）—— ETIM 装备在原版铁砧上走 R196 砧修：珠耗材修理 + 同物合并（纯相加封顶），0 经验，铁砧等比损耗分 0.5/0.8/1.0 档；拒修 1 = 品质超预算，拒修 2 = 材质耐久须严格大于铁 8.0。
+- `metalDebugLog`（bool，`true`）—— 矿石生成的服务端 `[OreLog]` 判行（开发通道）。
+- `miningDebugLog`（bool，`true`）—— 服务端 `[MiningLog]` 判行：采集级拒绝（材质档位对方块）与有效挖掘强度。
+- `equipDebugLog`（bool，`true`）—— 启动期向 `[EquipLog]` dump 全部 95 件装备数值（开发通道）。
+- `mobEquipDebugLog`（bool，`false`）—— 怪物随身装备的 `[MobLog]` 判行（武器/护甲/品质面，开发通道）。
 
 ### `mobs`
 
@@ -237,7 +249,9 @@ ETIM 按系统逐块重现 MITE 机制。每个数值都以 R196（MITE 1.6.4）
 - `spawnCapAmbient`（int，`5`）—— 环境生物上限（区块 ×/256 换算之前）。
 - `spawnCapAquatic`（int，`5`）—— 水生生物上限（区块 ×/256 换算之前）。
 - `moonStateOverride`（string，`""`）—— 强制生成周期的月亮状态（`""`、`blue`、`blood`、`full`、`new`）以保测试确定性；阶段六月亮切片会替换后端。
+- `zombieDigAI`（bool，`true`）—— R196 僵尸刨墙 AI（墙不是掩体）；`false` = 原版。
 - `mobDebugLog`（bool，`false`）—— 服务端日志 `[AILog]` 行（开发通道）。
+- `underworldDebugLog`（bool，`false`）—— underworld 批的 `[DimLog]` 判行（维度注册、provider 面、进出含落点 y、列探针、群系注册、下界时间门）；同时放开下界 `[MobLog]` 行（兵团、箭面、守护者换手、属性）。关闭则静默。
 
 ### `compat` / `devtools`
 
