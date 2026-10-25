@@ -48,6 +48,7 @@ public final class ETIMDimensions {
                 ETIMWorldProviderUnderworld.class, false);
         DimensionManager.registerDimension(UNDERWORLD, UNDERWORLD_TYPE);
         dimLog("dim-register id=-2 type=Underworld");
+        ETIMPortalTrigger.register(); // T10 — F-5-48 custom trigger (before any player join)
     }
 
     /** M1-11 — the getWorld(-2) lookup face (probe 判行锚). */

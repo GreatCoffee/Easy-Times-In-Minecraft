@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "destination=0": { "model": "etim:portal_to_overworld" },
+    "destination=1": { "model": "etim:portal_to_underworld" },
+    "destination=2": { "model": "etim:portal_to_nether" }
+  }
+}

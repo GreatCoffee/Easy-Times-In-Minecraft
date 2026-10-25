@@ -1,0 +1,13 @@
+{
+  "display": {
+    "icon": { "item": "minecraft:bedrock" },
+    "title": { "translate": "etim.advancements.root" },
+    "description": { "translate": "etim.advancements.root.desc" },
+    "background": "minecraft:textures/blocks/stone.png",
+    "show_toast": false,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "root": { "trigger": "minecraft:tick" }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "parent": "block/crop",
+  "textures": {
+    "particle": "minecraft:blocks/nether_portal",
+    "crop": "minecraft:blocks/nether_portal"
+  }
+}

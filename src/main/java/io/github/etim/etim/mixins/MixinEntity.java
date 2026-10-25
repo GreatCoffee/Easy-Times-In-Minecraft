@@ -5,6 +5,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -54,6 +55,44 @@ public abstract class MixinEntity {
                 io.github.etim.etim.mob.DespawnRules.markCounterRestored(
                         (net.minecraft.entity.EntityLiving) self);
             }
+        }
+    }
+
+    // ------------------- underworld 二阶段 T3: the portal tick drive -------------------
+
+    /**
+     * underworld portal travel (批文 T2-1/A2-1): the 1.12 vanilla in-portal
+     * branch resolves its target dimension at entity/Entity.java:516-523
+     * (hardcoded -1↔0). R196 keeps a per-entity destination
+     * ({\code portal_destination_dimension_id}, Entity.java:474). The ETIM
+     * face: {@link io.github.etim.etim.world.ETIMBlockPortal
+     * #onEntityCollidedWithBlock} registers the per-entity target; the
+     * redirect swaps it in and mounts the R196 Teleporter transcription for
+     * dim 0 / -2 arrivals (nether and everything else keep vanilla).
+     * require=1: the single vanilla call site inside onEntityUpdate.
+     */
+    @Redirect(
+            method = "onEntityUpdate()V",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/entity/Entity;changeDimension(I)Lnet/minecraft/entity/Entity;"),
+            require = 1
+    )
+    private Entity etim$portalTarget(Entity self, int vanillaTarget) {
+        int target = io.github.etim.etim.world.ETIMBlockPortal.consumePortalTarget(self, vanillaTarget);
+        return self.changeDimension(target,
+                io.github.etim.etim.world.ETIMBlockPortal.teleporterFor(self, target));
+    }
+
+    /**
+     * T3 cooldown (B2-5, R196 Entity.java:2178-2179 = 900): non-player
+     * entities take the config value; players keep the 1.12 face
+     * (EntityPlayer = 10, R196 player = 10 — zero code, B2-4 fine-grain
+     * creative 1-vs-0 stays a registered drift).
+     */
+    @Inject(method = "getPortalCooldown()I", at = @At("TAIL"), cancellable = true)
+    private void etim$portalCooldown(CallbackInfoReturnable<Integer> cir) {
+        if (!((Object) this instanceof net.minecraft.entity.player.EntityPlayer)) {
+            cir.setReturnValue(io.github.etim.etim.ETIMConfig.portalCooldown);
         }
     }
 }

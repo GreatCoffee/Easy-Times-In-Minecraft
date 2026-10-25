@@ -16,7 +16,9 @@ import net.minecraft.world.WorldEntitySpawner;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Random;
 
@@ -166,6 +168,17 @@ public abstract class MixinWorldServer {
 
     /** per-world flag (B-UW-2): a static here would be rewritten by every world's tick. */
     private boolean etim$lastUnderworldTimeFrozen = false;
+
+    /**
+     * underworld 二阶段 T4 — the portal-coordinate-cache sweep (R196 Teleporter
+     * :379-393 mounted at WorldServer :1578-1579 / 1.12 WorldServer :1370-1372
+     * same face). Sweeps every per-dimension ETIMPortalTeleporter once per
+     * dimension tick — the vanilla teleporter face keeps its own vanilla sweep.
+     */
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void etim$portalSweep(CallbackInfo ci) {
+        io.github.etim.etim.world.ETIMPortalTeleporter.sweepAll(((WorldServer) (Object) this).getTotalWorldTime());
+    }
 
     // ------------------- weather-01: the R196 lightning face (WorldServer.java:987-1010) -------------------
 

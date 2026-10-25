@@ -1,0 +1,7 @@
+{
+  "parent": "block/crop",
+  "textures": {
+    "particle": "etim:blocks/portal_underworld",
+    "crop": "etim:blocks/portal_underworld"
+  }
+}

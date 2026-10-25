@@ -3,6 +3,7 @@ package io.github.etim.etim.world;
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.metal.ETIMBlocks;
+import io.github.etim.etim.metal.ETIMOreGen;
 
 import java.util.Arrays;
 import java.util.List;
@@ -564,10 +565,27 @@ public final class ETIMChunkGeneratorUnderworld implements net.minecraft.world.g
     public void populate(int x, int z) {
         // R196 :303/:317 — the falling-instant guard wraps the populate body.
         BlockFalling.fallInstantly = true;
-        // R196 :306-313 — the 16-attempt WorldGenDungeons face rides M4-12
-        // (后置, D-1 裁定: M6-07 只登记判值) — kept as the guarded comment row.
+        // T6 (G-FB-10 转正, NB-03-08/NC-01): the underworld ore spread rides
+        // here directly — the vanilla BiomeDecorator never decorates dim -2
+        // (ETIMBiomeUnderworld.decorate = placeMycelium only, B-6), so the
+        // mixin underworld face would be dead code.
+        if (ETIMConfig.metalSystem && ETIMConfig.metalOreGen) {
+            ETIMOreGen.generateUnderworld(this.world, this.world.rand,
+                    new BlockPos(x * 16, 0, z * 16));
+        }
+        // T7 (M4-12 载体转正): R196 ChunkProviderUnderworld.java:306-313 — 16
+        // WorldGenDungeons attempts per chunk (offset gate), z/x = +nextInt(16)+8,
+        // y = nextInt(32)+20+offset (140..171 at offset 120).
+        int yOffset = ((ETIMWorldProviderUnderworld) this.world.provider).getYOffset();
+        for (int i = 0; i < 16; i++) {
+            int dx = x * 16 + this.world.rand.nextInt(16) + 8;
+            int dz = z * 16 + this.world.rand.nextInt(16) + 8;
+            int dy = this.world.rand.nextInt(32) + 20 + yOffset;
+            new ETIMWorldGenDungeons().generate(this.world, this.world.rand,
+                    new BlockPos(dx, dy, dz));
+        }
         ETIMBiomeUnderworld.INSTANCE.decorate(this.world, this.world.rand,
-                new BlockPos(x * 16, 0, z * 16)); // :315-316 (M3-07: placeMycelium only, B-6)
+                new BlockPos(x * 16, 0, z * 16)); // :315-316 (M3-07: placeMycelium, B-6)
         BlockFalling.fallInstantly = false;
     }
 

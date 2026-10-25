@@ -78,7 +78,19 @@ public final class ETIMBlocks {
         registerAnvils();
         registerStorageBlocks();
         registerMantleOrCore();
+        registerPortal();
         registerRecipes();
+    }
+
+    /**
+     * underworld 二阶段 T1 — the R196 portal block (world/ETIMBlockPortal).
+     * R196 canBeCarried=false / dropBlockAsEntityItem 0 → no ItemBlock
+     * (NA-28). No BlockContainer (NA-29: TileEntity ✗ in R196).
+     */
+    private static void registerPortal() {
+        PORTAL = new io.github.etim.etim.world.ETIMBlockPortal();
+        net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS.register(PORTAL);
+        ETIM.LOGGER.info("[DimLog] portal block registered (metadata 0/1/2 destinations, runegate bit reserved) [server]");
     }
 
     private static void registerFurnaces() {
@@ -112,6 +124,9 @@ public final class ETIMBlocks {
 
     /** underworld 批 (2026-10-25, D-2 裁定 = 新方块): the unbreakable floor block. */
     public static ETIMBlockMantleOrCore MANTLE_OR_CORE;
+
+    /** underworld 二阶段 T1: the R196 portal block (destination metadata 0/1/2). */
+    public static io.github.etim.etim.world.ETIMBlockPortal PORTAL;
 
     private static void registerMantleOrCore() {
         MANTLE_OR_CORE = new ETIMBlockMantleOrCore();

@@ -1,0 +1,12 @@
+{
+  "display": {
+    "icon": { "item": "minecraft:bedrock" },
+    "title": { "translate": "etim.advancements.portal_to_nether" },
+    "description": { "translate": "etim.advancements.portal_to_nether.desc" },
+    "frame": "task"
+  },
+  "parent": "etim:root",
+  "criteria": {
+    "portal_to_nether": { "trigger": "etim:portal_to_nether" }
+  }
+}

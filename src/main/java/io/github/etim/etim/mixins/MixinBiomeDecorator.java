@@ -40,10 +40,11 @@ public abstract class MixinBiomeDecorator {
             remap = true
     )
     protected void etim$generateMetalOres(World worldIn, Random random, CallbackInfo ci) {
-        if (!ETIMConfig.metalSystem || !ETIMConfig.metalOreGen) {
-            return;
-        }
-        if (worldIn.provider.getDimension() != 0) {
+        // underworld face does NOT live here: the underworld decorate = placeMycelium
+        // only (B-6) — the vanilla decorator never runs for dim -2, so the
+        // underworld ore spread rides ETIMChunkGeneratorUnderworld.populate (T6).
+        if (!ETIMConfig.metalSystem || !ETIMConfig.metalOreGen
+                || worldIn.provider.getDimension() != 0) {
             return;
         }
         ETIMOreGen.generateOverworld(worldIn, random, this.chunkPos);

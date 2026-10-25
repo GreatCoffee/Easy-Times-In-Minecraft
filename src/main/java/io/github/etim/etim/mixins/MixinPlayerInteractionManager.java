@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMEndurance;
 import io.github.etim.etim.mining.ETIMMiningEvents;
+import io.github.etim.etim.world.ETIMPortalTriggerFace;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.management.PlayerInteractionManager;
@@ -43,6 +44,13 @@ public abstract class MixinPlayerInteractionManager {
     private void etim$postHarvest(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         IBlockState harvested = etim$harvested.get();
         etim$harvested.remove();
+        // T10 / F-5-48 (R196 ItemInWorldManager.java:204-213): removed ∧ isUnderworld
+        // ∧ y<6 ∧ any of the four horizontal neighbours = mantle_or_core → the
+        // port trigger fires + [DimLog] row. This face is FIRST (the trigger
+        // fires on the removed block, the postHarvest tree-panel rides after).
+        if (cir.getReturnValue() && pos.getY() < 6) {
+            ETIMPortalTriggerFace.check(world, pos, this.player);
+        }
         if (!ETIMConfig.miningReform || !cir.getReturnValue() || harvested == null) {
             return;
         }
