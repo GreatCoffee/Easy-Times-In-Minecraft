@@ -599,7 +599,8 @@ public final class ETIMSpawnCycle {
                     w.spawnEntity(mob);
                     landed.add(mob);
                     if (ETIMConfig.mobDebugLog) {
-                        log(w, "accept " + cls.getSimpleName() + " at " + pos(cursor) + " y-bucket=" + (bucket == 0 ? "under" : "over"));
+                        log(w, "accept dim=" + w.provider.getDimension() + " " + cls.getSimpleName()
+                                + " at " + pos(cursor) + " y-bucket=" + (bucket == 0 ? "under" : "over"));
                     }
                     // A4: R196 :293-297 — on slot exhaustion abandon the rest
                     // of this chunk and move to the next one.

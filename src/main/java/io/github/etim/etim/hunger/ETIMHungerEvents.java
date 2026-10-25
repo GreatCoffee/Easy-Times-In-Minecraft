@@ -2,6 +2,7 @@ package io.github.etim.etim.hunger;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.hunger.ETIMFoodStats;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
@@ -46,11 +47,23 @@ public final class ETIMHungerEvents {
             // ratio maps onto it. Vanilla jitter-degenerates the ratio axes the
             // same way (EntityLivingBase.java:1105-1111).
             double dx = player.posX - target.posX;
-            double dz;
-            for (dz = player.posZ - target.posZ; dx * dx + dz * dz < 1.0E-4D; dz = (target.world.rand.nextDouble() - target.world.rand.nextDouble()) * 0.01D) {
-                // degenerate axis jitter
+            double dz = player.posZ - target.posZ;
+            // A-2 (2026-10-25, watchdog crash evidence): when both axes are ±0
+            // dead-on (dx=0, |dz|<1e-2) the jitter can never clear the 1.0E-4
+            // threshold -> unbounded spin -> server watchdog. Vanilla's loop is
+            // seeded from real offsets; degenerate cases are player+target
+            // perfectly stacked. Add a bounded guard and a deterministic
+            // diagonal fallback so the loop always exits on the first pass.
+            if (dx * dx + dz * dz < 1.0E-4D) {
+                dx = 0.01D;
+                dz = 0.01D;
             }
             target.knockBack(player, 0.4F * ETIMConfig.weakStrikeKnockbackFactor, dx, dz);
+            if (ETIMConfig.foodDebugLog) {
+                // A-2 判行：弱击拒绝 + 叠位轴（回归判点 = 出行且 dx/dz 均为有效轴）
+                ETIMFoodStats.logFoodEntry(player, "weakStrike deny degenerate-fix dx=" + dx
+                        + " dz=" + dz);
+            }
             ETIMHunger.sendDeniedFeedback(player, "etim.hunger.weakStrike");
             return;
         }
