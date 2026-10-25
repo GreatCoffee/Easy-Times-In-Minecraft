@@ -81,12 +81,31 @@ public final class ETIMPortalTeleporter implements ITeleporter {
         }
     }
 
+    /** A-2 source-dim carrier: pushed in MixinEntity.etim$portalTarget at the
+     * last point where entity.dimension is still the ORIGIN (Forge flips it at
+     * Entity.java:2963 before placeEntity :3002), consumed by placeEntity on
+     * the same call chain. */
+    private static final ThreadLocal<Integer> SOURCE_DIMENSION = new ThreadLocal<>();
+
+    public static void pushSourceDimension(int dimension) {
+        SOURCE_DIMENSION.set(dimension);
+    }
+
+    /** Consume the A-2 capture; the fallback (= current entity.dimension, the
+     * TARGET) is only reachable if placeEntity is ever mounted outside the
+     * redirect chain — not wired today. */
+    private static int consumeSourceDimension(Entity entity) {
+        Integer captured = SOURCE_DIMENSION.get();
+        SOURCE_DIMENSION.remove();
+        return captured != null ? captured : entity.dimension;
+    }
+
     @Override
     public void placeEntity(net.minecraft.world.World world, Entity entity, float yaw) {
         // R196 Teleporter.java:19 placeInPortal — dimension_id_from = the
-        // dimension the entity is leaving (still current on the entity at
-        // this point; changeDimension flips it after repositioning starts).
-        int dimension_id_from = entity.dimension;
+        // dimension the entity is leaving (captured A-2: Forge already flipped
+        // entity.dimension to the TARGET by the time this runs).
+        int dimension_id_from = consumeSourceDimension(entity);
         placeInPortal(entity, dimension_id_from, yaw, (WorldServer) world);
     }
 
@@ -94,9 +113,9 @@ public final class ETIMPortalTeleporter implements ITeleporter {
     public void placeInPortal(Entity par1Entity, int dimension_id_from, float par8, WorldServer arriving) {
         if (arriving.provider.getDimension() != 1) {
             int metadata = ETIMBlockPortal.getDestinationBitForDimensionId(dimension_id_from);
-            if (!this.placeInExistingPortal(par1Entity, metadata, par8)) {
+            if (!this.placeInExistingPortal(par1Entity, metadata, par8, dimension_id_from)) {
                 this.makePortal(par1Entity, metadata, par8);
-                this.placeInExistingPortal(par1Entity, metadata, par8);
+                this.placeInExistingPortal(par1Entity, metadata, par8, dimension_id_from);
             }
         } else {
             // the End platform build (R196 :26-47); kept for fidelity — this
@@ -124,7 +143,7 @@ public final class ETIMPortalTeleporter implements ITeleporter {
     }
 
     /** R196 Teleporter.java:50-195. */
-    public boolean placeInExistingPortal(Entity par1Entity, int metadata, float par8) {
+    public boolean placeInExistingPortal(Entity par1Entity, int metadata, float par8, int fromDimension) {
         short var9 = 128;
         double var10 = -1.0D;
         int var12 = 0;
@@ -259,9 +278,11 @@ public final class ETIMPortalTeleporter implements ITeleporter {
             }
             par1Entity.setLocationAndAngles(var49, var25, var27, par1Entity.rotationYaw, par1Entity.rotationPitch);
             // WP3/WP4 判行（B-2/B-4 补行）：到维落地 —— 服务端判维单源，mineflayer
-            // game.dimension=undefined 的假阴性面由本行兜底。
+            // game.dimension=undefined 的假阴性面由本行兜底。from_dim = 来源维
+            // （A-2 捕获面，B-6 补 token）。
             ETIM.LOGGER.info("[DimLog] portal-place dim=" + this.worldServerInstance.provider.getDimension()
-                    + " from_metadata=" + metadata + " x=" + MathHelper.floor(par1Entity.posX)
+                    + " from_dim=" + fromDimension + " from_metadata=" + metadata
+                    + " x=" + MathHelper.floor(par1Entity.posX)
                     + " y=" + MathHelper.floor(par1Entity.posY) + " z=" + MathHelper.floor(par1Entity.posZ)
                     + " [server]");
             return true;

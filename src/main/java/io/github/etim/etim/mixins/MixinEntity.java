@@ -79,6 +79,11 @@ public abstract class MixinEntity {
     )
     private Entity etim$portalTarget(Entity self, int vanillaTarget) {
         int target = io.github.etim.etim.world.ETIMBlockPortal.consumePortalTarget(self, vanillaTarget);
+        // A-2 (recheck verdict 2026-10-25): Forge changeDimension flips
+        // self.dimension BEFORE placeEntity runs (Entity.java:2963 vs :3002,
+        // rfg tree) — self.dimension is still the ORIGIN only here, at the
+        // redirect. Capture it for the teleporter; consumed in placeEntity.
+        io.github.etim.etim.world.ETIMPortalTeleporter.pushSourceDimension(self.dimension);
         return self.changeDimension(target,
                 io.github.etim.etim.world.ETIMBlockPortal.teleporterFor(self, target));
     }

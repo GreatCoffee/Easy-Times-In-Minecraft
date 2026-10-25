@@ -142,9 +142,15 @@ public class ETIMBlockPortal extends BlockBreakable {
 
     // ------------------- portal-target registry (the A2-1 channel) -------------------
 
-    /** R196 BlockPortal.java:557-574 → Entity.setInPortal(id). */
+    /** R196 BlockPortal.java:557-574 → Entity.setInPortal(id). B-5: the log
+     * fires on REGISTRATION CHANGE only — onEntityCollision re-registers the
+     * same destination every in-portal tick, which previously produced one
+     * [DimLog] line per collision tick (8,757 lines in the recheck window). */
     public static void registerPortalTarget(Entity entity, int dimension_id) {
-        PORTAL_TARGETS.put(entity, dimension_id);
+        Integer previous = PORTAL_TARGETS.put(entity, dimension_id);
+        if (!Integer.valueOf(dimension_id).equals(previous)) {
+            ETIMDimensions.dimLog("portal-enter entity=" + entity.getName() + " dest=" + dimension_id);
+        }
     }
 
     /** MixinEntity redirect face: returns the ETIM destination while standing
@@ -398,8 +404,7 @@ public class ETIMBlockPortal extends BlockBreakable {
         int metadata = state.getValue(DESTINATION);
         int destination = getDestinationDimensionIdForMetadata(metadata);
         entityIn.setPortal(pos); // vanilla inPortal arm (entity/Entity.java:2452-2474 face)
-        registerPortalTarget(entityIn, destination);
-        ETIMDimensions.dimLog("portal-enter entity=" + entityIn.getName() + " dest=" + destination);
+        registerPortalTarget(entityIn, destination); // B-5: logs on change only
     }
 
     // ------------------- collision/shape (R196 :84-95 face) -------------------
