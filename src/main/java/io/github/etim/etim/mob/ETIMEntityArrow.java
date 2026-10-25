@@ -85,8 +85,7 @@ public class ETIMEntityArrow extends EntityArrow {
                     + " item=" + item.getRegistryName()
                     + " metal=" + item.etimMetal().name
                     + " damage=" + this.getDamage()
-                    + " enchanted=" + this.launcherWasEnchanted
-                    + " dispenser=" + this.shotByDispenser);
+                    + " enchanted=" + this.launcherWasEnchanted);
         }
     }
 
@@ -116,12 +115,15 @@ public class ETIMEntityArrow extends EntityArrow {
             return;
         }
         // picked = the arrow went dead in the super call (inventory accepted, :609);
-        // the R196 face silently denies DISALLOWED/CREATIVE_ONLY arrows (ok=false).
+        // the vanilla gate (inGround && arrowShake<=0, 1.12 :605 = R196 :639) is
+        // already inside super — the deny row fires on state flips only (A-1
+        // fix, recheck verdict: standing on a disallowed arrow must log ONCE,
+        // not per collision tick).
         boolean picked = this.isDead; // Entity.isDead, a public field (entity/Entity.java:146)
         if (picked) {
             this.playSound(SoundEvents.ENTITY_ITEM_PICKUP, 0.2F, 1.0F); // B-5, R196 :646 0.2F
         }
-        if (!picked || !this.pickupDeniedLogged) {
+        if (picked || !this.pickupDeniedLogged) {
             ETIMArrowLog.row("arrow pickup player=" + player.getName()
                     + " item=" + (this.itemArrow == null ? "-" : this.itemArrow.getRegistryName())
                     + " ok=" + picked);
