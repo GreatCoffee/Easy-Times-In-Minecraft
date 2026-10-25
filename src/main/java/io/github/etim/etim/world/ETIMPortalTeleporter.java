@@ -10,6 +10,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ITeleporter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -57,7 +58,7 @@ public final class ETIMPortalTeleporter implements ITeleporter {
     private static final int[] ROTATE_RIGHT = {1, 2, 3, 0};
     private static final int[] ROTATE_LEFT = {3, 0, 1, 2};
 
-    private static final Map<Integer, ETIMPortalTeleporter> BY_DIM = new HashMap<>();
+    private static final List<ETIMPortalTeleporter> ALL = new ArrayList<>();
 
     private final WorldServer worldServerInstance;
     private final Random random;
@@ -69,14 +70,28 @@ public final class ETIMPortalTeleporter implements ITeleporter {
         this.random = new Random(world.getSeed());
     }
 
-    /** one teleporter per dimension (R196 WorldServer default-teleporter face). */
+    /** A-4/A-5 (recheck2 verdict 2026-10-25): key the teleporter BY WORLD
+     * INSTANCE, never by dimension id. FML unloads a dimension the moment its
+     * last player leaves ("Unloading dimension -2" @17:51:51) and reloads it
+     * as a NEW WorldServer on the next touch — an id-keyed map then hands the
+     * ZOMBIE instance (and its stale portal-coordinate cache) back to every
+     * later arrival: makePortal/scan writes die with the zombie (portal never
+     * saved → A-4 face) and cache hits teleport onto points the live world
+     * no longer contains (phantom placement → A-5 face). */
     public static ETIMPortalTeleporter forWorld(WorldServer world) {
-        return BY_DIM.computeIfAbsent(world.provider.getDimension(), d -> new ETIMPortalTeleporter(world));
+        for (ETIMPortalTeleporter tp : ALL) {
+            if (tp.worldServerInstance == world) {
+                return tp;
+            }
+        }
+        ETIMPortalTeleporter tp = new ETIMPortalTeleporter(world);
+        ALL.add(tp);
+        return tp;
     }
 
     /** unused-mount probe for the tick sweep. */
     public static void sweepAll(long worldTime) {
-        for (ETIMPortalTeleporter tp : BY_DIM.values()) {
+        for (ETIMPortalTeleporter tp : ALL) {
             tp.removeStalePortalLocations(worldTime);
         }
     }
@@ -190,6 +205,18 @@ public final class ETIMPortalTeleporter implements ITeleporter {
             }
         }
         if (var10 >= 0.0D) {
+            // A-5 (recheck2 2026-10-25): a cache hit is only trustworthy if
+            // the portal block is STILL THERE — the cache outlives the portal
+            // (frame collapsed, worldgen churn, ...), and teleporting onto the
+            // ghost point then strands the entity in the void with no rescan.
+            if (!var19 && this.worldServerInstance.getBlockState(new BlockPos(var12, var13, var14)).getBlock()
+                    != ETIMBlocks.PORTAL) {
+                this.destinationCoordinateCache.remove(var17);
+                this.destinationCoordinateKeys.remove(var17);
+                var10 = -1.0D; // fall through to the full block scan
+            }
+        }
+        if (var10 >= 0.0D) {
             if (var19) {
                 PortalPosition p = new PortalPosition(var12, var13, var14, this.worldServerInstance.getTotalWorldTime());
                 this.destinationCoordinateCache.put(var17, p);
@@ -300,7 +327,12 @@ public final class ETIMPortalTeleporter implements ITeleporter {
         } else if (dimension_id_from == ETIMDimensions.UNDERWORLD && par1Entity.dimension == 0) {
             direction_of_travel = 1;
         }
-        ETIM.LOGGER.info("[DimLog] portal-build direction_of_travel=" + direction_of_travel + " [server]");
+        // B-10 (recheck2 2026-10-25): from_dim = the dimension being LEFT
+        // (re-derived from the dest-bit metadata), to_dim = the arriving world —
+        // lets A-4-class build defects be judged from the single line.
+        ETIM.LOGGER.info("[DimLog] portal-build direction_of_travel=" + direction_of_travel
+                + " from_dim=" + dimension_id_from
+                + " to_dim=" + this.worldServerInstance.provider.getDimension() + " [server]");
         par1Entity.posY = direction_of_travel == -1 ? this.worldServerInstance.getActualHeight() - 1 : 1.0D;
         byte var2 = 16;
         double var3 = -1.0D;
@@ -467,6 +499,19 @@ public final class ETIMPortalTeleporter implements ITeleporter {
                 }
             }
         }
+        // A-4 root anchor (recheck2 2026-10-25): frame origin + the build-time
+        // chunk state trio — distinguishes "portal written into a
+        // terrain-only/unpopulated chunk" (candidate erase face) from a
+        // fully-populated column, and marks the spot the verdict window can
+        // testfor + region-dump against.
+        net.minecraft.world.chunk.Chunk chunkAt = this.worldServerInstance.getChunk(new BlockPos(var29, var15, var16));
+        ETIM.LOGGER.info("[DimLog] portal-built x=" + var29 + " y=" + var15 + " z=" + var16
+                + " dim=" + this.worldServerInstance.provider.getDimension()
+                + " metadata=" + metadata
+                + " chunk=(" + chunkAt.x + "," + chunkAt.z + ")"
+                + " populated=" + chunkAt.isPopulated()
+                + " terrainPopulated=" + chunkAt.isTerrainPopulated()
+                + " [server]");
         return true;
     }
 
