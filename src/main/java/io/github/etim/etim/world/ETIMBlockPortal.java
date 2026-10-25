@@ -336,6 +336,13 @@ public class ETIMBlockPortal extends BlockBreakable {
 
     // ------------------- frame maintenance (R196 :154-193) -------------------
 
+    /** WP5 判行（B-1 补行）：破框后本门方块散却 —— setBlockToAir + [DimLog]。 */
+    private void collapsePortal(World world, BlockPos pos) {
+        world.setBlockToAir(pos);
+        ETIM.LOGGER.info("[DimLog] portal-break x=" + pos.getX() + " y=" + pos.getY() + " z=" + pos.getZ()
+                + " dim=" + world.provider.getDimension() + " [server]");
+    }
+
     @Override
     public void neighborChanged(IBlockState state, World world, BlockPos pos, Block neighborBlock, BlockPos fromPos) {
         int x = pos.getX(), y = pos.getY(), z = pos.getZ();
@@ -351,7 +358,7 @@ public class ETIMBlockPortal extends BlockBreakable {
             var8--;
         }
         if (world.getBlockState(new BlockPos(x, var8 - 1, z)).getBlock() != Blocks.OBSIDIAN) {
-            world.setBlockToAir(pos);
+            this.collapsePortal(world, pos);
             return;
         }
         int var9 = 1;
@@ -364,7 +371,7 @@ public class ETIMBlockPortal extends BlockBreakable {
             boolean zAligned = world.getBlockState(new BlockPos(x, y, z - 1)).getBlock() == this
                     || world.getBlockState(new BlockPos(x, y, z + 1)).getBlock() == this;
             if (xAligned && zAligned) {
-                world.setBlockToAir(pos);
+                this.collapsePortal(world, pos);
             } else {
                 boolean left = world.getBlockState(new BlockPos(x + var6, y, z + var7)).getBlock() == Blocks.OBSIDIAN
                         && world.getBlockState(new BlockPos(x - var6, y, z - var7)).getBlock() == this
@@ -373,11 +380,11 @@ public class ETIMBlockPortal extends BlockBreakable {
                 if (left) {
                     this.updateType(world, pos);
                 } else {
-                    world.setBlockToAir(pos);
+                    this.collapsePortal(world, pos);
                 }
             }
         } else {
-            world.setBlockToAir(pos);
+            this.collapsePortal(world, pos);
         }
     }
 

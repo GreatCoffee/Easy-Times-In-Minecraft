@@ -258,6 +258,12 @@ public final class ETIMPortalTeleporter implements ITeleporter {
                 par1Entity.motionX = par1Entity.motionY = par1Entity.motionZ = 0.0D;
             }
             par1Entity.setLocationAndAngles(var49, var25, var27, par1Entity.rotationYaw, par1Entity.rotationPitch);
+            // WP3/WP4 判行（B-2/B-4 补行）：到维落地 —— 服务端判维单源，mineflayer
+            // game.dimension=undefined 的假阴性面由本行兜底。
+            ETIM.LOGGER.info("[DimLog] portal-place dim=" + this.worldServerInstance.provider.getDimension()
+                    + " from_metadata=" + metadata + " x=" + MathHelper.floor(par1Entity.posX)
+                    + " y=" + MathHelper.floor(par1Entity.posY) + " z=" + MathHelper.floor(par1Entity.posZ)
+                    + " [server]");
             return true;
         } else {
             return false;

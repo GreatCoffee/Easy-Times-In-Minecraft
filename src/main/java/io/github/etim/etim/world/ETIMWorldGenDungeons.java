@@ -101,9 +101,9 @@ public class ETIMWorldGenDungeons extends WorldGenerator {
                         world.setBlockToAir(at);
                     } else if (world.getBlockState(at).getMaterial().isSolid()) {
                         if (var11 == y - 1 && random.nextInt(4) != 0) {
-                            world.setBlockState(at, Blocks.MOSSY_COBBLESTONE.getDefaultState(), 2);
+                            world.setBlockState(at, Blocks.MOSSY_COBBLESTONE.getDefaultState(), 2 | 16);
                         } else {
-                            world.setBlockState(at, Blocks.COBBLESTONE.getDefaultState(), 2);
+                            world.setBlockState(at, Blocks.COBBLESTONE.getDefaultState(), 2 | 16);
                         }
                     }
                 }
@@ -141,7 +141,7 @@ public class ETIMWorldGenDungeons extends WorldGenerator {
                 if (solidNeighbors == 1 && wall != null) {
                     // :167 — chest metadata = facing the solid wall (direction face)
                     world.setBlockState(spot, Blocks.CHEST.getDefaultState()
-                            .withProperty(BlockHorizontal.FACING, wall.getOpposite()), 2);
+                            .withProperty(BlockHorizontal.FACING, wall.getOpposite()), 2 | 16);
                     TileEntity te = world.getTileEntity(spot);
                     if (te instanceof TileEntityChest) {
                         loot((TileEntityChest) te, random, y);
@@ -157,7 +157,7 @@ public class ETIMWorldGenDungeons extends WorldGenerator {
 
         // spawner (:181-191)
         ResourceLocation pick = pickMobSpawner(random);
-        world.setBlockState(new BlockPos(x, y, z), Blocks.MOB_SPAWNER.getDefaultState(), 2);
+        world.setBlockState(new BlockPos(x, y, z), Blocks.MOB_SPAWNER.getDefaultState(), 2 | 16);
         TileEntity te = world.getTileEntity(new BlockPos(x, y, z));
         if (te instanceof TileEntityMobSpawner) {
             ((TileEntityMobSpawner) te).getSpawnerBaseLogic().setEntityId(pick);

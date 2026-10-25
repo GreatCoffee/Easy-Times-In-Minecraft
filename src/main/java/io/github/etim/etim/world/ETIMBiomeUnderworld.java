@@ -118,13 +118,13 @@ public class ETIMBiomeUnderworld extends Biome {
                             if (isSolidOpaqueStandardCube(ground) && ground.getBlock() != Blocks.RED_MUSHROOM_BLOCK
                                     && ground.getBlock() != Blocks.BROWN_MUSHROOM_BLOCK
                                     && isSolidOpaqueStandardCube(below)
-                                    && world.setBlockState(pos, Blocks.MYCELIUM.getDefaultState(), 2)) {
+                                    && world.setBlockState(pos, Blocks.MYCELIUM.getDefaultState(), 2 | 16)) {
                                 placed++;
                                 // :49-53 — the big-mushroom face (1/16, brown fallback).
                                 random.setSeed(post.getSeed() + getIntPairHash(x, z)); // :49-50
                                 random.nextInt();
                                 if (random.nextInt(16) == 0 && !bigMushroomGen.generate(world, random, above)) {
-                                    world.setBlockState(above, Blocks.BROWN_MUSHROOM.getDefaultState(), 2);
+                                    world.setBlockState(above, Blocks.BROWN_MUSHROOM.getDefaultState(), 2 | 16);
                                 }
                             }
                             break;

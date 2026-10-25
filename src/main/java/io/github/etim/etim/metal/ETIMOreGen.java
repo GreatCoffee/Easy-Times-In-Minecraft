@@ -191,7 +191,11 @@ public final class ETIMOreGen {
         if (mustBeSupported && !isSupported(world, pos)) {
             return 0; // R196 :38 — the "air below" cell stays stone
         }
-        world.setBlockState(pos, oreState, 2);
+        // populate-time write: flags 2|16 = cut observer notification — a plain
+        // markAndNotifyBlock during populate recurses through
+        // observedNeighborChanged → provideChunk → populate (A-1 SOE, verdict
+        // 2026-10-25); neighbors see the vein at first real update anyway.
+        world.setBlockState(pos, oreState, 2 | 16);
         int blocksGrown = 1;
         for (int attempts = 0; attempts < 16 && blocksGrown < blocksToGrow; attempts++) {
             int axis = random.nextInt(3);
@@ -320,7 +324,9 @@ public final class ETIMOreGen {
     /** R196 WorldGenMinable.growVein :36-74 (must_be_supported/is_dirt false for ores, :125-126). */
     private static int growVein(World world, Random random, int blocksToGrow, BlockPos pos, IBlockState oreState) {
         if (blocksToGrow >= 1 && world.isBlockLoaded(pos) && world.getBlockState(pos).getBlock() == Blocks.STONE) {
-            world.setBlockState(pos, oreState, 2);
+            // populate-time write: 2|16 — same A-1 face as growVeinUnderworld
+            // (dim0 cascade WARN, C-8).
+            world.setBlockState(pos, oreState, 2 | 16);
             int blocksGrown = 1;
             for (int attempts = 0; attempts < 16 && blocksGrown < blocksToGrow; attempts++) {
                 int axis = random.nextInt(3);
