@@ -3,6 +3,7 @@ package io.github.etim.etim.mob;
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.metal.ETIMGear;
+import io.github.etim.etim.metal.ETIMItemArrow;
 
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.monster.EntitySkeleton;
@@ -33,9 +34,10 @@ import net.minecraft.world.World;
  *       loot table path would otherwise suppress {@code dropFewItems}) and
  *       the R196 arrow/bone rows verbatim; the type1 (nether) rows are
  *       unreachable (the underworld pool has no nether face).</li>
- *   <li>the volley face is vanilla (A-3/E-3: the damage formula already
- *       matches and the ground arrow is the vanilla ARROW) — this class only
- *       adds the W7 判行.</li>
+ *   <li>the volley damage face is vanilla (A-3/E-3: the damage formula
+ *       already matches) — this class only adds the W7 intent row; the arrow
+ *       IDENTITY face moved to the batch-B {@code getArrow} override (the
+ *       ground arrow is {@code arrow_ancient_metal}, R196 EntitySkeleton:271).</li>
  * </ul>
  */
 public class ETIMEntityLongdead extends EntitySkeleton {
@@ -166,9 +168,37 @@ public class ETIMEntityLongdead extends EntitySkeleton {
     @Override
     public void attackEntityWithRangedAttack(net.minecraft.entity.EntityLivingBase target, float distanceFactor) {
         super.attackEntityWithRangedAttack(target, distanceFactor);
-        // E-3: the ground arrow is vanilla Items.ARROW (EntityTippedArrow
-        // default potion EMPTY); the damage formula already matches (A-3).
+        // E-3 judgment row stays ([MobLog] intent face); the fired arrow itself
+        // switched identity — see getArrow below (D-19/D-21).
         ETIMMobEquip.mobLog("longdead arrow intended=arrow_ancient_metal factor="
                 + Math.round(distanceFactor * 100.0F) / 100.0F);
+    }
+
+    // ------------------- batch B — the arrow identity face (NE-02 / D-21) -------------------
+
+    /**
+     * R196 EntitySkeleton.java:271 — the skeleton arrow's ammo item is
+     * {@code isLongdead() ? arrowAncientMetal : arrowRustedIron}; both ETIM
+     * carriers are longdeads (ETIMEntityLongdeadGuardian extends this class,
+     * guardian included) ⇒ arrow_ancient_metal for the whole pair. The base
+     * getArrow (AbstractSkeleton.java:267-271) builds the arrow and calls
+     * setEnchantmentEffectsFromEntity — this override replaces the base body
+     * one-hundred-for-one, so the enchantment is applied exactly once
+     * (attackEntityWithRangedAttack only calls getArrow, :255).
+     *
+     * <p>The damage face does not change: whichever ctor set the material
+     * damage, the skeleton's judged formula rewrites it afterwards
+     * (1.12 entity/projectile/EntityArrow.java:694 = R196 EntitySkeleton
+     * :276) — the A-3 settled verdict stays shut (Batch B report §4).</p>
+     */
+    @Override
+    protected net.minecraft.entity.projectile.EntityArrow getArrow(float distanceFactor) {
+        ETIMItemArrow arrowItem = (ETIMItemArrow) ETIMGear.gear("arrow_ancient_metal"); // R196 :271
+        ETIMEntityArrow arrow = new ETIMEntityArrow(this.world, this, arrowItem,
+                ETIMItemArrow.isLauncherEnchanted(this)); // B-1, same-tick bow sample
+        arrow.setEnchantmentEffectsFromEntity(this, distanceFactor); // 1.12 :690-710 = R196 :276-290
+        ETIMArrowLog.row("arrow skeleton shooter=" + this.getName()
+                + " item=arrow_ancient_metal factor=" + distanceFactor);
+        return arrow;
     }
 }

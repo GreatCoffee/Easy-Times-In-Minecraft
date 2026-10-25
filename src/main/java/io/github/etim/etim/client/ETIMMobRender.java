@@ -1,6 +1,7 @@
 package io.github.etim.etim.client;
 
 import io.github.etim.etim.mob.ETIMEntityAncientBoneLord;
+import io.github.etim.etim.mob.ETIMEntityArrow;
 import io.github.etim.etim.mob.ETIMEntityBoneLord;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
@@ -47,6 +48,8 @@ public final class ETIMMobRender {
                 manager -> new TintedSkeleton(manager, 0.55F, 0.60F, 0.75F)); // cold slate blue
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityLongdeadGuardian.class,
                 manager -> new TintedSkeleton(manager, 0.75F, 0.35F, 0.15F)); // dark copper
+        // Batch B (2026-10-25) — the identity arrow (D-19/D-22 shared-texture tier).
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityArrow.class, ETIMArrowRender::new);
     }
 
     /** The ETIMSpiderRender.Tinted shape over the vanilla skeleton renderer stack. */

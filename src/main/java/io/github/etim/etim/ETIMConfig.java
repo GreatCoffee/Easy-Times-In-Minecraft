@@ -332,6 +332,12 @@ public final class ETIMConfig {
     /** underworld 二阶段 T3 (R196 Entity.java:2178-2179): non-player portal cooldown. */
     public static int portalCooldown = 900;
 
+    /** Batch B arrow identity (2026-10-25, D-20 裁定): [ArrowLog] rows — the
+     *  register/spawn/pickup/nbt/skeleton/dispense judgment rows of the
+     *  etim:metal_arrow identity face (dev channel, W1~W7 gating channel). 批 B 箭身份
+     *  [ArrowLog] 判行：注册/生成/拾取/NBT/骷髅/发射器（开发通道，W1~W7 判定门）。 */
+    public static boolean arrowDebugLog = false;
+
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
     public static boolean deathXpOrbs = false;
@@ -770,6 +776,9 @@ public final class ETIMConfig {
         portalCooldown = config.getInt("portalCooldown", "underworld", 900, 0, 6000,
                 comment("R196 Entity.java:2178-2179 portal cooldown (ticks) for non-player entities standing in an ETIM portal; players keep the 1.12 face (10, R196 player = 10 same)",
                         "R196 Entity.java:2178-2179 传送门冷却（tick），作用于站进 ETIM 门的非玩家实体；玩家保持 1.12 面（10，R196 玩家同为 10）"));
+        arrowDebugLog = config.getBoolean("arrowDebugLog", "mobs", false,
+                comment("[ArrowLog] rows of the batch-B arrow identity face: register, spawn, pickup, nbt write/read, skeleton, dispense — W1~W7 judgment channel; silent when off",
+                        "[ArrowLog] 判行（批 B 箭身份面）：注册、生成、拾取、NBT 写读、骷髅、发射器——W1~W7 判定通道；关闭则静默"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",

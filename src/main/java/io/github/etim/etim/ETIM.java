@@ -85,6 +85,13 @@ public final class ETIM {
         io.github.etim.etim.metal.ETIMAnvilRepair.register();
         ETIMEnchantments.register();
         ETIMConfig.init(event);
+        // Batch B arrow identity (D-19/D-20/D-26): the etim:metal_arrow entity
+        // rides AFTER ETIMConfig.init so the [ArrowLog] gate is live at
+        // registration (ETIMMobEntities.register() @:72 runs before it); the
+        // dispense behaviors need the gear items (gear() fail-fast — ETIMGear
+        // registered at :77 above).
+        io.github.etim.etim.mob.ETIMMobEntities.registerArrow();
+        io.github.etim.etim.metal.ETIMArrowDispense.register();
         // The nutrition-mirror and crafting-progress handlers carry
         // net.minecraft.client.* bodies; the 1.12 registerMessage path
         // instantiates the handler class, so those two register ONLY on the

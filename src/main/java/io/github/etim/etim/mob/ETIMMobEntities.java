@@ -28,6 +28,22 @@ public final class ETIMMobEntities {
                 ETIMEntityLongdeadGuardian.class, "etim.longdead_guardian", 9, ETIM.instance(), 64, 3, true);
     }
 
+    /**
+     * Batch B arrow identity (D-19/D-20): the {@code etim:metal_arrow} projectile.
+     * Kept OUT of {@link #register()} — that runs before ETIMConfig.init
+     * (ETIM.java:72 vs :87), so the [ArrowLog] gate would be down and the
+     * register row would never print; the caller (ETIM preInit) invokes this
+     * after config init. id 10 continues the 5..9 block (underworld batch §5.7).
+     * Selectors resolve the ResourceLocation registryName
+     * (entity/EntityList.java:128-131) — hence @e[type=etim:metal_arrow].
+     */
+    public static void registerArrow() {
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "metal_arrow"),
+                ETIMEntityArrow.class, "etim.metal_arrow", 10, ETIM.instance(), 64, 20, true);
+        ETIMArrowLog.row("arrow register id=10 name=etim:metal_arrow class="
+                + ETIMEntityArrow.class.getName());
+    }
+
     private ETIMMobEntities() {
     }
 }

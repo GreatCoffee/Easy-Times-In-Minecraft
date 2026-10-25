@@ -1,5 +1,6 @@
 package io.github.etim.etim.metal;
 
+import io.github.etim.etim.mob.ETIMEntityArrow;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.item.ItemArrow;
@@ -45,11 +46,33 @@ public class ETIMItemArrow extends ItemArrow {
 		return metal;
 	}
 
-	/** The judged missile damage rides every arrow this item shoots. */
+	/** The judged missile damage rides every arrow this item shoots; the exit
+	 *  entity is the identity carrier (D-19/D-21 — thin subclass, not Tipped). */
 	@Override
 	public EntityArrow createArrow(World worldIn, ItemStack stack, EntityLivingBase shooter) {
-		EntityArrow arrow = super.createArrow(worldIn, stack, shooter);
-		arrow.setDamage(damage(metal));
+		ETIMEntityArrow arrow = new ETIMEntityArrow(worldIn, shooter, this,
+				isLauncherEnchanted(shooter)); // R196 :37 — damage = item_arrow.getDamage()
+		arrow.setDamage(damage(metal)); // NE-01 in-service form (ItemArrow.java:82-84)
 		return arrow;
+	}
+
+	/**
+	 * B-1 — R196 samples {@code launcher_was_enchanted} at bow release
+	 * (ItemBow.java:66; the bow stack {@code isItemEnchanted()}). 1.12's
+	 * {@code createArrow} carries no bow reference (item/ItemArrow.java:16), so
+	 * the closest same-tick sample is the shooter's held bow — sampled right
+	 * here (the bow is still in hand inside onPlayerStoppedUsing), not via an
+	 * EntityJoinWorldEvent one-tick-later replay (report §5.4, leaner face).
+	 * Skeleton arrows take the same path (their bow is their mainhand).
+	 */
+	public static boolean isLauncherEnchanted(net.minecraft.entity.EntityLivingBase shooter) {
+		return isEnchantedBow(shooter.getHeldItemMainhand())
+				|| isEnchantedBow(shooter.getHeldItemOffhand());
+	}
+
+	private static boolean isEnchantedBow(net.minecraft.item.ItemStack stack) {
+		return !stack.isEmpty()
+				&& stack.getItem() instanceof net.minecraft.item.ItemBow
+				&& stack.isItemEnchanted();
 	}
 }
