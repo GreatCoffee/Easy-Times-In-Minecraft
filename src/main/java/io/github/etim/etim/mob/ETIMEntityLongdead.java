@@ -189,13 +189,24 @@ public class ETIMEntityLongdead extends EntitySkeleton {
      * <p>The damage face does not change: whichever ctor set the material
      * damage, the skeleton's judged formula rewrites it afterwards
      * (1.12 entity/projectile/EntityArrow.java:694 = R196 EntitySkeleton
-     * :276) — the A-3 settled verdict stays shut (Batch B report §4).</p>
+     * :276) — the A-3 settled verdict stays shut (Batch B report §4).
+     * Batch C (A-3, 条85): the C-floor chain (R196 EntityArrow :366-378)
+     * replays the bound at hit time — skeleton arrows ALWAYS degrade to
+     * {@code itemDamage×2+2 (+2/+3)} because the R196 ctor hardcodes
+     * launcher_was_enchanted = false (:272).</p>
      */
+    /** A-3 (条84/85): the R196 skeleton ctor hardcodes launcher_was_enchanted
+     *  = false (EntitySkeleton.java:272), and the only consumer (:374-378) sits
+     *  in the skeleton branch — so a skeleton arrow ALWAYS takes the lower
+     *  bound. The bow sample (isLauncherEnchanted) is player-side only. The
+     *  damage face: the skeleton formula rewrites this.damage afterwards
+     *  (1.12 :694 = R196 :276), and the C-floor chain replays it at hit time
+     *  (arrowC §2.2). */
     @Override
     protected net.minecraft.entity.projectile.EntityArrow getArrow(float distanceFactor) {
         ETIMItemArrow arrowItem = (ETIMItemArrow) ETIMGear.gear("arrow_ancient_metal"); // R196 :271
         ETIMEntityArrow arrow = new ETIMEntityArrow(this.world, this, arrowItem,
-                ETIMItemArrow.isLauncherEnchanted(this)); // B-1, same-tick bow sample
+                false); // A-3: R196 :272 hardcodes false — the floor always applies
         arrow.setEnchantmentEffectsFromEntity(this, distanceFactor); // 1.12 :690-710 = R196 :276-290
         ETIMArrowLog.row("arrow skeleton shooter=" + this.getName()
                 + " item=arrow_ancient_metal factor=" + distanceFactor);

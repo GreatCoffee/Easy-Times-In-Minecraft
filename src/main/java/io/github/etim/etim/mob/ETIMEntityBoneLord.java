@@ -2,6 +2,8 @@ package io.github.etim.etim.mob;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.metal.ETIMGear;
+import io.github.etim.etim.metal.ETIMItemArrow;
 
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
@@ -46,6 +48,25 @@ public class ETIMEntityBoneLord extends EntitySkeleton {
     // R196 :71-73 — isAncientBoneLord ? EntityLongdead : EntitySkeleton.
     public Class<? extends EntitySkeleton> getTroopClass() {
         return this instanceof ETIMEntityAncientBoneLord ? ETIMEntityLongdead.class : EntitySkeleton.class;
+    }
+
+    /**
+     * A-6 / D-29① (条85): the bone lords join the batch-C arrow identity —
+     * R196 EntitySkeleton.java:271 fires {@code arrowRustedIron} for every
+     * non-longdead skeleton ({@code isLongdead()} base :377-379 = false), and
+     * the batch-C floor chain (R196 EntityArrow :366-378) applies the same
+     * lower bound. Without this override the vanilla TippedArrow fired here
+     * would bypass the identity + floor faces entirely.
+     */
+    @Override
+    protected net.minecraft.entity.projectile.EntityArrow getArrow(float distanceFactor) {
+        ETIMItemArrow arrowItem = (ETIMItemArrow) ETIMGear.gear("arrow_rusted_iron"); // R196 :271 false branch
+        ETIMEntityArrow arrow = new ETIMEntityArrow(this.world, this, arrowItem,
+                false); // A-3: R196 :272 hardcodes false — the floor always applies
+        arrow.setEnchantmentEffectsFromEntity(this, distanceFactor); // 1.12 :690-710 = R196 :276-290
+        ETIMArrowLog.row("arrow skeleton shooter=" + this.getName()
+                + " item=arrow_rusted_iron factor=" + distanceFactor);
+        return arrow;
     }
 
     @Override
