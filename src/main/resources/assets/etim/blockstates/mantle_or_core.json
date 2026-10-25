@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "mantle=0": { "model": "etim:mantle_or_core" },
+    "mantle=1": { "model": "etim:mantle_or_core" }
+  }
+}

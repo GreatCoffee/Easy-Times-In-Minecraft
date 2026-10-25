@@ -30,6 +30,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;import net.minecraft.world.EnumSkyBlock;import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.World;
 import net.minecraft.world.WorldEntitySpawner;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
@@ -121,6 +122,12 @@ public final class ETIMSpawnCycle {
 
     private static float hostileModifier(WorldServer w, State st) {
         if (w.provider.getDimension() != 0) {
+            // M6-04 (underworld 批 2026-10-25): R196 :428-431 — the non-overworld
+            // face is a flat 0.25F; the rescue gate is unreachable there (C-3).
+            if (ETIMConfig.mobDebugLog && modifier25LogBudget > 0) {
+                --modifier25LogBudget;
+                log(w, "modifier dim=" + w.provider.getDimension() + " mod=0.25");
+            }
             return 0.25F;
         }
         float mod = 1.0F;
@@ -572,10 +579,15 @@ public final class ETIMSpawnCycle {
                     continue;
                 }
                 Class<? extends EntityLiving> cls = entry.entityClass;
+                // M6-01 (underworld 批 2026-10-25): R196 :202 — the substitute
+                // face runs per spawned mob, before the instantiation; the
+                // Longdead→Guardian half is live (1/6), the VampireBat half
+                // has no ETIM carriers (C-5).
+                cls = io.github.etim.etim.world.ETIMUnderworldSpawns.substituteClassToSpawn(w, cls);
                 int bucket = cursor.getY() < 60 ? 0 : 1;
                 EntityLiving mob;
                 try {
-                    mob = entry.newInstance(w);
+                    mob = cls.getConstructor(World.class).newInstance(w);
                 } catch (Exception e) {
                     continue;
                 }
@@ -621,7 +633,10 @@ public final class ETIMSpawnCycle {
             return 1;
         }
         // mob 批: R196 EntityRevenant :68-70 / EntityBoneLord :67-69 — cap 1.
-        if (cls == ETIMEntityRevenant.class || cls == ETIMEntityBoneLord.class) {
+        // underworld 批 (2026-10-25): the Ancient rides the same face
+        // (M5-08 注 — R196 EntityBoneLord cap 1, Ancient 继承).
+        if (cls == ETIMEntityRevenant.class || cls == ETIMEntityBoneLord.class
+                || cls == ETIMEntityAncientBoneLord.class) {
             return 1;
         }
         if (cls == EntityHorse.class) {
@@ -654,9 +669,11 @@ public final class ETIMSpawnCycle {
         // audit 17 /2.5: the y=63 ice or-chain moved up to the chunk-level
         // base point (R196 :142) — this site previously double-checked it at
         // attempt level on the wrong (landing-floor) y.
-        // Close-branch: in the overworld/nether, a player within 24 with both
-        // light layers at 0 relaxes the radius to 8; otherwise the standard
-        // no-player-within-24 gate.
+        // Close-branch: in the overworld/nether/underworld, a player within 24
+        // with both light layers at 0 relaxes the radius to 8; otherwise the
+        // standard no-player-within-24 gate. underworld 批 (2026-10-25,
+        // M6-02): R196 :169-172 = (isOverworld ‖ isUnderworld) → dim 0‖-2
+        // joins the set (the nether -1 rides the pre-existing face).
         EntityPlayer near = w.getClosestPlayer(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 24.0D, false);
         if (near != null) {
             int dim = w.provider.getDimension();
@@ -666,7 +683,7 @@ public final class ETIMSpawnCycle {
             // layer. Landing-y correction is pending the 11 节段 geometry
             // slice; pos is the candidate floor until then.
             BlockPos upper = new BlockPos(pos.getX(), pos.getY() + 1, pos.getZ());
-            if ((dim == 0 || dim == -1)
+            if ((dim == 0 || dim == -1 || dim == -2) // M6-02 (underworld 批 2026-10-25)
                     && w.getLightFor(EnumSkyBlock.SKY, pos) == 0
                     && w.getLightFor(EnumSkyBlock.BLOCK, pos) == 0
                     && w.getLightFor(EnumSkyBlock.SKY, upper) == 0
@@ -979,6 +996,8 @@ public final class ETIMSpawnCycle {
     private static int densitySkipLogBudget = 0;
     // audit19-W3 (甲): edge-dedupe signature for the density-eval row.
     private static String lastDensityEvalSig = "";
+    // M6-04: the flat 0.25F row budget (per-tick face, no state edge to dedup on).
+    private static int modifier25LogBudget = 4;
 
     private ETIMSpawnCycle() {
     }

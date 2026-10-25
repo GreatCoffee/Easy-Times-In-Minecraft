@@ -68,6 +68,16 @@ public final class ETIMMobEquip {
         }
     }
 
+    /**
+     * underworld 批 (2026-10-25) 的 [MobLog] 面开关（D-9 裁定）：
+     * underworldDebugLog 或既有 mobEquipDebugLog 任一开启即发射。
+     */
+    public static void mobLog(String row) {
+        if (ETIMConfig.mobEquipDebugLog || ETIMConfig.underworldDebugLog) {
+            ETIM.LOGGER.info("[MobLog] " + row + " [server]");
+        }
+    }
+
     // ==================== tension (World.java:5603-5617, 1:1) ====================
 
     /** R196 getLocationTensionFactor (:5599-5601). */
@@ -243,6 +253,17 @@ public final class ETIMMobEquip {
         // B-M1 dispatch: the bone lord (constant rusted-iron table) and the
         // bone-lord troop (pending type handoff, R196 onSpawnWithEgg :218-231)
         // branch before the folded natural-skeleton face.
+        // underworld 批 (2026-10-25): the Ancient branch sits BEFORE the
+        // BoneLord branch (M5-02 报告 §5.2 :246 面前插), and the longdead
+        // pair branches out of the folded face entirely (M5-04/05).
+        if (skeleton instanceof ETIMEntityAncientBoneLord) {
+            ancientLordEquip(skeleton);
+            return;
+        }
+        if (skeleton instanceof ETIMEntityLongdead) {
+            longdeadEquip(skeleton);
+            return;
+        }
         if (skeleton instanceof ETIMEntityBoneLord) {
             rustedLordEquip(skeleton);
             return;
@@ -287,6 +308,85 @@ public final class ETIMMobEquip {
     private static void equipRustedPiece(EntityLiving lord, EntityEquipmentSlot slot, String gearName) {
         lord.setItemStackToSlot(slot,
                 randomizeForMob(lord, new ItemStack(ETIMGear.gear(gearName)), true));
+    }
+
+    /**
+     * underworld 批 (2026-10-25) — R196 {@code EntityAncientBoneLord
+     * .addRandomWeapon :21-31} + {@code addRandomEquipment :34-40}: the
+     * weighted ancient pool — {@code sword_ancient_metal} w2 plus
+     * {@code battle_axe}/{@code war_hammer} w1 (the R196 tournament gate is
+     * dropped per the C-8 precedent) — then the four-slot ancient armor set,
+     * every stack {@code randomizeForMob(true)}.
+     */
+    private static void ancientLordEquip(EntityLiving lord) {
+        List<Object[]> items = new ArrayList<>();
+        items.add(new Object[]{ETIMGear.gear("sword_ancient_metal"), 2});  // :23
+        // :24-27 — the non-tournament rows, always carried (C-8 门丢弃先例).
+        items.add(new Object[]{ETIMGear.gear("battle_axe_ancient_metal"), 1});
+        items.add(new Object[]{ETIMGear.gear("war_hammer_ancient_metal"), 1});
+        Object[] entry = weightedRandom(lord, items);
+        Item weapon = (Item) entry[0];
+        lord.setItemStackToSlot(EntityEquipmentSlot.MAINHAND,
+                randomizeForMob(lord, new ItemStack(weapon), true));
+        equipRustedPiece(lord, EntityEquipmentSlot.FEET, "boots_ancient_metal");   // :36
+        equipRustedPiece(lord, EntityEquipmentSlot.LEGS, "leggings_ancient_metal"); // :37
+        equipRustedPiece(lord, EntityEquipmentSlot.CHEST, "chestplate_ancient_metal"); // :38
+        equipRustedPiece(lord, EntityEquipmentSlot.HEAD, "helmet_ancient_metal"); // :39
+        mobLog("ancient equip weapon=" + weapon.getRegistryName()
+                + " armor=4x ancient entity=" + lord.getName());
+    }
+
+    /**
+     * underworld 批 (2026-10-25) — R196 {@code EntitySkeleton.onSpawnWithEgg
+     * :218-237} 骰面 (M5-09) + {@code EntityLongdead.addRandomWeapon :22-24}
+     * + {@code addRandomEquipment :27-33}: the type roll (nether→1 / longdead
+     * 0.5 → melee 2, else archer 0), then the weapon by type (melee →
+     * {@code sword_ancient_metal}; archer → vanilla bow, B-8/D-4), then the
+     * four-slot chain-ancient armor set (the R196 face carries no chance gate).
+     * The jockey handoff (M5-11) forces type 0.
+     */
+    private static void longdeadEquip(EntityLiving skeleton) {
+        ETIMEntityLongdead longdead = (ETIMEntityLongdead) skeleton;
+        int type;
+        Integer pendingType = PENDING_TROOP_TYPE.remove(skeleton);
+        if (longdead.isJockeyRanged()) {
+            type = 0; // M5-11 — the R196 do-while face (bow rider)
+        } else if (pendingType != null) {
+            type = pendingType; // M7-02 — the bone-lord troop roll rides the pending map
+        } else {
+            type = longdead.rollSkeletonType(skeleton.world); // :209-215 (0.5 longdead half)
+        }
+        if (type == 1) {
+            // R196 :221-226 — the nether melee face (unreachable in the
+            // underworld pool; kept for the troop-roll nether branch).
+            ItemStack sword = new ItemStack(Items.IRON_SWORD);
+            io.github.etim.etim.quality.ETIMQuality.set(sword, io.github.etim.etim.quality.EnumQuality.POOR);
+            skeleton.setItemStackToSlot(EntityEquipmentSlot.MAINHAND, randomizeForMob(skeleton, sword, false));
+            skeleton.getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(4.0); // :226
+            longdead.setMeleeType(true);
+            mobLog("longdead equip type=melee weapon=iron_sword entity=" + skeleton.getName());
+            return;
+        }
+        // R196 :22-24 — type2 → swordAncientMetal, type0 → bow (B-8/D-4).
+        boolean melee = type == 2;
+        Item weapon = melee ? ETIMGear.gear("sword_ancient_metal") : Items.BOW;
+        skeleton.setItemStackToSlot(EntityEquipmentSlot.MAINHAND,
+                randomizeForMob(skeleton, new ItemStack(weapon), true));
+        longdead.setMeleeType(melee);
+        // R196 :27-33 — the four chain-ancient pieces, no chance gate.
+        equipRustedPiece(skeleton, EntityEquipmentSlot.FEET, "chain_boots_ancient_metal");
+        equipRustedPiece(skeleton, EntityEquipmentSlot.LEGS, "chain_leggings_ancient_metal");
+        equipRustedPiece(skeleton, EntityEquipmentSlot.CHEST, "chain_chestplate_ancient_metal");
+        equipRustedPiece(skeleton, EntityEquipmentSlot.HEAD, "chain_helmet_ancient_metal");
+        mobLog("longdead equip type=" + (melee ? "melee" : "ranged")
+                + " weapon=" + weapon.getRegistryName() + " entity=" + skeleton.getName());
+        // R196 Guardian :11-16 — the archer stows the dagger.
+        if (!melee && skeleton instanceof ETIMEntityLongdeadGuardian) {
+            ItemStack dagger = randomizeForMob(skeleton,
+                    new ItemStack(ETIMGear.gear("dagger_ancient_metal")), true);
+            ((ETIMEntityLongdeadGuardian) skeleton).setStowedItemStack(dagger);
+            mobLog("guardian stow item=dagger_ancient_metal entity=" + skeleton.getName());
+        }
     }
 
     /**

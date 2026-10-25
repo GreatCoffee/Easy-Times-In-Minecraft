@@ -7,6 +7,7 @@ import io.github.etim.etim.mob.ETIMSpawnCycle;
 import io.github.etim.etim.playerstate.ETIMSleepClock;
 import io.github.etim.etim.playerstate.PlayerBedEvents;
 import io.github.etim.etim.weather.ETIMWeatherClock;
+import io.github.etim.etim.world.ETIMDimensions;
 import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.DifficultyInstance;
@@ -125,6 +126,44 @@ public abstract class MixinWorldServer {
             boolean spawnPeacefulMobs, boolean spawnOnSetTickRate) {
         return ETIMSpawnCycle.findChunksForSpawning(world, spawnHostileMobs, spawnPeacefulMobs, spawnOnSetTickRate);
     }
+
+    // ------------------- underworld-01: the M1-12 time gate -------------------
+
+    /**
+     * M1-12 (underworld 批 2026-10-25): R196 {@code WorldServer
+     * .shouldTimeProgress :136-160} — the underworld world's clock advances
+     * only when visited ∧ non-ghost players are in overworld‖nether‖
+     * underworld; the overworld face stays vanilla (R196 dedicated :145 =
+     * true). The redirect rides the per-tick {@code setWorldTime(+1)} at
+     * WorldServer.java:227 — ordinal 1 (ordinal 0 = the :201 sleep-jump face,
+     * owned by the sleep chain). Transition-only logging (audit 15 §2.1
+     * precedent): the freeze edge emits once, not per tick.
+     */
+    @Redirect(
+            method = "tick",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/WorldServer;setWorldTime(J)V",
+                    ordinal = 1),
+            require = 1
+    )
+    private void etim$underworldTimeGate(WorldServer self, long time) {
+        boolean frozen = self.provider.getDimension() == ETIMDimensions.UNDERWORLD
+                && !ETIMDimensions.shouldUnderworldTimeProgress(self);
+        if (frozen != lastUnderworldTimeFrozen) {
+            lastUnderworldTimeFrozen = frozen;
+            if (ETIMConfig.underworldDebugLog) {
+                ETIM.LOGGER.info("[DimLog] time " + (frozen ? "frozen" : "resumed")
+                        + " dim=-2 visited=" + ETIMDimensions.underworldVisited(self.getMinecraftServer())
+                        + " [server]");
+            }
+        }
+        if (frozen) {
+            return; // R196 :142-143 — the underworld branch stays put
+        }
+        self.setWorldTime(time);
+    }
+
+    private static boolean lastUnderworldTimeFrozen = false;
 
     // ------------------- weather-01: the R196 lightning face (WorldServer.java:987-1010) -------------------
 

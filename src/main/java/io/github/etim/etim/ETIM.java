@@ -52,6 +52,13 @@ public final class ETIM {
      */
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        // underworld 批 (2026-10-25): the biome registers itself through the
+        // RegistryEvent.Register<Biome> stage (BEFORE these handlers — see
+        // ETIMBiomeUnderworld.Registration); the dimension skeleton rides
+        // preInit with the A-5 hard constraint: the DimensionType must exist
+        // before registerDimension, so the server startup loop builds the -2
+        // world (M1-10) instead of hot-loading it.
+        io.github.etim.etim.world.ETIMDimensions.register();
         NutritionSystem.register();
         io.github.etim.etim.ingest.ETIMIngestNetwork.registerMessages();
         FoodDebugNetwork.registerMessages();
@@ -117,6 +124,14 @@ public final class ETIM {
         event.registerServerCommand(new CommandState());
         if (ETIMConfig.devTools) {
             event.registerServerCommand(new CommandDevTest());
+        }
+        // underworld 批 (2026-10-25, D-6): the minimal dimension entry face
+        // (/etim dim enter|leave|probe, permission 2, always registered).
+        event.registerServerCommand(new io.github.etim.etim.commands.CommandUnderworld());
+        // M1-10 判行锚 — the built dimension set at startup.
+        if (ETIMConfig.underworldDebugLog) {
+            ETIM.LOGGER.info("[DimLog] worlds=" + java.util.Arrays.toString(
+                    net.minecraftforge.common.DimensionManager.getIDs()) + " [server]");
         }
         // ❗F-4-30（第二批裁点3=A）：replace the vanilla /xp registration with
         // the R196 pool-absolut set (CommandHandler.getCommands() is the live

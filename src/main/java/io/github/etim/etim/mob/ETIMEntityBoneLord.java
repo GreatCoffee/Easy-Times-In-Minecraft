@@ -24,11 +24,14 @@ import java.util.List;
  * <p>Judged faces (批文 §1.2/§1.3): follow 40 / speed 0.26F / attack 5.0 /
  * hp 20.0 / XP super×3 / per-chunk cap 1 / {@code num_troops_summoned} NBT
  * byte (write &gt; 0 only) / the full summon chain — persistence while
+ * persistence while
  * chasing a player (:79-81), the 20-tick summon window (:83-96), the
  * nearby-skeleton heal + frenzy + troop-despawn management (:98-128), and
  * {@code trySummonTroop} with its full guard chain (:133-241). The troop
- * class is fixed {@code EntitySkeleton} (T3① — AncientBoneLord/Longdead are
- * parked on the underworld batch). Gear rides the {@link ETIMMobEquip}
+ * class is {@link #getTroopClass()} — the R196 :71-73 face
+ * ({@code isAncientBoneLord()?EntityLongdead:EntitySkeleton}; underworld 批
+ * 2026-10-25, the AncientBoneLord carrier landed). Gear rides the
+ * {@link ETIMMobEquip}
  * skeleton dispatch (B-M1 → the constant rusted-iron table).</p>
  */
 public class ETIMEntityBoneLord extends EntitySkeleton {
@@ -38,6 +41,11 @@ public class ETIMEntityBoneLord extends EntitySkeleton {
 
     public ETIMEntityBoneLord(World world) {
         super(world);
+    }
+
+    // R196 :71-73 — isAncientBoneLord ? EntityLongdead : EntitySkeleton.
+    public Class<? extends EntitySkeleton> getTroopClass() {
+        return this instanceof ETIMEntityAncientBoneLord ? ETIMEntityLongdead.class : EntitySkeleton.class;
     }
 
     @Override
@@ -125,10 +133,11 @@ public class ETIMEntityBoneLord extends EntitySkeleton {
                         // :109-124 — troop-despawn management. R196 reads the
                         // public despawn_counter; the ETIM port lives on the
                         // 1.12 idleTime face (the DespawnRules counter).
+                        // R196 :110 — getClass() == troop_class (M5-08/M7-02).
                         io.github.etim.etim.mixins.EntityLivingBaseAccessor acc =
                                 (io.github.etim.etim.mixins.EntityLivingBaseAccessor) skeleton;
                         if (this.numTroopsSummoned > 0
-                                && skeleton.getClass() == EntitySkeleton.class
+                                && skeleton.getClass() == this.getTroopClass()
                                 && ((skeleton.getAttackTarget() == null
                                         && skeleton.getHealth() >= skeleton.getMaxHealth()
                                         && this.rand.nextFloat() < 0.05F)
@@ -178,10 +187,15 @@ public class ETIMEntityBoneLord extends EntitySkeleton {
 
             skeleton = createSkeletonCloseTo(w, boneLordX, boneLordY, boneLordZ);
             if (skeleton != null) {
-                // :155-156 — the forced type roll (nether 1 / 0.25 melee 2 /
-                // else archer 0); handed to the equip face via the pending map.
-                int skeletonType = randomSkeletonType(w);
+                // :155-156 — the forced type roll (the unit-class half: nether 1 /
+                // longdead 0.5 / plain 0.25); handed to the equip face via the
+                // pending map.
+                int skeletonType = rollTroopType(w, skeleton);
                 ETIMMobEquip.setPendingTroopType(skeleton, skeletonType);
+                if (skeleton instanceof ETIMEntityLongdead) {
+                    ETIMMobEquip.mobLog("bonelord troop class=" + skeleton.getClass().getSimpleName()
+                            + " type=" + skeletonType);
+                }
                 // :157 — a vulnerable player within 4 of the troop rejects.
                 if (w.getNearestAttackablePlayer(skeleton, 4.0D, 4.0D) == null
                         && (skeletonType != 0 || skeleton.canEntityBeSeen(target))) {
@@ -273,7 +287,7 @@ public class ETIMEntityBoneLord extends EntitySkeleton {
                     && net.minecraft.world.WorldEntitySpawner.canCreatureTypeSpawnAtLocation(
                             net.minecraft.entity.EntityLiving.SpawnPlacementType.ON_GROUND, w,
                             new BlockPos(trialX, trialY, trialZ))) {
-                EntitySkeleton skeleton = new EntitySkeleton(w); // troop class fixed (T3①)
+                EntitySkeleton skeleton = createTroopMob(w); // R196 :153 — the troop class face (M5-08)
                 skeleton.setLocationAndAngles(trialX + 0.5D, trialY, trialZ + 0.5D,
                         this.rand.nextFloat() * 360.0F, 0.0F);
                 return skeleton; // is_skeleton → getCanSpawnHere skipped (R196 :346-347)
@@ -361,6 +375,31 @@ public class ETIMEntityBoneLord extends EntitySkeleton {
             return 1;
         }
         return this.rand.nextFloat() < 0.25F ? 2 : 0;
+    }
+
+    /**
+     * M5-08 — the troop-class construction face (R196 :153
+     * {@code tryCreateNewLivingEntityCloseTo(..., troop_class, ...)}): the
+     * unit class comes from {@link #getTroopClass()}.
+     */
+    private EntitySkeleton createTroopMob(WorldServer w) {
+        try {
+            return this.getTroopClass().getConstructor(World.class).newInstance(w);
+        } catch (Exception e) {
+            throw new RuntimeException("etim bonelord troop class instantiation failed", e);
+        }
+    }
+
+    /**
+     * R196 :155-156 — the forced type roll. The roll rides the UNIT class
+     * (M5-09: the longdead half is 0.5, the plain skeleton 0.25 — both via
+     * R196 :209-215); the pending map hands it to the equip dispatch.
+     */
+    private int rollTroopType(WorldServer w, EntitySkeleton skeleton) {
+        if (skeleton instanceof ETIMEntityLongdead) {
+            return ((ETIMEntityLongdead) skeleton).rollSkeletonType(w); // 0.5 face
+        }
+        return randomSkeletonType(w); // 0.25 face + the nether→1 branch
     }
 
     /** R196 :140-141 getFootPosPlusFractionOfHeight. */

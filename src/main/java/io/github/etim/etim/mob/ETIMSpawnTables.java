@@ -185,6 +185,31 @@ public final class ETIMSpawnTables {
 
     private static List<Biome.SpawnListEntry> baseOf(EnumCreatureType type) {
         return BASE.get(type);
+    }
+
+    /** M3-04 — the ETIM BASE monster rows (ETIMUnderworldSpawns 池工厂的源). */
+    public static List<Biome.SpawnListEntry> monsterBase() {
+        return BASE.get(EnumCreatureType.MONSTER);
+    }
+
+    /**
+     * M3-02/03 — underworld 批 (2026-10-25): the underworld biome's
+     * authoritative table = the R196 BiomeGenUnderworld face (remove
+     * Skeleton/Zombie/Revenant/BoneLord — Ghoul has no carrier, C-11 — plus
+     * CaveSpider/Longdead/AncientBoneLord). The exact-override face (the
+     * existing {@code override()} appends, which would double-count).
+     * Called from {@code ETIMBiomeUnderworld.register()} (装载顺序 face,
+     * 报告 §4.2).
+     */
+    public static void registerUnderworld(Biome underworldBiome) {
+        for (EnumCreatureType type : EnumCreatureType.values()) {
+            Map<EnumCreatureType, List<Biome.SpawnListEntry>> byType =
+                    OVERRIDES.computeIfAbsent(underworldBiome, (k) -> new EnumMap<>(EnumCreatureType.class));
+            byType.put(type, type == EnumCreatureType.MONSTER
+                    ? io.github.etim.etim.world.ETIMUnderworldSpawns.monsterList()
+                    : new ArrayList<>(baseOf(type)));
+        }
+        io.github.etim.etim.world.ETIMUnderworldSpawns.logPool();
     }    /**
      * MITE-biome table pick at a position (replaces the vanilla
      * {@code getSpawnListEntryForTypeAt} read point).
@@ -253,9 +278,11 @@ public final class ETIMSpawnTables {
                 return picked;
             }
             // 三蜘蛛轮门2（R196 :682+:718-720，check_depth = isOverworld 一手
-            // :604）：Demon/Phase 专属地下支——主世界 y>32 拒。
+            // :604）：Demon/Phase 专属地下支——主世界 y>32 拒（underworld 批
+            // 2026-10-25: the gate reads ETIMUnderworldSpawns.checkDepth —
+            // M6-05，非主世界走 [SpawnLog] depth-bypass 行）。
             if ((cls == ETIMEntityDemonSpider.class || cls == ETIMEntityPhaseSpider.class)
-                    && w.provider.getDimension() == 0 && pos.getY() > 32) {
+                    && io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w) && pos.getY() > 32) {
                 if (ETIMConfig.mobDebugLog) {
                     ETIM.LOGGER.info("[SpawnLog] depth-gate reject cls=" + cls.getSimpleName()
                             + " y=" + pos.getY() + " at " + posToString(pos));

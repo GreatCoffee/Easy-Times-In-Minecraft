@@ -77,6 +77,7 @@ public final class ETIMBlocks {
         registerOres();
         registerAnvils();
         registerStorageBlocks();
+        registerMantleOrCore();
         registerRecipes();
     }
 
@@ -107,6 +108,17 @@ public final class ETIMBlocks {
         ORE_SILVER = registerOre(new ETIMBlockOre("ore_silver", 2.5F, 2));
         ORE_MITHRIL = registerOre(new ETIMBlockOre("ore_mithril", 3.5F, 3));
         ORE_ADAMANTIUM = registerOre(new ETIMBlockOre("ore_adamantium", 4.0F, 4));
+    }
+
+    /** underworld 批 (2026-10-25, D-2 裁定 = 新方块): the unbreakable floor block. */
+    public static ETIMBlockMantleOrCore MANTLE_OR_CORE;
+
+    private static void registerMantleOrCore() {
+        MANTLE_OR_CORE = new ETIMBlockMantleOrCore();
+        MANTLE_OR_CORE.setRegistryName(new ResourceLocation(ETIM.MOD_ID, "mantle_or_core"));
+        net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS.register(MANTLE_OR_CORE);
+        // R196 canBeCarried=false → no ItemBlock.
+        ETIM.LOGGER.info("[FurnaceLog] underworld floor block registered: mantle_or_core (unbreakable, light 0.9) [server]");
     }
 
     private static ETIMBlockOre registerOre(ETIMBlockOre block) {

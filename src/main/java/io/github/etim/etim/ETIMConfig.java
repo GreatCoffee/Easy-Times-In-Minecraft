@@ -327,6 +327,9 @@ public final class ETIMConfig {
     /** [MobLog] mob-equipment rows for the B3 rusted-iron carriers (weapon/armor/quality faces, dev channel). [MobLog] 怪物装备判行：B3 锈铁获取载体（武器/护甲/品质面，开发通道）。 */
     public static boolean mobEquipDebugLog = false;
 
+    /** underworld 批 (2026-10-25, D-9 裁定): the [DimLog] rows (dimension register/enter/leave, landing, gen probe, biome, provider faces, time gate) plus the underworld [MobLog] rows (troop/arrow/hand-swap/attr) — merged with the existing mobEquipDebugLog channel. 下界批判行：[DimLog] 行（维度注册/进出、落点、地形探针、群系、provider 面、时间门）与下界 [MobLog] 行（兵团/箭面/换手/属性）——与既有 mobEquipDebugLog 通道合并。 */
+    public static boolean underworldDebugLog = false;
+
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
     public static boolean deathXpOrbs = false;
@@ -759,6 +762,9 @@ public final class ETIMConfig {
         mobEquipDebugLog = config.getBoolean("mobEquipDebugLog", "metal", false,
                 comment("[MobLog] rows for the B3 rusted-iron mob carriers: mob weapon (chance/weights/day gates), mob armor (tension gate/tier/slot walk), quality downgrade — the W2/W3 verdict channels; off = silent",
                         "[MobLog] 判行（B3 锈铁怪物载体）：mob weapon（概率/权重/天数门）、mob armor（tension 门/档位/槽位行进）、品质降档——W2/W3 判定通道；关闭则静默"));
+        underworldDebugLog = config.getBoolean("underworldDebugLog", "mobs", false,
+                comment("The underworld batch (2026-10-25) [DimLog] rows: dimension register, provider faces, enter/leave with landing y, the column probe, biome registration and the underworld time gate; also arms the underworld [MobLog] rows (troop type/arrow face/guardian hand swap/attributes). off = silent",
+                        "underworld 批（2026-10-25）的 [DimLog] 判行：维度注册、provider 面、进出（含落点 y）、列探针、群系注册与下界时间门；同时放开下界 [MobLog] 行（兵团/箭面/守护者换手/属性）。关闭则静默"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",

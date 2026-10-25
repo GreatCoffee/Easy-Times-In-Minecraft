@@ -18,11 +18,12 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import java.util.List;
 
 /**
- * B-2(a) 主会话裁定 + B3 批文 §〇-宝箱面: the MAIN-WORLD dungeon chest
- * carries ancient metal — nugget + ingot, each 1-4 @ weight 10 (the R196
- * underworld table rewrite adjudicated at B1, G-FB-11) — plus the eight
- * rusted-iron gear rows (WorldGenDungeons.java:28-46, all 1-1); the
- * mineshaft chest carries the seven rusted rows incl. the chain item 1-5
+ * D-02 (ii) 裁定 (2026-10-25) + B3 批文 §〇-宝箱面: the MAIN-WORLD dungeon
+ * chest carries ONLY the eight rusted-iron gear rows (WorldGenDungeons.java:
+ * 28-46, all 1-1) — the two ancient-metal rows (nugget + ingot 1-4 w10) are
+ * deleted (the ancient face moves to the underworld chest, M4-12 后置批;
+ * ancient metal is unavailable in the overworld until then, A-6/D-10 已裁);
+ * the mineshaft chest carries the seven rusted rows incl. the chain item 1-5
  * w5 (StructureMineshaftPieces.java:24-55); the skeleton entity loot swaps
  * its arrow face to the rusted arrow (R196 getDropItemId :143-146).
  *
@@ -44,8 +45,12 @@ public final class ETIMMetalLoot {
         if (LootTableList.CHESTS_SIMPLE_DUNGEON.equals(event.getName())) {
             LootPool main = event.getTable().getPool("main");
             if (main != null) {
-                main.addEntry(entry(ETIMItems.nuggetAncientMetal, 1, 4, false));
-                main.addEntry(entry(ETIMItems.ingotAncientMetal, 1, 4, false));
+                // D-02 (ii) 裁定 (2026-10-25): the two ancient-metal rows are
+                // GONE — the main-world dungeon chest carries only the rusted
+                // face; ancient metal's only source = the underworld chest
+                // (M4-12 后置批). E-1 勘误: the deletion pair is EXACTLY the
+                // two addEntry rows; the import face is untouched (Item is
+                // still used by the entry() helpers).
                 // WorldGenDungeons.java:28-46 — eight rusted rows (1-1, weights).
                 main.addEntry(entry(ETIMGear.gear("shears_rusted_iron"), 1, 1, 3, true));
                 main.addEntry(entry(ETIMGear.gear("shovel_rusted_iron"), 1, 1, 2, true));
@@ -55,8 +60,14 @@ public final class ETIMMetalLoot {
                 main.addEntry(entry(ETIMGear.gear("sword_rusted_iron"), 1, 1, 2, true));
                 main.addEntry(entry(ETIMGear.gear("battle_axe_rusted_iron"), 1, 1, 2, true));
                 main.addEntry(entry(ETIMGear.gear("war_hammer_rusted_iron"), 1, 1, 2, true));
-                ETIM.LOGGER.info("[TestLog] dungeon chest loot injected: ancient metal nugget+ingot (1-4, weight 10)"
-                        + " + 8 rusted rows [server]");
+                // §8.2 — the pool introspection face (W9 判点): the ancient rows
+                // must read 0, the rusted rows 8 (反射先例 :90-106 形状).
+                int ancient = countPoolEntries(main, "nugget_ancient_metal", "ingot_ancient_metal");
+                int rusted = countPoolEntries(main,
+                        "shears_rusted_iron", "shovel_rusted_iron", "hoe_rusted_iron", "mattock_rusted_iron",
+                        "dagger_rusted_iron", "sword_rusted_iron", "battle_axe_rusted_iron", "war_hammer_rusted_iron");
+                ETIM.LOGGER.info("[TestLog] dungeon pool entries introspected ancientMetal=" + ancient
+                        + " rustedRows=" + rusted + " [server]");
             }
             return;
         }
@@ -113,7 +124,7 @@ public final class ETIMMetalLoot {
         }
     }
 
-    /** Ancient-metal row (B-2(a) shape: R196 WeightedRandomChestContent(item, 0, 1, 4, 10) 对位). */
+    /** Ancient-metal row — (a) 已删 (D-02 ii, 2026-10-25)，留作 (b) 箱面形状参考. */
     private static LootEntryItem entry(Item item, int min, int max, boolean rustedDamage) {
         return entry(item, min, max, 10, rustedDamage);
     }
@@ -135,5 +146,43 @@ public final class ETIMMetalLoot {
         }
         return new LootEntryItem(item, weight, 0, functions, new LootCondition[0],
                 item.getRegistryName().toString());
+    }
+
+    /**
+     * §8.2 — the pool introspection face: reflect the private lootEntries
+     * list (the :90-106 double-candidate shape) and count entries whose name
+     * contains one of the given registry-path fragments.
+     */
+    private static int countPoolEntries(LootPool pool, String... fragments) {
+        try {
+            java.lang.reflect.Field field = null;
+            for (String candidate : new String[]{"lootEntries", "field_186453_a"}) {
+                try {
+                    field = LootPool.class.getDeclaredField(candidate);
+                    field.setAccessible(true);
+                    break;
+                } catch (NoSuchFieldException wrongSurface) {
+                    // next candidate
+                }
+            }
+            if (field != null) {
+                @SuppressWarnings("unchecked")
+                List<Object> entries = (List<Object>) field.get(pool);
+                int count = 0;
+                for (Object e : entries) {
+                    String name = ((net.minecraft.world.storage.loot.LootEntry) e).getEntryName();
+                    for (String fragment : fragments) {
+                        if (name.contains(fragment)) {
+                            count++;
+                            break;
+                        }
+                    }
+                }
+                return count;
+            }
+        } catch (Exception reflectionMiss) {
+            ETIM.LOGGER.warn("[TestLog] dungeon pool introspection missed: " + reflectionMiss);
+        }
+        return -1;
     }
 }
