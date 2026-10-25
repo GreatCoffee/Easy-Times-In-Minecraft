@@ -86,3 +86,20 @@ mineflayer + FML|HS 握手，连主会话起好的 runServer（etim 已装）。
 - `minecraft-protocol-forge` 是 deathcap 2016 版（npm 最新即 1.0.0），FML|HS 1.12.2 registry burst 若失败，需脚本层补 ACK 处理——出现即按偏差登记报主会话。
 - 服务器 mod 清单由 status ping 镜像而来，服务器增减时自动跟随，无须硬编码 `etim`。
 - 本目录 `node_modules/` 已 gitignore，不进发布 jar；不进兼容清单。
+## Weak-strike testing (B-A2-1, 2026-10-25)
+
+Any bot-side kill/weak-strike verification **must** disable loot pickup first:
+`/kill` routes through `dropFewItems`, the bot picks up `Items.BONE`, and a held
+bone is on the R196 `preventsHandDamage` list — `canOnlyPerformWeakStrike`
+returns false and the whole weak-strike branch is silently skipped (6/6 verify
+falls to 0 verdict rows with no deny feedback).
+
+Preparation before any weak-strike / kill-drop window:
+```
+/gamerule doMobLoot false
+/gamerule doTileDrops false
+/kill @e[type=item]
+/clear @p
+```
+Ruling: a2-probe.js (delivered first) is retired — a2-run.js r1 (per-round
+respawn + re-stack) is the authoritative driver.
