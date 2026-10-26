@@ -61,35 +61,30 @@ public final class ETIMDamageLog {
         CTX.put(target, c);
     }
 
-    /** armor-step return — the plain (raw, out) face: absolute sources, model off, no composition. */
-    public static void armor(EntityLivingBase target, float armorIn, float armorOut) {
-        armorFull(target, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, armorIn, armorOut);
-    }
-
-    /** armor-step return — the composition face computed inside finalDamage (structure = §7.2). */
-    public static void armor(EntityLivingBase target, R196ArmorModel.Face faces, float armorIn, float armorOut) {
-        armorFull(target, faces.natural, faces.armor, faces.potion, faces.piercing,
-                playerWearOf(faces), armorIn, armorOut);
-    }
-
-    private static void armorFull(EntityLivingBase target, float natural, float armor, float potion,
-            float piercing, float wear, float armorIn, float armorOut) {
+    /** armor-step return — value face only (absolute sources / model off, D-36①): no prot row. */
+    public static void armorValue(EntityLivingBase target, float armorIn, float armorOut) {
         Ctx c = CTX.get(target);
         if (c == null || !ETIMConfig.damageDebugLog) {
             return;
         }
         c.armorIn = armorIn;
         c.armorOut = armorOut;
-        // absolute = (armorIn == armorOut && wears nothing) — guaranteed raw>0 by the first step
-        row("prot target=" + nameOf(target)
-                + " src=" + c.src
-                + " natural=" + f3(natural) + " armor=" + f3(armor)
-                + " potion=" + f3(potion) + " total=" + f3(natural + armor + potion)
-                + " piercing=" + f3(piercing) + " wear=" + f3(wear));
     }
 
-    private static float playerWearOf(R196ArmorModel.Face faces) {
-        return faces.wear;
+    /** armor-step return — the composition face computed inside finalDamage (structure = §7.2). */
+    public static void armor(EntityLivingBase target, R196ArmorModel.Face faces, float armorIn, float armorOut) {
+        Ctx c = CTX.get(target);
+        if (c == null || !ETIMConfig.damageDebugLog) {
+            return;
+        }
+        c.armorIn = armorIn;
+        c.armorOut = armorOut;
+        row("prot target=" + nameOf(target)
+                + " src=" + c.src
+                + " natural=" + f3(faces.natural) + " armor=" + f3(faces.armor)
+                + " potion=" + f3(faces.potion)
+                + " total=" + f3(faces.natural + faces.armor + faces.potion)
+                + " piercing=" + f3(faces.piercing) + " wear=" + f3(faces.wear));
     }
 
     /** exit — damageEntity RETURN: compute the five segments and remove. */

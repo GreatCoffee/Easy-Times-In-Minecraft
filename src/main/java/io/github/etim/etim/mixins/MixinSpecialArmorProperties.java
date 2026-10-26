@@ -54,7 +54,7 @@ public abstract class MixinSpecialArmorProperties {
         if (ETIMConfig.armorModelR196) {
             cir.setReturnValue(R196ArmorModel.finalDamage(entity, source, (float) damage));
         } else {
-            ETIMDamageLog.armor(entity, (float) damage, cir.getReturnValue()); // D-36①
+            ETIMDamageLog.armorValue(entity, (float) damage, cir.getReturnValue()); // D-36①
         }
     }
 

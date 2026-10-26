@@ -74,17 +74,15 @@ public final class R196ArmorModel {
         //    OUT_OF_WORLD carries only the bypass bit, R196 is absolute,
         //    util/DamageSource.:29).
         if (isR196Absolute(source)) {
-            ETIMDamageLog.armor(target, raw, raw); // row: armorOut=raw, no prot face row
+            ETIMDamageLog.armorValue(target, raw, raw); // row A only: armorOut=raw, NO prot row (W10)
             return raw;
         }
         // 3) AD-10 sword blocking — registered only (C-2), no landing point.
         // 4) Damage.java:213 (flat sum, natural goes straight in — hard finding 4)
-        Face faces = new Face(
-                naturalDefense(target, source),          // :1191
-                armorPoints(target, source, true),       // :1195 (inner :334 fit)
-                potionProtection(target, source),        // :1199
-                0.0F);                                   // piercing placeholder (AD-7)
-        float total = faces.natural + faces.armor + faces.potion;
+        float natural = naturalDefense(target, source);   // :1191
+        float armor = armorPoints(target, source, true);  // :1195 (inner :334 fit)
+        float potion = potionProtection(target, source);  // :1199
+        float total = natural + armor + potion;
         // 5) Damage.java:215-216 — wear BEFORE the dice (R196 :215-216 < :221-229)
         float wearBase = armorPoints(target, source, false); // no specialized
         float wearAmount = Math.min(wearBase, raw);
@@ -94,6 +92,8 @@ public final class R196ArmorModel {
                 damageArmorR196(player, source, wearAmount);
             }
         }
+        // §7.2 composition face — the prot-row columns (piercing placeholder 0, AD-7)
+        Face faces = new Face(natural, armor, potion, 0.0F, wearAmount);
         // 6) Damage.java:218-219 — AD-7 registered only, piercing constant 0
         float effective = Math.max(total - 0.0F, 0.0F);
         // 7) Damage.java:221-229 — player dice, delta+1 throws of <0.2F

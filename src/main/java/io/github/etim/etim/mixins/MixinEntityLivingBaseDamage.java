@@ -47,7 +47,7 @@ public abstract class MixinEntityLivingBaseDamage {
         if (ETIMConfig.armorModelR196) {
             cir.setReturnValue(R196ArmorModel.finalDamage(self, source, damage));
         } else {
-            ETIMDamageLog.armor(self, damage, cir.getReturnValue()); // D-36①: log the vanilla value only
+            ETIMDamageLog.armorValue(self, damage, cir.getReturnValue()); // D-36①: vanilla value, row A only
         }
     }
 
