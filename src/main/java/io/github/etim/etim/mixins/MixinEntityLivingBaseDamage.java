@@ -41,13 +41,30 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(EntityLivingBase.class)
 public abstract class MixinEntityLivingBaseDamage {
 
-    @Inject(method = "applyArmorCalculations", at = @At("RETURN"), cancellable = true)
-    private void etim$r196Armor(DamageSource source, float damage, CallbackInfoReturnable<Float> cir) {
-        EntityLivingBase self = (EntityLivingBase) (Object) this;
+    /**
+     * armorR196 @HEAD cancellable (armorD-recheck A-3 = fix a): the vanilla
+     * multiplicative body ({@code CombatRules.getDamageAfterAbsorb}) runs
+     * FIRST, so a @RETURN read of the local {@code damage} saw the
+     * already-multiplied value (W2 5.000→4.100 armorIn = the 1.12 product,
+     * double-count). At HEAD the parameter is still the raw incoming
+     * {@code amount} — model ON returns the R196 single body directly and
+     * the vanilla body is skipped entirely; model OFF is a no-op here so the
+     * vanilla face runs and the @RETURN audit-logger below records it
+     * (D-36①, W19 keeps its vanilla value).
+     */
+    @Inject(method = "applyArmorCalculations", at = @At("HEAD"), cancellable = true)
+    private void etim$r196ArmorHead(DamageSource source, float damage, CallbackInfoReturnable<Float> cir) {
         if (ETIMConfig.armorModelR196) {
-            cir.setReturnValue(R196ArmorModel.finalDamage(self, source, damage));
-        } else {
-            ETIMDamageLog.armorValue(self, damage, cir.getReturnValue()); // D-36①: vanilla value, row A only
+            cir.setReturnValue(R196ArmorModel.finalDamage((EntityLivingBase) (Object) this, source, damage));
+        }
+    }
+
+    @Inject(method = "applyArmorCalculations", at = @At("RETURN"), cancellable = true)
+    private void etim$r196ArmorReturn(DamageSource source, float damage, CallbackInfoReturnable<Float> cir) {
+        // body only executes when the model is OFF (the HEAD face cancels and
+        // the vanilla body is skipped otherwise) — D-36①: vanilla value, row A only
+        if (!ETIMConfig.armorModelR196) {
+            ETIMDamageLog.armorValue((EntityLivingBase) (Object) this, damage, cir.getReturnValue());
         }
     }
 

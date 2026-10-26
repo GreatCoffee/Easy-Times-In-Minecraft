@@ -12,7 +12,6 @@ import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -30,47 +29,45 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * {@code mixins/MixinSidedInvWrapper.java:29} (audit20-90 pin ④).</p>
  *
  * <ul>
- *   <li>{@code applyArmor} @RETURN cancellable: the exit value rides the R196
- *       single body (A-1①). Model off = vanilla value logged untouched
- *       (D-36①).</li>
- *   <li>D-34①: the 1.12 per-piece wear — the
- *       {@code stack.damageItem((int)armorDamage, entity)} inside {@code
- *       applyArmor (:234)} — MUST be swallowed, else it double-counts with the
- *       R196 integer-point split inside {@code finalDamage} (audit20-90 pin
- *       ⑤). Byte-located: the two {@code damageItem} calls in {@code
- *       applyArmor} sit at :212 (the AbsorbRatio support section) first and
- *       :234 second → {@code ordinal=1}. The :212 call (pieces with custom
- *       absorb) is NOT touched — D-35① drops foreign mod pieces entirely
- *       (their AbsorbRatio lowers the exit value in place, R196 has no
- *       corresponding concept, no double-count from this side).</li>
+ *   <li>{@code applyArmor} @HEAD cancellable (armorD-recheck A-3 = fix a):
+ *       model ON returns the R196 single body with the raw incoming
+ *       {@code damage} (the old @RETURN face saw the CombatRules-multiplied
+ *       local — double-count); the vanilla body is skipped, so the former
+ *       D-34 wear-suppression {@code @Redirect} on ISpecialArmor.:234 is
+ *       retired (R196 wear is the split inside {@code finalDamage}).</li>
+ *   <li>{@code applyArmor} @RETURN audit-logger: model OFF only — the vanilla
+ *       value logged untouched (D-36①, the W19 audit face runs the full
+ *       vanilla body including its per-piece wear).</li>
  * </ul>
  */
 @Mixin(targets = "net.minecraftforge.common.ISpecialArmor$ArmorProperties", remap = false)
 public abstract class MixinSpecialArmorProperties {
 
-    @Inject(method = "applyArmor", at = @At("RETURN"), cancellable = true)
-    private static void etim$r196PlayerArmor(EntityLivingBase entity, NonNullList<ItemStack> inventory,
+    /**
+     * armorR196 @HEAD cancellable (armorD-recheck A-3 = fix a): the vanilla
+     * multiplicative body is skipped entirely when the model is ON (the @RETURN
+     * read saw the CombatRules-multiplied local — double-count); the R196 wear
+     * face rides {@link R196ArmorModel#finalDamage} ({@code damageArmorR196},
+     * InventoryPlayer.:681-720), so the former D-34 wear-suppression
+     * {@code @Redirect} on the :234 {@code damageItem} is RETIRED (its body
+     * never executes under the model; W19's model-off face runs full vanilla
+     * wear again). Model OFF = no-op here, vanilla body runs, @RETURN below
+     * logs the vanilla value (D-36①).
+     */
+    @Inject(method = "applyArmor", at = @At("HEAD"), cancellable = true)
+    private static void etim$r196PlayerArmorHead(EntityLivingBase entity, NonNullList<ItemStack> inventory,
             DamageSource source, double damage, CallbackInfoReturnable<Float> cir) {
         if (ETIMConfig.armorModelR196) {
             cir.setReturnValue(R196ArmorModel.finalDamage(entity, source, (float) damage));
-        } else {
-            ETIMDamageLog.armorValue(entity, (float) damage, cir.getReturnValue()); // D-36①
         }
     }
 
-    /**
-     * D-34① — swallow the :234 per-piece wear (the second of the two
-     * {@code damageItem} calls; the first, :212, is the AbsorbRatio support
-     * and keeps its call).
-     */
-    @Redirect(method = "applyArmor", at = @At(value = "INVOKE",
-            // SRG literal — this class is remap=false (Forge enclosing class), so
-            // the @At target is handed to the runtime verbatim; 1.12.2 runs SRG
-            // method names in dev AND reobf (armorD-verdict A-1: the MCP name
-            // "damageItem" missed → func_77972_a → 0 hits → require=1 crash).
-            target = "Lnet/minecraft/item/ItemStack;func_77972_a(ILnet/minecraft/entity/EntityLivingBase;)V",
-            ordinal = 1), require = 1)
-    private static void etim$suppressVanillaWear(ItemStack stack, int amount, EntityLivingBase entity) {
-        // R196 wear already done inside finalDamage (InventoryPlayer.:681-720 face) — empty body.
+    @Inject(method = "applyArmor", at = @At("RETURN"), cancellable = true)
+    private static void etim$r196PlayerArmorReturn(EntityLivingBase entity, NonNullList<ItemStack> inventory,
+            DamageSource source, double damage, CallbackInfoReturnable<Float> cir) {
+        // body only executes when the model is OFF — D-36①: vanilla value logged untouched
+        if (!ETIMConfig.armorModelR196) {
+            ETIMDamageLog.armorValue(entity, (float) damage, cir.getReturnValue());
+        }
     }
 }
