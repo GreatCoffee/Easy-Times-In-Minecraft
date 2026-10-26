@@ -606,7 +606,7 @@ public class ETIMEntityArrow extends EntityArrow {
                     + " mult=" + f3(mult)
                     + " floor=" + f3(floor)
                     + " crit=" + (crit ? 1 : 0)
-                    + " final=" + f3(skip == null || skip.equals("rejected") ? 0.0F : finalDamage)
+                    + " final=" + f3(skip == null ? finalDamage : 0.0F) // A-1 recheck fix: value only when actually applied
                     + (skip == null ? "" : " skip=" + skip));
         }
 
