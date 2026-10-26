@@ -791,6 +791,14 @@ public final class ETIMConfig {
                 comment("[ArrowLog] rows of the batch-B arrow identity face: register, spawn, pickup, nbt write/read, skeleton, dispense — W1~W7 judgment channel; silent when off",
                         "[ArrowLog] 判行（批 B 箭身份面）：注册、生成、拾取、NBT 写读、骷髅、发射器——W1~W7 判定通道；关闭则静默"));
 
+        // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
+        armorModelR196 = config.getBoolean("armorModelR196", "combat", true,
+                comment("R196 subtraction armor model (batch D): max(amount - effective_protection, 1.0F) on the 0-10 scale with flat enchant/potion weighting; false = vanilla 1.12 multiplicative model (armorModelR196=false is the W19 audit face)",
+                        "R196 减法护甲模型（批 D）：max(实际伤害 − 有效防护, 1.0F)，0~10 标度 + 附魔/药水平权；false = 1.12 乘法原版模型（armorModelR196=false 即 W19 审计面）"));
+        damageDebugLog = config.getBoolean("damageDebugLog", "combat", false,
+                comment("[DamageLog] rows (armorOut/prot two-row shapes) of the batch-D armor chain — the W1~W19 judgment channel; silent when off",
+                        "[DamageLog] 判行（批 D 护甲减算链 armorOut/prot 两式样）——W1~W19 判定通道；关闭则静默"));
+
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",
                         "死亡掉落 total/3 成经验球于死亡点。R-18=R2a：R196 一手无玩家死产经验球（单池语义）——默认 false；键保留为 ETIM 宽松化可选项（可捡回 1/3）"));

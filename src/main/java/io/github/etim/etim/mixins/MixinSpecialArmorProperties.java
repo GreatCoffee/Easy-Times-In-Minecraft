@@ -64,7 +64,11 @@ public abstract class MixinSpecialArmorProperties {
      * and keeps its call).
      */
     @Redirect(method = "applyArmor", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/item/ItemStack;damageItem(ILnet/minecraft/entity/EntityLivingBase;)V",
+            // SRG literal — this class is remap=false (Forge enclosing class), so
+            // the @At target is handed to the runtime verbatim; 1.12.2 runs SRG
+            // method names in dev AND reobf (armorD-verdict A-1: the MCP name
+            // "damageItem" missed → func_77972_a → 0 hits → require=1 crash).
+            target = "Lnet/minecraft/item/ItemStack;func_77972_a(ILnet/minecraft/entity/EntityLivingBase;)V",
             ordinal = 1), require = 1)
     private static void etim$suppressVanillaWear(ItemStack stack, int amount, EntityLivingBase entity) {
         // R196 wear already done inside finalDamage (InventoryPlayer.:681-720 face) — empty body.
