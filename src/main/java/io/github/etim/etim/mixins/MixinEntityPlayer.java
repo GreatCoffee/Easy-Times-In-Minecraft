@@ -3,11 +3,13 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMEndurance;
 import io.github.etim.etim.hunger.ETIMHunger;
+import io.github.etim.etim.combat.ETIMDamageLog;
 import io.github.etim.etim.playerstate.ETIMBedSafety;
 import io.github.etim.etim.playerstate.ETIMXp;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.PlayerCapabilities;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -144,5 +146,26 @@ public abstract class MixinEntityPlayer {
             ETIMBedSafety.logBedRefuse(world, "notSafe", aabb);
         }
         return hostiles;
+    }
+
+    // ==================== batch D — the player damage-entity row (A-1① audit20-89) ====================
+
+    /**
+     * The player path of the five-segment row A — the overridden
+     * {@code damageEntity} ({@code entity/player/EntityPlayer.java:1223});
+     * the mob mixin's own {@code damageEntity} pair never fires here (single
+     * dispatch each, audit20-90 pin ⑤). Row = {@code dmg … damageDebugLog} gate
+     * ({@link ETIMDamageLog}); the dice-full-block face (>1230 ≤0 early exit)
+     * keeps the row from ever firing for a dice hit, matching R196's
+     * "no packet" face (report §6.2:2:3).
+     */
+    @Inject(method = "damageEntity", at = @At("HEAD"))
+    private void etim$beginDamage(DamageSource source, float amount, CallbackInfo ci) {
+        ETIMDamageLog.begin(net.minecraft.entity.EntityLivingBase.class.cast(this), source, amount);
+    }
+
+    @Inject(method = "damageEntity", at = @At("RETURN"))
+    private void etim$endDamage(DamageSource source, float amount, CallbackInfo ci) {
+        ETIMDamageLog.end(net.minecraft.entity.EntityLivingBase.class.cast(this), source);
     }
 }

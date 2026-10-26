@@ -40,7 +40,7 @@ import net.minecraft.world.World;
  *       ground arrow is {@code arrow_ancient_metal}, R196 EntitySkeleton:271).</li>
  * </ul>
  */
-public class ETIMEntityLongdead extends EntitySkeleton {
+public class ETIMEntityLongdead extends EntitySkeleton implements io.github.etim.etim.combat.ETIMNaturalDefense {
 
     /** R196 skeletonType 2/0 的 1.12 等价面（AI 由手持物决定）。 */
     protected boolean meleeType;
@@ -64,13 +64,23 @@ public class ETIMEntityLongdead extends EntitySkeleton {
         this.getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.29D); // :17
         this.getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE)
                 .setBaseValue(this.isGuardian() ? 8.0D : 6.0D); // :18
-        // D-8 裁定 — the natural defense approximation, ARMOR +1/+2 with the
-        // [MobLog] approx tag (B-12: no damage-source bypass carrier).
-        this.getEntityAttribute(SharedMonsterAttributes.ARMOR)
-                .setBaseValue(this.isGuardian() ? 2.0D : 1.0D);
         ETIMMobEquip.mobLog("longdead attr hp=" + (this.isGuardian() ? 24 : 12)
-                + " atk=" + (this.isGuardian() ? 8 : 6) + " spd=0.29 armor=" + (this.isGuardian() ? 2 : 1)
-                + " approx (naturalDefense +1/+2)");
+                + " atk=" + (this.isGuardian() ? 8 : 6) + " spd=0.29 (batch D: naturalDefense rides its own channel, no ARMOR pin)");
+    }
+
+    /**
+     * T-1 (A-2①, audit20-89): the natural-defense identity replaces the
+     * retired D-8 ARMOR approximation — value gate included (R196
+     * EntityLongdead.java:45-47: bypassesMundaneArmor → 0; guardian 2.0F /
+     * normal 1.0F). The channel adds it straight into the total, NO wear
+     * factor (hard finding 4). The guard folds R196 bypass to the 1.12
+     * absolute/bypass bit (report §6.1).
+     */
+    @Override
+    public float etimNaturalDefense(net.minecraft.util.DamageSource source) {
+        return source == null ? 0.0F
+                : (source.isUnblockable() || source.isFireDamage()) ? 0.0F
+                : (this.isGuardian() ? 2.0F : 1.0F);
     }
 
     /** R196 :36-38. */

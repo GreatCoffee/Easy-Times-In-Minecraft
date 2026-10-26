@@ -338,6 +338,17 @@ public final class ETIMConfig {
      *  [ArrowLog] 判行：注册/生成/拾取/NBT/骷髅/发射器（开发通道，W1~W7 判定门）。 */
     public static boolean arrowDebugLog = false;
 
+    // combat (batch D armor model, audit20-89/90) -----------------------------
+    /** R196 护甲模型整体开关（A-1①，audit20-89/90）：三面改写返回值——
+     *  ① 怪口 entity/EntityLivingBase.java:1509、② 玩家口 common/ISpecialArmor
+     *  .java:132、③ 药水步接管（A-6①）。R196 判值 = 减法
+     *  max(amount − effective_protection, 1.0F) + 玩家 20% 全免骰。
+     *  off = 原版 1.12 乘法护甲（[DamageLog] 仍记 vanilla 值，A/B 对账面）。 */
+    public static boolean armorModelR196 = true;
+    /** 服务端日志 [DamageLog] 判行（A-5①，audit20-89）：五段正本行 A
+     *  （dmg）与组成正本行 B（prot，D-33①）——独立开发开关，默认关。 */
+    public static boolean damageDebugLog = false;
+
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
     public static boolean deathXpOrbs = false;
