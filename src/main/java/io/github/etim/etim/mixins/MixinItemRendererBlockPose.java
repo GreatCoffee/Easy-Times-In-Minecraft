@@ -53,6 +53,11 @@ public abstract class MixinItemRendererBlockPose {
         if (hand != activeSide) {
             return;                                   // 防 :438 非活动态分支误触另一只手
         }
+        int i = hand == EnumHandSide.RIGHT ? 1 : -1;
+        // R196 use 态 pre-baseline（:342 + :350-351）：1.12 活动态分支不调 transformFirstPerson，
+        // 故该两枚本在役的算子在此补齐，凑出与 R196 相同的相对矩阵序（W13-A B-1 结构对位）。
+        GlStateManager.rotate((float) i * 45.0F, 0.0F, 1.0F, 0.0F);   // R196 :342
+        GlStateManager.scale(0.4F, 0.4F, 0.4F);                       // R196 :350-351
         GlStateManager.translate(-0.5F, 0.2F, 0.0F);      // R196 :355
         GlStateManager.rotate(30.0F, 0.0F, 1.0F, 0.0F);   // :356
         GlStateManager.rotate(-80.0F, 1.0F, 0.0F, 0.0F);  // :357
