@@ -1,6 +1,8 @@
 package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.combat.ETIMBlockLog;
+import io.github.etim.etim.combat.ETIMBlocking;
 import io.github.etim.etim.ingest.ETIMIngestibles;
 import io.github.etim.etim.nutrition.NutritionSystem;
 import net.minecraft.entity.EntityLivingBase;
@@ -111,4 +113,72 @@ public abstract class MixinItem {
     // {@link MixinItemStack#getMaxDamage} — the forge-patch overload
     // Item.getMaxDamage(ItemStack) has no MCP-stable obf mapping, so the
     // ItemStack gate is the port spot (see that class's javadoc).
+
+    // ==================== AD-10+SH (step 2 of the §9.1 order) ====================
+
+    /**
+     * M1-3 — the R196 {@code ItemTool.getItemInUseAction}:217-219 (unconditional
+     * BLOCK) face: the action value itself is UNCONDITIONAL on {@code canBlock}
+     * (the gate lives at the 起手 entry, M1-1). The {@code cir.isCancelled()}
+     * yield keeps the food face above in charge for the ingestible stacks —
+     * the two predicates never overlap (tools are not ingestible), but the
+     * yield makes the ordering irrelevant (C-1 structurally eliminated: all
+     * three branches ride the already-patched bodies, no second cancel face).
+     */
+    @Inject(
+            method = "getItemUseAction(Lnet/minecraft/item/ItemStack;)Lnet/minecraft/item/EnumAction;",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void etim$blockAction(ItemStack stack, CallbackInfoReturnable<EnumAction> cir) {
+        if (cir.isCancelled()) {
+            return;
+        }
+        if (ETIMConfig.blockModel && ETIMBlocking.isBlockCarrier(stack)) {
+            cir.setReturnValue(EnumAction.BLOCK);
+        }
+    }
+
+    /**
+     * M1-4 — the R196 {@code ItemTool}:222-224 (72000) face: WITHOUT it the
+     * {@code Item.getMaxItemUseDuration} default 0 (Item.java:441-444) makes
+     * {@code onItemUseStart} (:2978-2979) reject the start — a dead gate.
+     */
+    @Inject(
+            method = "getMaxItemUseDuration(Lnet/minecraft/item/ItemStack;)I",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void etim$blockDuration(ItemStack stack, CallbackInfoReturnable<Integer> cir) {
+        if (!ETIMConfig.blockModel || !ETIMBlocking.isBlockCarrier(stack)) {
+            return;
+        }
+        cir.setReturnValue(72000);
+    }
+
+    /**
+     * M1-2 — the R196 {@code ItemTool.onItemRightClick}:227-234 start face. The
+     * vanilla base body returns PASS; when it is a carrier and the hand is
+     * free, the stack enters the use state (SUCCESS — the vanilla
+     * {@code ItemStack.useItemRightClick} route then just carries the same
+     * stack). Single-use-state preserved (A-6): an active eat/bow hold is
+     * never stolen.
+     */
+    @Inject(
+            method = "onItemRightClick(Lnet/minecraft/world/World;Lnet/minecraft/entity/player/EntityPlayer;Lnet/minecraft/util/EnumHand;)Lnet/minecraft/util/ActionResult;",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void etim$startBlocking(World world, EntityPlayer player, EnumHand hand,
+                                    CallbackInfoReturnable<ActionResult<ItemStack>> cir) {
+        ItemStack stack = player.getHeldItem(hand);
+        if (!ETIMConfig.blockModel || !ETIMBlocking.isBlockCarrier(stack)
+                || player.isHandActive()) {
+            return;                                     // in-use (eat/bow/block) — never steal the state
+        }
+        player.setActiveHand(hand);
+        ETIMBlockLog.start(player, hand, stack, stack.getMaxItemUseDuration(),
+                player.getItemInUseCount());
+        cir.setReturnValue(new ActionResult<ItemStack>(EnumActionResult.SUCCESS, stack));
+    }
 }

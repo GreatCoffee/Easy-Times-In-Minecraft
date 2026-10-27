@@ -2,6 +2,8 @@ package io.github.etim.etim.commands;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.combat.ETIMBlockLog;
+import io.github.etim.etim.combat.ETIMBlocking;
 import io.github.etim.etim.combat.R196ArmorModel;
 import io.github.etim.etim.harness.TestDriver;
 import io.github.etim.etim.hunger.ETIMFoodStats;
@@ -24,6 +26,7 @@ import net.minecraft.entity.projectile.EntityTippedArrow;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.EnumAction;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketSetExperience;
@@ -122,6 +125,12 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "enchantprobe":
                 executeEnchantProbe(server, sender, args);
+                break;
+            case "blockprobe":
+                executeBlockProbe(server, sender, args);
+                break;
+            case "hurt":
+                executeHurt(server, sender, args);
                 break;
             case "attack":
                 executeAttack(server, sender, args);
@@ -411,6 +420,82 @@ public class CommandDevTest extends CommandBase {
      * (resolved on the server thread, centered on the acting player, e.g.
      * {@code @e[type=zombie,limit=1]}), for the attackDrain probe rounds.
      */
+    /**
+     * {@code /etest blockprobe [player]} — the M7-2 blocking-state probe: the
+     * carrier / action / use-state / stack-durability / config faces, all
+     * carried on the [BlockLog] channel (the W1 arms drive it 19 times with
+     * {@code hold}); the cfg re-read arm of W14 rides the second probe line.
+     * Everything reads the PRODUCT helper ({@link ETIMBlocking}) instead of
+     * re-implementing the gate.
+     */
+    private static void executeBlockProbe(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = targetOrSender(server, sender, args, 1);
+        ItemStack held = player.getHeldItemMainhand();
+        ItemStack active = player.getActiveItemStack();
+        ETIMBlockLog.carrier(held, ETIMBlocking.isBlockCarrier(held));
+        ETIMBlockLog.action(held, held.isEmpty() ? EnumAction.NONE
+                : held.getItem().getItemUseAction(held));
+        ETIMBlockLog.state(player, active, held,
+                !active.isEmpty() && ItemStack.areItemStacksEqual(active, held));
+        ETIMBlockLog.probeDurability(player, held);
+        ETIMBlockLog.probeConfig(player);
+        respond(player, "commands.etest.blockprobe");
+    }
+
+    /**
+     * {@code /etest hurt …} — the M7-1 blocking-verdict driver (input port of
+     * the D-2 halving), two shapes:
+     * <ul>
+     *   <li>{@code hurt <mob-selector> <amount> [player]} — one
+     *       {@code causeMobDamage} strike at the selected entity (the W3
+     *       default: {@code hurt @e[type=zombie,limit=1] 8});</li>
+     *   <li>{@code hurt <amount> [src] [player]} — a direct vanilla source
+     *       strike (the W10 faces): {@code src} = {@code generic} (default) |
+     *       {@code fire} (IN_FIRE) | {@code oow} / {@code absolute}
+     *       (OUT_OF_WORLD).</li>
+     * </ul>
+     * Both resolve and strike on the server thread through
+     * {@link TestDriver#hurt}/{@link TestDriver#hurtByMob} (never on the RCON
+     * thread); the spacing face of W7/W8 stays with the RCON script (≥11
+     * ticks between strikes).
+     */
+    private static void executeHurt(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        if (!isNumber(args[1])) {
+            if (args.length < 3) {
+                throw new WrongUsageException("commands.etest.usage");
+            }
+            EntityPlayerMP player = targetOrSender(server, sender, args, 3);
+            float amount = (float) parseDouble(args[2], 0.0D, 1000.0D);
+            TestDriver.hurtByMob(player, args[1], amount);
+            respond(player, "commands.etest.drive_queued", "hurt " + args[1] + " " + args[2]);
+            return;
+        }
+        float amount = (float) parseDouble(args[1], 0.0D, 1000.0D);
+        String src = args.length >= 3 && !isNumber(args[2]) ? args[2].toLowerCase(java.util.Locale.ROOT) : "generic";
+        int playerIndex = args.length >= 3 && !isNumber(args[2]) ? 3 : 2;
+        EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
+        TestDriver.hurt(player, sourceFor(src), amount, src);
+        respond(player, "commands.etest.drive_queued", "hurt " + args[1] + " " + src);
+    }
+
+    /** The W10 source faces. */
+    private static DamageSource sourceFor(String src) throws WrongUsageException {
+        switch (src) {
+            case "fire":
+                return DamageSource.IN_FIRE;
+            case "oow":
+            case "absolute":
+                return DamageSource.OUT_OF_WORLD;
+            case "generic":
+                return DamageSource.GENERIC;
+            default:
+                throw new WrongUsageException("commands.etest.usage");
+        }
+    }
+
     private static void executeAttack(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");

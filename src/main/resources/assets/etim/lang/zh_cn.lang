@@ -39,7 +39,7 @@ etim.hunger.placeDeny=太饿了，放不下硬方块
 etim.hunger.weakStrike=太饿了，空手打不动
 commands.etest.health_set=已设：生命%s（上限%s 点）
 commands.etest.level_set=已设：等级%s
-commands.etest.usage=/etest food <饱食> [营养] [玩家] /etest health <生命> [玩家] /etest level <等级> [玩家] /etest debt <0..40> [玩家] /etest enchant <槽> <1..4> [玩家] /etest attack <实体选择器> [玩家] /etest dig <x> <y> <z> [玩家] /etest useblock <x> <y> <z> [玩家] /etest useitem [玩家] /etest hold <物品> [玩家] /etest release [玩家]（旧模型 /etest food <点数> [饱和] [玩家]）
+commands.etest.usage=/etest food <饱食> [营养] [玩家] /etest health <生命> [玩家] /etest level <等级> [玩家] /etest debt <0..40> [玩家] /etest enchant <槽> <1..4> [玩家] /etest attack <实体选择器> [玩家] /etest hurt <实体选择器> <伤害> [玩家] /etest hurt <伤害> [src=generic|fire|oow] [玩家] /etest blockprobe [玩家] /etest dig <x> <y> <z> [玩家] /etest useblock <x> <y> <z> [玩家] /etest useitem [玩家] /etest hold <物品> [玩家] /etest release [玩家]（旧模型 /etest food <点数> [饱和] [玩家]）
 commands.etest.food_set_pool=已设双池：饱食%s 营养=%s（上限%s 点）
 commands.etest.food_set_bar=已设：饥饿%s 饱和度%s（上限%s 点）
 etim.debug.food_pools=双池：饱食%s 营养=%s 饥饿池%s
@@ -69,6 +69,7 @@ commands.etest.enchant_empty_slot=目标槽位 %s 为空（先穿上装备再注
 commands.etest.drive_queued=驱动已入队：%s
 commands.etest.hold_set=主手已置为 %s
 commands.etest.hold_bad_item=%s 不是有效物品 id
+commands.etest.blockprobe=格挡已 dump 至 [BlockLog] 通道
 etim.furnace.cantSmelt=该物品没有可熔炼配方
 etim.furnace.notFuel=这不是燃料
 etim.furnace.tooHot=对这座熔炉太热

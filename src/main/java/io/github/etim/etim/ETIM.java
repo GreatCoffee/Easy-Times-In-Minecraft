@@ -102,6 +102,10 @@ public final class ETIM {
         // Manual registration for deterministic order against the 1.4 tick
         // drain (see ETIMFoodStatsEvents' class javadoc).
         MinecraftForge.EVENT_BUS.register(ETIMFoodStatsEvents.class);
+        // 批 AD-10+SH (A-AD10-2): the R196 blocking handler (LivingHurtEvent
+        // halving) rides the static-class bus registration — without this
+        // line the whole batch is a silent no-op (终审阻断级).
+        io.github.etim.etim.combat.ETIMBlocking.register();
         // Stage 5: R196 despawn chain + per-class attribute rows (+ livestock
         // wellness v1) — all judged from [AILog].
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.mob.ETIMMobStats.class);

@@ -39,7 +39,7 @@ commands.etest.level_set=Set: level=%s
 etim.hunger.craftDeny=Too hungry to craft
 etim.hunger.placeDeny=Too hungry to place hard blocks
 etim.hunger.weakStrike=Too hungry to hurt anything with bare hands
-commands.etest.usage=/etest food <satiation> [nutrition] [player] /etest health <health> [player] /etest level <level> [player] /etest debt <0..40> [player] /etest enchant <slot> <1..4> [player] /etest attack <entity selector> [player] /etest dig <x> <y> <z> [player] /etest useblock <x> <y> <z> [player] /etest useitem [player] /etest hold <item> [player] /etest release [player] (legacy food model: /etest food <points> [saturation] [player])
+commands.etest.usage=/etest food <satiation> [nutrition] [player] /etest health <health> [player] /etest level <level> [player] /etest debt <0..40> [player] /etest enchant <slot> <1..4> [player] /etest attack <entity selector> [player] /etest hurt <entity selector> <amount> [player] /etest hurt <amount> [src=generic|fire|oow] [player] /etest blockprobe [player] /etest dig <x> <y> <z> [player] /etest useblock <x> <y> <z> [player] /etest useitem [player] /etest hold <item> [player] /etest release [player] (legacy food model: /etest food <points> [saturation] [player])
 commands.etest.food_set_pool=Set pools: satiation=%s nutrition=%s (limit %s points)
 commands.etest.food_set_bar=Set: food=%s saturation=%s (cap %s points)
 etim.debug.food_pools=Pools: satiation=%s nutrition=%s hunger pool=%s
@@ -69,6 +69,7 @@ commands.etest.enchant_empty_slot=Target slot %s is empty (equip an item first)
 commands.etest.drive_queued=Driver queued: %s
 commands.etest.hold_set=Main hand set to %s
 commands.etest.hold_bad_item=%s is not a valid item id
+commands.etest.blockprobe=Block state dumped to [BlockLog]
 etim.furnace.cantSmelt=No smelting recipe for that item
 etim.furnace.notFuel=Not a fuel
 etim.furnace.tooHot=Too hot for this furnace

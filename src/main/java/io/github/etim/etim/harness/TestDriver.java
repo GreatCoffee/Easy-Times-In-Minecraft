@@ -7,11 +7,13 @@ import io.github.etim.etim.mixins.CPacketPlayerTryUseItemOnBlockAccessor;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.EntitySelector;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.play.client.CPacketPlayerDigging;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
 import net.minecraft.network.play.client.CPacketUseEntity;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
@@ -143,6 +145,42 @@ public final class TestDriver {
             fields.etim$setFacing(EnumFacing.DOWN);
             player.connection.processPlayerDigging(packet);
             ETIM.LOGGER.info("[TestLog] step=release player={}", player.getName());
+        });
+    }
+
+    /** {@code /etest hurt <amount> <src>} — one direct {@code attackEntityFrom} with a named vanilla source. */
+    public static void hurt(EntityPlayerMP player, DamageSource source, float amount, String srcKey) {
+        schedule(player, "hurt", 1, () -> {
+            player.attackEntityFrom(source, amount);
+            ETIM.LOGGER.info("[TestLog] step=hurt player={} amount={} src={}", player.getName(),
+                    String.format(java.util.Locale.ROOT, "%.3f", amount), srcKey);
+        });
+    }
+
+    /**
+     * {@code /etest hurt <mob-selector> <amount>} — the M7-1 "mob hits the
+     * player" face: the selector resolves on the server thread (same shape as
+     * {@link #attack}), then ONE {@code causeMobDamage} strike at the amount.
+     */
+    public static void hurtByMob(EntityPlayerMP player, String selector, float amount) {
+        schedule(player, "hurt", 1, () -> {
+            Entity target;
+            try {
+                target = EntitySelector.matchOneEntity(player, selector, EntityLivingBase.class);
+            } catch (CommandException e) {
+                ETIM.LOGGER.info("[TestLog] step=hurt player={} NO_TARGET selector={} detail={}",
+                        player.getName(), selector, e.getMessage());
+                return;
+            }
+            if (target == null) {
+                ETIM.LOGGER.info("[TestLog] step=hurt player={} NO_TARGET selector={}",
+                        player.getName(), selector);
+                return;
+            }
+            player.attackEntityFrom(DamageSource.causeMobDamage((EntityLivingBase) target), amount);
+            ETIM.LOGGER.info("[TestLog] step=hurt player={} amount={} mob={}#{}",
+                    player.getName(), String.format(java.util.Locale.ROOT, "%.3f", amount),
+                    target.getName(), target.getEntityId());
         });
     }
 

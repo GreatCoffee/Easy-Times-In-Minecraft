@@ -353,6 +353,24 @@ public final class ETIMConfig {
     /** Flat protection points removed per piercing level (R196 Damage.java:218 = level/5 × 5.0F ⇒ 1.0 per level). 每级穿透扣减的平点（R196 = 每级 1.0 点）。 */
     public static float piercingPointsPerLevel = 1.0F;
 
+    // combat batch AD-10+SH (audit20-97 planned) ------------------------------
+    /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
+     *  halve BEFORE armor, floor 1.0, no direction gate, no knockback immunity.
+     *  false = no blocking at all — the MixinItem BLOCK face never arms and the
+     *  vanilla shield free path stays vanilla (回退面只有这一个开关). R196 剑/盾
+     *  格挡总开关：护甲前减半、下限 1.0、无方向判定、不免疫击退。off = 全关。 */
+    public static boolean blockModel = true;
+    /** The halving factor (R196 Damage.java:198 = 0.5). 减半系数（R196 = 0.5）。 */
+    public static float blockDamageFactor = 0.5F;
+    /** Post-halving damage floor (R196 Damage.java:199-201 = 1.0). 减半后伤害下限（R196 = 1.0）。 */
+    public static float blockMinDamage = 1.0F;
+    /** Shield blocking wear rate (D-8): wear = (int)(blocked × rate); 1.0 → D=16 costs 8 durability
+     *  (336-dur shield = 42 hits); 0.0 = shields never wear. 盾格挡磨损率：336 耐的盾默认可挡 42 击；0.0 = 盾不磨损。 */
+    public static float shieldWearRate = 1.0F;
+    /** Server-log [BlockLog] judgment rows (D-3) — the W1~W14 channel, default off.
+     *  服务端日志 [BlockLog] 判行（W1~W14 判定通道），默认关。 */
+    public static boolean blockDebugLog = false;
+
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
     public static boolean deathXpOrbs = false;
@@ -808,6 +826,23 @@ public final class ETIMConfig {
         piercingPointsPerLevel = config.getFloat("piercingPointsPerLevel", "combat", piercingPointsPerLevel, 0.0F, 10.0F,
                 comment("Flat protection points removed per piercing level, off the natural+armor+potion total (R196 Damage.java:218 = level/5 × 5.0F ⇒ 1.0 per level); 0.0 = the enchantment still applies but grants nothing",
                         "每级穿透从「自然甲 + 护甲 + 药水」平权和上扣减的防护点（R196 = 每级 1.0）；0.0 = 附魔仍可附但不产生效果"));
+
+        // batch AD-10+SH blocking faces (audit20-97 planned)
+        blockModel = config.getBoolean("blockModel", "combat", true,
+                comment("R196 sword/shield blocking (AD-10+SH): halve incoming damage BEFORE armor (LivingHurtEvent), floor 1.0, no direction gate, no knockback immunity; the vanilla shield full-free path is closed while on. false = every blocking face off and the vanilla shield untouched",
+                        "R196 剑/盾格挡（AD-10+SH）：伤害在护甲步之前减半（LivingHurtEvent）、下限 1.0、无方向判定、不免疫击退；开启期间原版盾的全免路径关闭。关闭则所有格挡面关完全恢复原版盾"));
+        blockDamageFactor = config.getFloat("blockDamageFactor", "combat", blockDamageFactor, 0.0F, 1.0F,
+                comment("The blocking damage factor (R196 Damage.java:198 = 0.5; 1.0 = blocks nothing but still wears the tool)",
+                        "格挡伤害系数（R196 = 0.5；1.0 = 不减伤但照常磨损）"));
+        blockMinDamage = config.getFloat("blockMinDamage", "combat", blockMinDamage, 0.0F, 20.0F,
+                comment("The post-factor damage floor (R196 Damage.java:199-201 = 1.0)",
+                        "格挡后伤害下限（R196 = 1.0）"));
+        shieldWearRate = config.getFloat("shieldWearRate", "combat", shieldWearRate, 0.0F, 100.0F,
+                comment("Shield blocking wear rate (D-8): wear = (int)(blocked × rate); 1.0 → a 16-damage hit costs 8 durability (336-dur shield = 42 hits), 0.0 = shields never wear; the tool carriers keep the R196 25×raw channel regardless (the future etim-extra material table rides this slot)",
+                        "盾格挡磨损率（D-8）：磨损 = (int)(减半后伤害 × 率)；1.0 → 16 点一击掉 8 耐（336 耐挡 42 击），0.0 = 盾不磨损；工具侧仍走 R196 的 25×raw 通道（将来 etim-extra 材质盾表占这个列位）"));
+        blockDebugLog = config.getBoolean("blockDebugLog", "combat", false,
+                comment("[BlockLog] rows of the AD-10+SH blocking chain (carrier/action/start/state/gate/block/wear/probe) — the W1~W14 judgment channel; silent when off",
+                        "[BlockLog] 判行（AD-10+SH 格挡链 carrier/action/start/state/gate/block/wear/probe 八式样）——W1~W14 判定通道；关闭则静默"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",
