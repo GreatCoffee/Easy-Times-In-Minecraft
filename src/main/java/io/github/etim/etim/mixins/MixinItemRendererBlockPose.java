@@ -53,14 +53,13 @@ public abstract class MixinItemRendererBlockPose {
         if (hand != activeSide) {
             return;                                   // 防 :438 非活动态分支误触另一只手
         }
-        int i = hand == EnumHandSide.RIGHT ? 1 : -1;
-        // R196 use 态 pre-baseline（:342 + :350-351）：1.12 活动态分支不调 transformFirstPerson，
-        // 故该两枚本在役的算子在此补齐，凑出与 R196 相同的相对矩阵序（W13-A B-1 结构对位）。
-        GlStateManager.rotate((float) i * 45.0F, 0.0F, 1.0F, 0.0F);   // R196 :342
-        GlStateManager.scale(0.4F, 0.4F, 0.4F);                       // R196 :350-351
-        GlStateManager.translate(-0.5F, 0.2F, 0.0F);      // R196 :355
-        GlStateManager.rotate(30.0F, 0.0F, 1.0F, 0.0F);   // :356
-        GlStateManager.rotate(-80.0F, 1.0F, 0.0F, 0.0F);  // :357
-        GlStateManager.rotate(60.0F, 0.0F, 1.0F, 0.0F);   // :358
+        // B-1 迭代面（条 102.1/102.2）：delta 六量值全走 config（默认 = R196 :355-358 字面值）。
+        // 1.12 的 firstperson JSON 显示变换假设未旋转未缩放基架 —— R196 :342/:350 的 rot45/scale
+        // 在此链不成立（实机两轮证伪，条 102.2），故不补 pre-baseline，只在量值面补偿。
+        // swing 三轴（R196 :344-349，i 镜像先例 transformFirstPerson:294-296）继续不追（B-4 登记）。
+        GlStateManager.translate(ETIMConfig.blockPoseTX, ETIMConfig.blockPoseTY, 0.0F); // R196 :355
+        GlStateManager.rotate(ETIMConfig.blockPoseRot1, 0.0F, 1.0F, 0.0F);   // :356
+        GlStateManager.rotate(ETIMConfig.blockPoseRot2, 1.0F, 0.0F, 0.0F);   // :357
+        GlStateManager.rotate(ETIMConfig.blockPoseRot3, 0.0F, 1.0F, 0.0F);   // :358
     }
 }

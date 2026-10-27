@@ -371,6 +371,18 @@ public final class ETIMConfig {
      *  服务端日志 [BlockLog] 判行（W1~W14 判定通道），默认关。 */
     public static boolean blockDebugLog = false;
 
+    // client pose batch (clientpose; ad10 越批 A-1) ----------------------------
+    /** First-person BLOCK pose, translate X/Y (R196 ItemRenderer:355 = -0.5/+0.2).
+     *  第一人格挡摆位平移（无正本迭代键——1.12 firstperson JSON 变换无 1.6.4 对应物，
+     *  观感补偿量值只能现场调）。 */
+    public static float blockPoseTX = -0.5F;
+    public static float blockPoseTY = 0.2F;
+    /** First-person BLOCK pose, three rotations: Y, X, Y (R196 :356-358 = 30/-80/60).
+     *  第一人格挡摆位三轴（R196 字面默认）。 */
+    public static float blockPoseRot1 = 30.0F;
+    public static float blockPoseRot2 = -80.0F;
+    public static float blockPoseRot3 = 60.0F;
+
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
     public static boolean deathXpOrbs = false;
@@ -843,6 +855,23 @@ public final class ETIMConfig {
         blockDebugLog = config.getBoolean("blockDebugLog", "combat", false,
                 comment("[BlockLog] rows of the AD-10+SH blocking chain (carrier/action/start/state/gate/block/wear/probe) — the W1~W14 judgment channel; silent when off",
                         "[BlockLog] 判行（AD-10+SH 格挡链 carrier/action/start/state/gate/block/wear/probe 八式样）——W1~W14 判定通道；关闭则静默"));
+
+        // client pose batch (clientpose; ad10 越批 A-1 + B-1 观感)
+        blockPoseTX = config.getFloat("blockPoseTX", "combat", blockPoseTX, -3.0F, 3.0F,
+                comment("First-person blocking pose, X translate (R196 ItemRenderer:355 = -0.5, screen-left). Client-side visual only",
+                        "第一人格挡摆位 X 平移（R196 = -0.5，往屏左）。纯客户端观感面"));
+        blockPoseTY = config.getFloat("blockPoseTY", "combat", blockPoseTY, -3.0F, 3.0F,
+                comment("First-person blocking pose, Y translate (R196 :355 = +0.2, upward). Client-side visual only",
+                        "第一人格挡摆位 Y 平移（R196 = +0.2，往上）。纯客户端观感面"));
+        blockPoseRot1 = config.getFloat("blockPoseRot1", "combat", blockPoseRot1, -360.0F, 360.0F,
+                comment("First-person blocking pose, yaw 1 (R196 :356 = 30)",
+                        "第一人格挡摆位轴一：Y 旋（R196 = 30）"));
+        blockPoseRot2 = config.getFloat("blockPoseRot2", "combat", blockPoseRot2, -360.0F, 360.0F,
+                comment("First-person blocking pose, pitch (R196 :357 = -80)",
+                        "第一人格挡摆位轴二：X 旋（R196 = -80）"));
+        blockPoseRot3 = config.getFloat("blockPoseRot3", "combat", blockPoseRot3, -360.0F, 360.0F,
+                comment("First-person blocking pose, yaw 2 (R196 :358 = 60)",
+                        "第一人格挡摆位轴三：Y 旋（R196 = 60）"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",
