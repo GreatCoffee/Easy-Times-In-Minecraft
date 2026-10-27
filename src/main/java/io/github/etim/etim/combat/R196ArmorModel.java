@@ -2,11 +2,13 @@ package io.github.etim.etim.combat;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.metal.ETIMMetalArmor;
+import io.github.etim.etim.mining.ETIMEnchantments;
 
 import net.minecraft.init.Enchantments;
 import net.minecraft.init.MobEffects;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemArmor;
@@ -58,7 +60,6 @@ public final class R196ArmorModel {
     private static final float DICE_CHANCE = 0.2F;        // Damage.java:225
     private static final float DAMAGE_FLOOR = 1.0F;       // Damage.java:231
     private static final float ROUND_TOLERANCE = 1.0E-4F; // ItemArmor.java:334
-    private static final float PIERCING_POINTS = 5.0F;    // Damage.java:218 (AD-7 registered only, constant 0)
     private static final float FEATHER_FALLING_POINTS = 15.0F; // EnchantmentProtection.java:119
 
     private R196ArmorModel() {
@@ -92,10 +93,14 @@ public final class R196ArmorModel {
                 damageArmorR196(player, source, wearAmount);
             }
         }
-        // §7.2 composition face — the prot-row columns (piercing placeholder 0, AD-7)
-        Face faces = new Face(natural, armor, potion, 0.0F, wearAmount);
-        // 6) Damage.java:218-219 — AD-7 registered only, piercing constant 0
-        float effective = Math.max(total - 0.0F, 0.0F);
+        // §7.2 composition face — the prot-row columns (AD-7: real piercing)
+        float piercing = piercingPoints(source);          // Damage.java:218
+        Face faces = new Face(natural, armor, potion, piercing, wearAmount);
+        // 6) Damage.java:218-219 — AD-7: the piercing points come off the flat
+        //    total (natural + armor + potion), floored at 0; the wear subtotal
+        //    above is untouched (R196 :215-216 < :218) and the dice below read
+        //    this post-piercing value (1 point of piercing = delta − 1).
+        float effective = Math.max(total - piercing, 0.0F);
         // 7) Damage.java:221-229 — player dice, delta+1 throws of <0.2F
         if (target instanceof EntityPlayer && effective >= raw) {
             int delta = (int) (effective - raw);
@@ -110,6 +115,45 @@ public final class R196ArmorModel {
         float out = Math.max(raw - effective, DAMAGE_FLOOR);
         ETIMDamageLog.armor(target, faces, raw, out);
         return out;
+    }
+
+    /**
+     * AD-7 carrier face — R196 {@code DamageSource.getItemAttackedWith()}:227-247
+     * (javap: {@code getImmediateEntity}@1 / {@code instanceof EntityLivingBase}@51
+     * / {@code getHeldItemStack}@63). The 1.12 immediate source is the R196
+     * immediate entity: melee reads the attacker's mainhand, indirect sources
+     * (arrow, thrown potion) read a projectile item stack, which in R196 is
+     * {@code new ItemStack(Item)} with no {@code ench} tag — structurally zero
+     * (D-AD7-3, 条 94), so those branches are not ported and no AT is added.
+     *
+     * <p>Points = level × {@link ETIMConfig#piercingPointsPerLevel}, i.e. the R196
+     * {@code level/5 × 5.0F} identity of {@code Damage.java:218}.</p>
+     */
+    public static float piercingPoints(DamageSource source) {
+        ItemStack held = carrierOf(source);
+        if (held.isEmpty()) {
+            return 0.0F;
+        }
+        int level = EnchantmentHelper.getEnchantmentLevel(ETIMEnchantments.PIERCING, held);
+        return level <= 0 ? 0.0F : level * ETIMConfig.piercingPointsPerLevel;
+    }
+
+    /**
+     * The R196 {@code getItemAttackedWith()} carrier: the immediate source's
+     * mainhand when it is a living entity, empty otherwise (R196 returns null
+     * for every non-living immediate source — {@code DamageSource.java:227-247}).
+     * Shared by {@link #piercingPoints} and the {@code /etest enchantprobe}
+     * harness row so the two can never drift.
+     */
+    public static ItemStack carrierOf(DamageSource source) {
+        if (source == null) {
+            return ItemStack.EMPTY;
+        }
+        Entity immediate = source.getImmediateSource();
+        if (!(immediate instanceof EntityLivingBase)) {
+            return ItemStack.EMPTY;
+        }
+        return ((EntityLivingBase) immediate).getHeldItemMainhand();
     }
 
     /** AD-6: the natural defense of ETIM classes only (vanilla mobs = 0.0F → C-3). */

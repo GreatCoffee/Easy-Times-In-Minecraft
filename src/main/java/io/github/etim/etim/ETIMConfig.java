@@ -348,6 +348,10 @@ public final class ETIMConfig {
     /** 服务端日志 [DamageLog] 判行（A-5①，audit20-89）：五段正本行 A
      *  （dmg）与组成正本行 B（prot，D-33①）——独立开发开关，默认关。 */
     public static boolean damageDebugLog = false;
+    /** R196 piercing max level (Enchantment.java:67-69 = 5; batch E / AD-7). 穿透附魔最高等级（R196 = 5；批 E / AD-7）。 */
+    public static int piercingMaxLevel = 5;
+    /** Flat protection points removed per piercing level (R196 Damage.java:218 = level/5 × 5.0F ⇒ 1.0 per level). 每级穿透扣减的平点（R196 = 每级 1.0 点）。 */
+    public static float piercingPointsPerLevel = 1.0F;
 
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
@@ -798,6 +802,12 @@ public final class ETIMConfig {
         damageDebugLog = config.getBoolean("damageDebugLog", "combat", false,
                 comment("[DamageLog] rows (armorOut/prot two-row shapes) of the batch-D armor chain — the W1~W19 judgment channel; silent when off",
                         "[DamageLog] 判行（批 D 护甲减算链 armorOut/prot 两式样）——W1~W19 判定通道；关闭则静默"));
+        piercingMaxLevel = config.getInt("piercingMaxLevel", "combat", piercingMaxLevel, 1, 10,
+                comment("Piercing enchantment max level (R196 Enchantment.java:67-69 = 5). Lower bound is 1 on purpose: 0 would make the loot-book and villager channels fall back to level 1 (MathHelper.getInt min>=max) while the anvil truncates to 0 — use piercingPointsPerLevel=0.0 to switch the effect off",
+                        "穿透附魔最高等级（R196 = 5）。下限故意取 1：设 0 会让战利品书与村民渠道经 MathHelper.getInt 保底产出 1 级，而铁砧却截成 0 级——要关闭效果请用 piercingPointsPerLevel=0.0"));
+        piercingPointsPerLevel = config.getFloat("piercingPointsPerLevel", "combat", piercingPointsPerLevel, 0.0F, 10.0F,
+                comment("Flat protection points removed per piercing level, off the natural+armor+potion total (R196 Damage.java:218 = level/5 × 5.0F ⇒ 1.0 per level); 0.0 = the enchantment still applies but grants nothing",
+                        "每级穿透从「自然甲 + 护甲 + 药水」平权和上扣减的防护点（R196 = 每级 1.0）；0.0 = 附魔仍可附但不产生效果"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",

@@ -21,6 +21,7 @@ etim.debug.entity=目标：实体 %s
 etim.debug.eye_hit=眼命中点距离：%s
 enchantment.etim_tree_felling=树木连根
 enchantment.etim_endurance=耐力
+enchantment.etim_piercing=穿透
 etim.debug.raycast=眼命中盒进入点距离：%s
 etim.debug.food=饥饿诊断：食物%s 饱和度%s 疲劳=%s
 etim.debug.hunger_gate=饥饿门：合成%s 放置%s 冲刺%s 空手%s

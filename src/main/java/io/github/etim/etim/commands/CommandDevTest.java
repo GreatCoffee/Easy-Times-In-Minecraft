@@ -2,6 +2,7 @@ package io.github.etim.etim.commands;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.combat.R196ArmorModel;
 import io.github.etim.etim.harness.TestDriver;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mining.ETIMEnchantments;
@@ -14,8 +15,12 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.command.PlayerNotFoundException;
 import net.minecraft.command.WrongUsageException;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.projectile.EntitySnowball;
+import net.minecraft.entity.projectile.EntityTippedArrow;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -23,6 +28,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketSetExperience;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.FoodStats;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Style;
@@ -113,6 +119,9 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "enchant":
                 executeEnchant(server, sender, args);
+                break;
+            case "enchantprobe":
+                executeEnchantProbe(server, sender, args);
                 break;
             case "attack":
                 executeAttack(server, sender, args);
@@ -245,11 +254,11 @@ public class CommandDevTest extends CommandBase {
     }
 
     /**
-     * {@code /etest enchant <slot> <level> [player]} — writes Endurance
-     * straight into the slot's stack NBT. Vanilla {@code /enchant} is
-     * held-item-only and merges levels via the anvil rules (same-level
+     * {@code /etest enchant <slot> <level> [ench] [player]} — writes an ETIM
+     * enchantment straight into the slot's stack NBT. Vanilla {@code /enchant}
+     * is held-item-only and merges levels via the anvil rules (same-level
      * restaging rejected), while the sampling rounds need to restage the
-     * chest slot in one step. 1.12.2 {@link ItemStack#addEnchantment} is
+     * slot in one step. 1.12.2 {@link ItemStack#addEnchantment} is
      * APPEND semantics (same-id entries accumulate; EnchantmentHelper reads
      * the FIRST matching entry — E1, harness-t01-t02-verdict), so same-id
      * entries are filtered out before the add: exactly one entry survives,
@@ -258,6 +267,11 @@ public class CommandDevTest extends CommandBase {
      * excluded (Endurance reads the armor semantics, C1). The NBT change
      * reaches the client via the inventory container's per-tick
      * detectAndSendChanges.
+     *
+     * <p>{@code ench} is {@code endurance} (default, batch G4/G5) or
+     * {@code piercing} (batch E / AD-7). The token is recognised by name;
+     * anything else at that position is the player argument — the same
+     * numeric-vs-selector disambiguation rule as {@code /etest food}.</p>
      */
     private static void executeEnchant(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 3) {
@@ -272,15 +286,23 @@ public class CommandDevTest extends CommandBase {
         if (slot == EntityEquipmentSlot.OFFHAND) {
             throw new WrongUsageException("commands.etest.usage");
         }
-        EntityPlayerMP player = targetOrSender(server, sender, args, 3);
+        Enchantment enchantment = ETIMEnchantments.ENDURANCE;
+        int playerIndex = 3;
+        if (args.length > 3 && "piercing".equalsIgnoreCase(args[3])) {
+            enchantment = ETIMEnchantments.PIERCING;
+            playerIndex = 4;
+        } else if (args.length > 3 && "endurance".equalsIgnoreCase(args[3])) {
+            playerIndex = 4;
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
         ItemStack stack = player.getItemStackFromSlot(slot);
         if (stack.isEmpty()) {
             throw new CommandException("commands.etest.enchant_empty_slot", args[1]);
         }
-        int level = CommandBase.parseInt(args[2], 1, ETIMEnchantments.ENDURANCE.getMaxLevel());
+        int level = CommandBase.parseInt(args[2], 1, enchantment.getMaxLevel());
         // E1: addEnchantment appends, so drop same-id entries first — the
-        // ench list ends up holding exactly one Endurance entry.
-        int id = Enchantment.getEnchantmentID(ETIMEnchantments.ENDURANCE);
+        // ench list ends up holding exactly one entry of this enchantment.
+        int id = Enchantment.getEnchantmentID(enchantment);
         NBTTagCompound tag = stack.getTagCompound() != null ? stack.getTagCompound() : new NBTTagCompound();
         NBTTagList list = tag.getTagList("ench", 10);
         NBTTagList kept = new NBTTagList();
@@ -292,17 +314,95 @@ public class CommandDevTest extends CommandBase {
         }
         tag.setTag("ench", kept);
         stack.setTagCompound(tag); // empty list must persist too
-        stack.addEnchantment(ETIMEnchantments.ENDURANCE, level);
+        stack.addEnchantment(enchantment, level);
         // S3b (harness-e1-retest N2): pass the enchant name + roman level as
         // translation components so the client renders it in its own language
         // (zh chat "耐力 IV" == tooltip), instead of the server-side
         // pre-translated en_US string. The [EtimTest] mirror logs the raw
         // TranslatableComponent (key form) — grep keys, not baked text.
         respond(player, "commands.etest.enchant_set", args[1],
-                new TextComponentTranslation(ETIMEnchantments.ENDURANCE.getName())
+                new TextComponentTranslation(enchantment.getName())
                         .appendSibling(new TextComponentString(" "))
                         .appendSibling(new TextComponentTranslation("enchantment.level." + level)),
                 stack.getDisplayName());
+    }
+
+    /**
+     * {@code /etest enchantprobe <slot> [src] [player]} — the AD-7 static +
+     * carrier probe (batch E). Prints {@code [EnchantLog]} rows only on
+     * invocation (no resident switch): the carrier gate of the held stack, the
+     * acquisition windows, the 1.12 table clamp proof and the immediate-source
+     * resolution. {@code src} = {@code melee} (default) | {@code arrow} |
+     * {@code thrown} | {@code none}; the carrier row calls the PRODUCT helper
+     * ({@link R196ArmorModel#piercingPoints}) instead of re-implementing it.
+     */
+    private static void executeEnchantProbe(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityEquipmentSlot slot;
+        try {
+            slot = EntityEquipmentSlot.fromString(args[1]);
+        } catch (IllegalArgumentException e) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String src = args.length > 2 ? args[2].toLowerCase(java.util.Locale.ROOT) : "melee";
+        if (!"melee".equals(src) && !"arrow".equals(src) && !"thrown".equals(src) && !"none".equals(src)) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 3);
+        ItemStack stack = player.getItemStackFromSlot(slot);
+        Enchantment piercing = ETIMEnchantments.PIERCING;
+        // Row 1 — carrier gate + max level (W2)
+        ETIM.LOGGER.info("[EnchantLog] enchantprobe slot={} item={} canApply={} maxLevel={} [server]",
+                slot, stack.isEmpty() ? "empty" : String.valueOf(stack.getItem().getRegistryName()),
+                !stack.isEmpty() && piercing.canApplyAtEnchantingTable(stack), piercing.getMaxLevel());
+        // Row 2 — acquisition windows (W3)
+        StringBuilder windows = new StringBuilder();
+        for (int level = 1; level <= piercing.getMaxLevel(); level++) {
+            if (level > 1) {
+                windows.append(' ');
+            }
+            windows.append('L').append(level).append('=')
+                    .append(piercing.getMinEnchantability(level)).append('/')
+                    .append(piercing.getMaxEnchantability(level));
+        }
+        ETIM.LOGGER.info("[EnchantLog] windows {} [server]", windows);
+        // Row 3 — the 1.12 table clamp (power>15 → 15) and a live sample (W3)
+        ETIM.LOGGER.info("[EnchantLog] table power={} slot0={} slot1={} slot2={} power30={} slot0={} slot1={} slot2={} "
+                        + "bound=slot0:2..10,slot1:6..21,slot2:30..30 (power clamped to 15) [server]",
+                15, tablePower(player, 0, 15, stack), tablePower(player, 1, 15, stack), tablePower(player, 2, 15, stack),
+                30, tablePower(player, 0, 30, stack), tablePower(player, 1, 30, stack), tablePower(player, 2, 30, stack));
+        // Row 4 — immediate-source resolution through the product helper (W9)
+        DamageSource probe = probeSource(player, src);
+        Entity immediate = probe.getImmediateSource();
+        ItemStack carrier = R196ArmorModel.carrierOf(probe);
+        ETIM.LOGGER.info("[EnchantLog] carrier src={} immediate={} carrier={} level={} pts={} [server]",
+                src, immediate == null ? "none" : immediate.getClass().getSimpleName(),
+                carrier == null || carrier.isEmpty() ? "none"
+                        : String.valueOf(carrier.getItem().getRegistryName()),
+                carrier == null || carrier.isEmpty() ? 0
+                        : EnchantmentHelper.getEnchantmentLevel(piercing, carrier),
+                R196ArmorModel.piercingPoints(probe));
+    }
+
+    /** The {@code /etest enchantprobe} src selector: the four damage-source shapes. */
+    private static DamageSource probeSource(EntityPlayerMP player, String src) {
+        switch (src) {
+            case "arrow":
+                return DamageSource.causeArrowDamage(new EntityTippedArrow(player.world, player), player);
+            case "thrown":
+                return DamageSource.causeThrownDamage(new EntitySnowball(player.world, player), player);
+            case "none":
+                return DamageSource.GENERIC;
+            case "melee":
+            default:
+                return DamageSource.causePlayerDamage(player);
+        }
+    }
+
+    private static int tablePower(EntityPlayerMP player, int slot, int power, ItemStack stack) {
+        return EnchantmentHelper.calcItemStackEnchantability(player.getRNG(), slot, power, stack);
     }
 
     /**

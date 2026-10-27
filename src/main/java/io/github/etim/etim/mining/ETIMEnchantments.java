@@ -16,6 +16,7 @@ public final class ETIMEnchantments {
 
     public static Enchantment TREE_FELLING;
     public static Enchantment ENDURANCE;
+    public static Enchantment PIERCING;
 
     private ETIMEnchantments() {
     }
@@ -29,9 +30,16 @@ public final class ETIMEnchantments {
         ENDURANCE = new io.github.etim.etim.hunger.EnchantmentEndurance();
         ENDURANCE.setRegistryName(new ResourceLocation(Tags.MOD_ID, "endurance"));
         ForgeRegistries.ENCHANTMENTS.register(ENDURANCE);
+        // Batch E / AD-7 (条 94/95): R196 Enchantment.java:42 id 92, rarity rare,
+        // difficulty 10, five levels — combat-package class, single entry here.
+        PIERCING = new io.github.etim.etim.combat.EnchantmentPiercing();
+        PIERCING.setRegistryName(new ResourceLocation(Tags.MOD_ID, "piercing"));
+        ForgeRegistries.ENCHANTMENTS.register(PIERCING);
         // Harness convenience: the numeric id for raw-NBT staging
         // (/replaceitem ... {ench:[{id:n,lvl:L}]}) without a decompile round.
         ETIM.LOGGER.info("[EtimInit] enchant {} id={}", ENDURANCE.getRegistryName(),
                 Enchantment.getEnchantmentID(ENDURANCE));
+        ETIM.LOGGER.info("[EtimInit] enchant {} id={}", PIERCING.getRegistryName(),
+                Enchantment.getEnchantmentID(PIERCING));
     }
 }

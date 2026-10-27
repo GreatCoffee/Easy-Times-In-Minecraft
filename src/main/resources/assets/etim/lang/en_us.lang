@@ -21,6 +21,7 @@ etim.debug.entity=Target: entity %s
 etim.debug.eye_hit=Eye hit point distance: %s
 enchantment.etim_tree_felling=Tree Felling
 enchantment.etim_endurance=Endurance
+enchantment.etim_piercing=Piercing
 etim.debug.raycast=Eye to hitbox entry distance: %s
 etim.debug.food=Hunger: food=%s saturation=%s exhaustion=%s
 etim.debug.hunger_gate=Hunger gates: craft%s place%s sprint%s barehands%s
