@@ -382,6 +382,8 @@ public final class ETIMConfig {
     public static float blockPoseRot1 = 30.0F;
     public static float blockPoseRot2 = -80.0F;
     public static float blockPoseRot3 = 60.0F;
+    /** Client-only /etimpose tuning command (dev aid, default off). 客户端 /etimpose 调参命令（开发工装，默认关）。 */
+    public static boolean blockPoseDebug = false;
 
     // death (stage 4 batch C: death chain / 8.3) ------------------------------
     /** Death drops total/3 as XP orbs at the death spot. R-18=R2a（audit20-10 R2）：R196 一手无玩家死产 orb（pool-only，分卷 10 §五 #3）——默认 false 收敛至 pool-only 语义；键保留（规约 2：玩家可配置的 ETIM 宽松化设计，可捡回 1/3）。死亡时在死亡点掉落 total/3 的经验球。 */
@@ -872,6 +874,9 @@ public final class ETIMConfig {
         blockPoseRot3 = config.getFloat("blockPoseRot3", "combat", blockPoseRot3, -360.0F, 360.0F,
                 comment("First-person blocking pose, yaw 2 (R196 :358 = 60)",
                         "第一人格挡摆位轴三：Y 旋（R196 = 60）"));
+        blockPoseDebug = config.getBoolean("blockPoseDebug", "combat", false,
+                comment("Client-only /etimpose command for tuning the first-person blocking pose live (dev aid; off = command not registered)",
+                        "客户端 /etimpose 调参命令（开发工装；关闭则不注册命令）"));
 
         deathXpOrbs = config.getBoolean("deathXpOrbs", "death", false,
                 comment("Death drops total/3 as XP orbs at the death spot. R-18=R2a: R196 has NO player death orbs (pool-only) — default false; keep as the ETIM laxening option (pick up 1/3 back)",

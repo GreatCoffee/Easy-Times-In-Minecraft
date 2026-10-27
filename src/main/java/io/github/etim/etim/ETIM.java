@@ -98,6 +98,10 @@ public final class ETIM {
         // CLIENT side (see client/ClientNetworkHooks for both sides' story).
         if (event.getSide().isClient()) {
             io.github.etim.etim.client.ClientNetworkHooks.register();
+            // clientpose B-1 tuning aid: client-only /etimpose (default off)
+            if (ETIMConfig.blockPoseDebug) {
+                io.github.etim.etim.client.CommandPose.register();
+            }
         }
         // Manual registration for deterministic order against the 1.4 tick
         // drain (see ETIMFoodStatsEvents' class javadoc).
