@@ -35,7 +35,7 @@ public class CommandPose extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/etimpose gui | /etimpose <tx|ty|tz|r1|r2|r3> <value> | /etimpose show | /etimpose reset";
+        return "/etimpose gui | /etimpose gui3 | /etimpose <tx|ty|tz|r1|r2|r3> <value> | /etimpose show | /etimpose reset";
     }
 
     @Override
@@ -51,7 +51,7 @@ public class CommandPose extends CommandBase {
     @Override
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos) {
         if (args.length == 1) {
-            return CommandBase.getListOfStringsMatchingLastWord(args, "gui", "tx", "ty", "tz", "r1", "r2", "r3", "show", "reset");
+            return CommandBase.getListOfStringsMatchingLastWord(args, "gui", "gui3", "tx", "ty", "tz", "r1", "r2", "r3", "show", "reset");
         }
         return Collections.emptyList();
     }
@@ -64,8 +64,11 @@ public class CommandPose extends CommandBase {
             return;
         }
         switch (args[0].toLowerCase()) {
+            case "gui3":
+                GuiPoseTuner.requestOpen(true);
+                return;
             case "gui":
-                GuiPoseTuner.requestOpen();
+                GuiPoseTuner.requestOpen(false);
                 return;
             case "show":
                 show(sender);

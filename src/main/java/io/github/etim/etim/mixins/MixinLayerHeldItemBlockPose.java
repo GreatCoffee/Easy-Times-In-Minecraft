@@ -2,8 +2,8 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.combat.ETIMBlocking;
-import net.minecraft.client.renderer.entity.layers.LayerHeldItem;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.entity.layers.LayerHeldItem;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -15,13 +15,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * 客户端姿态批（第三人称手持物，D-3 重开案 c）：R196 {@code RenderPlayer.java:253-258}
- * 在 isFull3D 门内、共享尾变换之前给 BLOCK 四算子；1.12 的
- * {@code LayerHeldItem.renderHeldItem:47-66} 无 BLOCK 分支。注入点选
- * {@code renderItemSide} 调用点之前 = 与 R196「BLOCK 算子在前、尾变换在后」相对序一致。
+ * 客户端姿态批（第三人称手持物）：R196 {@code RenderPlayer.java:253-258} 的 BLOCK 四算子，
+ * 1.12 {@code LayerHeldItem.renderHeldItem} 无对应分支。注入在 {@code renderItemSide} 之前
+ * （与 R196「BLOCK 算子在前、共享尾变换在后」相对序一致）。
  *
- * <p>门：玩家 + 使用态 + BLOCK + isBlockCarrier（不含盾）+ 该手是活动手。
- * 盾的第三人称手持物不受影响（W13-B-2 保护）。</p>
+ * <p>参数全走 config：{@code tpItemTX/TY/TZ}（方块单位）与 {@code tpItemRot1/2/3}（度，
+ * 轴序 Y/X/Z，同 R196 :255-257）。门 = 玩家 + 使用态 + isBlockCarrier（不含盾）+ 活动手。</p>
  */
 @Mixin(LayerHeldItem.class)
 public abstract class MixinLayerHeldItemBlockPose {
@@ -36,8 +35,8 @@ public abstract class MixinLayerHeldItemBlockPose {
             ),
             require = 1
     )
-    private void etim$thirdPersonBlockHeldItem(EntityLivingBase entity, ItemStack stack, Object transformType,
-                                               EnumHandSide handSide, CallbackInfo ci) {
+    private void etim$thirdPersonBlockItem(EntityLivingBase entity, ItemStack stack, Object transformType,
+                                           EnumHandSide handSide, CallbackInfo ci) {
         if (!ETIMConfig.blockModel) {
             return;
         }
@@ -57,9 +56,9 @@ public abstract class MixinLayerHeldItemBlockPose {
         if (handSide != activeSide) {
             return;
         }
-        GlStateManager.translate(0.05F, 0.0F, -0.1F);      // R196 RenderPlayer:254
-        GlStateManager.rotate(-50.0F, 0.0F, 1.0F, 0.0F);   // :255
-        GlStateManager.rotate(-10.0F, 1.0F, 0.0F, 0.0F);   // :256
-        GlStateManager.rotate(-60.0F, 0.0F, 0.0F, 1.0F);   // :257
+        GlStateManager.translate(ETIMConfig.tpItemTX, ETIMConfig.tpItemTY, ETIMConfig.tpItemTZ);
+        GlStateManager.rotate(ETIMConfig.tpItemRot1, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(ETIMConfig.tpItemRot2, 1.0F, 0.0F, 0.0F);
+        GlStateManager.rotate(ETIMConfig.tpItemRot3, 0.0F, 0.0F, 1.0F);
     }
 }

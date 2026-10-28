@@ -376,14 +376,27 @@ public final class ETIMConfig {
      *  第一人格挡摆位平移（无正本迭代键——1.12 firstperson JSON 变换无 1.6.4 对应物，
      *  观感补偿量值只能现场调）。 */
     public static float blockPoseTX = -0.07F;
-    public static float blockPoseTY = 0.2F;
+    public static float blockPoseTY = 0.19F;
     /** Z translate of the first-person blocking pose: negative = closer to the camera (bigger on screen). 第一人格挡摆位 Z 平移（负 = 更近更大）。 */
-    public static float blockPoseTZ = 0.3F;
+    public static float blockPoseTZ = 0.26F;
     /** First-person BLOCK pose, three rotations: Y, X, Y (R196 :356-358 = 30/-80/60).
      *  第一人格挡摆位三轴（R196 字面默认）。 */
-    public static float blockPoseRot1 = 72.0F;
-    public static float blockPoseRot2 = -81.0F;
-    public static float blockPoseRot3 = 23.0F;
+    public static float blockPoseRot1 = 77.0F;
+    public static float blockPoseRot2 = -87.0F;
+    public static float blockPoseRot3 = 20.0F;
+    // third-person pose batch (clientpose D-3/D-4) --------------------------
+    /** Third-person BLOCK arm: extra X pitch in degrees (0 = vanilla/R196 value). 第三人称格挡手臂附加 X 角（度）。 */
+    public static float tpArmX = 0.0F;
+    /** Third-person BLOCK arm: target Y yaw in degrees (0 = R196; 30 = 1.12 vanilla inward). 第三人称格挡手臂目标 Y 角（0 = R196；30 = 1.12 原版）。 */
+    public static float tpArmY = 0.0F;
+    /** Third-person held item BLOCK ops (R196 RenderPlayer:254-257). 第三人称手持物四算子（R196 字面默认）。 */
+    public static float tpItemTX = 0.05F;
+    public static float tpItemTY = 0.0F;
+    public static float tpItemTZ = -0.1F;
+    public static float tpItemRot1 = -50.0F;
+    public static float tpItemRot2 = -10.0F;
+    public static float tpItemRot3 = -60.0F;
+
     /** Client-only /etimpose tuning command (dev aid, default off). 客户端 /etimpose 调参命令（开发工装，默认关）。 */
     public static boolean blockPoseDebug = false;
 
@@ -879,6 +892,24 @@ public final class ETIMConfig {
         blockPoseRot3 = config.getFloat("blockPoseRot3", "combat", blockPoseRot3, -360.0F, 360.0F,
                 comment("First-person blocking pose, yaw 2 (R196 :358 = 60)",
                         "第一人格挡摆位轴三：Y 旋（R196 = 60）"));
+        tpArmX = config.getFloat("tpArmX", "combat", tpArmX, -180.0F, 180.0F,
+                comment("Third-person blocking arm: extra pitch in degrees (0 = vanilla/R196)",
+                        "第三人称格挡手臂附加 X 角（度，0 = 原版/R196）"));
+        tpArmY = config.getFloat("tpArmY", "combat", tpArmY, -180.0F, 180.0F,
+                comment("Third-person blocking arm: target Y yaw in degrees (0 = R196 zeroed; 30 = 1.12 vanilla)",
+                        "第三人称格挡手臂目标 Y 角（度；0 = R196 归零，30 = 1.12 原版）"));
+        tpItemTX = config.getFloat("tpItemTX", "combat", tpItemTX, -2.0F, 2.0F,
+                comment("Third-person blocking held-item translate X (R196 = 0.05)", "第三人称格挡手持物 X 平移（R196 = 0.05）"));
+        tpItemTY = config.getFloat("tpItemTY", "combat", tpItemTY, -2.0F, 2.0F,
+                comment("Third-person blocking held-item translate Y (R196 = 0.0)", "第三人称格挡手持物 Y 平移（R196 = 0.0）"));
+        tpItemTZ = config.getFloat("tpItemTZ", "combat", tpItemTZ, -2.0F, 2.0F,
+                comment("Third-person blocking held-item translate Z (R196 = -0.1)", "第三人称格挡手持物 Z 平移（R196 = -0.1）"));
+        tpItemRot1 = config.getFloat("tpItemRot1", "combat", tpItemRot1, -360.0F, 360.0F,
+                comment("Third-person blocking held-item rotation 1, Y axis (R196 = -50)", "第三人称手持物旋转一 Y（R196 = -50）"));
+        tpItemRot2 = config.getFloat("tpItemRot2", "combat", tpItemRot2, -360.0F, 360.0F,
+                comment("Third-person blocking held-item rotation 2, X axis (R196 = -10)", "第三人称手持物旋转二 X（R196 = -10）"));
+        tpItemRot3 = config.getFloat("tpItemRot3", "combat", tpItemRot3, -360.0F, 360.0F,
+                comment("Third-person blocking held-item rotation 3, Z axis (R196 = -60)", "第三人称手持物旋转三 Z（R196 = -60）"));
         blockPoseDebug = config.getBoolean("blockPoseDebug", "combat", false,
                 comment("Client-only /etimpose command for tuning the first-person blocking pose live (dev aid; off = command not registered)",
                         "客户端 /etimpose 调参命令（开发工装；关闭则不注册命令）"));

@@ -9,32 +9,45 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 /**
- * clientpose B-1 姿态调参面板（{@code /etimpose gui}）。
+ * clientpose 姿态调参面板（{@code /etimpose gui} = 第一人称；{@code /etimpose gui3} = 第三人称）。
  *
- * <p>六个量各一行：平移三键步进 0.01，旋转三键步进 1。每次点击直接写
- * {@link ETIMConfig} 静态量，{@code MixinItemRendererBlockPose} 每帧读取，
- * 因此第一人称格挡摆位立即同步，无需重开界面。</p>
- *
- * <p>面板刻意做窄（靠左），不覆盖右侧剑的位置；不暂停世界、不压暗背景。</p>
+ * <p>每次点击直接写 {@link ETIMConfig} 静态量，对应 mixin 每帧读取 ⇒ 姿态实时同步。
+ * 面板靠左、不暂停世界、不压暗背景。第三人称面板使用时请先在游戏里切到背视（F5 ×2）。</p>
  */
 @SideOnly(Side.CLIENT)
 public class GuiPoseTuner extends GuiScreen {
 
-    private static final int W = 262;
     private static final int ROW_H = 22;
-    private static final int ROWS = 6;
-
-    private static final String[] LABELS = { "TX", "TY", "TZ", "ROT1 (Y)", "ROT2 (X)", "ROT3 (Y)" };
-    private static final float[] STEP = { 0.01F, 0.01F, 0.01F, 1.0F, 1.0F, 1.0F };
+    private static final int W = 268;
 
     private static boolean pending = false;
+    private static boolean pendingThird = false;
 
-    /** 由命令置位，客户端 tick 里真正打开（避开聊天栏关屏与命令执行时机）。 */
-    public static void requestOpen() {
-        pending = true;
+    private static final String[] LABELS_FIRST = { "TX", "TY", "TZ", "ROT1 (Y)", "ROT2 (X)", "ROT3 (Y)" };
+    private static final float[] STEP_FIRST = { 0.01F, 0.01F, 0.01F, 1.0F, 1.0F, 1.0F };
+
+    private static final String[] LABELS_THIRD = {
+            "ARM X", "ARM Y", "ITEM TX", "ITEM TY", "ITEM TZ", "ITEM R1(Y)", "ITEM R2(X)", "ITEM R3(Z)" };
+    private static final float[] STEP_THIRD = { 1.0F, 1.0F, 0.01F, 0.01F, 0.01F, 1.0F, 1.0F, 1.0F };
+
+    private final boolean third;
+    private final String[] labels;
+    private final float[] steps;
+    private int left;
+    private int top;
+
+    public GuiPoseTuner(boolean third) {
+        this.third = third;
+        this.labels = third ? LABELS_THIRD : LABELS_FIRST;
+        this.steps = third ? STEP_THIRD : STEP_FIRST;
     }
 
-    /** 由 PoseFileWatcher 的客户端 tick 调用。 */
+    /** 由命令置位，客户端 tick 里真正打开。 */
+    public static void requestOpen(boolean third) {
+        pending = true;
+        pendingThird = third;
+    }
+
     public static void tickOpen() {
         if (!pending) {
             return;
@@ -42,89 +55,105 @@ public class GuiPoseTuner extends GuiScreen {
         pending = false;
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
         if (mc.currentScreen == null) {
-            ETIM.LOGGER.info("[PoseLog] opening gui");
-            mc.displayGuiScreen(new GuiPoseTuner());
+            ETIM.LOGGER.info("[PoseLog] opening {} gui", pendingThird ? "third-person" : "first-person");
+            mc.displayGuiScreen(new GuiPoseTuner(pendingThird));
         }
     }
 
-    private int left;
-    private int top;
-
     @Override
     public void initGui() {
-        ETIM.LOGGER.info("[PoseLog] gui init");
+        ETIM.LOGGER.info("[PoseLog] gui init ({})", this.third ? "third" : "first");
         tryHold();
         this.left = 8;
         this.top = 28;
-        int x = left + 96;
-        for (int i = 0; i < ROWS; i++) {
+        int x = left + 104;
+        int rows = labels.length;
+        for (int i = 0; i < rows; i++) {
             int y = top + 18 + i * ROW_H;
             this.buttonList.add(new GuiButton(i * 2, x, y, 20, 18, "-"));
             this.buttonList.add(new GuiButton(i * 2 + 1, x + 44, y, 20, 18, "+"));
         }
-        this.buttonList.add(new GuiButton(100, left + 62, top + 18 + ROWS * ROW_H + 6, 56, 18, "Reset"));
-        this.buttonList.add(new GuiButton(101, left + 124, top + 18 + ROWS * ROW_H + 6, 56, 18, "Done"));
-        this.buttonList.add(new GuiButton(102, left + 186, top + 18 + ROWS * ROW_H + 6, 56, 18, "Shot"));
+        int by = top + 18 + rows * ROW_H + 6;
+        this.buttonList.add(new GuiButton(200, left + 58, by, 56, 18, "Reset"));
+        this.buttonList.add(new GuiButton(201, left + 120, by, 56, 18, "Done"));
+        this.buttonList.add(new GuiButton(202, left + 182, by, 56, 18, "Shot"));
     }
 
     @Override
     public void actionPerformed(GuiButton button) {
-        if (button.id == 101) {
+        if (button.id == 201) {
             this.mc.displayGuiScreen(null);
             return;
         }
-        if (button.id == 102) {
+        if (button.id == 202) {
             net.minecraft.util.text.ITextComponent msg = net.minecraft.util.ScreenShotHelper.saveScreenshot(
                     this.mc.gameDir, this.mc.displayWidth, this.mc.displayHeight, this.mc.getFramebuffer());
             this.mc.ingameGUI.getChatGUI().printChatMessage(msg);
-            ETIM.LOGGER.info("[PoseLog] shot -> tx={} ty={} tz={} r1={} r2={} r3={}",
-                    fmt(ETIMConfig.blockPoseTX), fmt(ETIMConfig.blockPoseTY), fmt(ETIMConfig.blockPoseTZ),
-                    fmt(ETIMConfig.blockPoseRot1), fmt(ETIMConfig.blockPoseRot2), fmt(ETIMConfig.blockPoseRot3));
+            log("shot");
             return;
         }
-        if (button.id == 100) {
+        if (button.id == 200) {
             reset();
         } else {
             int row = button.id / 2;
             float dir = (button.id % 2 == 0) ? -1.0F : 1.0F;
-            nudge(row, dir * STEP[row]);
+            set(row, get(row) + dir * steps[row]);
         }
         PoseFileWatcher.rememberCurrent();
-        log();
+        log("gui");
     }
 
-    private static void nudge(int row, float delta) {
-        switch (row) {
-            case 0: ETIMConfig.blockPoseTX += delta; break;
-            case 1: ETIMConfig.blockPoseTY += delta; break;
-            case 2: ETIMConfig.blockPoseTZ += delta; break;
-            case 3: ETIMConfig.blockPoseRot1 += delta; break;
-            case 4: ETIMConfig.blockPoseRot2 += delta; break;
-            case 5: ETIMConfig.blockPoseRot3 += delta; break;
-            default: break;
+    private void reset() {
+        if (this.third) {
+            ETIMConfig.tpArmX = 0.0F;
+            ETIMConfig.tpArmY = 0.0F;
+            ETIMConfig.tpItemTX = 0.05F;
+            ETIMConfig.tpItemTY = 0.0F;
+            ETIMConfig.tpItemTZ = -0.1F;
+            ETIMConfig.tpItemRot1 = -50.0F;
+            ETIMConfig.tpItemRot2 = -10.0F;
+            ETIMConfig.tpItemRot3 = -60.0F;
+        } else {
+            ETIMConfig.blockPoseTX = -0.07F;
+            ETIMConfig.blockPoseTY = 0.19F;
+            ETIMConfig.blockPoseTZ = 0.26F;
+            ETIMConfig.blockPoseRot1 = 77.0F;
+            ETIMConfig.blockPoseRot2 = -87.0F;
+            ETIMConfig.blockPoseRot3 = 20.0F;
         }
     }
 
-    private static void reset() {
-        ETIMConfig.blockPoseTX = -0.07F;
-        ETIMConfig.blockPoseTY = 0.2F;
-        ETIMConfig.blockPoseTZ = 0.3F;
-        ETIMConfig.blockPoseRot1 = 72.0F;
-        ETIMConfig.blockPoseRot2 = -81.0F;
-        ETIMConfig.blockPoseRot3 = 23.0F;
-    }
-
-    private static void log() {
-        ETIM.LOGGER.info("[PoseLog] gui -> tx={} ty={} tz={} r1={} r2={} r3={}",
+    private static void log(String what) {
+        if (true) {
+            // 第三人称与第一人称共用同一 [PoseLog] 前缀，字段各打各的
+        }
+        ETIM.LOGGER.info("[PoseLog] {} first(tx={} ty={} tz={} r1={} r2={} r3={}) third(armX={} armY={} iTX={} iTY={} iTZ={} iR1={} iR2={} iR3={})",
+                what,
                 fmt(ETIMConfig.blockPoseTX), fmt(ETIMConfig.blockPoseTY), fmt(ETIMConfig.blockPoseTZ),
-                fmt(ETIMConfig.blockPoseRot1), fmt(ETIMConfig.blockPoseRot2), fmt(ETIMConfig.blockPoseRot3));
+                fmt(ETIMConfig.blockPoseRot1), fmt(ETIMConfig.blockPoseRot2), fmt(ETIMConfig.blockPoseRot3),
+                fmt(ETIMConfig.tpArmX), fmt(ETIMConfig.tpArmY),
+                fmt(ETIMConfig.tpItemTX), fmt(ETIMConfig.tpItemTY), fmt(ETIMConfig.tpItemTZ),
+                fmt(ETIMConfig.tpItemRot1), fmt(ETIMConfig.tpItemRot2), fmt(ETIMConfig.tpItemRot3));
     }
 
     private static String fmt(float v) {
         return String.format(Locale.ROOT, "%.2f", v);
     }
 
-    private static float value(int row) {
+    private float get(int row) {
+        if (this.third) {
+            switch (row) {
+                case 0: return ETIMConfig.tpArmX;
+                case 1: return ETIMConfig.tpArmY;
+                case 2: return ETIMConfig.tpItemTX;
+                case 3: return ETIMConfig.tpItemTY;
+                case 4: return ETIMConfig.tpItemTZ;
+                case 5: return ETIMConfig.tpItemRot1;
+                case 6: return ETIMConfig.tpItemRot2;
+                case 7: return ETIMConfig.tpItemRot3;
+                default: return 0.0F;
+            }
+        }
         switch (row) {
             case 0: return ETIMConfig.blockPoseTX;
             case 1: return ETIMConfig.blockPoseTY;
@@ -136,25 +165,33 @@ public class GuiPoseTuner extends GuiScreen {
         }
     }
 
-    @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        // 不画暗底：让右侧第一人称剑保持可见
-        int h = 18 + ROWS * ROW_H + 30;
-        drawRect(left, top, left + W, top + h, 0xB0101010);
-        drawRect(left, top, left + W, top + 1, 0xFF6A6A6A);
-        drawRect(left, top + h - 1, left + W, top + h, 0xFF6A6A6A);
-
-        this.fontRenderer.drawStringWithShadow("Blocking pose (live)", left + 8, top + 6, 0xFFE0E0E0);
-        for (int i = 0; i < ROWS; i++) {
-            int y = top + 18 + i * ROW_H + 5;
-            this.fontRenderer.drawStringWithShadow(LABELS[i], left + 8, y, 0xFFB0B0B0);
-            String v = String.format(Locale.ROOT, "%.2f", value(i));
-            this.fontRenderer.drawStringWithShadow(v, left + 182, y, 0xFFFFFF80);
+    private void set(int row, float v) {
+        if (this.third) {
+            switch (row) {
+                case 0: ETIMConfig.tpArmX = v; break;
+                case 1: ETIMConfig.tpArmY = v; break;
+                case 2: ETIMConfig.tpItemTX = v; break;
+                case 3: ETIMConfig.tpItemTY = v; break;
+                case 4: ETIMConfig.tpItemTZ = v; break;
+                case 5: ETIMConfig.tpItemRot1 = v; break;
+                case 6: ETIMConfig.tpItemRot2 = v; break;
+                case 7: ETIMConfig.tpItemRot3 = v; break;
+                default: break;
+            }
+            return;
         }
-        super.drawScreen(mouseX, mouseY, partialTicks);
+        switch (row) {
+            case 0: ETIMConfig.blockPoseTX = v; break;
+            case 1: ETIMConfig.blockPoseTY = v; break;
+            case 2: ETIMConfig.blockPoseTZ = v; break;
+            case 3: ETIMConfig.blockPoseRot1 = v; break;
+            case 4: ETIMConfig.blockPoseRot2 = v; break;
+            case 5: ETIMConfig.blockPoseRot3 = v; break;
+            default: break;
+        }
     }
 
-    /** 每 tick 复核一次：服务器同步可能把使用态清掉，这里持续维持预览姿态。 */
+    /** 每 tick 复核：服务器同步可能把使用态清掉，这里持续维持预览姿态。 */
     @Override
     public void updateScreen() {
         super.updateScreen();
@@ -182,7 +219,26 @@ public class GuiPoseTuner extends GuiScreen {
         }
     }
 
-    /** 不暂停世界，姿态动画与格挡状态保持实时。 */
+    @Override
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        int rows = labels.length;
+        int h = 18 + rows * ROW_H + 30;
+        drawRect(left, top, left + W, top + h, 0xB0101010);
+        drawRect(left, top, left + W, top + 1, 0xFF6A6A6A);
+        drawRect(left, top + h - 1, left + W, top + h, 0xFF6A6A6A);
+
+        this.fontRenderer.drawStringWithShadow(
+                this.third ? "Blocking pose - THIRD person (F5 first)" : "Blocking pose - first person",
+                left + 8, top + 6, 0xFFE0E0E0);
+        for (int i = 0; i < rows; i++) {
+            int y = top + 18 + i * ROW_H + 5;
+            this.fontRenderer.drawStringWithShadow(labels[i], left + 8, y, 0xFFB0B0B0);
+            String v = String.format(Locale.ROOT, "%.2f", get(i));
+            this.fontRenderer.drawStringWithShadow(v, left + 186, y, 0xFFFFFF80);
+        }
+        super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
     @Override
     public boolean doesGuiPauseGame() {
         return false;
