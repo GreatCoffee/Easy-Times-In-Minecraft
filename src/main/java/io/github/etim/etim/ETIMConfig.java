@@ -375,14 +375,14 @@ public final class ETIMConfig {
     /** First-person BLOCK pose, translate X/Y (R196 ItemRenderer:355 = -0.5/+0.2).
      *  第一人格挡摆位平移（无正本迭代键——1.12 firstperson JSON 变换无 1.6.4 对应物，
      *  观感补偿量值只能现场调）。 */
-    public static float blockPoseTX = -0.5F;
-    public static float blockPoseTY = 0.2F;
+    public static float blockPoseTX = -0.37F;
+    public static float blockPoseTY = 0.18F;
     /** Z translate of the first-person blocking pose: negative = closer to the camera (bigger on screen). 第一人格挡摆位 Z 平移（负 = 更近更大）。 */
-    public static float blockPoseTZ = 0.0F;
+    public static float blockPoseTZ = 0.3F;
     /** First-person BLOCK pose, three rotations: Y, X, Y (R196 :356-358 = 30/-80/60).
      *  第一人格挡摆位三轴（R196 字面默认）。 */
-    public static float blockPoseRot1 = 30.0F;
-    public static float blockPoseRot2 = -80.0F;
+    public static float blockPoseRot1 = 52.0F;
+    public static float blockPoseRot2 = -68.0F;
     public static float blockPoseRot3 = 60.0F;
     /** Client-only /etimpose tuning command (dev aid, default off). 客户端 /etimpose 调参命令（开发工装，默认关）。 */
     public static boolean blockPoseDebug = false;
