@@ -106,12 +106,12 @@ public class GuiPoseTuner extends GuiScreen {
     }
 
     private static void reset() {
-        ETIMConfig.blockPoseTX = -0.37F;
-        ETIMConfig.blockPoseTY = 0.18F;
+        ETIMConfig.blockPoseTX = -0.07F;
+        ETIMConfig.blockPoseTY = 0.2F;
         ETIMConfig.blockPoseTZ = 0.3F;
-        ETIMConfig.blockPoseRot1 = 52.0F;
-        ETIMConfig.blockPoseRot2 = -68.0F;
-        ETIMConfig.blockPoseRot3 = 60.0F;
+        ETIMConfig.blockPoseRot1 = 72.0F;
+        ETIMConfig.blockPoseRot2 = -81.0F;
+        ETIMConfig.blockPoseRot3 = 23.0F;
     }
 
     private static void log() {
