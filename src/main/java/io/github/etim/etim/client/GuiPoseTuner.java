@@ -32,6 +32,7 @@ public class GuiPoseTuner extends GuiScreen {
 
     @Override
     public void initGui() {
+        tryHold();
         this.left = 8;
         this.top = 28;
         int x = left + 96;
@@ -130,6 +131,34 @@ public class GuiPoseTuner extends GuiScreen {
             this.fontRenderer.drawStringWithShadow(v, left + 146, y, 0xFFFFFF80);
         }
         super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    /** 每 tick 复核一次：服务器同步可能把使用态清掉，这里持续维持预览姿态。 */
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+        tryHold();
+    }
+
+    @Override
+    public void onGuiClosed() {
+        if (this.mc.player != null) {
+            this.mc.player.resetActiveHand();
+        }
+    }
+
+    /** 让玩家进入「右键使用」态：格挡分支才会走到，姿态与实机格挡完全同源。 */
+    private void tryHold() {
+        if (this.mc.player == null) {
+            return;
+        }
+        net.minecraft.item.ItemStack held = this.mc.player.getHeldItem(net.minecraft.util.EnumHand.MAIN_HAND);
+        if (held.isEmpty()) {
+            return;
+        }
+        if (!this.mc.player.isHandActive()) {
+            this.mc.player.setActiveHand(net.minecraft.util.EnumHand.MAIN_HAND);
+        }
     }
 
     /** 不暂停世界，姿态动画与格挡状态保持实时。 */

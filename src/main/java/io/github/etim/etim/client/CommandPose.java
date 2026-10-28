@@ -64,7 +64,9 @@ public class CommandPose extends CommandBase {
         }
         switch (args[0].toLowerCase()) {
             case "gui":
-                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiPoseTuner());
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+                // 延迟到 tick 末打开：聊天栏关屏会 displayGuiScreen(null)，直接开会被顶掉
+                mc.addScheduledTask(() -> mc.displayGuiScreen(new GuiPoseTuner()));
                 return;
             case "show":
                 show(sender);
