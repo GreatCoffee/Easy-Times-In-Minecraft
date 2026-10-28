@@ -117,7 +117,7 @@ public class GuiPoseTuner extends GuiScreen {
             ETIMConfig.tpItemTZ = 0.0F;
             ETIMConfig.tpItemRot1 = 0.0F;
             ETIMConfig.tpItemRot2 = 0.0F;
-            ETIMConfig.tpItemRot3 = 0.0F;
+            ETIMConfig.tpItemRot3 = 27.0F;
         } else {
             ETIMConfig.blockPoseTX = -0.07F;
             ETIMConfig.blockPoseTY = 0.19F;

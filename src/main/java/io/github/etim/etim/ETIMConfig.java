@@ -395,7 +395,7 @@ public final class ETIMConfig {
     public static float tpItemTZ = 0.0F;
     public static float tpItemRot1 = 0.0F;
     public static float tpItemRot2 = 0.0F;
-    public static float tpItemRot3 = 0.0F;
+    public static float tpItemRot3 = 27.0F;
 
     /** Client-only /etimpose tuning command (dev aid, default off). 客户端 /etimpose 调参命令（开发工装，默认关）。 */
     public static boolean blockPoseDebug = false;
@@ -909,7 +909,7 @@ public final class ETIMConfig {
         tpItemRot2 = config.getFloat("tpItemRot2", "combat", tpItemRot2, -360.0F, 360.0F,
                 comment("Third-person blocking held-item extra rotation 2 (X axis)", "第三人称手持物附加旋转二（X 轴）"));
         tpItemRot3 = config.getFloat("tpItemRot3", "combat", tpItemRot3, -360.0F, 360.0F,
-                comment("Third-person blocking held-item extra rotation 3 (Z axis)", "第三人称手持物附加旋转三（Z 轴）"));
+                comment("Third-person blocking held-item extra rotation 3, Z axis (tuned default 27)", "第三人称手持物附加旋转三 Z 轴（烘定值 27）"));
         blockPoseDebug = config.getBoolean("blockPoseDebug", "combat", false,
                 comment("Client-only /etimpose command for tuning the first-person blocking pose live (dev aid; off = command not registered)",
                         "客户端 /etimpose 调参命令（开发工装；关闭则不注册命令）"));
