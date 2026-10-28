@@ -56,13 +56,14 @@ public class PoseFileWatcher {
         lastRaw = raw;
         Matcher m = NUM.matcher(raw);
         boolean any = false;
-        float tx = ETIMConfig.blockPoseTX, ty = ETIMConfig.blockPoseTY;
+        float tx = ETIMConfig.blockPoseTX, ty = ETIMConfig.blockPoseTY, tz = ETIMConfig.blockPoseTZ;
         float r1 = ETIMConfig.blockPoseRot1, r2 = ETIMConfig.blockPoseRot2, r3 = ETIMConfig.blockPoseRot3;
         while (m.find()) {
             float v = Float.parseFloat(m.group(2));
             switch (m.group(1)) {
                 case "tx": tx = v; break;
                 case "ty": ty = v; break;
+                case "tz": tz = v; break;
                 case "r1": r1 = v; break;
                 case "r2": r2 = v; break;
                 case "r3": r3 = v; break;
@@ -75,11 +76,12 @@ public class PoseFileWatcher {
         }
         ETIMConfig.blockPoseTX = tx;
         ETIMConfig.blockPoseTY = ty;
+        ETIMConfig.blockPoseTZ = tz;
         ETIMConfig.blockPoseRot1 = r1;
         ETIMConfig.blockPoseRot2 = r2;
         ETIMConfig.blockPoseRot3 = r3;
-        ETIM.LOGGER.info("[PoseLog] file -> tx={} ty={} r1={} r2={} r3={}",
-                fmt(tx), fmt(ty), fmt(r1), fmt(r2), fmt(r3));
+        ETIM.LOGGER.info("[PoseLog] file -> tx={} ty={} tz={} r1={} r2={} r3={}",
+                fmt(tx), fmt(ty), fmt(tz), fmt(r1), fmt(r2), fmt(r3));
     }
 
     private static String fmt(float v) {

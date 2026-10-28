@@ -377,6 +377,8 @@ public final class ETIMConfig {
      *  观感补偿量值只能现场调）。 */
     public static float blockPoseTX = -0.5F;
     public static float blockPoseTY = 0.2F;
+    /** Z translate of the first-person blocking pose: negative = closer to the camera (bigger on screen). 第一人格挡摆位 Z 平移（负 = 更近更大）。 */
+    public static float blockPoseTZ = 0.0F;
     /** First-person BLOCK pose, three rotations: Y, X, Y (R196 :356-358 = 30/-80/60).
      *  第一人格挡摆位三轴（R196 字面默认）。 */
     public static float blockPoseRot1 = 30.0F;
@@ -865,6 +867,9 @@ public final class ETIMConfig {
         blockPoseTY = config.getFloat("blockPoseTY", "combat", blockPoseTY, -3.0F, 3.0F,
                 comment("First-person blocking pose, Y translate (R196 :355 = +0.2, upward). Client-side visual only",
                         "第一人格挡摆位 Y 平移（R196 = +0.2，往上）。纯客户端观感面"));
+        blockPoseTZ = config.getFloat("blockPoseTZ", "combat", blockPoseTZ, -2.0F, 2.0F,
+                comment("First-person blocking pose Z translate (0 = R196 literal; negative = closer to the camera, bigger on screen). Client-side visual only",
+                        "第一人格挡摆位 Z 平移（0 = R196 字面；负值 = 更近更大）。纯客户端观感面"));
         blockPoseRot1 = config.getFloat("blockPoseRot1", "combat", blockPoseRot1, -360.0F, 360.0F,
                 comment("First-person blocking pose, yaw 1 (R196 :356 = 30)",
                         "第一人格挡摆位轴一：Y 旋（R196 = 30）"));
