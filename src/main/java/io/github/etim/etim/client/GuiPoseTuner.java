@@ -149,7 +149,7 @@ public class GuiPoseTuner extends GuiScreen {
             int y = top + 18 + i * ROW_H + 5;
             this.fontRenderer.drawStringWithShadow(LABELS[i], left + 8, y, 0xFFB0B0B0);
             String v = String.format(Locale.ROOT, "%.2f", value(i));
-            this.fontRenderer.drawStringWithShadow(v, left + 146, y, 0xFFFFFF80);
+            this.fontRenderer.drawStringWithShadow(v, left + 182, y, 0xFFFFFF80);
         }
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
