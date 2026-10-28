@@ -23,7 +23,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
  */
 public class PoseFileWatcher {
 
-    private static final Pattern NUM = Pattern.compile("\"(tx|ty|r1|r2|r3)\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");
+    private static final Pattern NUM = Pattern.compile("\"(tx|ty|tz|r1|r2|r3)\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");
     private static String lastRaw = null;
     private static int cooldown = 0;
 
