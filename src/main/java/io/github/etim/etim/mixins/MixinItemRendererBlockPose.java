@@ -30,6 +30,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ItemRenderer.class)
 public abstract class MixinItemRendererBlockPose {
 
+    private static EnumHandSide lastSide = null;
+    private static long lastLogMs = 0L;
+
     @Inject(
             method = "transformSideFirstPerson(Lnet/minecraft/util/EnumHandSide;F)V",
             at = @At("TAIL"),
@@ -57,9 +60,34 @@ public abstract class MixinItemRendererBlockPose {
         // 1.12 的 firstperson JSON 显示变换假设未旋转未缩放基架 —— R196 :342/:350 的 rot45/scale
         // 在此链不成立（实机两轮证伪，条 102.2），故不补 pre-baseline，只在量值面补偿。
         // swing 三轴（R196 :344-349，i 镜像先例 transformFirstPerson:294-296）继续不追（B-4 登记）。
-        GlStateManager.translate(ETIMConfig.blockPoseTX, ETIMConfig.blockPoseTY, ETIMConfig.blockPoseTZ); // R196 :355
-        GlStateManager.rotate(ETIMConfig.blockPoseRot1, 0.0F, 1.0F, 0.0F);   // :356
-        GlStateManager.rotate(ETIMConfig.blockPoseRot2, 1.0F, 0.0F, 0.0F);   // :357
-        GlStateManager.rotate(ETIMConfig.blockPoseRot3, 0.0F, 1.0F, 0.0F);   // :358
+        // 左手镜像（条 108）：1.12 transformSideFirstPerson:221 起以 f=±1 镜像 X 平移与 Y/Z 两轴
+        // 旋转（:228-231），故副手 delta 同规则镜像 —— X 平移、Y 轴两转取反，X 轴转与 Y/Z 平移不动。
+        float m = hand == EnumHandSide.LEFT ? -1.0F : 1.0F;
+        if (ETIMConfig.blockPoseDebug) {
+            logHand(hand, m);
+        }
+        GlStateManager.translate(ETIMConfig.blockPoseTX * m, ETIMConfig.blockPoseTY, ETIMConfig.blockPoseTZ); // R196 :355
+        GlStateManager.rotate(ETIMConfig.blockPoseRot1 * m, 0.0F, 1.0F, 0.0F);   // :356
+        GlStateManager.rotate(ETIMConfig.blockPoseRot2, 1.0F, 0.0F, 0.0F);       // :357
+        GlStateManager.rotate(ETIMConfig.blockPoseRot3 * m, 0.0F, 1.0F, 0.0F);   // :358
+    }
+
+    /** 判定通道（仅 blockPoseDebug）：记录生效手别与镜像符号，左右手切换或每约 1 s 打一行。 */
+    private static void logHand(EnumHandSide hand, float m) {
+        long now = System.currentTimeMillis();
+        if (hand == lastSide && now - lastLogMs < 1000L) {
+            return;
+        }
+        lastSide = hand;
+        lastLogMs = now;
+        io.github.etim.etim.ETIM.LOGGER.info(
+                "[PoseLog] block hand={} mirror={} tx={} ty={} tz={} r1={} r2={} r3={}",
+                hand, fmt(m), fmt(ETIMConfig.blockPoseTX * m), fmt(ETIMConfig.blockPoseTY),
+                fmt(ETIMConfig.blockPoseTZ), fmt(ETIMConfig.blockPoseRot1 * m),
+                fmt(ETIMConfig.blockPoseRot2), fmt(ETIMConfig.blockPoseRot3 * m));
+    }
+
+    private static String fmt(float v) {
+        return String.format(java.util.Locale.ROOT, "%.2f", v);
     }
 }

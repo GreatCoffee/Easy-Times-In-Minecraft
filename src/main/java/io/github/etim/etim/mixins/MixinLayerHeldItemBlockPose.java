@@ -58,7 +58,11 @@ public abstract class MixinLayerHeldItemBlockPose {
         if (handSide != activeSide) {
             return;
         }
-        GlStateManager.translate(ETIMConfig.tpItemTX, ETIMConfig.tpItemTY, ETIMConfig.tpItemTZ);
+        // 左手镜像（条 108）：1.12 LayerHeldItem 的左手只镜像 X 平移（func_188358_a 里的
+        // (flag ? -1 : 1) / 16），两轴旋转两手同值（靠物品自身 LEFT_HAND 显示变换），
+        // 故副手只镜像 X 平移，旋转面保持与主手同值。
+        float m = handSide == EnumHandSide.LEFT ? -1.0F : 1.0F;
+        GlStateManager.translate(ETIMConfig.tpItemTX * m, ETIMConfig.tpItemTY, ETIMConfig.tpItemTZ);
         GlStateManager.rotate(ETIMConfig.tpItemRot1, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(ETIMConfig.tpItemRot2, 1.0F, 0.0F, 0.0F);
         GlStateManager.rotate(ETIMConfig.tpItemRot3, 0.0F, 0.0F, 1.0F);
