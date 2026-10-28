@@ -101,6 +101,7 @@ public final class ETIM {
             // clientpose B-1 tuning aid: client-only /etimpose (default off)
             if (ETIMConfig.blockPoseDebug) {
                 io.github.etim.etim.client.CommandPose.register();
+                LOGGER.info("[PoseLog] etimpose command registered (blockPoseDebug=true)");
                 io.github.etim.etim.client.PoseFileWatcher.register();
             }
         }

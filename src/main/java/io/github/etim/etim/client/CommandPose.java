@@ -58,15 +58,14 @@ public class CommandPose extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        ETIM.LOGGER.info("[PoseLog] execute args={}", java.util.Arrays.toString(args));
         if (args.length == 0) {
             show(sender);
             return;
         }
         switch (args[0].toLowerCase()) {
             case "gui":
-                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
-                // 延迟到 tick 末打开：聊天栏关屏会 displayGuiScreen(null)，直接开会被顶掉
-                mc.addScheduledTask(() -> mc.displayGuiScreen(new GuiPoseTuner()));
+                GuiPoseTuner.requestOpen();
                 return;
             case "show":
                 show(sender);

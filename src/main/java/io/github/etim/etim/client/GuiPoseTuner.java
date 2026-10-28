@@ -27,11 +27,32 @@ public class GuiPoseTuner extends GuiScreen {
     private static final String[] LABELS = { "TX", "TY", "TZ", "ROT1 (Y)", "ROT2 (X)", "ROT3 (Y)" };
     private static final float[] STEP = { 0.01F, 0.01F, 0.01F, 1.0F, 1.0F, 1.0F };
 
+    private static boolean pending = false;
+
+    /** 由命令置位，客户端 tick 里真正打开（避开聊天栏关屏与命令执行时机）。 */
+    public static void requestOpen() {
+        pending = true;
+    }
+
+    /** 由 PoseFileWatcher 的客户端 tick 调用。 */
+    public static void tickOpen() {
+        if (!pending) {
+            return;
+        }
+        pending = false;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+        if (mc.currentScreen == null) {
+            ETIM.LOGGER.info("[PoseLog] opening gui");
+            mc.displayGuiScreen(new GuiPoseTuner());
+        }
+    }
+
     private int left;
     private int top;
 
     @Override
     public void initGui() {
+        ETIM.LOGGER.info("[PoseLog] gui init");
         tryHold();
         this.left = 8;
         this.top = 28;

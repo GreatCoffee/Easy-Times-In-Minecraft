@@ -49,6 +49,7 @@ public class PoseFileWatcher {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        GuiPoseTuner.tickOpen();
         if (--cooldown > 0) {
             return;
         }
