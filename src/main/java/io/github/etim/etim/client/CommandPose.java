@@ -35,7 +35,7 @@ public class CommandPose extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/etimpose <tx|ty|r1|r2|r3> <value> | /etimpose show | /etimpose reset";
+        return "/etimpose gui | /etimpose <tx|ty|tz|r1|r2|r3> <value> | /etimpose show | /etimpose reset";
     }
 
     @Override
@@ -51,7 +51,7 @@ public class CommandPose extends CommandBase {
     @Override
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos) {
         if (args.length == 1) {
-            return CommandBase.getListOfStringsMatchingLastWord(args, "tx", "ty", "r1", "r2", "r3", "show", "reset");
+            return CommandBase.getListOfStringsMatchingLastWord(args, "gui", "tx", "ty", "tz", "r1", "r2", "r3", "show", "reset");
         }
         return Collections.emptyList();
     }
@@ -63,6 +63,9 @@ public class CommandPose extends CommandBase {
             return;
         }
         switch (args[0].toLowerCase()) {
+            case "gui":
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiPoseTuner());
+                return;
             case "show":
                 show(sender);
                 return;
@@ -84,27 +87,28 @@ public class CommandPose extends CommandBase {
         float v = (float) parseDouble(args[1]);
         switch (args[0].toLowerCase()) {
             case "tx": ETIMConfig.blockPoseTX = v; break;
+            case "tz": ETIMConfig.blockPoseTZ = v; break;
             case "ty": ETIMConfig.blockPoseTY = v; break;
             case "r1": ETIMConfig.blockPoseRot1 = v; break;
             case "r2": ETIMConfig.blockPoseRot2 = v; break;
             case "r3": ETIMConfig.blockPoseRot3 = v; break;
             default:
-                throw new CommandException("unknown field: " + args[0] + " (tx|ty|r1|r2|r3)");
+                throw new CommandException("unknown field: " + args[0] + " (tx|ty|tz|r1|r2|r3)");
         }
         log(args[0].toLowerCase() + "=" + fmt(v));
         show(sender);
     }
 
     private void show(ICommandSender sender) {
-        String line = String.format("tx=%.2f ty=%.2f r1=%.1f r2=%.1f r3=%.1f",
-                ETIMConfig.blockPoseTX, ETIMConfig.blockPoseTY,
+        String line = String.format("tx=%.2f ty=%.2f tz=%.2f r1=%.1f r2=%.1f r3=%.1f",
+                ETIMConfig.blockPoseTX, ETIMConfig.blockPoseTY, ETIMConfig.blockPoseTZ,
                 ETIMConfig.blockPoseRot1, ETIMConfig.blockPoseRot2, ETIMConfig.blockPoseRot3);
         sender.sendMessage(new TextComponentString("[Pose] " + line));
     }
 
     private void log(String what) {
-        ETIM.LOGGER.info("[PoseLog] set {} -> tx={} ty={} r1={} r2={} r3={}",
-                what, fmt(ETIMConfig.blockPoseTX), fmt(ETIMConfig.blockPoseTY),
+        ETIM.LOGGER.info("[PoseLog] set {} -> tx={} ty={} tz={} r1={} r2={} r3={}",
+                what, fmt(ETIMConfig.blockPoseTX), fmt(ETIMConfig.blockPoseTY), fmt(ETIMConfig.blockPoseTZ),
                 fmt(ETIMConfig.blockPoseRot1), fmt(ETIMConfig.blockPoseRot2),
                 fmt(ETIMConfig.blockPoseRot3));
     }

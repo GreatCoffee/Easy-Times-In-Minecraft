@@ -31,6 +31,19 @@ public class PoseFileWatcher {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(PoseFileWatcher.class);
     }
 
+    /**
+     * GUI 改值后调用：把当前文件内容记为「已应用」，避免下一轮轮询用旧文件
+     * 把刚调好的值覆盖回去（文件不变则不再生效）。
+     */
+    public static void rememberCurrent() {
+        try {
+            Path p = Paths.get("config", "etimpose.json");
+            lastRaw = Files.isRegularFile(p) ? new String(Files.readAllBytes(p), StandardCharsets.UTF_8) : "\u0000";
+        } catch (IOException e) {
+            lastRaw = "\u0000";
+        }
+    }
+
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {
