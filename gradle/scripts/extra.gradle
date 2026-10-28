@@ -1,5 +1,23 @@
-// You may write any gradle buildscript component in this file
-// This file is automatically applied after build.gradle + dependencies.gradle is ran
+// MavenLocal publication of the mod for local addon development (ETIM-Extra).
+// Consumes the dev jar (mapped names) as the main artifact — addons compile/run
+// against it inside a 1.12.2 dev workspace; the reobf SRG jar is for release builds only.
+apply from: 'gradle/scripts/helpers.gradle'
+apply plugin: 'maven-publish'
 
-// If you wish to use the default helper methods, uncomment the line below
-// apply from: 'gradle/scripts/helpers.gradle'
+publishing {
+    publications {
+        etimLocal(MavenPublication) {
+            groupId = propertyString('root_package')
+            artifactId = propertyString('mod_id')
+            version = propertyString('mod_version')
+            // archive basenames decide placement: etim-<ver>.jar -> main artifact,
+            // etim-<ver>-dev.jar -> 'dev' classifier, etim-<ver>-sources.jar -> 'sources'
+            artifact tasks.reobfJar
+            artifact tasks.jar
+            artifact tasks.sourcesJar
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
+}
