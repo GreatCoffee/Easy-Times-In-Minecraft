@@ -104,15 +104,20 @@ public class GuiPoseTuner extends GuiScreen {
     }
 
     private void reset() {
-        if (this.third) {
+        applyDefaults(this.third);
+    }
+
+    /** 出厂默认（GUI Reset 与 /etimpose reset 共用一处，避免两边走偏）。 */
+    public static void applyDefaults(boolean third) {
+        if (third) {
             ETIMConfig.tpArmX = 0.0F;
-            ETIMConfig.tpArmY = 0.0F;
-            ETIMConfig.tpItemTX = 0.05F;
+            ETIMConfig.tpArmY = 30.0F;
+            ETIMConfig.tpItemTX = 0.0F;
             ETIMConfig.tpItemTY = 0.0F;
-            ETIMConfig.tpItemTZ = -0.1F;
-            ETIMConfig.tpItemRot1 = -50.0F;
-            ETIMConfig.tpItemRot2 = -10.0F;
-            ETIMConfig.tpItemRot3 = -60.0F;
+            ETIMConfig.tpItemTZ = 0.0F;
+            ETIMConfig.tpItemRot1 = 0.0F;
+            ETIMConfig.tpItemRot2 = 0.0F;
+            ETIMConfig.tpItemRot3 = 0.0F;
         } else {
             ETIMConfig.blockPoseTX = -0.07F;
             ETIMConfig.blockPoseTY = 0.19F;
@@ -124,9 +129,6 @@ public class GuiPoseTuner extends GuiScreen {
     }
 
     private static void log(String what) {
-        if (true) {
-            // 第三人称与第一人称共用同一 [PoseLog] 前缀，字段各打各的
-        }
         ETIM.LOGGER.info("[PoseLog] {} first(tx={} ty={} tz={} r1={} r2={} r3={}) third(armX={} armY={} iTX={} iTY={} iTZ={} iR1={} iR2={} iR3={})",
                 what,
                 fmt(ETIMConfig.blockPoseTX), fmt(ETIMConfig.blockPoseTY), fmt(ETIMConfig.blockPoseTZ),

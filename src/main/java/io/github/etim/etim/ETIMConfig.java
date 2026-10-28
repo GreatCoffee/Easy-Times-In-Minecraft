@@ -387,15 +387,15 @@ public final class ETIMConfig {
     // third-person pose batch (clientpose D-3/D-4) --------------------------
     /** Third-person BLOCK arm: extra X pitch in degrees (0 = vanilla/R196 value). 第三人称格挡手臂附加 X 角（度）。 */
     public static float tpArmX = 0.0F;
-    /** Third-person BLOCK arm: target Y yaw in degrees (0 = R196; 30 = 1.12 vanilla inward). 第三人称格挡手臂目标 Y 角（0 = R196；30 = 1.12 原版）。 */
-    public static float tpArmY = 0.0F;
-    /** Third-person held item BLOCK ops (R196 RenderPlayer:254-257). 第三人称手持物四算子（R196 字面默认）。 */
-    public static float tpItemTX = 0.05F;
+    /** Third-person BLOCK arm: target Y yaw in degrees (30 = 1.12 vanilla inner rotation = 视觉中性). 第三人称格挡手臂目标 Y 角（30 = 1.12 原版内收 = 视觉中性；0 = R196 归零）。 */
+    public static float tpArmY = 30.0F;
+    /** Third-person held item extra ops on top of 1.12 transforms (0 = no extra transform). 第三人称手持物附加四算子（0 = 不附加变换）。 */
+    public static float tpItemTX = 0.0F;
     public static float tpItemTY = 0.0F;
-    public static float tpItemTZ = -0.1F;
-    public static float tpItemRot1 = -50.0F;
-    public static float tpItemRot2 = -10.0F;
-    public static float tpItemRot3 = -60.0F;
+    public static float tpItemTZ = 0.0F;
+    public static float tpItemRot1 = 0.0F;
+    public static float tpItemRot2 = 0.0F;
+    public static float tpItemRot3 = 0.0F;
 
     /** Client-only /etimpose tuning command (dev aid, default off). 客户端 /etimpose 调参命令（开发工装，默认关）。 */
     public static boolean blockPoseDebug = false;
@@ -881,8 +881,8 @@ public final class ETIMConfig {
                 comment("First-person blocking pose, Y translate (R196 :355 = +0.2, upward). Client-side visual only",
                         "第一人格挡摆位 Y 平移（R196 = +0.2，往上）。纯客户端观感面"));
         blockPoseTZ = config.getFloat("blockPoseTZ", "combat", blockPoseTZ, -2.0F, 2.0F,
-                comment("First-person blocking pose Z translate (0 = R196 literal; negative = closer to the camera, bigger on screen). Client-side visual only",
-                        "第一人格挡摆位 Z 平移（0 = R196 字面；负值 = 更近更大）。纯客户端观感面"));
+                comment("First-person blocking pose Z translate (default 0.26; positive = closer to the camera, bigger on screen). Client-side visual only",
+                        "第一人格挡摆位 Z 平移（默认 0.26；正值 = 更近更大）。纯客户端观感面"));
         blockPoseRot1 = config.getFloat("blockPoseRot1", "combat", blockPoseRot1, -360.0F, 360.0F,
                 comment("First-person blocking pose, yaw 1 (R196 :356 = 30)",
                         "第一人格挡摆位轴一：Y 旋（R196 = 30）"));
@@ -896,20 +896,20 @@ public final class ETIMConfig {
                 comment("Third-person blocking arm: extra pitch in degrees (0 = vanilla/R196)",
                         "第三人称格挡手臂附加 X 角（度，0 = 原版/R196）"));
         tpArmY = config.getFloat("tpArmY", "combat", tpArmY, -180.0F, 180.0F,
-                comment("Third-person blocking arm: target Y yaw in degrees (0 = R196 zeroed; 30 = 1.12 vanilla)",
-                        "第三人称格挡手臂目标 Y 角（度；0 = R196 归零，30 = 1.12 原版）"));
+                comment("Third-person blocking arm: target Y yaw in degrees (30 = 1.12 vanilla inner rotation)",
+                        "第三人称格挡手臂目标 Y 角（度；30 = 1.12 原版内收）"));
         tpItemTX = config.getFloat("tpItemTX", "combat", tpItemTX, -2.0F, 2.0F,
-                comment("Third-person blocking held-item translate X (R196 = 0.05)", "第三人称格挡手持物 X 平移（R196 = 0.05）"));
+                comment("Third-person blocking held-item extra translate X", "第三人称格挡手持物附加平移 X"));
         tpItemTY = config.getFloat("tpItemTY", "combat", tpItemTY, -2.0F, 2.0F,
-                comment("Third-person blocking held-item translate Y (R196 = 0.0)", "第三人称格挡手持物 Y 平移（R196 = 0.0）"));
+                comment("Third-person blocking held-item extra translate Y", "第三人称格挡手持物附加平移 Y"));
         tpItemTZ = config.getFloat("tpItemTZ", "combat", tpItemTZ, -2.0F, 2.0F,
-                comment("Third-person blocking held-item translate Z (R196 = -0.1)", "第三人称格挡手持物 Z 平移（R196 = -0.1）"));
+                comment("Third-person blocking held-item extra translate Z", "第三人称格挡手持物附加平移 Z"));
         tpItemRot1 = config.getFloat("tpItemRot1", "combat", tpItemRot1, -360.0F, 360.0F,
-                comment("Third-person blocking held-item rotation 1, Y axis (R196 = -50)", "第三人称手持物旋转一 Y（R196 = -50）"));
+                comment("Third-person blocking held-item extra rotation 1 (Y axis)", "第三人称手持物附加旋转一（Y 轴）"));
         tpItemRot2 = config.getFloat("tpItemRot2", "combat", tpItemRot2, -360.0F, 360.0F,
-                comment("Third-person blocking held-item rotation 2, X axis (R196 = -10)", "第三人称手持物旋转二 X（R196 = -10）"));
+                comment("Third-person blocking held-item extra rotation 2 (X axis)", "第三人称手持物附加旋转二（X 轴）"));
         tpItemRot3 = config.getFloat("tpItemRot3", "combat", tpItemRot3, -360.0F, 360.0F,
-                comment("Third-person blocking held-item rotation 3, Z axis (R196 = -60)", "第三人称手持物旋转三 Z（R196 = -60）"));
+                comment("Third-person blocking held-item extra rotation 3 (Z axis)", "第三人称手持物附加旋转三（Z 轴）"));
         blockPoseDebug = config.getBoolean("blockPoseDebug", "combat", false,
                 comment("Client-only /etimpose command for tuning the first-person blocking pose live (dev aid; off = command not registered)",
                         "客户端 /etimpose 调参命令（开发工装；关闭则不注册命令）"));

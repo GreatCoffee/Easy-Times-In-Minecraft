@@ -74,11 +74,7 @@ public class CommandPose extends CommandBase {
                 show(sender);
                 return;
             case "reset":
-                ETIMConfig.blockPoseTX = -0.5F;
-                ETIMConfig.blockPoseTY = 0.2F;
-                ETIMConfig.blockPoseRot1 = 30.0F;
-                ETIMConfig.blockPoseRot2 = -80.0F;
-                ETIMConfig.blockPoseRot3 = 60.0F;
+                GuiPoseTuner.applyDefaults(false);
                 log("reset");
                 show(sender);
                 return;
