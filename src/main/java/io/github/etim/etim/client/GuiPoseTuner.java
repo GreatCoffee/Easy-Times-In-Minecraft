@@ -20,7 +20,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class GuiPoseTuner extends GuiScreen {
 
-    private static final int W = 196;
+    private static final int W = 262;
     private static final int ROW_H = 22;
     private static final int ROWS = 6;
 
@@ -42,12 +42,22 @@ public class GuiPoseTuner extends GuiScreen {
         }
         this.buttonList.add(new GuiButton(100, left + 62, top + 18 + ROWS * ROW_H + 6, 56, 18, "Reset"));
         this.buttonList.add(new GuiButton(101, left + 124, top + 18 + ROWS * ROW_H + 6, 56, 18, "Done"));
+        this.buttonList.add(new GuiButton(102, left + 186, top + 18 + ROWS * ROW_H + 6, 56, 18, "Shot"));
     }
 
     @Override
     public void actionPerformed(GuiButton button) {
         if (button.id == 101) {
             this.mc.displayGuiScreen(null);
+            return;
+        }
+        if (button.id == 102) {
+            net.minecraft.util.text.ITextComponent msg = net.minecraft.util.ScreenShotHelper.saveScreenshot(
+                    this.mc.gameDir, this.mc.displayWidth, this.mc.displayHeight, this.mc.getFramebuffer());
+            this.mc.ingameGUI.getChatGUI().printChatMessage(msg);
+            ETIM.LOGGER.info("[PoseLog] shot -> tx={} ty={} tz={} r1={} r2={} r3={}",
+                    fmt(ETIMConfig.blockPoseTX), fmt(ETIMConfig.blockPoseTY), fmt(ETIMConfig.blockPoseTZ),
+                    fmt(ETIMConfig.blockPoseRot1), fmt(ETIMConfig.blockPoseRot2), fmt(ETIMConfig.blockPoseRot3));
             return;
         }
         if (button.id == 100) {
