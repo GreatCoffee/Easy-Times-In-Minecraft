@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.combat.ETIMBlocking;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.entity.layers.LayerHeldItem;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -35,7 +36,8 @@ public abstract class MixinLayerHeldItemBlockPose {
             ),
             require = 1
     )
-    private void etim$thirdPersonBlockItem(EntityLivingBase entity, ItemStack stack, Object transformType,
+    private void etim$thirdPersonBlockItem(EntityLivingBase entity, ItemStack stack,
+                                           ItemCameraTransforms.TransformType transformType,
                                            EnumHandSide handSide, CallbackInfo ci) {
         if (!ETIMConfig.blockModel) {
             return;

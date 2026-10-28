@@ -39,7 +39,8 @@ public abstract class MixinModelBipedBlockPose {
             at = @At("TAIL"),
             require = 1
     )
-    private void etim$thirdPersonBlockArm(Entity entity, float f1, float f2, float f3, float f4, float f5, float f6, CallbackInfo ci) {
+    private void etim$thirdPersonBlockArm(float f1, float f2, float f3, float f4, float f5, float f6,
+                                          Entity entity, CallbackInfo ci) {
         if (!ETIMConfig.blockModel) {
             return;
         }
