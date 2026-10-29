@@ -554,6 +554,50 @@ tasks.register('etimCompatGateCheck') {
     }
 }
 
+// 附属卸载开关 (条 2522 遗项): hold the etimextra jar(s) out of run/mods for a
+// launch via `-PetimExtrasOff=1`, restore on completion (also on crash exit;
+// hard-kill recovery: `gradlew etimExtrasOffRestore`). Default launch shape is
+// unchanged when the flag is absent — the gate then does nothing. Obf chain
+// (run/obfuscated/mods) is untouched on purpose.
+def etimExtrasPresent = { File dir ->
+    (dir.isDirectory() ? dir.listFiles() : []).findAll { it.isFile() && it.name.startsWith('etimextra') && it.name.endsWith('.jar') }*.name
+}
+tasks.register('etimExtrasOffGate') {
+    onlyIf { project.hasProperty('etimExtrasOff') }
+    doLast {
+        def modsDir = file('run/mods')
+        def holdDir = file('run/mods-hold-off')
+        def present = etimExtrasPresent(modsDir)
+        if (present.isEmpty()) {
+            println '[etim-harness] extras-off gate: no etimextra jar in run/mods — nothing to hold'
+            return
+        }
+        holdDir.mkdirs()
+        present.each { n -> new File(modsDir, n).renameTo(new File(holdDir, n)) }
+        println '[etim-harness] extras-off gate: held ' + present.size() + ' jar(s) out of run/mods: ' + present
+    }
+}
+tasks.register('etimExtrasOffRestore') {
+    doLast {
+        def modsDir = file('run/mods')
+        def holdDir = file('run/mods-hold-off')
+        if (!holdDir.isDirectory()) {
+            return
+        }
+        def held = holdDir.listFiles().findAll { it.isFile() }
+        held.each { f -> f.renameTo(new File(modsDir, f.name)) }
+        if (!held.isEmpty()) {
+            println "[etim-harness] extras-off restore complete (${held.size()} jar(s) back in run/mods)"
+        }
+    }
+}
+['runServer', 'runClient'].each { taskName ->
+    tasks.named(taskName).configure {
+        dependsOn 'etimExtrasOffGate'
+        finalizedBy 'etimExtrasOffRestore'
+    }
+}
+
 // ETIM test harness: dump the runObfServer javaexec launch line (runner-driven
 // server execu; invoke via `gradlew etimDumpServerExec`)
 tasks.register('etimDumpServerExec') {
