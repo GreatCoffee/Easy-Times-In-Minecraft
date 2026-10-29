@@ -44,9 +44,17 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  *
  * <p>The carrier faces are the R196 {@code ItemTool.canBlock()} exact-class
  * whitelist (M1-1 / D-5 — NO instanceof: the war hammer / battle axe / dagger /
- * hatchet / mattock all drift in through subclasses) plus the shield arm
- * (b+c, D-8: wear = (int)(blocked × shieldWearRate), decay rate 1.0 default →
- * D=16 → 8 durability, 336-dur shield = 42 hits).</p>
+ * hatchet / mattock all drift in through subclasses) plus the shield arm.</p>
+ *
+ * <p>盾面削弱批（2026-10-29 终审放行，审件钉 `d524d41`/派修单 10 要件）——盾两臂
+ * 走三支分发：<b>① {@code getItem() instanceof ETIMShield} 先于</b> ② vanilla
+ * {@code ItemShield}（木盾常量 {@code shieldWoodReduction}/1.0 = 现行 ÷2 逐位）；
+ * ③ sward arm 的阻减照旧 {@code blockDamageFactor}（R196 剑语义一字不动）。盾
+ * 磨损臂带 <b>A-2 epsilon</b>：{@code wear = (int)Math.floor(blocked*(double)rate
+ * + 1.0E-4)}（先例 {@code R196ArmorModel:62}）——裸 (int) 下铜 8 伤 8.9999998 与
+ * 艾德曼 8 伤 3.9999998 两格翻转（JVM 实测，会话五探针卷复验）；工具臂不加
+ * epsilon（R196 Damage.java:203-208 整数语义）；磨损仍打
+ * {@code damageItem}（vanilla unbreaking 面，不重推）。</p>
  *
  * <p>Registration = the one static-class line in {@code ETIM.preInit}
  * (A-AD10-2 — without it this handler is a silent no-op). The dead-code faces
@@ -122,35 +130,64 @@ public final class ETIMBlocking {
         if (raw <= 0.0F) {
             return;                                     // Damage.java:187-189
         }
-        float blocked = Math.max(raw * ETIMConfig.blockDamageFactor,
-                ETIMConfig.blockMinDamage);             // :198-201 first floor (D-10)
-        wearShieldOrTool(player, active, raw, blocked); // M2-3: wear FIRST, crush-current-still-blocks (D-6)
-        ETIMBlockLog.block(player, source, raw, blocked, active);
+        float blocked;
+        boolean spectral;
+        if (isShieldStack(active)) {
+            // 盾面削弱批三支（M-3;① instanceof ETIMShield 先于 ② vanilla ItemShield）:
+            // 减伤比例 r（0..1 clamp）→ net = max(1.0, raw×(1−r)),1.0 地板照旧。
+            float r = active.getItem() instanceof ETIMShield
+                    ? ((ETIMShield) active.getItem()).getBlockReduction(source)
+                    : ETIMConfig.shieldWoodReduction;   // ② 木盾常量 = 现行 ÷2 逐位
+            r = Math.max(0.0F, Math.min(1.0F, r));      // 封顶永不满免
+            spectral = io.github.etim.etim.combat.ETIMGhost.isSpectral(source);
+            blocked = Math.max(raw * (1.0F - r),
+                    ETIMConfig.blockMinDamage);         // :199-201 first floor (D-10)
+        } else {
+            spectral = false;                           // 支②剑臂:R196 ÷2 语义一字不动
+            blocked = Math.max(raw * ETIMConfig.blockDamageFactor,
+                    ETIMConfig.blockMinDamage);         // :198-201 first floor (D-10)
+        }
+        wearShieldOrTool(player, active, source, raw, blocked); // M2-3: wear FIRST, crush-current-still-blocks (D-6)
+        ETIMBlockLog.block(player, source, raw, blocked, spectral, active);
         event.setAmount(blocked);                       // :213-231 all read the halved value
     }
 
     /**
-     * M2-3 wear fork: tool = 25×raw (R196 Damage.java:203-208 = (int)(amount ×
-     * getToolDecayFromAttackingEntity)), shield = D-8's shieldWearRate arm.
+     * M2-3 wear fork（盾面削弱批裁后）：盾臂 = 三支读值（接口实现 / 木盾常量）
+     * × 全局 {@code shieldWearRateBase}，带 A-2 epsilon；剑臂 = R196
+     * Damage.java:203-208 = (int)(amount × getToolDecayFromAttackingEntity)，
+     * **一字不动**（epsilon 不给工具——会话五字节钉）。
      * The durability-unbreaking face (unbreaking etc.) is vanilla
      * {@code damageItem} — never re-derived here. After a break
      * ({@code damageItem → shrink}) the current hit still settles at
      * {@code blocked} (D-6) and the next one finds an empty use stack.
      */
-    static void wearShieldOrTool(EntityPlayer player, ItemStack active, float raw, float blocked) {
+    static void wearShieldOrTool(EntityPlayer player, ItemStack active, DamageSource source,
+            float raw, float blocked) {
         int wear;
-        int decay = -1;                                 // shield row = na (B-10)
-        if (isShieldStack(active)) {
-            wear = (int) (blocked * ETIMConfig.shieldWearRate); // D-8: rate default 1.0
+        int decay = -1;                                 // tool row only (要件 6 行形:盾行 decay=na)
+        float rate = -1.0F;                             // tool row = na
+        float mult = -1.0F;                             // tool row = na
+        boolean shield = isShieldStack(active);
+        if (shield) {
+            float m = active.getItem() instanceof ETIMShield
+                    ? ((ETIMShield) active.getItem()).getWearMultiplier(source)
+                    : 1.0F;                             // vanilla ItemShield:无差分
+            rate = ETIMConfig.shieldWearRateBase;
+            mult = m;
+            // A-2 epsilon（盾两臂专用）：裸 (int) 下铜 8 伤 8.9999998→8、
+            // 艾德曼 8 伤 3.9999998→3 两格翻转（JVM 实测）;1e-4 后 21/21 表值。
+            double x = blocked * (double) rate * (double) m;
+            wear = (int) Math.floor(x + 1.0E-4);
         } else {
             decay = ETIMMining.getToolDecayFromAttackingEntity(active); // sword = 50
-            wear = (int) (blocked * decay);             // Damage.java:203-208 (int) truncation
+            wear = (int) (blocked * decay);             // Damage.java:203-208 (int) truncation — 不动
         }
         int before = active.getItemDamage();
         if (wear > 0 && !player.capabilities.isCreativeMode) {
             active.damageItem(wear, player);            // R196 = tryDamageItem; vanilla unbreaking face
         }
-        ETIMBlockLog.wear(player, active, ETIMConfig.shieldWearRate, decay, raw, blocked,
+        ETIMBlockLog.wear(player, active, shield, rate, mult, decay, raw, blocked,
                 wear, before, active.getItemDamage());
     }
 }

@@ -184,6 +184,26 @@ public final class TestDriver {
         });
     }
 
+    /**
+     * 盾面削弱批 W-16 银盾幽魂腿（要件 4）——{@code /etimghost hurt} 的驱动口：
+     * 逐次 {@code new EntityDamageSource}（绝不传静态单例——C 级类型门调用纪律），
+     * {@code spectral=true} 先 {@code ETIMGhost.markSpectral(src)} 再结算；两条腿
+     * 共用本口，日志走 [BlockLog] block/wear 行（spectral= 字段判面）。
+     */
+    public static void hurtSpectral(EntityPlayerMP player, float amount, boolean spectral) {
+        schedule(player, "hurt", 1, () -> {
+            net.minecraft.util.EntityDamageSource src =
+                    new net.minecraft.util.EntityDamageSource("etimspectral", player);
+            if (spectral) {
+                io.github.etim.etim.combat.ETIMGhost.markSpectral(src);
+            }
+            player.attackEntityFrom(src, amount);
+            ETIM.LOGGER.info("[TestLog] step=hurt player={} amount={} spectral={}",
+                    player.getName(),
+                    String.format(java.util.Locale.ROOT, "%.3f", amount), spectral);
+        });
+    }
+
     private static void schedule(EntityPlayerMP player, String label, int delayTicks, Runnable action) {
         STEPS.add(new Step(player, label, delayTicks, action));
     }

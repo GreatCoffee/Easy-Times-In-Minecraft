@@ -33,16 +33,17 @@ import net.minecraft.entity.player.EntityPlayer;
  *   <li>{@code gate player=… active=<reg> src=<type> suppressed=true} — W11
  *       门控 (the canBlockDamageSource suppression marker);</li>
  *   <li>{@code block player=… src=<type> raw=<%.3f> blocked=<%.3f>
- *       factor=<%.3f> min=<%.3f> carrier=<reg>} — W3/W4/W5/W9/W10;</li>
- *   <li>{@code wear player=… item=<reg> rate=<%.3f> decay=<n|na> raw=<%.3f>
- *       blocked=<%.3f> wear=<n> dur=<a>-><b>} — W6/W7/W12/W14 (B-10: {@code
- *       rate=} always carries {@code shieldWearRate} — the future material
- *       table column slot;{@code decay=} is the TOOL's real rate, {@code na}
- *       on the shield row);</li>
+ *       factor=<%.3f> spectral=<b> min=<%.3f> carrier=<reg>} — W3/W4/W5/W9/W10；
+ *       factor= 本击实际保留系数（盾行 = 1−r、工具行 = {@code blockDamageFactor}）；
+ *       spectral= 盾面削弱批新增字段（盾行判幽灵面、工具行恒 false）;</li>
+ *   <li>{@code wear player=… item=<reg> shield=<b> rate=<%.3f|na> mult=<%.3f|na>
+ *       decay=<n|na> raw=<%.3f> blocked=<%.3f> wear=<n> dur=<a>-><b>} — W6/W7/
+ *       W12/W14（要件 6 四行形——盾行 rate= {@code shieldWearRateBase} +
+ *       mult= 盾倍数；工具行 rate=/mult= 均 na、decay= 真实 rate）;</li>
  *   <li>{@code probe player=… held=<reg> dur=<cur>/<max>} and
  *       {@code probe player=… cfg blockModel=<b> factor=<%.3f> min=<%.3f>
- *       shieldRate=<%.3f>} — W14 config re-read + W6's pre-read of the stack
- *       durability.</li>
+ *       shieldRateBase=<%.3f> woodReduction=<%.3f>} — W14 config re-read + W6's
+ *       pre-read of the stack durability（盾面削弱批：shieldRate 键改名 + 新键）.</li>
  * </ul>
  */
 public final class ETIMBlockLog {
@@ -96,29 +97,33 @@ public final class ETIMBlockLog {
                 + " src=" + (source == null ? "-" : source.getDamageType()) + " suppressed=true");
     }
 
-    /** W3/W4/W5/W9/W10 — the halving event face. */
+    /** W3/W4/W5/W9/W10 — the halving event face (盾行 factor=1−r、spectral= 幽灵面). */
     public static void block(EntityPlayer player, DamageSource source, float raw, float blocked,
-            ItemStack active) {
+            boolean spectral, ItemStack active) {
         if (!ETIMConfig.blockDebugLog) {
             return;
         }
         row("block player=" + nameOf(player)
                 + " src=" + (source == null ? "-" : source.getDamageType())
                 + " raw=" + f3(raw) + " blocked=" + f3(blocked)
-                + " factor=" + f3(ETIMConfig.blockDamageFactor)
+                + " factor=" + f3(blocked > 0.0F && raw > blocked
+                        ? blocked / raw : 1.0F)
+                + " spectral=" + spectral
                 + " min=" + f3(ETIMConfig.blockMinDamage)
                 + " carrier=" + itemKey(active));
     }
 
-    /** W6/W7/W12/W14 — the wear face (B-10: rate = shieldWearRate column slot, decay = the tool's real rate). */
-    public static void wear(EntityPlayer player, ItemStack stack, float rate, int decay,
-            float raw, float blocked, int wear, int durBefore, int durAfter) {
+    /** W6/W7/W12/W14 — the wear face（要件 6 四行形：盾行 rate/mult、工具行 rate=/mult=na）. */
+    public static void wear(EntityPlayer player, ItemStack stack, boolean shield, float rate,
+            float mult, int decay, float raw, float blocked, int wear, int durBefore, int durAfter) {
         if (!ETIMConfig.blockDebugLog) {
             return;
         }
         row("wear player=" + nameOf(player)
                 + " item=" + itemKey(stack)
-                + " rate=" + f3(rate)
+                + " shield=" + shield
+                + " rate=" + (shield ? f3(rate) : "na")
+                + " mult=" + (shield ? f3(mult) : "na")
                 + " decay=" + (decay < 0 ? "na" : String.valueOf(decay))
                 + " raw=" + f3(raw) + " blocked=" + f3(blocked)
                 + " wear=" + wear + " dur=" + durBefore + "->" + durAfter);
@@ -133,7 +138,7 @@ public final class ETIMBlockLog {
                 + " dur=" + (stack.isEmpty() ? "-" : stack.getItemDamage() + "/" + stack.getMaxDamage()));
     }
 
-    /** W14 — the five-key config re-read arm of {@code blockprobe}. */
+    /** W14 — the config re-read arm of {@code blockprobe}（盾面削弱批：shieldRateBase + woodReduction）. */
     public static void probeConfig(EntityPlayer player) {
         if (!ETIMConfig.blockDebugLog) {
             return;
@@ -142,7 +147,8 @@ public final class ETIMBlockLog {
                 + " cfg blockModel=" + ETIMConfig.blockModel
                 + " factor=" + f3(ETIMConfig.blockDamageFactor)
                 + " min=" + f3(ETIMConfig.blockMinDamage)
-                + " shieldRate=" + f3(ETIMConfig.shieldWearRate));
+                + " shieldRateBase=" + f3(ETIMConfig.shieldWearRateBase)
+                + " woodReduction=" + f3(ETIMConfig.shieldWoodReduction));
     }
 
     // ==================== channel launcher (ETIMDamageLog:109-122 shape) ====================

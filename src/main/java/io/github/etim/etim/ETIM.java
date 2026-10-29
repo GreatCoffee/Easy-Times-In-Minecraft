@@ -141,6 +141,8 @@ public final class ETIM {
         event.registerServerCommand(new CommandState());
         if (ETIMConfig.devTools) {
             event.registerServerCommand(new CommandDevTest());
+            // 盾面削弱批（D-6/派修单要件 4）：W-16 的 /etimghost hurt 测试口。
+            event.registerServerCommand(new io.github.etim.etim.commands.CommandEtimGhost());
         }
         // underworld 批 (2026-10-25, D-6): the minimal dimension entry face
         // (/etim dim enter|leave|probe, permission 2, always registered).

@@ -360,13 +360,20 @@ public final class ETIMConfig {
      *  vanilla shield free path stays vanilla (回退面只有这一个开关). R196 剑/盾
      *  格挡总开关：护甲前减半、下限 1.0、无方向判定、不免疫击退。off = 全关。 */
     public static boolean blockModel = true;
-    /** The halving factor (R196 Damage.java:198 = 0.5). 减半系数（R196 = 0.5）。 */
+    /** The halving factor (R196 Damage.java:198 = 0.5)。**剑臂专用**（盾面削弱批
+     *  三支：盾行减伤走 {@code ETIMShield#getBlockReduction}，不再读本键）。
+     *  Sword-arm-only halving factor（R196 = 0.5）。 */
     public static float blockDamageFactor = 0.5F;
     /** Post-halving damage floor (R196 Damage.java:199-201 = 1.0). 减半后伤害下限（R196 = 1.0）。 */
     public static float blockMinDamage = 1.0F;
-    /** Shield blocking wear rate (D-8): wear = (int)(blocked × rate); 1.0 → D=16 costs 8 durability
-     *  (336-dur shield = 42 hits); 0.0 = shields never wear. 盾格挡磨损率：336 耐的盾默认可挡 42 击；0.0 = 盾不磨损。 */
-    public static float shieldWearRate = 1.0F;
+    /** Shield-blocking wear rate BASE（盾面削弱批终裁 = 2.5；键改名 shieldWearRate →
+     *  shieldWearRateBase，旧键不再读取——A-1）：盾磨损 = (int)floor(blocked × rate
+     *  × mult + 1e-4)（A-2 epsilon）；0.0 = 盾不磨损。provenance (b) 自创面（R196 无盾）。
+     *  Shield wear base rate（old key shieldWearRate is silently dead）。 */
+    public static float shieldWearRateBase = 2.5F;
+    /** Vanilla ItemShield（木盾）的减伤常量（盾面削弱批三支支② = 0.5 = 现行 ÷2 逐位）。
+     *  Wood-shield damage reduction constant（支② default 也复用本键）。 */
+    public static float shieldWoodReduction = 0.5F;
     /** Server-log [BlockLog] judgment rows (D-3) — the W1~W14 channel, default off.
      *  服务端日志 [BlockLog] 判行（W1~W14 判定通道），默认关。 */
     public static boolean blockDebugLog = false;
@@ -861,14 +868,17 @@ public final class ETIMConfig {
                 comment("R196 sword/shield blocking (AD-10+SH): halve incoming damage BEFORE armor (LivingHurtEvent), floor 1.0, no direction gate, no knockback immunity; the vanilla shield full-free path is closed while on. false = every blocking face off and the vanilla shield untouched",
                         "R196 剑/盾格挡（AD-10+SH）：伤害在护甲步之前减半（LivingHurtEvent）、下限 1.0、无方向判定、不免疫击退；开启期间原版盾的全免路径关闭。关闭则所有格挡面关完全恢复原版盾"));
         blockDamageFactor = config.getFloat("blockDamageFactor", "combat", blockDamageFactor, 0.0F, 1.0F,
-                comment("The blocking damage factor (R196 Damage.java:198 = 0.5; 1.0 = blocks nothing but still wears the tool)",
-                        "格挡伤害系数（R196 = 0.5；1.0 = 不减伤但照常磨损）"));
+                comment("Sword-arm-only blocking damage factor (R196 Damage.java:198 = 0.5; 1.0 = blocks nothing but still wears the tool); the shield arm reads the ETIMShield contract instead (Shield-Nerf batch)",
+                        "剑臂格挡伤害系数（R196 = 0.5；1.0 = 不减伤但照常磨损）；盾面改走 ETIMShield 契约（盾面削弱批）"));
         blockMinDamage = config.getFloat("blockMinDamage", "combat", blockMinDamage, 0.0F, 20.0F,
                 comment("The post-factor damage floor (R196 Damage.java:199-201 = 1.0)",
                         "格挡后伤害下限（R196 = 1.0）"));
-        shieldWearRate = config.getFloat("shieldWearRate", "combat", shieldWearRate, 0.0F, 100.0F,
-                comment("Shield blocking wear rate (D-8): wear = (int)(blocked × rate); 1.0 → a 16-damage hit costs 8 durability (336-dur shield = 42 hits), 0.0 = shields never wear; the tool carriers keep the R196 25×raw channel regardless (the future etim-extra material table rides this slot)",
-                        "盾格挡磨损率（D-8）：磨损 = (int)(减半后伤害 × 率)；1.0 → 16 点一击掉 8 耐（336 耐挡 42 击），0.0 = 盾不磨损；工具侧仍走 R196 的 25×raw 通道（将来 etim-extra 材质盾表占这个列位）"));
+        shieldWearRateBase = config.getFloat("shieldWearRateBase", "combat", shieldWearRateBase, 0.0F, 100.0F,
+                comment("Shield-blocking wear rate BASE (Shield-Nerf batch final = 2.5; the old key shieldWearRate is NOT read anymore — A-1): shield wear = (int)floor(blocked x rate x mult + 1e-4) (A-2 epsilon), 0.0 = shields never wear; the tool carriers keep the R196 channel regardless; provenance (b) — R196 has no shields",
+                        "盾格挡磨损基准率（盾面削弱批终裁 = 2.5；旧键 shieldWearRate 不再读取——A-1）：盾磨损 = (int)floor(减半后伤害 x 率 x 乘子 + 1e-4)（A-2 epsilon），0.0 = 盾不磨损；工具侧仍走 R196 通道；provenance (b) 自创面（R196 无盾）"));
+        shieldWoodReduction = config.getFloat("shieldWoodReduction", "combat", shieldWoodReduction, 0.0F, 1.0F,
+                comment("Vanilla ItemShield (wood) damage-reduction constant (Shield-Nerf batch arm-2 = 0.5 = the old halve behavior verbatim)",
+                        "原版木盾减伤常量（盾面削弱批支② = 0.5 = 现行减半逐位）"));
         blockDebugLog = config.getBoolean("blockDebugLog", "combat", false,
                 comment("[BlockLog] rows of the AD-10+SH blocking chain (carrier/action/start/state/gate/block/wear/probe) — the W1~W14 judgment channel; silent when off",
                         "[BlockLog] 判行（AD-10+SH 格挡链 carrier/action/start/state/gate/block/wear/probe 八式样）——W1~W14 判定通道；关闭则静默"));
