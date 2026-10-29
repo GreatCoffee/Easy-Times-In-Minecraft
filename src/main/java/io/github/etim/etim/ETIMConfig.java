@@ -220,7 +220,7 @@ public final class ETIMConfig {
     /** Chat feedback when the server rejects a reach-denied action (debug/test data channel). 服务端拒绝触及不足的动作时发聊天反馈（调试/测试数据通道）。 */
     public static boolean reachDenialFeedback = true;
 
-    /** Master switch of the task-2.2 mining reform (progress formula + drop gate). 任务 2.2 挖掘改革总开关（进度公式 + 掉落门控）。 */
+    /** Master switch of the task-2.2 mining reform (progress formula + drop gate). When on, the vanilla dig-wear guard also reads the R196 hardness table (same source as the decay chain); off = native field (hardness-0 blocks take zero tool wear). 任务 2.2 挖掘改革总开关（进度公式 + 掉落门控）。开启时原版挖掘损耗守卫同读 R196 硬度表（与衰减链同源）；关闭时读原生字段（硬度 0 方块零工具磨损）。 */
     public static boolean miningReform = true;
 
     // hunger (task 2.3) ----------------------------------------------
@@ -706,8 +706,8 @@ public final class ETIMConfig {
                 comment("Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay)",
                         "调试覆盖显示用的射线长度（不影响游戏判定）"));
         miningReform = config.getBoolean("miningReform", "mining", true,
-                comment("R196 mining reform (task 2.2): MITE dig-progress formula, tool-level gating and hardness table",
-                        "R196 挖掘改革（任务 2.2）：MITE 挖掘进度公式、工具等级门控与硬度表"));
+                comment("R196 mining reform (task 2.2): MITE dig-progress formula, tool-level gating and hardness table; on = the vanilla dig-wear guard reads the R196 hardness table (same source as the decay chain)",
+                        "R196 挖掘改革（任务 2.2）：MITE 挖掘进度公式、工具等级门控与硬度表；开启时原版挖掘损耗守卫同读 R196 硬度表（与衰减链同源）"));
         treeFellingMaxLevel = config.getInt("treeFellingMaxLevel", "mining", treeFellingMaxLevel, 1, 20,
                 comment("Maximum level of the tree-felling enchant (each level fells one further wood log)",
                         "树木连根附魔的最大等级（每级向上多伐一根原木）"));

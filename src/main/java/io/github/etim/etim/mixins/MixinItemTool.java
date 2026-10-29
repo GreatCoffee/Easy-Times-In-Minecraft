@@ -45,6 +45,29 @@ public abstract class MixinItemTool {
         }
     }
 
+    /**
+     * B-SK-1 tail (cropdecay 终审, 2026-10-29): the vanilla dig-wear guard
+     * {@code (double)state.getBlockHardness(...) != 0.0D} reads the native
+     * field, while the decay chain reads the R196 hardness table
+     * ({@code null} rows fall back native). With the reform on, the guard
+     * must read the same source — the four plant rows (tallgrass /
+     * double_plant / sapling / deadbush) carry R196 0.02F where the vanilla
+     * field is 0.0, so the R196 gate ④ (hardness &gt; 0, R196 ItemTool :202)
+     * is unreachable through the field alone. Reform off → return the
+     * state's own value (zero perturbation).
+     */
+    @Redirect(
+            method = "onBlockDestroyed",
+            at = @At(value = "INVOKE",
+                     target = "Lnet/minecraft/block/state/IBlockState;getBlockHardness(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)F"),
+            require = 1)
+    private float etim$r196GuardHardness(IBlockState state, World world, BlockPos pos) {
+        if (!ETIMConfig.miningReform) {
+            return state.getBlockHardness(world, pos);
+        }
+        return ETIMMining.getHardness(state, world, pos);
+    }
+
     @Redirect(
             method = "hitEntity",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;damageItem(ILnet/minecraft/entity/EntityLivingBase;)V"),
