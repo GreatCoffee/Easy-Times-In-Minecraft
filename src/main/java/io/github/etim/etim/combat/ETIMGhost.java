@@ -24,23 +24,28 @@ import net.minecraft.util.EntityDamageSource;
 public final class ETIMGhost {
 
     private static final Set<DamageSource> SPECTRAL =
-            Collections.newSetFromMap(new WeakHashMap<>());
+            Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
     private ETIMGhost() {
     }
 
-    /** 幽魂实体（夜翼/暗影/尸魂）攻击发起时上标。Mark the attack source as ghost-struck. */
-    public static void markSpectral(DamageSource source) {
+    /**
+     * 幽魂实体（夜翼/暗影/尸魂）攻击发起时上标。Mark the attack source as
+     * ghost-struck. {@return true 如果接收并入表；false 被 C 级类型门拒绝}
+     * (true if accepted; false when rejected by the type gate).
+     */
+    public static boolean markSpectral(DamageSource source) {
         if (source == null) {
-            return;
+            return false;
         }
         if (!(source instanceof EntityDamageSource)) {
             // C 级护栏:静态单例进不了标记口 —— 误标路径不可达。
             io.github.etim.etim.ETIM.LOGGER.info(
-                    "ghost-mark rejected src=" + source.getClass().getName() + " [server]");
-            return;
+                    "[BlockLog] ghost-mark rejected src=" + source.getDamageType() + " [server]");
+            return false;
         }
         SPECTRAL.add(source);
+        return true;
     }
 
     /** 附属盾的两面读口：物理面 / 幽魂面。The two-face read the add-on shields branch on. */

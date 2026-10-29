@@ -38,7 +38,7 @@ import net.minecraft.entity.player.EntityPlayer;
  *       spectral= 盾面削弱批新增字段（盾行判幽灵面、工具行恒 false）;</li>
  *   <li>{@code wear player=… item=<reg> shield=<b> rate=<%.3f|na> mult=<%.3f|na>
  *       decay=<n|na> raw=<%.3f> blocked=<%.3f> wear=<n> dur=<a>-><b>} — W6/W7/
- *       W12/W14（要件 6 四行形——盾行 rate= {@code shieldWearRateBase} +
+ *       W12/W14（要件 6 四行形——盾行 rate= 有效总率 rate×mult +
  *       mult= 盾倍数；工具行 rate=/mult= 均 na、decay= 真实 rate）;</li>
  *   <li>{@code probe player=… held=<reg> dur=<cur>/<max>} and
  *       {@code probe player=… cfg blockModel=<b> factor=<%.3f> min=<%.3f>
@@ -122,7 +122,7 @@ public final class ETIMBlockLog {
         row("wear player=" + nameOf(player)
                 + " item=" + itemKey(stack)
                 + " shield=" + shield
-                + " rate=" + (shield ? f3(rate) : "na")
+                + " rate=" + (shield ? f3(rate * mult) : "na")
                 + " mult=" + (shield ? f3(mult) : "na")
                 + " decay=" + (decay < 0 ? "na" : String.valueOf(decay))
                 + " raw=" + f3(raw) + " blocked=" + f3(blocked)
