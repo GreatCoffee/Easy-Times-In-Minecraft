@@ -10,7 +10,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -66,7 +65,7 @@ public abstract class MixinAnvilOutputSlot {
     }
 
     @Inject(method = "onTake", at = @At("HEAD"))
-    private void etim$logTake(EntityPlayer player, ItemStack stack, CallbackInfo cir) {
+    private void etim$logTake(EntityPlayer player, ItemStack stack, CallbackInfoReturnable<ItemStack> cir) {
         if (player == null || player.world == null || player.world.isRemote) {
             return; // PlayerControllerMP:609-611 — the face that judges is the server's
         }
