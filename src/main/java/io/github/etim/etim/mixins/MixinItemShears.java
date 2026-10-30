@@ -1,6 +1,7 @@
 package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.mining.ETIMMining;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -52,6 +53,48 @@ public abstract class MixinItemShears {
             return;
         }
         // vanilla shears / mob hands → vanilla behaviour (+1 per dig).
+        stack.damageItem(vanillaAmount, entityLiving);
+    }
+
+    /**
+     * Path-① batch (audit20 items 150/151): for IShearable blocks
+     * ({@code ItemShears.onBlockStartBreak}, :81-115) the vanilla +1 at
+     * {@code :108} is the <em>only</em> wear — the {@code true} return at
+     * {@code :111} short-circuits {@code PlayerInteractionManager.tryHarvestBlock}
+     * (:328), so {@code onBlockDestroyed} (and the first redirect above) never
+     * runs for sheared blocks. R196 replaces the flat +1 with the decay-only
+     * semantics ({@code ItemShears:89 ride through} the six-block IShearable
+     * faces ride {@code getToolDecayFromBreakingBlock}, R196 ItemShears:89).
+     *
+     * <p>The redirect swaps the vanilla +1 for the funnel decay; the funnel
+     * itself issues the single {@code [MiningLog] tool decay} row
+     * (ETIMMining :274 — unconditional, zero-loss rows included, the tripwire
+     * shape of W-36d) — deliberately no extra logging here (no double
+     * issuance; the W-37 driver reads that row verbatim). {@code isShearable}
+     * = false targets never reach :108, so they stay on the normal
+     * break path untouched. Vanilla shears stay on the vanilla call.</p>
+     */
+    @Redirect(
+            method = "onBlockStartBreak",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;damageItem(ILnet/minecraft/entity/EntityLivingBase;)V"),
+            require = 1)
+    private void etim$r196GuardShearsStartBreakDamage(ItemStack stack, int vanillaAmount, EntityLivingBase entityLiving,
+            ItemStack stackParam, BlockPos pos, EntityPlayer player) {
+        if (!ETIMConfig.miningReform) {
+            // Master switch off → vanilla behaviour (+1 per shear).
+            stack.damageItem(vanillaAmount, entityLiving);
+            return;
+        }
+        if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
+            // R196 decay-only on the shear path: wear = funnel decay, and the
+            // funnel's :274 row is the Judgment-log anchor (loss column = decay).
+            int decay = ETIMMining.getToolDecayFromBreakingBlock(player, player.world.getBlockState(pos), player.world, pos);
+            if (decay > 0) {
+                stack.damageItem(decay, entityLiving);
+            }
+            return;
+        }
+        // vanilla shears → vanilla behaviour (+1 per shear).
         stack.damageItem(vanillaAmount, entityLiving);
     }
 }
