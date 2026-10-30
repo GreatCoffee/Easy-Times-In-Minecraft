@@ -136,6 +136,7 @@ public final class ETIMMining {
         put("clay", 0.8F, 0);               // R196 :399
         put("sapling", 0.02F, 0);
         put("deadbush", 0.02F, 0);
+        put("reeds", 0.08F, 0);             // R196 :404（A-4 兑现，audit20 条 142/143；1.12 字段 0.0 → 表行接管，mob 冷却 300×0.08=24 tick 顺带生效）
         // 等级侧（BlockOreStorage:6 modify(+1)）——硬度保持 vanilla，只抬等级门：
         BLOCK_MIN_LEVEL.put("gold_block", 3);
         BLOCK_MIN_LEVEL.put("iron_block", 4);
