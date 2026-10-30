@@ -70,7 +70,7 @@ public abstract class MixinItemShears {
      *
      * <p>The redirect swaps the vanilla +1 for the funnel decay; the funnel
      * itself issues the single {@code [MiningLog] tool decay} row
-     * (ETIMMining :274 — unconditional, zero-loss rows included, the tripwire
+     * (ETIMMining :282 — unconditional, zero-loss rows included, the tripwire
      * shape of W-36d) — deliberately no extra logging here (no double
      * issuance; the W-37 driver reads that row verbatim). {@code isShearable}
      * = false targets never reach :108, so they stay on the normal
@@ -89,7 +89,7 @@ public abstract class MixinItemShears {
         }
         if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
             // R196 decay-only on the shear path: wear = funnel decay, and the
-            // funnel's :274 row is the Judgment-log anchor (loss column = decay).
+            // funnel's :282 row is the Judgment-log anchor (loss column = decay).
             int decay = ETIMMining.getToolDecayFromBreakingBlock(player, player.world.getBlockState(pos), player.world, pos);
             if (decay > 0) {
                 stack.damageItem(decay, entityLiving);
@@ -132,10 +132,16 @@ public abstract class MixinItemShears {
         }
         if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted
                 && entity instanceof EntitySheep) {
-            // R196 flat 50 on the sheep face (R196 ItemShears:62); damage the
-            // sheared entity exactly as the vanilla call did (same damager
-            // argument → identical RNG / damager=null semantics).
-            stack.damageItem(ETIMMining.SHEEP_SHEAR_WEAR, shearedEntity);
+            // R196 flat 50 on the sheep face (R196 ItemShears:62). The helper
+            // gates creative zero-wear BEFORE issuing the face=shearing row
+            // (held rides the host stack param — the creative copy — so the
+            // row can never lie about the real stack); the damage target stays
+            // the sheared entity exactly as the vanilla call did (same
+            // damager argument → identical RNG / damager=null semantics).
+            int wear = ETIMMining.getToolDecayFromShearingEntity(stackParam, player);
+            if (wear > 0) {
+                stack.damageItem(wear, shearedEntity);
+            }
             return;
         }
         // vanilla shears / mooshroom / snowman → vanilla behaviour (+1).

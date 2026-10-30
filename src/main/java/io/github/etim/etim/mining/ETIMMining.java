@@ -296,6 +296,31 @@ public final class ETIMMining {
         return loss;
     }
 
+    /**
+     * R196 sheep-shear decay: a flat {@link #SHEEP_SHEAR_WEAR} on the entity
+     * face, gated on creative mode <em>before</em> the row is issued — vanilla
+     * {@code ItemStack.damageItem:387} keys its creative guard on the damager
+     * being a player, and the sheep face passes the sheep, so that guard never
+     * fires on this path; an un-gated 50-row while the real stack takes zero
+     * would be a lying row (the attack face carries exactly that pre-existing
+     * flaw — audit20 条 157 C-1, separate batch). The row rides
+     * {@code logToolDecay("shearing", held, null, loss)} — state=null omits
+     * the block column (the attacking-face shape, :295) and the last-sig
+     * dedupe key collapses to face|item.
+     */
+    public static int getToolDecayFromShearingEntity(ItemStack held, EntityPlayer player) {
+        int loss;
+        if (held.isEmpty() || !held.getItem().isDamageable()) {
+            loss = 0;
+        } else if (player.capabilities.isCreativeMode) {
+            loss = 0;
+        } else {
+            loss = SHEEP_SHEAR_WEAR;
+        }
+        logToolDecay("shearing", held, null, loss);
+        return loss;
+    }
+
     private static float getBaseDecayForBreakingBlocks(ItemStack held, IBlockState state) {
         Item item = held.getItem();
         String key = state.getBlock().getRegistryName().getPath();
