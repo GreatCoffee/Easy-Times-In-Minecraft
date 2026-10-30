@@ -17,8 +17,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 0.02 face restores the R196 chain (the vanilla != 0 damage guard then
  * passes and the MixinItemTool redirect hands the decay over). Covers every
  * BlockCrops subclass — carrot/potato/beetroot never set hardness after the
- * super ctor. tallGrass carries no R196 setHardness (= 0.0 both sides, no
- * decay in either universe — no face, untouched).
+ * super ctor. (Stale sentence corrected, audit20 item 137 C-7: tallGrass
+ * AND deadBush DO carry R196 setHardness(0.02F) — Block.java:180-181 /
+ * :185-186 — against the vanilla 0.0; those plant faces live in the
+ * ETIMMining hardness-table rows plus the @D guard redirects, not here.)
  */
 @Mixin(BlockCrops.class)
 public abstract class MixinBlockCrops {

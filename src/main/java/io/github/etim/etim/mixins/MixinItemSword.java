@@ -60,4 +60,36 @@ public abstract class MixinItemSword {
             stack.damageItem(decay, entityLiving);
         }
     }
+
+    /**
+     * sworddecay 收口批 (audit20 items 129/137/138; A-2 字节直钉): the vanilla
+     * dig-wear guard {@code (double)state.getBlockHardness(...) != 0.0D} in
+     * {@code ItemSword.onBlockDestroyed} (:66-73, func_179218_a — the
+     * func_185887_b INVOKE is unique, bc4) reads the native field, while the
+     * decay chain (this mixin's {@code etim$miteSwordDigDecay}) reads the R196
+     * hardness table. With the reform on, the guard must read the same
+     * source: the four plant rows (tallgrass / double_plant / sapling /
+     * deadbush) carry R196 0.02F where the vanilla field is 0.0, so gate ④
+     * (hardness &gt; 0, R196 ItemTool :202) is unreachable through the field
+     * alone — {@code ItemSword extends Item} in 1.12 (NOT ItemTool), so the
+     * cropdecay @D does not reach here and sword×plant dig stays 0 磨 (B-7).
+     * Judgment values via the whole chain: sword decay band 2.0F
+     * (ETIMMining:336-337) → five-gate formula → tallgrass/double_plant/
+     * sapling/deadbush = floor term 10 (R196 ItemTool:163-171; the vanilla
+     * iron_sword fails the validity band ETIMMining:476-478 → one loss=0
+     * row). Reform off → return the state's own value (zero perturbation).
+     * Same shape as the MixinItemTool @Redirect precedent (etim$r196GuardHardness).
+     */
+    @Redirect(
+            method = "onBlockDestroyed",
+            at = @At(value = "INVOKE",
+                     target = "Lnet/minecraft/block/state/IBlockState;getBlockHardness(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)F"),
+            require = 1)
+    private float etim$r196GuardHardness(net.minecraft.block.state.IBlockState state, net.minecraft.world.World world,
+            net.minecraft.util.math.BlockPos pos) {
+        if (!ETIMConfig.miningReform) {
+            return state.getBlockHardness(world, pos);
+        }
+        return ETIMMining.getHardness(state, world, pos);
+    }
 }
