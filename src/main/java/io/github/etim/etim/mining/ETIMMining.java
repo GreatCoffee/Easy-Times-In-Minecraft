@@ -481,8 +481,24 @@ public final class ETIMMining {
         if (requiredKind == null) {
             // Blocks without a vanilla tool class: pickaxes stay the R196
             // stone-family carrier; the registry maps everything else.
-            int grade = getToolGrade(held, "pickaxe");
-            boolean ok = held.getItem() instanceof ItemPickaxe && grade >= minLevel;
+            // R196 ItemAxe:9 addBlocksEffectiveAgainst {ladder, reed, sandStone}:
+            //   ladder    -> Forge "axe"     (1.12 ItemAxe.EFFECTIVE_ON:12 seeded
+            //                by ForgeHooks.initTools :300-304) - already resolves
+            //                above, nothing to do here;
+            //   sandStone -> Forge "pickaxe" (1.12 ItemPickaxe.EFFECTIVE_ON:12
+            //                seeded by :288-292) - already resolves above;
+            //   reed      -> in NO vanilla EFFECTIVE_ON set => null class; this
+            //                is the only live cell of the R196 three-block list
+            //                (audit20 items 145/146/147, toolcarrier batch).
+            boolean axeFace = held.getItem() instanceof ItemAxe
+                    && state.getBlock() == Blocks.REEDS;
+            // Grade must follow the face: reading vanilla axes against
+            // "pickaxe" yields -1 (false-PASS shape, W-36h would never flip);
+            // against "axe" every vanilla tier folds in (:409-415 fold),
+            // matching the R196 ItemAxe grade-free semantics. ETIM axes read
+            // etimGrade() regardless of kind, so both faces agree there.
+            int grade = axeFace ? getToolGrade(held, "axe") : getToolGrade(held, "pickaxe");
+            boolean ok = (held.getItem() instanceof ItemPickaxe || axeFace) && grade >= minLevel;
             if (!ok) {
                 logGradeDeny(held, state, grade);
             }
