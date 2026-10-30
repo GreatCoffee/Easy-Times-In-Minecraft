@@ -4,8 +4,10 @@ import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mining.ETIMMining;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.passive.EntitySheep;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -96,5 +98,47 @@ public abstract class MixinItemShears {
         }
         // vanilla shears → vanilla behaviour (+1 per shear).
         stack.damageItem(vanillaAmount, entityLiving);
+    }
+
+    /**
+     * Shear-wear batch (audit20 items 153/154): vanilla 1.12
+     * {@code ItemShears.itemInteractionForEntity} (:50-78) wears the shears by
+     * {@code damageItem(1, entity)} at {@code :73} when shearing any
+     * IShearable entity — R196 charges the full 50 points instead
+     * ({@code ItemShears:62 player.tryDamageHeldItem(DamageSource.generic, 50)},
+     * a flat point count with no decay funnel: the entity face has no block
+     * hardness). R196 has a sheep face only — its mooshroom/snowman carry
+     * zero Shears references — so the EntitySheep gate keeps 1.12's other two
+     * IShearable implementers (mooshroom/snowman) on the vanilla +1.
+     *
+     * <p>Handler note (javap bc 207-210, the recompiled jar): the vanilla call
+     * is {@code aload_1 / iconst_1 / aload_3} — the damager argument is the
+     * sheared entity (host param 3), NOT the player (host param 2).
+     * Deliberately no {@code EntityPlayer} instanceof gate: the player hand is
+     * the static host parameter (param 5); copying the first redirect's player
+     * gate here would test the sheared sheep and be silently always-false
+     * (终审 T-7 red line).</p>
+     */
+    @Redirect(
+            method = "itemInteractionForEntity",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;damageItem(ILnet/minecraft/entity/EntityLivingBase;)V"),
+            require = 1)
+    private void etim$r196SheepShearWear(ItemStack stack, int vanillaAmount, EntityLivingBase shearedEntity,
+            ItemStack stackParam, EntityPlayer player, EntityLivingBase entity, EnumHand hand) {
+        if (!ETIMConfig.miningReform) {
+            // Master switch off → vanilla behaviour (+1 per shear).
+            stack.damageItem(vanillaAmount, shearedEntity);
+            return;
+        }
+        if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted
+                && entity instanceof EntitySheep) {
+            // R196 flat 50 on the sheep face (R196 ItemShears:62); damage the
+            // sheared entity exactly as the vanilla call did (same damager
+            // argument → identical RNG / damager=null semantics).
+            stack.damageItem(ETIMMining.SHEEP_SHEAR_WEAR, shearedEntity);
+            return;
+        }
+        // vanilla shears / mooshroom / snowman → vanilla behaviour (+1).
+        stack.damageItem(vanillaAmount, shearedEntity);
     }
 }

@@ -59,6 +59,14 @@ public final class ETIMMining {
     /** Cobweb multiplier without an effective tool (EntityPlayer:889-905). */
     private static final float WEB_FACTOR = 0.2F;
 
+    /**
+     * R196 sheep-shear wear: a flat 50 points per shearing
+     * (R196 ItemShears.java:62 {@code tryDamageHeldItem(DamageSource.generic, 50)}),
+     * no decay funnel — the entity face has no block hardness, the point count
+     * goes straight into the held item (ItemStack:296 plain add).
+     */
+    public static final int SHEEP_SHEAR_WEAR = 50;
+
     /** Water / airborne divisor (EntityPlayer:907-925); the hungry divisor is configurable (ETIMConfig.hungerDigStrDivisor). */
     private static final float ENVIRONMENT_PENALTY = 5.0F;
 
