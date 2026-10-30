@@ -372,6 +372,91 @@ public final class ETIMAnvilRepair {
                 + " [server]");
     }
 
+    /**
+     * 工装便利批件 2 (anvilench, audit20 items 96-B-1/127/133) — the take-face
+     * judge rows. Called from the vanilla {@code ContainerRepair$2} take point
+     * (MixinAnvilOutputSlot {@code onTake} HEAD, server side, anvilDebugLog on).
+     *
+     * <p>Row family (摸底 §六 schema, D-2① single prefix): one
+     * {@code face=ench} row per CHANGED enchantment (result level ≠ left
+     * input's level for that enchantment — pure新增 and level merges both
+     * qualify), then ONE {@code face=tx} row per successful take (D-3①).
+     * 注-2 order: ench rows first, tx row second (same tick). kind 会镜:
+     * etim takeover arm → repair (W-33f merge/finds mat=0); vanilla arm →
+     * ench / rename / repair / none by change-class. Row discipline
+     * (终审三注): no clamp= derived column (would duplicate the merge
+     * formula = a second source); {@code cost=} is 1.12-only pricing and is
+     * FORBIDDEN as an R196 judge value (A-3 — R196 石层面 zero hits on
+     * maximumCost|materialCost); no行级落dedup (去重 eats the count).</p>
+     */
+    public static void logAnvilCombine(EntityPlayer player, ItemStack result) {
+        if (!(player.openContainer instanceof net.minecraft.inventory.ContainerRepair)) {
+            return;
+        }
+        io.github.etim.etim.mixins.ContainerRepairAccessor container =
+                (io.github.etim.etim.mixins.ContainerRepairAccessor) player.openContainer;
+        ETIMContainerRepairDuck duck = (ETIMContainerRepairDuck) player.openContainer;
+        String mode = duck.etimIsTakeover() ? "etim" : "vanilla";
+        ItemStack left = container.etim$getInputSlots().getStackInSlot(0);
+        ItemStack right = container.etim$getInputSlots().getStackInSlot(1);
+        int maximumCost = ((net.minecraft.inventory.ContainerRepair) player.openContainer).maximumCost;
+        int materialCost = ((net.minecraft.inventory.ContainerRepair) player.openContainer).materialCost;
+
+        java.util.Map<net.minecraft.enchantment.Enchantment, Integer> outMap =
+                net.minecraft.enchantment.EnchantmentHelper.getEnchantments(result);
+        java.util.Map<net.minecraft.enchantment.Enchantment, Integer> leftMap =
+                net.minecraft.enchantment.EnchantmentHelper.getEnchantments(left);
+        java.util.Map<net.minecraft.enchantment.Enchantment, Integer> rightMap =
+                net.minecraft.enchantment.EnchantmentHelper.getEnchantments(right);
+        boolean enchChanged = false;
+        for (java.util.Map.Entry<net.minecraft.enchantment.Enchantment, Integer> e : outMap.entrySet()) {
+            int base = leftMap.getOrDefault(e.getKey(), 0);
+            if (e.getValue() == base) {
+                continue; // unchanged face — not a judged enchantment change
+            }
+            enchChanged = true;
+            int add = rightMap.getOrDefault(e.getKey(), 0);
+            ETIM.LOGGER.info("[EnchantLog] anvil-combine face=ench mode=" + mode
+                    + " item=" + name(result.getItem().getRegistryName())
+                    + " ench=" + e.getKey().getRegistryName()
+                    + " id=" + net.minecraft.enchantment.Enchantment.getEnchantmentID(e.getKey())
+                    + " base=" + base + " add=" + add + " out=" + e.getValue()
+                    + " max=" + e.getKey().getMaxLevel() + " [server]");
+        }
+
+        String kind;
+        if (mode.equals("etim")) {
+            kind = "repair"; // takeover arm = the consume/combine repair faces (W-33c/f)
+        } else if (enchChanged) {
+            kind = "ench"; // W-33a: tool + book → vanilla arm with pricing, cost > 0
+        } else if (!left.isEmpty() && result.getItemDamage() < left.getItemDamage()) {
+            kind = "repair"; // vanilla same-item material repair face
+        } else if (!container.etim$getRepairedItemName().isEmpty()) {
+            kind = "rename"; // W-33d: bare rename → no face=ench row
+        } else {
+            kind = "none";
+        }
+        int leftDamage = left.isEmpty() ? 0 : left.getItemDamage();
+        int resultDamage = result.getItemDamage();
+        ETIM.LOGGER.info("[EnchantLog] anvil-combine face=tx mode=" + mode
+                + " kind=" + kind
+                + " item=" + name(result.getItem().getRegistryName())
+                + " in=" + inName(left) + " in2=" + inName(right)
+                + " dmg=" + leftDamage + ">" + resultDamage
+                + " cost=" + maximumCost + " mat=" + materialCost + " [server]");
+    }
+
+    /** Registry-name renderer tolerant of unregistered/late items (never crashes the row). */
+    private static String name(net.minecraft.util.ResourceLocation loc) {
+        return loc == null ? "null" : loc.toString();
+    }
+
+    /** Input-slot renderer: oﬀ-the-shelf registry id or a bare word for an empty slot. */
+    private static String inName(ItemStack stack) {
+        return stack == null || stack.isEmpty() ? "empty"
+                : name(stack.getItem().getRegistryName()) + "#" + stack.getItemDamage();
+    }
+
     /** Registers the event face (ETIM preInit). */
     public static void register() {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(ETIMAnvilRepair.class);

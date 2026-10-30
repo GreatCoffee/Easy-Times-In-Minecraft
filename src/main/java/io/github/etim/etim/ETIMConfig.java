@@ -318,6 +318,9 @@ public final class ETIMConfig {
     /** 批三修理面 (anvil-repair chain): the R196 anvil repair on ETIM gear — nugget consumable repair + same-item combination, 0 XP, proportional anvil wear; the quality/anvil gates ride it. Off = the vanilla anvil flow untouched. 批三修理面（砧修链）：ETIM 装备走 R196 砧修（珠耗材修理 + 同物合并，0 经验，砧等比损耗，品质/砧材门随行）；关闭则 vanilla 砧流原样。 */
     public static boolean metalAnvilRepair = true;
 
+    /** 工装便利批件 2 (anvilench, audit20 items 96-B-1/127/133): the [EnchantLog] anvil-combine judge rows — one face=ench row per changed enchantment + one face=tx row per successful anvil take (mode vanilla/etim, kind ench/repair/rename/none, dmg/cost/mat faces; cost is 1.12-only pricing, forbidden as an R196 judge value). Off = silent anvil. 砧台判行（工装便利批件 2）：砧面成交判定行——变动附魔 face=ench 行 + 每次取产出 face=tx 行（mode 原版/接管、kind 附魔/修理/改名/无、dmg/cost/mat 旁证面；cost 为 1.12-only 定价，禁止当 R196 判值）；关闭则砧台静默。 */
+    public static boolean anvilDebugLog = false;
+
     /** [MiningLog] grade-deny + dig-speed rows (dev channel, batch B2). [MiningLog] 采集级 deny 与破速判行（开发通道，批 B2）。 */
     public static boolean miningDebugLog = true;
 
@@ -830,6 +833,9 @@ public final class ETIMConfig {
         metalAnvilRepair = config.getBoolean("metalAnvilRepair", "metal", true,
                 comment("批三修理面 (anvil-repair chain, T1①-T8① 2026-10-24): the R196 anvil repair on ETIM gear via the vanilla anvil — the nugget consumable repair (per-nugget chunks of maxDamage/components*2) + the same-item combination (pure sum, capped), 0 XP (T1①), proportional anvil wear 1600*31*8 with 0.5/0.8/1.0 stages (T2①), fail 1 = quality over budget (T8① producing-recipe difficulty), fail 2 = material durability strictly over iron 8.0. Off = the vanilla anvil flow untouched",
                         "批三修理面（砧修链，T1①-T8① 2026-10-24）：ETIM 装备在 vanilla 铁砧上走 R196 砧修——珠耗材修理（每珠修 maxDamage/耗比分块，尾部不均摊）+ 同物合并（纯相加封顶，无 12% 奖励），0 经验（T1①），砧等比损耗 1600*31*8、stage 0.5/0.8/1.0（T2①）；fail 1 = 品质超预算（T8① 产出配方难度），fail 2 = 材质耐久严格大于铁 8.0。关闭则 vanilla 砧流原样"));
+        anvilDebugLog = config.getBoolean("anvilDebugLog", "metal", false,
+                comment("The anvilench take-face judge rows (audit20 item 133): [EnchantLog] anvil-combine — one face=ench row per changed enchantment (base/add/out/max, the merge diff vs the left input) + one face=tx row per successful take (mode vanilla|etim, kind ench|repair|rename|none, dmg in>out, cost= maximumCost [1.12-only pricing, never an R196 judge value], mat= materialCost). Off = silent anvil. No row-level dedup: one take = one judged transaction",
+                        "砧台判行（工装便利批件 2，audit20 条 133）：[EnchantLog] anvil-combine——变动附魔逐条 face=ench 行（相对左输入的合并差异：base/add/out/max）+ 每次成交 face=tx 行（mode=vanilla|etim、kind=ench|repair|rename|none、dmg=入>出、cost=maximumCost〔1.12-only 定价，禁止当 R196 判值〕、mat=materialCost）。关闭则砧台静默。不做行级去重：一次成交 = 一笔判定"));
         miningDebugLog = config.getBoolean("miningDebugLog", "metal", true,
                 comment("[MiningLog] rows for the batch-B2 grade gates: mine deny (grade vs required per item+block) and mine speed (the effective dig str) — the W2/W3 verdict channels; off = silent mining",
                         "[MiningLog] 判行（批 B2 采集级门）：mine deny（逐物品×方块的 grade 对 required）与 mine speed（有效破块 str）——W2/W3 判定通道；关闭则挖掘静默"));
