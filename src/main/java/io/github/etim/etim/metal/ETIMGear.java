@@ -232,18 +232,18 @@ public final class ETIMGear {
             addShaped("chain_boots_" + metal.name, chain, "X X", "X X");
         }
 
-        // scythe/knife + 箭合成面 批 17 rows (批文 §〇, R196 一手):
+        // scythe/knife + 箭合成面 批 29 rows (批文 §〇, R196 一手):
         // C-SK-3 (verdict A-SK-1 round): the count is the RUNTIME delta of the
         // vanilla recipe REGISTRY across registerBatchRecipes() — the literal
         // "111 rows" string was dead data (hardcoded, would not catch a
         // skipped addRecipe). Only the BATCH delta is fail-fasted: the etim
-        // domain total evolves every batch (126 at this commit — B1/B2 rows
+        // domain total evolves every batch (154 at this commit — B1/B2 rows
         // included), so no total expectation exists.
         int before = etimRecipeCount();
         registerBatchRecipes();
         int added = etimRecipeCount() - before;
-        if (added != 19) {
-            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 19 batch rows (2 iron-nugget 9:1 + 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint), registered " + added);
+        if (added != 29) {
+            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 29 batch rows (2 iron-nugget 9:1 + 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint + 5 chain form + 5 chain dismantle), registered " + added);
         }
         ETIM.LOGGER.info("[TestLog] gear recipes registered: " + added
                 + " batch rows ok (runtime REGISTRY delta; etim-domain total " + etimRecipeCount()
@@ -283,6 +283,18 @@ public final class ETIMGear {
             GameRegistry.addShapelessRecipe(new ResourceLocation(ETIM.MOD_ID, "arrow_dismantle_" + metal.name), null,
                     new ItemStack(ingotToNugget(metal)),
                     net.minecraft.item.crafting.Ingredient.fromStacks(new ItemStack(arrow)));
+
+            // Chain forming (R196 RecipesMITE:15-24, nugget_based→chain piece):
+            // 4 nuggets in the ring shape → 1 chain (count=1 via CraftingManager
+            // :491 directional quantity when the trailing cell is absent).
+            addShaped("chain_" + metal.name, ingotToNugget(metal), " X ", "X X", " X ");
+            // Chain dismantling (R196 RecipesMITE:61-74, chain_based): 1 chain
+            // → 4 nuggets; addShaped pins output count=1 (ETIMGear :327), so
+            // the count-4 output rides the same GameRegistry direct call that
+            // the arrow/sinew rows above use (forge passes output ItemStack
+            // count straight through).
+            GameRegistry.addShapedRecipe(new ResourceLocation(ETIM.MOD_ID, "gear_chain_dismantle_" + metal.name), null,
+                    new ItemStack(ingotToNugget(metal), 4), "X", 'X', chainOf(metal));
         }
         // Sinew (RecipesMITE:257): 1 leather → 4 sinew.
         GameRegistry.addShapedRecipe(new ResourceLocation(ETIM.MOD_ID, "sinew_from_leather"), null,
