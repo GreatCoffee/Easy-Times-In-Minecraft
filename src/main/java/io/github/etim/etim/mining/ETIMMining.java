@@ -460,9 +460,6 @@ public final class ETIMMining {
         if (item instanceof io.github.etim.etim.metal.ETIMItemHoe) {
             return 2.0F;
         }
-        if (item instanceof io.github.etim.etim.metal.ETIMItemMattock) {
-            return 0.8F;
-        }
         if (item instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
             return 2.0F; // R196 ItemShears:42-44
         }
