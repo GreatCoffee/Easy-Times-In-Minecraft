@@ -380,6 +380,9 @@ public final class ETIMConfig {
     /** Server-log [BlockLog] judgment rows (D-3) — the W1~W14 channel, default off.
      *  服务端日志 [BlockLog] 判行（W1~W14 判定通道），默认关。 */
     public static boolean blockDebugLog = false;
+    /** Client-log [SoundLog] judgment rows — named sound events reaching the client (soundlog batch / audit20 条 177-179; golden face = sheep shear minecraft:entity.sheep.shear), default off. Client-side cfg file only.
+     *  客户端日志 [SoundLog] 判行：到达客户端的命名音事件（soundlog 批；金判面＝羊剪毛 minecraft:entity.sheep.shear），默认关。只读客户端档。 */
+    public static boolean soundDebugLog = false;
 
     // client pose batch (clientpose; ad10 越批 A-1) ----------------------------
     /** First-person BLOCK pose, translate X/Y (R196 ItemRenderer:355 = -0.5/+0.2).
@@ -980,6 +983,10 @@ public final class ETIMConfig {
         devTools = config.getBoolean("devTools", "devtools", true,
                 comment("DEV TEST FACILITIES master switch: the GRAVE-key left-top debug HUD (reach/mining/hunger readout) and the /etest state command. Off = both disabled (release behavior); needs restart like every key",
                         "开发测试设施总开关：GRAVE 键左上角调试 HUD（触及/挖掘/饥饿读数）与 /etest 状态指令。关闭则两者一并停用（发布形态）；与其他键一样需重启生效"));
+
+        soundDebugLog = config.getBoolean("soundDebugLog", "devtools", false,
+                comment("Client-log [SoundLog] judgment rows: NAMED sound events reaching the client, printed at the SoundManager listeners dispatch point (the same point the vanilla subtitle overlay reads — user-ruled equivalent evidence, audit20 条 177). Golden face = sheep shear exactly one name=minecraft:entity.sheep.shear row per successful shear (R196 ItemShears:63 / 1.12 EntitySheep:435, params 1.0F/1.0F both generations). Client-side cfg file only (run/obfuscated/config/etim.cfg); needs client restart",
+                        "客户端日志 [SoundLog] 判行：到达客户端的命名音事件，发行点＝SoundManager listeners 派发位（与原版声音字幕同一消费点——用户裁定等效证据，audit20 条 177）。金判面＝每次成功剪羊恰 1 条 name=minecraft:entity.sheep.shear（R196 ItemShears:63／1.12 EntitySheep:435，两代同参 1.0F/1.0F）。只读客户端档（run/obfuscated/config/etim.cfg），改后需重启客户端"));
 
         if (config.hasChanged()) {
             config.save();

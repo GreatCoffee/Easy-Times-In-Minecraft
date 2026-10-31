@@ -134,6 +134,11 @@ public final class ETIM {
         io.github.etim.etim.metal.ETIMGear.reassertJudgedDurability();
         // All preInits complete by here: CT's config load covered (compat fix).
         io.github.etim.etim.compat.CraftingTweaksCompat.apply();
+        // soundlog batch (条 179 SG-4): client-side [SoundLog] judgment listener.
+        // FMLInitializationEvent fires long after Minecraft:520 new SoundHandler.
+        if (event.getSide().isClient()) {
+            io.github.etim.etim.client.ETIMSoundLog.register();
+        }
     }
 
     @Mod.EventHandler
