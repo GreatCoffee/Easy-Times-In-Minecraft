@@ -6,6 +6,7 @@ import java.util.Map;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.ETIM;
+import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.enchantment.Enchantment;
@@ -576,43 +577,92 @@ public final class ETIMMining {
             }
             return ok;
         }
-        if (!(held.getItem() instanceof ItemTool)) {
+        // R196 effective-set rebuild (effectiveset batch, audit20 条 182-184):
+        // the held tool's OWN R196 tool class decides the admitted set — never
+        // the block's harvestTool requirement (the former class-gate
+        // information source, the root C-6 defect). R196 ItemTool.java:150-151
+        // = materials_effective_against ∪ blocks_effective_against, then grade
+        // × block minHarvestLevel. The former null-class branch (reed/
+        // ladder/sandStone, toolcarrier batch) is absorbed by the block sets;
+        // set-miss stays SILENT (D-2(a)) — only a grade denial on an in-set
+        // block emits the logGradeDeny row.
+        String ownKind = ownToolClass(held);
+        if (ownKind == null) {
             return false;
         }
-        String requiredKind = state.getBlock().getHarvestTool(state);
-        if (requiredKind == null) {
-            // Blocks without a vanilla tool class: pickaxes stay the R196
-            // stone-family carrier; the registry maps everything else.
-            // R196 ItemAxe:9 addBlocksEffectiveAgainst {ladder, reed, sandStone}:
-            //   ladder    -> Forge "axe"     (1.12 ItemAxe.EFFECTIVE_ON:12 seeded
-            //                by ForgeHooks.initTools :300-304) - already resolves
-            //                above, nothing to do here;
-            //   sandStone -> Forge "pickaxe" (1.12 ItemPickaxe.EFFECTIVE_ON:12
-            //                seeded by :288-292) - already resolves above;
-            //   reed      -> in NO vanilla EFFECTIVE_ON set => null class; this
-            //                is the only live cell of the R196 three-block list
-            //                (audit20 items 145/146/147, toolcarrier batch).
-            boolean axeFace = held.getItem() instanceof ItemAxe
-                    && state.getBlock() == Blocks.REEDS;
-            // Grade must follow the face: reading vanilla axes against
-            // "pickaxe" yields -1 (false-PASS shape, W-36h would never flip);
-            // against "axe" every vanilla tier folds in (:409-415 fold),
-            // matching the R196 ItemAxe grade-free semantics. ETIM axes read
-            // etimGrade() regardless of kind, so both faces agree there.
-            int grade = axeFace ? getToolGrade(held, "axe") : getToolGrade(held, "pickaxe");
-            boolean ok = (held.getItem() instanceof ItemPickaxe || axeFace) && grade >= minLevel;
-            if (!ok) {
-                logGradeDeny(held, state, grade);
-            }
-            return ok;
-        }
-        int grade = getToolGrade(held, requiredKind);
-        boolean ok = grade >= 0 && grade >= minLevel;
-        if (!ok && grade >= 0) {
-            // The tool-class face (grade < 0) is a "wrong tool", not a grade deny.
+        boolean inSet = r196SetAdmits(ownKind, state);
+        int grade = getToolGrade(held, ownKind);
+        boolean ok = inSet && grade >= minLevel;
+        if (!ok && inSet && grade >= 0) {
             logGradeDeny(held, state, grade);
         }
         return ok;
+    }
+
+    /**
+     * The item's OWN R196 tool class (R196 {@code ItemTool.getToolType}
+     * family shape, ItemTool.java:38-49) — never the block's requirement
+     * (audit20 条 183 D-1(b)/T-4: the class-gate information source is the
+     * held tool). Order matters: ETIMItemWarHammer extends ETIMItemPickaxe,
+     * so the war-hammer split (R196 ItemWarHammer.java:6 = pickaxe ∪ cake,
+     * pumpkin) must be tested first. Every item reaching {@code null} here
+     * (vanilla swords/hoes/shears, the scythe) was already false under the
+     * old {@code !(item instanceof ItemTool)} gate or is served by the five
+     * special arms above.
+     */
+    private static String ownToolClass(ItemStack held) {
+        Item item = held.getItem();
+        if (item instanceof io.github.etim.etim.metal.ETIMItemWarHammer) {
+            return "war_hammer";
+        }
+        if (item instanceof ItemPickaxe) {
+            return "pickaxe";
+        }
+        if (item instanceof ItemSpade) {
+            return "shovel";
+        }
+        if (item instanceof ItemAxe) {
+            return "axe";
+        }
+        return null;
+    }
+
+    /**
+     * R196 {@code ItemTool.java:150-151} effective set = materials ∪ blocks,
+     * BEFORE any grade is applied (the grade gate lives at the call site).
+     * 1.12 material collapse per the one-way map (audit20 条 183 D-3(a) /
+     * 摸底 §6.4): ROCK covers the R196 stone/quartz/coal/redstone/obsidian
+     * family faces, IRON covers the metal block faces; hardened_clay goes
+     * through the AXE BLOCK set, never through a 1.12 material (1.12
+     * hardened clay is ROCK — B-1). Glass sits in the shovel material set
+     * unconditionally (R196 ItemShovel.java:10-11 adds it for metal shovel
+     * material only — vanilla wooden/stone shovels crossing into glass is a
+     * registered C-known simplification, no 1.12-side first-hand anchor for
+     * vanilla tools, audit20 条 184 T-4 family).
+     */
+    private static boolean r196SetAdmits(String kind, IBlockState state) {
+        Material material = state.getMaterial();
+        Block block = state.getBlock();
+        switch (kind) {
+            case "shovel": // R196 ItemShovel.java:6-11 (mattock inherits the same set)
+                return material == Material.CAKE || material == Material.CLAY || material == Material.CRAFTED_SNOW
+                        || material == Material.GRASS || material == Material.GROUND || material == Material.SAND
+                        || material == Material.SNOW || material == Material.GLASS
+                        || block == Blocks.CARROTS || block == Blocks.POTATOES || block == Blocks.GLASS_PANE;
+            case "pickaxe": // R196 ItemPickaxe.java:6-31, 22 materials → 1.12 collapse
+                return material == Material.ROCK || material == Material.CLAY || material == Material.GLASS
+                        || material == Material.ICE || material == Material.IRON || material == Material.CIRCUITS;
+            case "war_hammer": // R196 ItemWarHammer.java:6 = pickaxe ∪ {cake, pumpkin}
+                return r196SetAdmits("pickaxe", state) || material == Material.CAKE || material == Material.GOURD;
+            case "axe": // R196 ItemAxe.java:6-9 (hatchet / battle_axe inherit the same set)
+                return material == Material.CACTUS || material == Material.CLAY || material == Material.GLASS
+                        || material == Material.GOURD || material == Material.ICE || material == Material.WOOD
+                        || block == Blocks.LADDER || block == Blocks.REEDS || block == Blocks.SANDSTONE
+                        || block == Blocks.RED_SANDSTONE || block == Blocks.HARDENED_CLAY
+                        || block == Blocks.STAINED_HARDENED_CLAY;
+            default:
+                return false;
+        }
     }
 
     /** R196 ItemHoe:6 material list (1.12 mapping). */
