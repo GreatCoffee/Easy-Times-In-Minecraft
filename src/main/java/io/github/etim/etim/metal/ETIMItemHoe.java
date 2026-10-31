@@ -127,10 +127,18 @@ public class ETIMItemHoe extends ItemHoe implements ETIMMetalGear {
         return false;
     }
 
-    /** R196 hoe attack decay 2.0 through the shared funnel (ItemHoe:41-43). */
+    /** R196 hoe attack decay 2.0 through the shared funnel (ItemHoe:41-43).
+     *  Off phase = vanilla {@code ItemHoe.hitEntity} — {@code damageItem(1)}
+     *  + {@code return true} (1.12 ItemHoe:89-93; offphase batch, audit20
+     *  条 187/190: W-42 §8 "0 wear ≠ vanilla 2" shorthand was tool-class
+     *  drift — the hoe's vanilla attack wear is 1 via its own override,
+     *  NOT the Item default and NOT the ItemTool-family 2). */
     @Override
     public boolean hitEntity(ItemStack stack, EntityLivingBase target, EntityLivingBase attacker) {
-        if (!attacker.world.isRemote && ETIMConfig.miningReform && !stack.isEmpty() && stack.getItem().isDamageable()) {
+        if (!ETIMConfig.miningReform) {
+            return super.hitEntity(stack, target, attacker);
+        }
+        if (!attacker.world.isRemote && !stack.isEmpty() && stack.getItem().isDamageable()) {
             int decay = ETIMMining.getToolDecayFromAttackingEntity(stack,
                     attacker instanceof EntityPlayer ? (EntityPlayer) attacker : null);
             if (decay > 0) {
