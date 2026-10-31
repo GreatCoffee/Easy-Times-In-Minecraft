@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mining.ETIMMining;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,7 +31,8 @@ public abstract class MixinItemSword {
             stack.damageItem(vanillaAmount, attacker);
             return;
         }
-        int decay = ETIMMining.getToolDecayFromAttackingEntity(stackParam);
+        int decay = ETIMMining.getToolDecayFromAttackingEntity(stackParam,
+                attacker instanceof EntityPlayer ? (EntityPlayer) attacker : null);
         if (decay > 0) {
             stack.damageItem(decay, attacker);
         }

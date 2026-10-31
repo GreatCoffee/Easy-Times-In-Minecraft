@@ -136,7 +136,8 @@ public class ETIMItemShearsRusted extends ItemShears implements ETIMMetalGear {
         if (!ETIMConfig.miningReform) {
             return vanilla;
         }
-        int decay = ETIMMining.getToolDecayFromAttackingEntity(stack);
+        int decay = ETIMMining.getToolDecayFromAttackingEntity(stack,
+                attacker instanceof EntityPlayer ? (EntityPlayer) attacker : null);
         if (decay > 0) {
             stack.damageItem(decay, attacker);
         }

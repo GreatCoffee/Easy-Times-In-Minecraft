@@ -180,7 +180,7 @@ public final class ETIMBlocking {
             double x = blocked * (double) rate * (double) m;
             wear = (int) Math.floor(x + 1.0E-4);
         } else {
-            decay = ETIMMining.getToolDecayFromAttackingEntity(active); // sword = 50
+            decay = ETIMMining.getToolDecayFromAttackingEntity(active, player); // sword = 50; creative → 0 row (D-1(a))
             wear = (int) (blocked * decay);             // Damage.java:203-208 (int) truncation — 不动
         }
         int before = active.getItemDamage();

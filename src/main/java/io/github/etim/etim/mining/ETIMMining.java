@@ -284,10 +284,26 @@ public final class ETIMMining {
         return loss;
     }
 
-    /** MITE attack decay: {@code max((int)(100 × baseDecay), 1)} (getToolDecayFromAttackingEntity, offsets 0-13). */
-    public static int getToolDecayFromAttackingEntity(ItemStack held) {
+    /**
+     * MITE attack decay: {@code max((int)(100 × baseDecay), 1)}
+     * (getToolDecayFromAttackingEntity, offsets 0-13). The creative gate sits
+     * in-helper <em>before</em> the row is issued — R196 seats it twice
+     * (ItemTool:183-185 item-level early-out + ItemStack:328-332 owner gate),
+     * while 1.12 collapses both into {@code ItemStack.damageItem:387}, so the
+     * un-gated helper row read N while the real stack took 0 (the pre-existing
+     * lying row — audit20 条 157 C-1, closed by 条 167). {@code player} is the
+     * damager handed down by the call sites; {@code null} for non-player
+     * attackers is legal (R196 Damage:207 passes the same convention) and
+     * simply keeps the gate open. The shield arm feeds the blocking player so
+     * the row stays true to its zero wear behind ETIMBlocking's existing
+     * creative gate (D-1(a)). No miningReform gate in here — the shield face
+     * reaches this helper through the blockModel path and must stay readable.
+     */
+    public static int getToolDecayFromAttackingEntity(ItemStack held, EntityPlayer player) {
         int loss;
         if (held.isEmpty() || !held.getItem().isDamageable()) {
+            loss = 0;
+        } else if (player != null && player.capabilities.isCreativeMode) {
             loss = 0;
         } else {
             float decay = 100.0F * getBaseDecayForAttackingEntity(held);
@@ -674,7 +690,7 @@ public final class ETIMMining {
         ETIM.LOGGER.info("[MiningLog] mine speed item=" + item + " block=" + block + " str=" + str + " [server]");
     }
 
-    /** [MiningLog] tool-decay row, last-sig deduped per (face, item, block for the breaking face) — the W9 channel (loss=0 = negative-evidence row). */
+    /** [MiningLog] tool-decay row, last-sig deduped per (face, item, block for the breaking face) — the W9 channel (loss=0 = gated-true-value row when a gate fires, negative-evidence where no gate is involved — audit20 条 167 D-2(a)). */
     private static final Map<String, String> LAST_DECAY_SIGS = new HashMap<>();
 
     private static void logToolDecay(String face, ItemStack held, IBlockState state, int loss) {

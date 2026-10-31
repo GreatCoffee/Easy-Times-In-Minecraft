@@ -131,7 +131,8 @@ public class ETIMItemHoe extends ItemHoe implements ETIMMetalGear {
     @Override
     public boolean hitEntity(ItemStack stack, EntityLivingBase target, EntityLivingBase attacker) {
         if (!attacker.world.isRemote && ETIMConfig.miningReform && !stack.isEmpty() && stack.getItem().isDamageable()) {
-            int decay = ETIMMining.getToolDecayFromAttackingEntity(stack);
+            int decay = ETIMMining.getToolDecayFromAttackingEntity(stack,
+                    attacker instanceof EntityPlayer ? (EntityPlayer) attacker : null);
             if (decay > 0) {
                 stack.damageItem(decay, attacker);
             }

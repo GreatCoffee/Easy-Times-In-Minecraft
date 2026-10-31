@@ -82,7 +82,8 @@ public abstract class MixinItemTool {
             stack.damageItem(vanillaAmount, attacker);
             return;
         }
-        int decay = ETIMMining.getToolDecayFromAttackingEntity(stackParam);
+        int decay = ETIMMining.getToolDecayFromAttackingEntity(stackParam,
+                attacker instanceof EntityPlayer ? (EntityPlayer) attacker : null);
         if (decay > 0) {
             stack.damageItem(decay, attacker);
         }
