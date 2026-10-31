@@ -147,4 +147,39 @@ public abstract class MixinItemShears {
         // vanilla shears / mooshroom / snowman → vanilla behaviour (+1).
         stack.damageItem(vanillaAmount, shearedEntity);
     }
+
+    /**
+     * Face-drops batch (audit20 items 162/163): the block-shear face is
+     * judged against the R196 right-click silk face (ItemShears:74-99) —
+     * only the vine cell differs (1.12 {@code onSheared} = flat 1×, R196 =
+     * {@code getNumVines(metadata)}× via its createStackedBlock override};
+     * double plant keeps vanilla 2× tallgrass, no R196 counterpart). The
+     * redirect rewrites the drop list for the ETIM shears only, gating on
+     * the master switch and the item type exactly like the three existing
+     * redirects above. Drop rows ride {@link ETIMMining#getR196ShearDrops}
+     * (single issuance — deliberately no extra logging here, the W-40
+     * driver reads that row verbatim; 条 151 T-5 single-issuer precedent).
+     *
+     * <p>{@code remap = false} — the target is a Forge interface method
+     * (IShearable is not in the vanilla remap table; @{code
+     * MixinSpecialArmorProperties} precedent). The vanilla call still wears
+     * its +1 through the second redirect above, so the two injections into
+     * this same method never compete: different call sites (:93 drops vs
+     * :108 damage).</p>
+     */
+    @Redirect(
+            method = "onBlockStartBreak",
+            at = @At(value = "INVOKE",
+                     target = "Lnet/minecraftforge/common/IShearable;onSheared(Lnet/minecraft/item/ItemStack;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;I)Ljava/util/List;",
+                     remap = false),
+            require = 1,
+            remap = false)
+    private java.util.List<ItemStack> etim$r196ShearDrops(net.minecraftforge.common.IShearable target, ItemStack item, net.minecraft.world.IBlockAccess world, BlockPos shearPos, int fortune,
+            ItemStack stackParam, BlockPos pos, EntityPlayer player) {
+        java.util.List<ItemStack> drops = target.onSheared(item, world, shearPos, fortune);
+        if (!ETIMConfig.miningReform || !(stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted)) {
+            return drops;
+        }
+        return ETIMMining.getR196ShearDrops(stackParam, player.world, shearPos, drops);
+    }
 }

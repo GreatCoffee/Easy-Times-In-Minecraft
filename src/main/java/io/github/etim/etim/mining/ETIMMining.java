@@ -1,6 +1,7 @@
 package io.github.etim.etim.mining;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.github.etim.etim.ETIMConfig;
@@ -319,6 +320,61 @@ public final class ETIMMining {
         }
         logToolDecay("shearing", held, null, loss);
         return loss;
+    }
+
+    /**
+     * R196 face-shear drop rewrite (audit20 items 162/163): the block-shear
+     * face is judged against the R196 right-click silk face (ItemShears:74-99,
+     * {@code dropBlockAsItself} → {@code createStackedBlock}). Of the six 1.12
+     * IShearable cells only vine differs — vanilla {@code block\BlockVine
+     * .java:531-534} always drops 1×, while R196 seeds the count through
+     * {@code getNumVines(metadata)} (bite 1/2/4/8 side tally, bare stem
+     * collapses to 1, decompiled same.mod source BlockVine:350-373) and its
+     * {@code createStackedBlock:376-377} override. Double plant keeps the
+     * vanilla 2× tallgrass reward (no R196 counterpart — whole-tree negative
+     * audit20 162 N-5); every other cell is already isomorphic, so the
+     * vanilla list is returned untouched (no second drop table).
+     */
+    public static List<ItemStack> getR196ShearDrops(ItemStack held, World world, BlockPos pos, List<ItemStack> vanillaDrops) {
+        IBlockState state = world.getBlockState(pos);
+        List<ItemStack> drops = vanillaDrops;
+        if (state.getBlock() == Blocks.VINE) {
+            int meta = state.getBlock().getMetaFromState(state);
+            int sides = 0;
+            if ((meta & 1) != 0) sides++;
+            if ((meta & 2) != 0) sides++;
+            if ((meta & 4) != 0) sides++;
+            if ((meta & 8) != 0) sides++;
+            if (sides == 0) sides = 1;
+            drops = java.util.Collections.singletonList(new ItemStack(Blocks.VINE, sides, 0));
+        }
+        logShearDrops(held, state, drops);
+        return drops;
+    }
+
+    /** [MiningLog] shear drop row, last-sig deduped per (item, block) keyed on the drops column — the W-40 channel (audit20 条 163 T-7/T-8). */
+    private static final Map<String, String> LAST_DROP_SIGS = new HashMap<>();
+
+    private static void logShearDrops(ItemStack held, IBlockState state, List<ItemStack> drops) {
+        if (!ETIMConfig.miningDebugLog || held.isEmpty()) {
+            return;
+        }
+        String item = held.getItem().getRegistryName().toString();
+        String block = state.getBlock().getRegistryName().getPath();
+        String sig = "";
+        for (ItemStack drop : drops) {
+            String cell = drop.getItem().getRegistryName().toString() + ":" + drop.getCount() + ":" + drop.getItemDamage();
+            sig = sig.isEmpty() ? cell : sig + "+" + cell;
+        }
+        if (sig.isEmpty()) {
+            sig = "none"; // negative-evidence shape; no known IShearable cell reaches it today (audit20 条 163 B-2)
+        }
+        String key = item + "|" + block;
+        if (sig.equals(LAST_DROP_SIGS.get(key))) {
+            return;
+        }
+        LAST_DROP_SIGS.put(key, sig);
+        ETIM.LOGGER.info("[MiningLog] shear drop item=" + item + " block=" + block + " drops=" + sig + " [server]");
     }
 
     private static float getBaseDecayForBreakingBlocks(ItemStack held, IBlockState state) {
