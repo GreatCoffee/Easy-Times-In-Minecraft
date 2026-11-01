@@ -80,10 +80,19 @@ public abstract class MixinEntityPlayer {
     )
     private float etim$hungerWalkSpeed(PlayerCapabilities capabilities) {
         float speed = capabilities.getWalkSpeed();
+        float hungerFactor;
+        // R196 PlayerCapabilities:55-60 — the three factors multiply at the
+        // same return (multiplication commutes; the enchant factor rides its
+        // R196 lane: EnchantmentHelper:387-389 1+0.05L ⇒ ×1.25 at L5.
+        float enchantMul = 1.0F + ETIMConfig.speedPerLevel
+                * net.minecraft.enchantment.EnchantmentHelper.getMaxEnchantmentLevel(
+                        io.github.etim.etim.mining.ETIMEnchantments.SPEED, (EntityPlayer) (Object) this);
         if (ETIMConfig.hungerMoveFactor >= 1.0F || ETIMHunger.hasFoodEnergy((EntityPlayer) (Object) this)) {
-            return speed;
+            hungerFactor = 1.0F;
+        } else {
+            hungerFactor = ETIMConfig.hungerMoveFactor;
         }
-        return speed * ETIMConfig.hungerMoveFactor;
+        return speed * hungerFactor * enchantMul;
     }
 
     @Inject(

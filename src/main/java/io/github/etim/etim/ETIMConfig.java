@@ -360,6 +360,43 @@ public final class ETIMConfig {
     /** Flat protection points removed per piercing level (R196 Damage.java:218 = level/5 × 5.0F ⇒ 1.0 per level). 每级穿透扣减的平点（R196 = 每级 1.0 点）。 */
     public static float piercingPointsPerLevel = 1.0F;
 
+    // Batch enchant1 (路丙一期 5 条, 条 242 T-4 / 条 245 键族 — case-M keyed
+    // difficulty windows; maxLevel 键族 = C-注2 关闭位，纪律 2 补载).
+    /** R196 Enchantment.java:35 difficulty. 速度（R196 难度 10）。 */
+    public static int speedDifficulty = 10;
+    /** R196 Enchantment.java:36 difficulty. 再生（R196 难度 20）。 */
+    public static int regenerationDifficulty = 20;
+    /** R196 Enchantment.java:38 difficulty. 迅捷（R196 难度 10）。 */
+    public static int quicknessDifficulty = 10;
+    /** R196 Enchantment.java:39 difficulty. 精准（R196 难度 10）。 */
+    public static int trueFlightDifficulty = 10;
+    /** R196 Enchantment.java:40 difficulty. 中毒（R196 难度 10）。 */
+    public static int poisonDifficulty = 10;
+    /** R196 getNumLevels default = 5 (Enchantment.java:67-69). 速度 最高等级（R196 = 5）。 */
+    public static int speedMaxLevel = 5;
+    /** 同上（R196 = 5）。再生的最高等级（R196 = 5）。 */
+    public static int regenerationMaxLevel = 5;
+    /** 同上（R196 = 5）。迅捷的最高等级（R196 = 5）。 */
+    public static int quicknessMaxLevel = 5;
+    /** 同上（R196 = 5）。精准的最高等级（R196 = 5）。 */
+    public static int trueFlightMaxLevel = 5;
+    /** 同上（R196 = 5）。中毒的最高等级（R196 = 5）。 */
+    public static int poisonMaxLevel = 5;
+    /** EnchantmentHelper.java:388 — walk factor per level. 每级行走速度加成系数。 */
+    public static float speedPerLevel = 0.05F;
+    /** EnchantmentHelper.java:392 — heal-progress factor per level. 每级回血进度系数。 */
+    public static float regenerationPerLevel = 0.5F;
+    /** ItemBow.java:36 numerator of d(L). 迅捷的每级缩短拉弓时长基数（级数换算 ÷ maxLevel）。 */
+    public static int quicknessTicksReduction = 10;
+    /** EntityArrow.java:143 bonus levels of the effective level at Lmax. 精准的满级效果等级加成。 */
+    public static int trueFlightBonusLevels = 40;
+    /** EntityArrow.java:448 duration base. 中毒时长基数。 */
+    public static int poisonDurationBase = 160;
+    /** EntityArrow.java:448 duration span. 中毒时长跨度（含 maxLevel 比例换算）。 */
+    public static int poisonDurationSpan = 240;
+    /** B-5 HUD icon grid slot for the Etim poison potion (0 = vanilla poison slot). 自订毒药水的 HUD 图标格位。 */
+    public static int poisonPotionIconIndex = 0;
+
     // combat batch AD-10+SH (audit20-97 planned) ------------------------------
     /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
      *  halve BEFORE armor, floor 1.0, no direction gate, no knockback immunity.
@@ -868,6 +905,59 @@ public final class ETIMConfig {
                 comment("[ArrowLog] rows of the batch-B arrow identity face: register, spawn, pickup, nbt write/read, skeleton, dispense — W1~W7 judgment channel; silent when off",
                         "[ArrowLog] 判行（批 B 箭身份面）：注册、生成、拾取、NBT 写读、骷髅、发射器——W1~W7 判定通道；关闭则静默"));
 
+        // batch enchant1 (路丙一期 5 条 — 条 242 T-4: difficulty keyed case-M windows).
+        speedDifficulty = config.getInt("speedDifficulty", "combat", speedDifficulty, 5, 40,
+                comment("R196 Enchantment.java:35 difficulty for speed (10 native). The case-M window derives min(L)=max(diff−10,0)+diff×(L−1)+1 / max(L)=next-level cost −1 from this single key",
+                        "速度的 R196 难度（源值 10）。案 M 窗口由单键派生：min=同 R196 成本式、max=下一级成本 −1"));
+        regenerationDifficulty = config.getInt("regenerationDifficulty", "combat", regenerationDifficulty, 5, 40,
+                comment("R196 Enchantment.java:36 difficulty for regeneration (20 native) — the L1 window already opens at 11",
+                        "再生的 R196 难度（源值 20）——L1 窗口起点即 11"));
+        quicknessDifficulty = config.getInt("quicknessDifficulty", "combat", quicknessDifficulty, 5, 40,
+                comment("R196 Enchantment.java:38 difficulty for quickness (10 native)",
+                        "迅捷的 R196 难度（源值 10）"));
+        trueFlightDifficulty = config.getInt("trueFlightDifficulty", "combat", trueFlightDifficulty, 5, 40,
+                comment("R196 Enchantment.java:39 difficulty for true flight (10 native)",
+                        "精准的 R196 难度（源值 10）"));
+        poisonDifficulty = config.getInt("poisonDifficulty", "combat", poisonDifficulty, 5, 40,
+                comment("R196 Enchantment.java:40 difficulty for poison (10 native)",
+                        "中毒的 R196 难度（源值 10）"));
+        speedMaxLevel = config.getInt("speedMaxLevel", "combat", speedMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69). Lower bound 1 on purpose — 0 would make loot-book/villager channels fall back to level 1 while the anvil truncates (piercing precedent :878-880)",
+                        "速度最高等级（R196 = 5）。下限故意取 1：设 0 会让战利品书与村民渠道经保底产 1 级而铁砧截成 0（穿透先例）"));
+        regenerationMaxLevel = config.getInt("regenerationMaxLevel", "combat", regenerationMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69)",
+                        "再生的最高等级（R196 = 5）"));
+        quicknessMaxLevel = config.getInt("quicknessMaxLevel", "combat", quicknessMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69)",
+                        "迅捷的最高等级（R196 = 5）"));
+        trueFlightMaxLevel = config.getInt("trueFlightMaxLevel", "combat", trueFlightMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69)",
+                        "精准的最高等级（R196 = 5）"));
+        poisonMaxLevel = config.getInt("poisonMaxLevel", "combat", poisonMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69)",
+                        "中毒的最高等级（R196 = 5）"));
+        speedPerLevel = config.getFloat("speedPerLevel", "combat", speedPerLevel, 0.0F, 1.0F,
+                comment("EnchantmentHelper.java:388 — walk-speed factor per level (1+0.05L ⇒ ×1.25 at L5). Set 0.0 to switch the effect off",
+                        "每级行走速度系数（1+0.05L，L5=×1.25）。置 0 关闭效果"));
+        regenerationPerLevel = config.getFloat("regenerationPerLevel", "combat", regenerationPerLevel, 0.0F, 10.0F,
+                comment("EnchantmentHelper.java:392 — heal-progress factor per level (1+0.5L ⇒ ×3.5 at L5). Set 0.0 to switch the effect off",
+                        "每级回血进度系数（1+0.5L，L5=×3.5）。置 0 关闭效果"));
+        quicknessTicksReduction = config.getInt("quicknessTicksReduction", "combat", quicknessTicksReduction, 0, 19,
+                comment("ItemBow.java:36 — d(L)=20−round(key×L/maxLevel) (key=10 native ⇒ −2 ticks/level, L5 draws in 10). Must stay below 20 or the bow would only fire at max level",
+                        "迅捷每级缩短值（R196 数式基数 10 ⇒ 每级 −2 tick，L5 拉满 10 tick）。≤19 防止弓仅在满级可发"));
+        trueFlightBonusLevels = config.getInt("trueFlightBonusLevels", "combat", trueFlightBonusLevels, 0, 200,
+                comment("R196 EntityArrow.java:143 — the effective level gains this many at Lmax (round(bonus×L/maxLevel)). Set 0 to switch the effect off",
+                        "精准满级的效果等级加成（round(bonus×L/maxLevel)，R196=40）。置 0 关闭效果"));
+        poisonDurationBase = config.getInt("poisonDurationBase", "combat", poisonDurationBase, 0, 2000,
+                comment("R196 EntityArrow.java:448 — effect duration base (ticks; 100-tick interval ⇒ base 160 ≈ 1..1.6 ticks per hit window). Also see poisonDurationSpan",
+                        "中毒时长基数（tick；R196=160）"));
+        poisonDurationSpan = config.getInt("poisonDurationSpan", "combat", poisonDurationSpan, 0, 4000,
+                comment("R196 EntityArrow.java:448 — duration span added at max level (round(span×L/maxLevel); 240 native ⇒ 400 at L5 = 4 hits × 1 HP at 100-tick interval)",
+                        "中毒时长跨度（R196=240，满级 400 tick = 100 间隔 × 4 跳 × 1 点）"));
+        poisonPotionIconIndex = config.getInt("poisonPotionIconIndex", "combat", poisonPotionIconIndex, 0, 15,
+                comment("B-5: the HUD grid slot of the Etim poison potion (mob_effects texture, 16 columns). 0 = vanilla poison's slot (the icon overlaps vanilla's own); give it a free slot for a distinct look",
+                        "自订毒药水的 HUD 图标格位（mob_effects 贴图 16 格）。0=复用原版毒位置（会与原版图标重叠）；可换到空位以示区别"));
+
         // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
         armorModelR196 = config.getBoolean("armorModelR196", "combat", true,
                 comment("R196 subtraction armor model (batch D): max(amount - effective_protection, 1.0F) on the 0-10 scale with flat enchant/potion weighting; false = vanilla 1.12 multiplicative model (armorModelR196=false is the W19 audit face)",
@@ -1069,7 +1159,8 @@ public final class ETIMConfig {
                 || Float.isNaN(hungerMoveFactor) || Float.isNaN(weakStrikeKnockbackFactor)
                 || Float.isNaN(weakStrikeHealthThreshold) || Float.isNaN(hungerDigStrDivisor)
                 || Float.isNaN(craftingSpeedPerLevel) || Float.isNaN(craftingBenchModifier)
-                || Float.isNaN(craftingCurveExponent) || Float.isNaN(craftingGenericDifficulty)) {
+                || Float.isNaN(craftingCurveExponent) || Float.isNaN(craftingGenericDifficulty)
+                || Float.isNaN(speedPerLevel) || Float.isNaN(regenerationPerLevel)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }

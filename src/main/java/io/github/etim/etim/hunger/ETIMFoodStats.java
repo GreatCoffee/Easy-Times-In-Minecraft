@@ -390,10 +390,14 @@ public final class ETIMFoodStats {
             }
         } else {
             state.setStarveProgress(0.0F);
+            float regenFactor = 1.0F + ETIMConfig.regenerationPerLevel
+                    * net.minecraft.enchantment.EnchantmentHelper.getMaxEnchantmentLevel(
+                        io.github.etim.etim.mining.ETIMEnchantments.REGENERATION, player);
             float healProgress = state.getHealProgress()
                     + (ETIMConfig.healBasePerTick + state.getNutrition() * ETIMConfig.healPerNutritionPerTick)
                         * (NutritionSystem.isMalnourished(player) ? ETIMConfig.malnourishedRegenFactor : 1.0F)
-                        * (player.isPlayerSleeping() ? ETIMConfig.bedRegenFactor : 1.0F);
+                        * (player.isPlayerSleeping() ? ETIMConfig.bedRegenFactor : 1.0F)
+                        * regenFactor;
             if (!player.world.getGameRules().getBoolean("naturalRegeneration") || !player.shouldHeal()) {
                 healProgress = 0.0F;
             } else if (healProgress >= 1.0F) {
@@ -401,7 +405,9 @@ public final class ETIMFoodStats {
                 state.setHungerPool(Math.min(state.getHungerPool() + 1.0F, ETIMConfig.hungerPoolCap));
                 healProgress -= 1.0F;
                 logFood(player, "healed 1.0 via regen (health=" + player.getHealth()
-                        + " nutrition=" + state.getNutrition() + " hungerPool+=" + 1.0 + ")");
+                        + " nutrition=" + state.getNutrition()
+                        + " regenFactor=" + new java.math.BigDecimal(String.valueOf(regenFactor)).stripTrailingZeros().toPlainString()
+                        + " hungerPool+=" + 1.0 + ")");
             }
             state.setHealProgress(healProgress);
         }

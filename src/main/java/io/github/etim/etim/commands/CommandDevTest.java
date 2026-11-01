@@ -358,11 +358,28 @@ public class CommandDevTest extends CommandBase {
         }
         String src = args.length > 2 ? args[2].toLowerCase(java.util.Locale.ROOT) : "melee";
         if (!"melee".equals(src) && !"arrow".equals(src) && !"thrown".equals(src) && !"none".equals(src)
-                && !"pool".equals(src)) {
+                && !"pool".equals(src) && !"mods".equals(src)) {
             throw new WrongUsageException("commands.etest.usage");
         }
         EntityPlayerMP player = targetOrSender(server, sender, args, 3);
         ItemStack stack = player.getItemStackFromSlot(slot);
+        // T2 judgment face (batch enchant1, 摸底 §2.8): the enchanted speed read
+        // via the same product factors the walk-speed redirect multiplies —
+        // enchant=1+perLevel×maxLevel(SPEED), hunger=hungerMoveFactor gate,
+        // walk=0.1×enchant×hunger (R196 PlayerCapabilities:55-60 chain).
+        if ("mods".equals(src)) {
+            int lvl = net.minecraft.enchantment.EnchantmentHelper.getMaxEnchantmentLevel(
+                    ETIMEnchantments.SPEED, player);
+            float hungerFactor = (ETIMConfig.hungerMoveFactor >= 1.0F
+                    || io.github.etim.etim.hunger.ETIMHunger.hasFoodEnergy(player)) ? 1.0F : ETIMConfig.hungerMoveFactor;
+            float enchantMul = 1.0F + ETIMConfig.speedPerLevel * lvl;
+            float walk = 0.1F * enchantMul * hungerFactor;
+            ETIM.LOGGER.info("[EnchantLog] mods slot=feet lvl={} enchant={} hunger={} walk={} [server]",
+                    lvl, new java.math.BigDecimal(String.valueOf(enchantMul)).stripTrailingZeros().toPlainString(),
+                    hungerFactor,
+                    new java.math.BigDecimal(String.valueOf(walk)).stripTrailingZeros().toPlainString());
+            return;
+        }
         // D-7 (batch E, 条 232/终审 B-3): the pool dump arm. Per-slot budget +
         // pool size straight from the product pool source; the full registry
         // roll (cross-mod entries included) as detail rows; empty pools are
