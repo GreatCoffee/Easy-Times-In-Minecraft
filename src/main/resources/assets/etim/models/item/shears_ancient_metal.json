@@ -1,1 +1,1 @@
-{"parent":"minecraft:item/handheld","textures":{"layer0":"minecraft:items/shears"}}
+{"parent":"minecraft:item/handheld","textures":{"layer0":"etim:items/shears_ancient_metal"}}

@@ -1,1 +1,1 @@
-{"parent":"minecraft:item/generated","textures":{"layer0":"minecraft:items/chainmail_helmet"}}
+{"parent":"minecraft:item/generated","textures":{"layer0":"etim:items/chain_helmet_gold"}}
