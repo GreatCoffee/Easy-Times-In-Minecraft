@@ -436,7 +436,10 @@ public class CommandDevTest extends CommandBase {
     private static void executeEnchantPoolProbe(EntityPlayerMP player, ItemStack stack) {
         for (int slotIdx = 0; slotIdx < 3; slotIdx++) {
             int budget = tablePower(player, slotIdx, 30, stack);
-            java.util.List<EnchantmentData> pool = EnchantmentHelper.buildEnchantmentList(player.getRNG(), stack, budget, false);
+            // W63-A-1 re-pin (batch E, 条 235): the CANDIDATE pool is
+            // getEnchantmentDatas (registry+band filter, no draw loop) —
+            // buildEnchantmentList is the half-life RESULT SET, not the pool.
+            java.util.List<EnchantmentData> pool = EnchantmentHelper.getEnchantmentDatas(budget, stack, false);
             int size = pool == null ? 0 : pool.size();
             ETIM.LOGGER.info("[EnchantLog] pool slot={} budget={} size={} item={} [server]",
                     slotIdx, budget, size, stack.isEmpty() ? "empty" : String.valueOf(stack.getItem().getRegistryName()));
