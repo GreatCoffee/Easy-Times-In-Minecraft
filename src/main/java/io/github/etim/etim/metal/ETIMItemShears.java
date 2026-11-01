@@ -17,8 +17,9 @@ import net.minecraft.item.ItemStack;
  * from B3 批文 §〇, so the register set is seven):</p>
  * <ul>
  *   <li>components 2 → durability = (int)(4.0 × 2 × material.durability × 100)
- *       = same 3200 for every metal here (all SHEARS_METALS + rusted carry
- *       Material.durability = 4; ItemTool:36-42 + ItemShears:32-34).</li>
+ *       (ItemTool:36-42 + ItemShears:32-34) — per-metal: copper/silver/gold/
+ *       rusted 3200 (durability 4), ancient <b>12800</b> (16), mithril
+ *       <b>51200</b> (64), adamantium <b>204800</b> (256).</li>
  *   <li>effective set cloth/leaves/plants/vine/web + trip wire (:6-7);
  *       base harvest efficiency 4.0 (:17-19 — the funnel's
  *       {@code BASE_TOOL_STR} × material = copper/silver/gold 5.0, ancient
