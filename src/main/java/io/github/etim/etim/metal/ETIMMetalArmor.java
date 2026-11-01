@@ -1,6 +1,7 @@
 package io.github.etim.etim.metal;
 
 import com.google.common.collect.Multimap;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -8,6 +9,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 
 import java.util.UUID;
@@ -32,6 +34,18 @@ import java.util.UUID;
  * </ul>
  */
 public class ETIMMetalArmor extends ItemArmor implements ETIMMetalGear {
+
+    /** Chain-face worn texture override (目检批 fix 2026-11-01 ③): chain pieces
+     * ride ICPM-style per-metal chainmail layers; plate pieces keep the
+     * ArmorMaterial.IRON texture/sound placeholder (C-7 口径, 不在本批). */
+    @Override
+    public String getArmorTexture(ItemStack stack, Entity entity, EntityEquipmentSlot slot, String type) {
+        if (isChain) {
+            return ETIM.MOD_ID + ":textures/models/armor/" + metal.name + "_chainmail_layer_"
+                    + (slot == EntityEquipmentSlot.LEGS ? "2" : "1") + ".png";
+        }
+        return super.getArmorTexture(stack, entity, slot, type);
+    }
 
     /** R196 armor-piece component counts by EntityEquipmentSlot index (FEET, LEGS, CHEST, HEAD). */
     private static final int[] COMPONENTS = {4, 7, 8, 5};
