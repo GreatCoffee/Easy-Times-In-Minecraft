@@ -1,7 +1,6 @@
 package io.github.etim.etim.metal;
 
 import com.google.common.collect.Multimap;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -35,17 +34,9 @@ import java.util.UUID;
  */
 public class ETIMMetalArmor extends ItemArmor implements ETIMMetalGear {
 
-    /** Chain-face worn texture override (目检批 fix 2026-11-01 ③): chain pieces
-     * ride ICPM-style per-metal chainmail layers; plate pieces keep the
-     * ArmorMaterial.IRON texture/sound placeholder (C-7 口径, 不在本批). */
-    @Override
-    public String getArmorTexture(ItemStack stack, Entity entity, EntityEquipmentSlot slot, String type) {
-        if (isChain) {
-            return ETIM.MOD_ID + ":textures/models/armor/" + metal.name + "_chainmail_layer_"
-                    + (slot == EntityEquipmentSlot.LEGS ? "2" : "1") + ".png";
-        }
-        return super.getArmorTexture(stack, entity, slot, type);
-    }
+    /** Worn texture override removed (资产正源化 2026-11-01: the chain/plate
+     * ICPM direct-copy layer suites were A 级撤销 — both worn faces return to
+     * the ArmorMaterial.IRON vanilla path placeholder until the自源 rebuild批). */
 
     /** R196 armor-piece component counts by EntityEquipmentSlot index (FEET, LEGS, CHEST, HEAD). */
     private static final int[] COMPONENTS = {4, 7, 8, 5};
