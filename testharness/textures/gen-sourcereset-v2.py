@@ -95,12 +95,27 @@ def gen_tools():
 
 
 # --- procedural scythe/knife, vanilla-tool icon orientation ---------------
-# staff = long diagonal bottom-left -> joint; blade = crescent upper-right,
-# thickened with an inner echo row (both blacked out against the wood tone)
-SCYTHE_STAFF = [(2, 13), (3, 12), (4, 11), (5, 10), (6, 9), (7, 8), (8, 7), (9, 6)]
-SCYTHE_OUTER = [(9, 6), (9, 5), (10, 4), (11, 3), (12, 3), (13, 4), (14, 5), (14, 6), (14, 7), (13, 8)]
-SCYTHE_INNER = [(9, 7), (10, 6), (11, 5), (11, 4), (12, 5), (13, 6), (12, 7)]
-SCYTHE_JOINT = (9, 6)
+# Composition learned from the reference project's scythe layout (shape only,
+# self-drawn pixels — 条 224 user ruling): wide blade band across the top with
+# the opening facing DOWN and the tip drooping at the left end; a thick staff
+# descends from the blade's right end toward the bottom-left. The handheld
+# mirror then presents the sweep to the player's right — the previously
+# approved in-hand pose.
+SCYTHE_RIDGE = ([(x, 1) for x in range(5, 10)]
+                + [(x, 2) for x in range(4, 11)]
+                + [(x, 3) for x in range(3, 14)])
+SCYTHE_BODY = ([(3, 4), (4, 4)] + [(x, 4) for x in range(10, 14)]
+               + [(3, 5)] + [(x, 5) for x in range(10, 14)])
+SCYTHE_STAFF = ([(x, 6) for x in range(9, 13)]
+                + [(x, 7) for x in range(8, 11)]
+                + [(x, 8) for x in range(7, 10)]
+                + [(x, 9) for x in range(6, 9)]
+                + [(x, 10) for x in range(5, 8)]
+                + [(x, 11) for x in range(4, 7)]
+                + [(x, 12) for x in range(3, 6)]
+                + [(x, 13) for x in range(2, 5)]
+                + [(2, 14), (3, 14)])
+SCYTHE_JOINT = [(9, 6), (10, 6)]
 WOOD = [(122, 88, 46), (100, 70, 36)]
 
 
@@ -113,14 +128,15 @@ def gen_scythe(path, metal):
     im = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     px = im.load()
     bright = top_anchor_colors(ramp_path(metal), 2)
-    for pt in SCYTHE_OUTER:
+    for pt in SCYTHE_RIDGE:
         px[pt] = bright[0] + (255,)
-    for pt in SCYTHE_INNER:
+    for pt in SCYTHE_BODY:
         px[pt] = bright[-1] + (255,)
     for i, pt in enumerate(SCYTHE_STAFF):
-        if pt != SCYTHE_JOINT:
-            px[pt] = WOOD[i % 2] + (255,)
-    px[SCYTHE_JOINT] = bright[0] + (255,)
+        if pt in SCYTHE_JOINT:
+            px[pt] = bright[0] + (255,)
+        else:
+            px[pt] = WOOD[(pt[0] + pt[1]) % 2] + (255,)
     im.save(path)
 
 
