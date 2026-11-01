@@ -28,23 +28,24 @@ import java.util.UUID;
  *       UUIDs are the vanilla ItemArmor:37 constants (private in vanilla
  *       → same values carried locally). Full-set sums land on whole
  *       numbers 7.0/9.0/10.0 (chain 5.0/7.0/8.0) — the armor-bar face.</li>
- *   <li>the IRON ArmorMaterial is a texture/sound placeholder (C-7 口径);
+ *   <li>the IRON ArmorMaterial is a sound placeholder (C-7 口径收窄到声音面
+ *       — 纹理面 chain/plate 双支均 per-metal etim, plate 扩展批 2026-11-01);
  *       the vanilla anvil-repair face is refused (R196 repairs via
  *       skillsets, C 级登记).</li>
  * </ul>
  */
 public class ETIMMetalArmor extends ItemArmor implements ETIMMetalGear {
 
-    /** Chain-face worn texture override (目检批 fix 2026-11-01 ③): chain pieces
-     * ride ICPM-style per-metal chainmail layers; plate pieces keep the
-     * ArmorMaterial.IRON texture/sound placeholder (C-7 口径, 不在本批). */
+    /** Worn texture override (目检批 fix 2026-11-01 ③ + plate 扩展批 2026-11-01):
+     * chain pieces ride ICPM-style per-metal chainmail layers; plate pieces
+     * ride ICPM-style per-metal plate layers ({@code <metal>_layer_{1,2}.png}).
+     * ArmorMaterial.IRON stays = the sound placeholder only (C-7 口径收窄到
+     * 声音面 — both texture faces are per-metal etim now). */
     @Override
     public String getArmorTexture(ItemStack stack, Entity entity, EntityEquipmentSlot slot, String type) {
-        if (isChain) {
-            return ETIM.MOD_ID + ":textures/models/armor/" + metal.name + "_chainmail_layer_"
-                    + (slot == EntityEquipmentSlot.LEGS ? "2" : "1") + ".png";
-        }
-        return super.getArmorTexture(stack, entity, slot, type);
+        String face = isChain ? metal.name + "_chainmail_layer_" : metal.name + "_layer_";
+        return ETIM.MOD_ID + ":textures/models/armor/" + face
+                + (slot == EntityEquipmentSlot.LEGS ? "2" : "1") + ".png";
     }
 
     /** R196 armor-piece component counts by EntityEquipmentSlot index (FEET, LEGS, CHEST, HEAD). */
