@@ -1,6 +1,7 @@
 package io.github.etim.etim.metal;
 
 import com.google.common.collect.Multimap;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -27,16 +28,25 @@ import java.util.UUID;
  *       UUIDs are the vanilla ItemArmor:37 constants (private in vanilla
  *       → same values carried locally). Full-set sums land on whole
  *       numbers 7.0/9.0/10.0 (chain 5.0/7.0/8.0) — the armor-bar face.</li>
- *   <li>the IRON ArmorMaterial is a texture/sound placeholder (C-7 口径);
- *       the vanilla anvil-repair face is refused (R196 repairs via
- *       skillsets, C 级登记).</li>
+ *   <li>the IRON ArmorMaterial is a texture/sound placeholder for sounds and
+ *       repair faces only (C-7 口径) — both worn-texture faces are per-metal
+ *       vanilla-form remaps (资产正源化 v2, 2026-11-01, user-ruled methodology:
+ *       vanilla-domain form bases + etim-owned tone ramps); the vanilla
+ *       anvil-repair face is refused (R196 repairs via skillsets, C 级登记).</li>
  * </ul>
  */
 public class ETIMMetalArmor extends ItemArmor implements ETIMMetalGear {
 
-    /** Worn texture override removed (资产正源化 2026-11-01: the chain/plate
-     * ICPM direct-copy layer suites were A 级撤销 — both worn faces return to
-     * the ArmorMaterial.IRON vanilla path placeholder until the自源 rebuild批). */
+    /** Worn texture override (资产正源化 v2, 2026-11-01): chain pieces ride
+     * vanilla-form per-metal chainmail remaps; plate pieces ride vanilla-form
+     * per-metal plate remaps. The ArmorMaterial.IRON keeps the sound/repair
+     * placeholder faces only (C-7 口径收窄 — texture faces are etim). */
+    @Override
+    public String getArmorTexture(ItemStack stack, Entity entity, EntityEquipmentSlot slot, String type) {
+        String face = isChain ? metal.name + "_chainmail_layer_" : metal.name + "_layer_";
+        return ETIM.MOD_ID + ":textures/models/armor/" + face
+                + (slot == EntityEquipmentSlot.LEGS ? "2" : "1") + ".png";
+    }
 
     /** R196 armor-piece component counts by EntityEquipmentSlot index (FEET, LEGS, CHEST, HEAD). */
     private static final int[] COMPONENTS = {4, 7, 8, 5};
