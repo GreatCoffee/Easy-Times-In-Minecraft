@@ -249,6 +249,17 @@ public final class ETIMGear {
             addShaped("chain_boots_" + metal.name, chain, "X X", "X X");
         }
 
+        // C-SK-3 (verdict A-SK-1 round): the count is the RUNTIME delta of the
+        // vanilla recipe REGISTRY across registerBatchRecipes() — the literal
+        // "111 rows" string was dead data (hardcoded, would not catch a
+        // skipped addRecipe). Only the BATCH delta is fail-fasted: the etim
+        // domain total evolves every batch (154 at this commit — B1/B2 rows
+        // included), so no total expectation exists.
+        // metgear A-1 fix (audit20 条 216): the baseline is taken BEFORE the
+        // gold chain face too (the gold rows are part of the batch gate 35) —
+        // taking it after the gold block measured delta 29 → boot crash.
+        int before = etimRecipeCount();
+
         // metgear 批 gold chain face (D-2 a′ / D-6 a):
         // 4 chain-armor rows (RecipesArmor chain column) + 1 form + 1
         // dismantle. Nuggets point at the vanilla gold nugget
@@ -267,13 +278,6 @@ public final class ETIMGear {
                 new ItemStack(goldNugget, 4), "X", 'X', goldChain);
 
         // scythe/knife + 箭合成面 批 29 rows (批文 §〇, R196 一手):
-        // C-SK-3 (verdict A-SK-1 round): the count is the RUNTIME delta of the
-        // vanilla recipe REGISTRY across registerBatchRecipes() — the literal
-        // "111 rows" string was dead data (hardcoded, would not catch a
-        // skipped addRecipe). Only the BATCH delta is fail-fasted: the etim
-        // domain total evolves every batch (154 at this commit — B1/B2 rows
-        // included), so no total expectation exists.
-        int before = etimRecipeCount();
         registerBatchRecipes();
         int added = etimRecipeCount() - before;
         if (added != 35) {
