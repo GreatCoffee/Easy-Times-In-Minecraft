@@ -1,5 +1,7 @@
 package io.github.etim.etim.playerstate;
 
+import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIMConfig;
 import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
@@ -40,6 +42,7 @@ public final class PlayerCapApplier {
     /** Forces the health attribute to the level cap. */
     public static void applyCaps(EntityPlayer player) {
         int cap = PlayerStatLimits.getHealthFoodCap(player.experienceLevel);
+        float healthBefore = player.getHealth();
 
         // MAX_HEALTH drives the HUD heart count on the client
         // (GuiIngameForge derives healthRows from it).
@@ -47,9 +50,11 @@ public final class PlayerCapApplier {
         double previous = attribute.getBaseValue();
         if (previous != cap) {
             attribute.setBaseValue(cap);
-            // MITE: a raised limit grants the growth as immediate HP
-            // (R196 EntityPlayer heals the difference on level-up).
-            if (cap > previous) {
+            // capend D-1: false = R196 level-path reality (the :1859-1861 heal is
+            // unreachable because EntityPlayer:1824 unconditionally suppresses it,
+            // javap-verified); true = the ETIM level-up top-up carried in the
+            // spirit of the EntityLivingBase:112-121 attribute-cap re-heal.
+            if (ETIMConfig.playerHealOnLevelUp && cap > previous) {
                 player.heal((float) (cap - previous));
             }
         }
@@ -58,5 +63,6 @@ public final class PlayerCapApplier {
         if (player.getHealth() > cap) {
             player.setHealth(cap);
         }
+        CapLog.log(player, cap, previous, healthBefore);
     }
 }

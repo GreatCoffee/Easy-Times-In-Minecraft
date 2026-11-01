@@ -39,6 +39,10 @@ public final class ETIMConfig {
     public static int capGrowthPerFiveLevels = 2;
     /** Highest cap the level table can reach. 等级表能到的上限天花板。 */
     public static int capMaximum = 20;
+    /** Heal the cap difference on level-up (capend D-1). false = R196 level-path reality (addExperience :1824 unconditionally suppresses the :1859-1861 heal, so MITE levels up without healing); true = the ETIM level-up top-up carried in the spirit of the EntityLivingBase:112-121 attribute-cap re-heal. 升级回补开关（capend D-1）。false＝贴 R196 等级路径实况（addExperience :1824 无条件压制 :1859-1861 回补段，MITE 升级不回血）；true＝ETIM 升级差额回补（承 EntityLivingBase:112-121 属性回补取向）。 */
+    public static boolean playerHealOnLevelUp = true;
+    /** Server-log [CapLog] rows for every cap repatch (dev channel). 每次上限重贴/回血/降级钳写一行 [CapLog] 服务端日志（开发通道）。 */
+    public static boolean playerCapDebugLog = false;
 
     // leveling ----------------------------------------------------
     /** Hard cap of player levels. 玩家等级硬上限。 */
@@ -472,6 +476,12 @@ public final class ETIMConfig {
         capMaximum = config.getInt("capMaximum", "playerCaps", capMaximum, 2, 2000,
                 comment("Highest reachable cap (points)",
                         "上限天花板（点数）"));
+        playerHealOnLevelUp = config.getBoolean("playerHealOnLevelUp", "playerCaps", playerHealOnLevelUp,
+                comment("Heal the cap difference on level-up (false = R196: level-up does not heal)",
+                        "升级回血开关（关闭＝贴 R196：升级不回血）"));
+        playerCapDebugLog = config.getBoolean("playerCapDebugLog", "playerCaps", playerCapDebugLog,
+                comment("Server [CapLog] rows for cap repatch/heal/clamp (dev channel)",
+                        "服务端 [CapLog] 行：上限重贴/回血/降级钳（开发通道）"));
 
         levelCap = config.getInt("levelCap", "leveling", levelCap, 0, 2000,
                 comment("Hard cap of player levels", "玩家等级硬上限"));
