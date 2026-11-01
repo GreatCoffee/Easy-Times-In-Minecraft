@@ -416,7 +416,7 @@ public final class ETIMMining {
         if (item instanceof io.github.etim.etim.metal.ETIMItemMattock) {
             return 0.4F;
         }
-        if (item instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
+        if (item instanceof io.github.etim.etim.metal.ETIMItemShears) {
             return 1.0F; // R196 ItemShears:37-39
         }
         // scythe/knife 批 (批文 §二.6): scythe = R196 ItemScythe:26-28; the
@@ -461,7 +461,7 @@ public final class ETIMMining {
         if (item instanceof io.github.etim.etim.metal.ETIMItemHoe) {
             return 2.0F;
         }
-        if (item instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
+        if (item instanceof io.github.etim.etim.metal.ETIMItemShears) {
             return 2.0F; // R196 ItemShears:42-44
         }
         if (item instanceof io.github.etim.etim.metal.ETIMItemScythe) {
@@ -550,8 +550,8 @@ public final class ETIMMining {
             }
             return ok;
         }
-        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
-            int grade = ((io.github.etim.etim.metal.ETIMItemShearsRusted) held.getItem()).etimGrade();
+        if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemShears) {
+            int grade = ((io.github.etim.etim.metal.ETIMItemShears) held.getItem()).etimGrade();
             boolean ok = isShearsMaterial(state) && grade >= minLevel;
             if (!ok) {
                 logGradeDeny(held, state, grade);

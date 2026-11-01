@@ -56,7 +56,7 @@ public final class ETIMArrowDispense extends BehaviorProjectileDispense {
      *  after ETIMGear.register(): the gear() lookup fail-fasts on unregistered
      *  items (ETIMGear.java:161-167). */
     public static void register() {
-        for (ETIMMetals metal : ETIMMetals.values()) {
+        for (ETIMMetals metal : ETIMMetals.TOOL_METALS) {
             ETIMItemArrow arrowItem = (ETIMItemArrow) ETIMGear.gear("arrow_" + metal.name);
             BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(arrowItem, new ETIMArrowDispense(arrowItem));
         }

@@ -147,6 +147,8 @@ public final class ETIMAnvilRepair {
             case ANCIENT_METAL: return ETIMItems.nuggetAncientMetal;
             // R196 Item.java:1237 — iron and rusted_iron share the ironNugget (铁珠).
             case RUSTED_IRON: return Items.IRON_NUGGET;
+            // metgear 批 B-4: gold rides the vanilla gold nugget (R196 Item:1235-1236).
+            case GOLD: return Items.GOLD_NUGGET;
             default: return null;
         }
     }
@@ -168,6 +170,10 @@ public final class ETIMAnvilRepair {
         }
         if (item == ETIMItems.nuggetAncientMetal) {
             return 16.0F;
+        }
+        // metgear 批 B-4: gold nugget material durability (R196 Item:1235-1236 gold column = 4).
+        if (item == Items.GOLD_NUGGET) {
+            return 4.0F;
         }
         return Float.MAX_VALUE;
     }

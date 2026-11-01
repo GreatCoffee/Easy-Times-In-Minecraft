@@ -26,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * +1 is a class-family semantic drift, not a decay.
  *
  * <p>The redirect: reform on + ETIM shears + player hand → skip the vanilla +1
- * ({@link io.github.etim.etim.metal.ETIMItemShearsRusted#onBlockDestroyed} adds
+ * ({@link io.github.etim.etim.metal.ETIMItemShears#onBlockDestroyed} adds
  * the R196 decay itself, so the redirected +1 would be pure over-wear);
  * vanilla shears / off phase / mob hands stay on the vanilla call (the zombie
  * dig callback at {@code ETIMDigging} reaches this method for the ETIM-shears
@@ -48,7 +48,7 @@ public abstract class MixinItemShears {
             stack.damageItem(vanillaAmount, entityLiving);
             return;
         }
-        if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted
+        if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShears
                 && entityLiving instanceof EntityPlayer) {
             // R196 decay-only: the ETIM decay is added by the item itself —
             // the vanilla +1 here is pure over-wear, skip it.
@@ -87,7 +87,7 @@ public abstract class MixinItemShears {
             stack.damageItem(vanillaAmount, entityLiving);
             return;
         }
-        if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted) {
+        if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShears) {
             // R196 decay-only on the shear path: wear = funnel decay, and the
             // funnel's :282 row is the Judgment-log anchor (loss column = decay).
             int decay = ETIMMining.getToolDecayFromBreakingBlock(player, player.world.getBlockState(pos), player.world, pos);
@@ -130,7 +130,7 @@ public abstract class MixinItemShears {
             stack.damageItem(vanillaAmount, shearedEntity);
             return;
         }
-        if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted
+        if (stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShears
                 && entity instanceof EntitySheep) {
             // R196 flat 50 on the sheep face (R196 ItemShears:62). The helper
             // gates creative zero-wear BEFORE issuing the face=shearing row
@@ -177,7 +177,7 @@ public abstract class MixinItemShears {
     private java.util.List<ItemStack> etim$r196ShearDrops(net.minecraftforge.common.IShearable target, ItemStack item, net.minecraft.world.IBlockAccess world, BlockPos shearPos, int fortune,
             ItemStack stackParam, BlockPos pos, EntityPlayer player) {
         java.util.List<ItemStack> drops = target.onSheared(item, world, shearPos, fortune);
-        if (!ETIMConfig.miningReform || !(stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShearsRusted)) {
+        if (!ETIMConfig.miningReform || !(stackParam.getItem() instanceof io.github.etim.etim.metal.ETIMItemShears)) {
             return drops;
         }
         return ETIMMining.getR196ShearDrops(stackParam, player.world, shearPos, drops);

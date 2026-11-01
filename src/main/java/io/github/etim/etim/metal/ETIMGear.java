@@ -32,6 +32,8 @@ public final class ETIMGear {
 
     public static Item chainCopper;
     public static Item chainSilver;
+    /** metgear 批: gold joins the chain-face only (D-2 a′ registration split). */
+    public static Item chainGold;
     public static Item chainMithril;
     public static Item chainAdamantium;
     public static Item chainAncientMetal;
@@ -53,12 +55,13 @@ public final class ETIMGear {
     public static void register() {
         chainCopper = chain("chain_copper");
         chainSilver = chain("chain_silver");
+        chainGold = chain("chain_gold");
         chainMithril = chain("chain_mithril");
         chainAdamantium = chain("chain_adamantium");
         chainAncientMetal = chain("chain_ancient_metal");
         chainRustedIron = chain("chain_rusted_iron");
 
-        for (ETIMMetals metal : ETIMMetals.values()) {
+        for (ETIMMetals metal : ETIMMetals.TOOL_METALS) {
             register("pickaxe_" + metal.name, new ETIMItemPickaxe(metal));
             register("shovel_" + metal.name, new ETIMItemShovel(metal));
             register("axe_" + metal.name, new ETIMItemAxe(metal));
@@ -72,6 +75,12 @@ public final class ETIMGear {
 
             for (ArmorPiece piece : ARMOR_PIECES) {
                 register(piece.name + "_" + metal.name, new ETIMMetalArmor(metal, piece.slot, false));
+            }
+        }
+        // metgear 批 (D-2 a′): the chain-armor set rides CHAIN_METALS — gold
+        // gets chain armor but NOT plate armor (gold/iron keep vanilla items).
+        for (ETIMMetals metal : ETIMMetals.CHAIN_METALS) {
+            for (ArmorPiece piece : ARMOR_PIECES) {
                 register("chain_" + piece.name + "_" + metal.name, new ETIMMetalArmor(metal, piece.slot, true));
             }
         }
@@ -81,14 +90,22 @@ public final class ETIMGear {
         // scythe/knife 批: the arrow class generalized to ETIMItemArrow(metal).
         arrowRustedIron = new ETIMItemArrow(ETIMMetals.RUSTED_IRON);
         register("arrow_rusted_iron", arrowRustedIron);
-        shearsRustedIron = new ETIMItemShearsRusted();
+        shearsRustedIron = new ETIMItemShears(ETIMMetals.RUSTED_IRON);
         register("shears_rusted_iron", shearsRustedIron);
+
+        // metgear 批 (条 213): the six R196 metal shears (Item.java:411-416).
+        // The parameterized class covers the rusted body too — same decay
+        // funnels, same reach, same repair face (D-5 a).
+        for (ETIMMetals metal : ETIMMetals.SHEARS_METALS) {
+            register("shears_" + metal.name, new ETIMItemShears(metal));
+        }
 
         // scythe/knife + 箭合成面 批 (T1=①/T2/T3 user rulings, 2026-10-24):
         // 6 scythes (5 metals craft + the rusted body, no recipe), the flint
-        // knife (A-1 定谳: metal knives are R196 dead data — skip), and the
-        // five metal arrows (the rusted arrow stays loot-only, no recipe).
-        for (ETIMMetals metal : ETIMMetals.values()) {
+        // knife (A-1 定谳: metal knives unverifiable — dead data, Recipes
+        // shadowed by the same-shape daggers; metgear 批 D-1 keep-no-knife),
+        // and the five metal arrows (the rusted arrow stays loot-only, no recipe).
+        for (ETIMMetals metal : ETIMMetals.TOOL_METALS) {
             register("scythe_" + metal.name, new ETIMItemScythe(metal));
         }
         knifeFlint = register("knife_flint", new ETIMItemKnifeFlint());
@@ -191,7 +208,7 @@ public final class ETIMGear {
      * layer — zero per-recipe wiring.
      */
     private static void registerRecipes() {
-        for (ETIMMetals metal : ETIMMetals.values()) {
+        for (ETIMMetals metal : ETIMMetals.TOOL_METALS) {
             if (metal == ETIMMetals.RUSTED_IRON) {
                 // B3 批文 §〇: rusted iron has NO ingot and NO ingot-based
                 // recipes (R196 无锭一手); only the chain-armor four exist
@@ -232,6 +249,23 @@ public final class ETIMGear {
             addShaped("chain_boots_" + metal.name, chain, "X X", "X X");
         }
 
+        // metgear 批 gold chain face (D-2 a′ / D-6 a):
+        // 4 chain-armor rows (RecipesArmor chain column) + 1 form + 1
+        // dismantle. Nuggets point at the vanilla gold nugget
+        // (RecipesMITE.java:66 goldNugget — 条 213 终-A1 引 :66), the chain
+        // item / repair chain into the vanilla gold armor chain column.
+        Object goldChain = chainOf(ETIMMetals.GOLD);
+        Item goldNugget = ingotToNugget(ETIMMetals.GOLD);
+        addShaped("chain_helmet_gold", goldChain, "XXX", "X X");
+        addShaped("chain_chestplate_gold", goldChain, "X X", "XXX", "XXX");
+        addShaped("chain_leggings_gold", goldChain, "XXX", "X X", "X X");
+        addShaped("chain_boots_gold", goldChain, "X X", "X X");
+        // Chain forming (R196 RecipesMITE:15-24 nugget_based, gold column).
+        addShaped("chain_gold", goldNugget, " X ", "X X", " X ");
+        // Chain dismantling (R196 RecipesMITE:61-74 chain_based, gold column → 4 nuggets).
+        GameRegistry.addShapedRecipe(new ResourceLocation(ETIM.MOD_ID, "gear_chain_dismantle_gold"), null,
+                new ItemStack(goldNugget, 4), "X", 'X', goldChain);
+
         // scythe/knife + 箭合成面 批 29 rows (批文 §〇, R196 一手):
         // C-SK-3 (verdict A-SK-1 round): the count is the RUNTIME delta of the
         // vanilla recipe REGISTRY across registerBatchRecipes() — the literal
@@ -242,12 +276,12 @@ public final class ETIMGear {
         int before = etimRecipeCount();
         registerBatchRecipes();
         int added = etimRecipeCount() - before;
-        if (added != 29) {
-            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 29 batch rows (2 iron-nugget 9:1 + 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint + 5 chain form + 5 chain dismantle), registered " + added);
+        if (added != 35) {
+            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 35 batch rows (2 iron-nugget 9:1 + 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint + 6 chain form + 6 chain dismantle + 4 gold chain-armor, metgear 批 条 214), registered " + added);
         }
         ETIM.LOGGER.info("[TestLog] gear recipes registered: " + added
                 + " batch rows ok (runtime REGISTRY delta; etim-domain total " + etimRecipeCount()
-                + " incl legacy 94: 90 ingot-based + 4 rusted chain-armor) [server]");
+                + " incl legacy 94: 90 ingot-based + 4 rusted + 4 gold chain-armor) [server]");
     }
 
     /** The scythe/knife/arrow recipe face — R196 RecipesTools:102 / RecipesWeapons:73,85 / RecipesMITE:252,257. */
@@ -312,6 +346,8 @@ public final class ETIMGear {
             case MITHRIL: return ETIMItems.nuggetMithril;
             case ADAMANTIUM: return ETIMItems.nuggetAdamantium;
             case ANCIENT_METAL: return ETIMItems.nuggetAncientMetal;
+            // metgear 批 B-4: gold rides the vanilla nugget (ETIMGravelDrop:76 precedent).
+            case GOLD: return Items.GOLD_NUGGET;
             default: throw new IllegalArgumentException("no nugget for " + metal);
         }
     }
@@ -346,6 +382,9 @@ public final class ETIMGear {
             case ANCIENT_METAL: return ETIMItems.ingotAncientMetal;
             case MITHRIL: return ETIMItems.ingotMithril;
             case ADAMANTIUM: return ETIMItems.ingotAdamantium;
+            // metgear 批 B-4: gold keeps the vanilla ingot (ETIMBlocks:252 precedent);
+            // the gold chain face never calls this, the case is the fail-fast guard.
+            case GOLD: return Items.GOLD_INGOT;
             default: throw new IllegalArgumentException("no ingot for " + metal);
         }
     }
@@ -358,6 +397,8 @@ public final class ETIMGear {
             case MITHRIL: return chainMithril;
             case ADAMANTIUM: return chainAdamantium;
             case RUSTED_IRON: return chainRustedIron;
+            // metgear 批 B-4: the gold chain joins the chain face.
+            case GOLD: return chainGold;
             default: throw new IllegalArgumentException("no chain for " + metal);
         }
     }
