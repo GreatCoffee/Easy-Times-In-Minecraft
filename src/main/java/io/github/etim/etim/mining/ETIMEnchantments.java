@@ -9,8 +9,10 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 /**
  * MITE-ported enchantments (task 2.2 / ToolSuite 终审 §四): the tree-felling
  * helper, id 83 in R196, applies to axes only (battle axes included, hatchets
- * excluded in MITE — vanilla 1.12 has no hatchet class to mirror) and reads
- * its felling depth straight from the enchantment level on the held stack.
+ * excluded in MITE — enforced at the table gate after the ETIMItemHatchet
+ * class landed, see EnchantmentTreeFelling:canApplyAtEnchantingTable) and
+ * reads its felling depth straight from the enchantment level on the held
+ * stack.
  */
 public final class ETIMEnchantments {
 

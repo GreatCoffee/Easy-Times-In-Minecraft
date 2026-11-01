@@ -17,6 +17,7 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.command.PlayerNotFoundException;
 import net.minecraft.command.WrongUsageException;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -356,11 +357,20 @@ public class CommandDevTest extends CommandBase {
             throw new WrongUsageException("commands.etest.usage");
         }
         String src = args.length > 2 ? args[2].toLowerCase(java.util.Locale.ROOT) : "melee";
-        if (!"melee".equals(src) && !"arrow".equals(src) && !"thrown".equals(src) && !"none".equals(src)) {
+        if (!"melee".equals(src) && !"arrow".equals(src) && !"thrown".equals(src) && !"none".equals(src)
+                && !"pool".equals(src)) {
             throw new WrongUsageException("commands.etest.usage");
         }
         EntityPlayerMP player = targetOrSender(server, sender, args, 3);
         ItemStack stack = player.getItemStackFromSlot(slot);
+        // D-7 (batch E, 条 232/终审 B-3): the pool dump arm. Per-slot budget +
+        // pool size straight from the product pool source; the full registry
+        // roll (cross-mod entries included) as detail rows; empty pools are
+        // NEVER silent (pool-e row). No new cfg keys.
+        if ("pool".equals(src)) {
+            executeEnchantPoolProbe(player, stack);
+            return;
+        }
         Enchantment piercing = ETIMEnchantments.PIERCING;
         // Row 1 — carrier gate + max level (W2)
         ETIM.LOGGER.info("[EnchantLog] enchantprobe slot={} item={} canApply={} maxLevel={} [server]",
@@ -412,6 +422,44 @@ public class CommandDevTest extends CommandBase {
 
     private static int tablePower(EntityPlayerMP player, int slot, int power, ItemStack stack) {
         return EnchantmentHelper.calcItemStackEnchantability(player.getRNG(), slot, power, stack);
+    }
+
+    /**
+     * {@code /etest enchantprobe <slot> pool [player]} — the D-7 pool dump
+     * (batch E). Per slot 0..2 at power 30 (the clamp-proof power): the seeded
+     * table budget and the pool size read straight from the product pool
+     * source ({@code EnchantmentHelper.buildEnchantmentList}); empty pools
+     * log an explicit {@code pool-e} row, never silent. Then one detail row
+     * per registered enchantment — {@code reg/id/weight/table/treasure/window}
+     * — over the whole Forge registry, cross-mod entries included.
+     */
+    private static void executeEnchantPoolProbe(EntityPlayerMP player, ItemStack stack) {
+        for (int slotIdx = 0; slotIdx < 3; slotIdx++) {
+            int budget = tablePower(player, slotIdx, 30, stack);
+            java.util.List<EnchantmentData> pool = EnchantmentHelper.buildEnchantmentList(player.getRNG(), stack, budget, false);
+            int size = pool == null ? 0 : pool.size();
+            ETIM.LOGGER.info("[EnchantLog] pool slot={} budget={} size={} item={} [server]",
+                    slotIdx, budget, size, stack.isEmpty() ? "empty" : String.valueOf(stack.getItem().getRegistryName()));
+            if (size == 0) {
+                ETIM.LOGGER.info("[EnchantLog] pool-e slot={} budget={} list=empty [server]", slotIdx, budget);
+            }
+        }
+        StringBuilder window;
+        for (Enchantment enchantment : Enchantment.REGISTRY) {
+            window = new StringBuilder();
+            for (int level = 1; level <= enchantment.getMaxLevel(); level++) {
+                if (level > 1) {
+                    window.append(' ');
+                }
+                window.append('L').append(level).append('=')
+                        .append(enchantment.getMinEnchantability(level)).append('/')
+                        .append(enchantment.getMaxEnchantability(level));
+            }
+            ETIM.LOGGER.info("[EnchantLog] pool reg={} id={} weight={} table={} treasure={} window={} [server]",
+                    enchantment.getRegistryName(), Enchantment.getEnchantmentID(enchantment),
+                    enchantment.getRarity().getWeight(), enchantment.canApplyAtEnchantingTable(stack),
+                    enchantment.isTreasureEnchantment(), window);
+        }
     }
 
     /**

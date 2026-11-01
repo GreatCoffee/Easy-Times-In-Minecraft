@@ -1,6 +1,7 @@
 package io.github.etim.etim.mining;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.metal.ETIMItemHatchet;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnumEnchantmentType;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -31,6 +32,12 @@ public final class EnchantmentTreeFelling extends Enchantment {
 
     @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack) {
-        return stack.getItem() instanceof ItemAxe;
+        // R196 EnchantmentTreeFelling.java:14-16: `item instanceof ItemAxe &&
+        // !(item instanceof ItemHatchet)` — the book/forge hook casts the same
+        // exclusion over our ETIMItemHatchet (which extends ETIMItemAxe, so a
+        // bare ItemAxe check wrongly admits it). Batch E / D-3, 条 232.
+        return !stack.isEmpty()
+                && stack.getItem() instanceof ItemAxe
+                && !(stack.getItem() instanceof ETIMItemHatchet);
     }
 }
