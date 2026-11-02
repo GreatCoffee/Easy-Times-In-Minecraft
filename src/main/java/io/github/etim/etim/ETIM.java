@@ -84,6 +84,10 @@ public final class ETIM {
         // proportional anvil wear + the [CraftingLog] judgment row.
         io.github.etim.etim.metal.ETIMAnvilRepair.register();
         ETIMEnchantments.register();
+        // Batch farm1 (B4 — 条 254-257): the fertilized TE carrier (D-1) +
+        // the three zero-mixin event faces (consume/trample/harvest drops).
+        io.github.etim.etim.farm.ETIMFarm.registerTile();
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.farm.ETIMFarmingEvents.class);
         ETIMConfig.init(event);
         // Batch B arrow identity (D-19/D-20/D-26): the etim:metal_arrow entity
         // rides AFTER ETIMConfig.init so the [ArrowLog] gate is live at

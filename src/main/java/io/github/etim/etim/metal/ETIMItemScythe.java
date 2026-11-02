@@ -7,6 +7,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemTool;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 import com.google.common.collect.Sets;
 
@@ -27,8 +29,10 @@ import io.github.etim.etim.ETIMConfig;
  *   <li>efficiency: no R196 base override → the ItemTool default 4.0 base
  *       = the ×1.0 correction (R196 ItemTool:44-46, 终审 补-2) — same as the
  *       pickaxe band.</li>
- *   <li>fertility re-fertilize face (:40-53) not ported (C-3, no fertility
- *       enchant); getSimilarClasses (:56-58) not ported (C 级, 终审 补-1).</li>
+ *   <li>fertility re-fertilize face (:40-53) LIVE since farm1 (条 254-257):
+ *       the harvest roll rides ETIMFarm.onCropBroken in the new
+ *       onBlockDestroyed override; getSimilarClasses (:56-58) not ported
+ *       (C 级, 终审 补-1).</li>
  * </ul>
  */
 public class ETIMItemScythe extends ItemTool implements ETIMMetalGear {
@@ -152,5 +156,21 @@ public class ETIMItemScythe extends ItemTool implements ETIMMetalGear {
 	public static boolean isScytheBlock(net.minecraft.block.state.IBlockState state) {
 		Block block = state.getBlock();
 		return block instanceof BlockTallGrass || block instanceof BlockCrops;
+	}
+
+	/**
+	 * farm1 (B4, 条 254-257 F6, 报告 §4.5): harvest-time fertility roll for
+	 * the scythe family. super.onBlockDestroyed keeps the patched
+	 * MixinItemTool decay redirect live (the injection sits inside
+	 * ItemTool.onBlockDestroyed, dispatch unchanged). The roll runs BEFORE
+	 * removeBlock so pos.down() farmland is still there; the matrix gate
+	 * (wheat exact-class, R196 ItemScythe:43) lives in ETIMFarm.
+	 */
+	@Override
+	public boolean onBlockDestroyed(ItemStack stack, World world, net.minecraft.block.state.IBlockState state,
+			BlockPos pos, net.minecraft.entity.EntityLivingBase entityLiving) {
+		boolean worn = super.onBlockDestroyed(stack, world, state, pos, entityLiving);
+		io.github.etim.etim.farm.ETIMFarm.onCropBroken(entityLiving, stack, world, pos, state);
+		return worn;
 	}
 }

@@ -124,6 +124,9 @@ public class ETIMItemHoe extends ItemHoe implements ETIMMetalGear {
                 stack.damageItem(decay, entityLiving);
             }
         }
+        // farm1 (B4, 条 254-257 F6): the fertility harvest roll — runs BEFORE
+        // removeBlock (PIM :344-348) so pos.down() farmland is still there.
+        io.github.etim.etim.farm.ETIMFarm.onCropBroken(entityLiving, stack, world, pos, state);
         return false;
     }
 

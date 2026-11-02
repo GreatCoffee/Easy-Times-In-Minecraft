@@ -55,5 +55,9 @@ public abstract class MixinItemHoe {
             return;
         }
         ETIMEndurance.chargeHoe(player, captured.getBlockHardness(world, pos));
+        // farm1 (B4, 条 254-257 D-6): the fertility tillage roll rides the SAME
+        // SUCCESS face — the B-3 coarse_dirt exclusion is the FARMLAND check
+        // inside ETIMFarm.onTilled (the branch that swapped in DIRT is skipped).
+        io.github.etim.etim.farm.ETIMFarm.onTilled(player, world, pos);
     }
 }

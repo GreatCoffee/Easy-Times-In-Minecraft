@@ -426,6 +426,23 @@ public final class ETIMConfig {
     /** D-6 (条 250): the [MeleeLog] judgment channel gate — created before ship (纪律 9). */
     public static boolean meleeDebugLog = false;
 
+    // Batch farm1 (B4 农作两条, 条 254-257 / 条 256 终裁 — 8 keys; category "farm").
+    /** R196 Enchantment.java:32 difficulty. 沃肥（R196 难度 10）。 */
+    public static int fertilityDifficulty = 10;
+    /** R196 Enchantment.java:43 difficulty. 丰收（R196 难度 10）。 */
+    public static int harvestingDifficulty = 10;
+    /** 两条 getNumLevels 默认 = 5；同时是概率分母（fraction 分母双用）。 */
+    public static int fertilityMaxLevel = 5;
+    public static int harvestingMaxLevel = 5;
+    /** R196 BlockCrops.java:205-207 — fertilized 增速乘数（1.5）。 */
+    public static float fertilizedGrowthFactor = 1.5F;
+    /** R196 BlockCrops.java:120-127 — 施肥消耗判定分母（期望 256 次生长耗尽）。 */
+    public static int fertilizedConsumeDivisor = 256;
+    /** R196 BlockCrops.java:346 — 丰收主作物期望增量系数（fraction × 0.5）。 */
+    public static float harvestingYieldFactor = 0.5F;
+    /** D-5 (条 256): the [FarmLog] judgment channel gate — created before ship (纪律 9). */
+    public static boolean farmDebugLog = false;
+
     // combat batch AD-10+SH (audit20-97 planned) ------------------------------
     /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
      *  halve BEFORE armor, floor 1.0, no direction gate, no knockback immunity.
@@ -1031,6 +1048,35 @@ public final class ETIMConfig {
                 comment("[MeleeLog] rows of the melee1 batch: stun/vampiric/disarm success+fail lines carry roll and need on ONE line (B-4: no seeding — frequency windows). Silent when off",
                         "[MeleeLog] 判行（melee1 批）：击晕/吸血/缴械成败行同打掷值与门槛（不可播种——频率判窗）。关闭则静默"));
 
+        // batch farm1 (B4 农作两条 — 条 256 D 位裁定／条 257 C-注1/2: 8 keys,
+        // category "farm" per 终审; maxLevel doubles as the fraction denominator
+        // (disarming reuse precedent); no fertilizer kill-switch (factor 1.0 +
+        // divisor max close everything, R196 word-for-word).
+        fertilityDifficulty = config.getInt("fertilityDifficulty", "farm", fertilityDifficulty, 5, 40,
+                comment("R196 Enchantment.java:32 difficulty for fertility (10 native). The case-M window derives from this single key; the fraction denominator is fertilityMaxLevel",
+                        "沃肥的 R196 难度（源值 10）。案 M 窗口由单键派生；抽中概率分母=fertilityMaxLevel"));
+        harvestingDifficulty = config.getInt("harvestingDifficulty", "farm", harvestingDifficulty, 5, 40,
+                comment("R196 Enchantment.java:43 difficulty for harvesting (10 native)",
+                        "丰收的 R196 难度（源值 10）"));
+        fertilityMaxLevel = config.getInt("fertilityMaxLevel", "farm", fertilityMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69). Also the fraction denominator for both fertility rolls (P = level/this, melee disarming precedent)",
+                        "沃肥的最高等级（R196 = 5）；同时是概率分母（P=等级/本键）"));
+        harvestingMaxLevel = config.getInt("harvestingMaxLevel", "farm", harvestingMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69). Also the fraction denominator of the yield bonus",
+                        "丰收的最高等级（R196 = 5）"));
+        fertilizedGrowthFactor = config.getFloat("fertilizedGrowthFactor", "farm", fertilizedGrowthFactor, 1.0F, 10.0F,
+                comment("R196 BlockCrops.java:205-207 — fertilized farmland multiplies the crop's growth chance by this (default 1.5); set 1.0 to disable entirely",
+                        "施肥对生长速度的乘数（R196 = 1.5 倍）；置 1.0 关闭"));
+        fertilizedConsumeDivisor = config.getInt("fertilizedConsumeDivisor", "farm", fertilizedConsumeDivisor, 1, 1000000,
+                comment("R196 BlockCrops.java:120-127 — each successful growth rolls nextInt(this)==0 to consume the fertilizer (expected lifespan = this many growths, default 256)",
+                        "施肥每次成功生长的消耗判定分母（R196 = 256——期望 256 次生长后耗尽）"));
+        harvestingYieldFactor = config.getFloat("harvestingYieldFactor", "farm", harvestingYieldFactor, 0.0F, 10.0F,
+                comment("R196 BlockCrops.java:346 — the yield bonus = fraction (level/maxLevel) x this extra multiplier on the main-crop expectation (default 0.5); set 0.0 to switch the bonus off",
+                        "丰收对主作物期望的增量系数（R196 = 0.5）；置 0 关闭加成"));
+        farmDebugLog = config.getBoolean("farmDebugLog", "farm", false,
+                comment("[FarmLog] rows of the farm1 batch: tillage/harvest fertility rolls, fertilized set/clear, growth ratio, trample deny — roll and need on ONE line (B-4: no seeding). Silent when off",
+                        "[FarmLog] 判行（farm1 批）：沃肥翻地/收成判定、施肥置/清位、增速比、防踩行——掷值与门槛单行同打。关闭则静默"));
+
         // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
         armorModelR196 = config.getBoolean("armorModelR196", "combat", true,
                 comment("R196 subtraction armor model (batch D): max(amount - effective_protection, 1.0F) on the 0-10 scale with flat enchant/potion weighting; false = vanilla 1.12 multiplicative model (armorModelR196=false is the W19 audit face)",
@@ -1234,7 +1280,8 @@ public final class ETIMConfig {
                 || Float.isNaN(craftingSpeedPerLevel) || Float.isNaN(craftingBenchModifier)
                 || Float.isNaN(craftingCurveExponent) || Float.isNaN(craftingGenericDifficulty)
                 || Float.isNaN(speedPerLevel) || Float.isNaN(regenerationPerLevel)
-                || Float.isNaN(vampiricTransferFactor)) {
+                || Float.isNaN(vampiricTransferFactor)
+                || Float.isNaN(fertilizedGrowthFactor) || Float.isNaN(harvestingYieldFactor)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }

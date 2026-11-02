@@ -313,6 +313,13 @@ public class CommandDevTest extends CommandBase {
         } else if (args.length > 3 && "disarming".equalsIgnoreCase(args[3])) {
             enchantment = ETIMEnchantments.DISARMING;
             playerIndex = 4;
+        } else if (args.length > 3 && "fertility".equalsIgnoreCase(args[3])) {
+            // farm1 (B4, 条 257 B-side): two tokens added for W-F staging.
+            enchantment = ETIMEnchantments.FERTILITY;
+            playerIndex = 4;
+        } else if (args.length > 3 && "harvesting".equalsIgnoreCase(args[3])) {
+            enchantment = ETIMEnchantments.HARVESTING;
+            playerIndex = 4;
         }
         EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
         ItemStack stack = player.getItemStackFromSlot(slot);

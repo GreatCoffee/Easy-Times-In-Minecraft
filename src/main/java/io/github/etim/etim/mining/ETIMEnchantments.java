@@ -29,6 +29,9 @@ public final class ETIMEnchantments {
     public static Enchantment STUN;
     public static Enchantment VAMPIRIC;
     public static Enchantment DISARMING;
+    // batch farm1 (B4 农作两条, 条 254-257): R196 ids 82/93.
+    public static Enchantment FERTILITY;
+    public static Enchantment HARVESTING;
 
     private ETIMEnchantments() {
     }
@@ -76,6 +79,15 @@ public final class ETIMEnchantments {
         DISARMING = new io.github.etim.etim.combat.EnchantmentDisarming();
         DISARMING.setRegistryName(new ResourceLocation(Tags.MOD_ID, "disarming"));
         ForgeRegistries.ENCHANTMENTS.register(DISARMING);
+        // Batch farm1 (B4 — 条 254-257): fertility/harvesting, the two
+        // farming entries riding the fraction read (F3) and the fertilized
+        // TE carrier; the shared ETIMFarm helper + ETIMFarmingEvents bus.
+        FERTILITY = new io.github.etim.etim.farm.EnchantmentFertility();
+        FERTILITY.setRegistryName(new ResourceLocation(Tags.MOD_ID, "fertility"));
+        ForgeRegistries.ENCHANTMENTS.register(FERTILITY);
+        HARVESTING = new io.github.etim.etim.farm.EnchantmentHarvesting();
+        HARVESTING.setRegistryName(new ResourceLocation(Tags.MOD_ID, "harvesting"));
+        ForgeRegistries.ENCHANTMENTS.register(HARVESTING);
         // Case A poison potion (条 243/245) — R196 arithmetic on a self-owned
         // Potion (vanilla 1.12 poison is 25-tick + health-gated; ours is
         // 100>>amp + gate-less). Registered BEFORE cfg init (:87) like the
@@ -87,7 +99,7 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(ENDURANCE));
         ETIM.LOGGER.info("[EtimInit] enchant {} id={}", PIERCING.getRegistryName(),
                 Enchantment.getEnchantmentID(PIERCING));
-        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {}",
+        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {}",
                 SPEED.getRegistryName(),
                 Enchantment.getEnchantmentID(SPEED),
                 Enchantment.getEnchantmentID(REGENERATION),
@@ -96,6 +108,8 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(QUICKNESS),
                 Enchantment.getEnchantmentID(STUN),
                 Enchantment.getEnchantmentID(VAMPIRIC),
-                Enchantment.getEnchantmentID(DISARMING));
+                Enchantment.getEnchantmentID(DISARMING),
+                Enchantment.getEnchantmentID(FERTILITY),
+                Enchantment.getEnchantmentID(HARVESTING));
     }
 }
