@@ -97,6 +97,12 @@ public class ETIMItemSword extends ItemSword implements ETIMMetalGear {
         return metal.durabilityFactor;
     }
 
+    /** melee1 (B2, 条 251 B-1): the R196 material for the weapon-carrier gates. */
+    @Override
+    public ETIMMetals etimMetal() {
+        return metal;
+    }
+
     /** Re-put the vanilla attack modifier with the R196 total damage. */
     @Override
     public Multimap<String, AttributeModifier> getItemAttributeModifiers(EntityEquipmentSlot slot) {

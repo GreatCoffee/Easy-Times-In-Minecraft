@@ -465,7 +465,14 @@ public final class ETIMMining {
             return 2.0F; // R196 ItemShears:42-44
         }
         if (item instanceof io.github.etim.etim.metal.ETIMItemScythe) {
-            return 4.0F; // R196 ItemScythe:31-37 (sharpness/vampiric branches dead, C-4)
+            // R196 ItemScythe:31-37 — the vampiric branches are LIVE since melee1
+            // (they were the C-4 dead branches pre-batch); the sharpness branch
+            // stays dead (ETIM has no sharpness, C-7 — the 2.0 vs 4.0 gap persists).
+            if (net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(
+                    io.github.etim.etim.mining.ETIMEnchantments.VAMPIRIC, held) > 0) {
+                return 1.0F; // R196 ItemScythe:32-34 — vampiric decay drop (T7 400→100)
+            }
+            return 4.0F; // R196 ItemScythe:35 default face
         }
         if (item instanceof ItemSword) {
             return 0.5F; // the flint knife rides here (no R196 override, ItemKnife)

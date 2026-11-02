@@ -397,6 +397,35 @@ public final class ETIMConfig {
     /** B-5 HUD icon grid slot for the Etim poison potion (0 = vanilla poison slot). 自订毒药水的 HUD 图标格位。 */
     public static int poisonPotionIconIndex = 0;
 
+    // Batch melee1 (B2 三条, 条 249-251 / 条 250 D-5 — 14 keys; disarming
+    // probability reuses disarmingMaxLevel as its divisor per R196 fraction).
+    /** R196 Enchantment.java:30 difficulty. 击晕（R196 难度 15）。 */
+    public static int stunDifficulty = 15;
+    /** R196 Enchantment.java:34 difficulty. 吸血（R196 难度 20）。 */
+    public static int vampiricDifficulty = 20;
+    /** R196 Enchantment.java:41 difficulty. 缴械（R196 难度 10）。 */
+    public static int disarmingDifficulty = 10;
+    /** 三条 getNumLevels 默认 = 5 (Enchantment.java:67-69)。 */
+    public static int stunMaxLevel = 5;
+    public static int vampiricMaxLevel = 5;
+    public static int disarmingMaxLevel = 5;
+    /** EntityPlayer.java:1250 roll divisor (P=L/divisor). 击晕触发概率除数。 */
+    public static int stunChanceDivisor = 10;
+    /** EntityPlayer.java:1251 duration per level. 击晕每级持续 tick。 */
+    public static int stunDurationPerLevel = 50;
+    /** EntityPlayer.java:1251 amplifier per level — D-1 (条 250) 默认 6：1.12 slowness 属性下 L1 即 ×0（出口值=R196 定身）。 */
+    public static int stunAmplifierPerLevel = 6;
+    /** EnchantmentHelper.java:372 roll divisor. 吸血触发概率除数。 */
+    public static int vampiricChanceDivisor = 10;
+    /** EnchantmentHelper.java:376 factor. 吸血回复系数（伤害基见 B-5 声明）。 */
+    public static float vampiricTransferFactor = 0.5F;
+    /** EnchantmentHelper.java:377-379 lower bound. 吸血最低回复点数。 */
+    public static int vampiricMinTransfer = 1;
+    /** EntityPlayer.java:1240 ticks_disarmed. 缴械锁时长 tick（拾取门 ＋ NBT 持窗）。 */
+    public static int disarmLockTicks = 40;
+    /** D-6 (条 250): the [MeleeLog] judgment channel gate — created before ship (纪律 9). */
+    public static boolean meleeDebugLog = false;
+
     // combat batch AD-10+SH (audit20-97 planned) ------------------------------
     /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
      *  halve BEFORE armor, floor 1.0, no direction gate, no knockback immunity.
@@ -958,6 +987,50 @@ public final class ETIMConfig {
                 comment("B-5: the HUD grid slot of the Etim poison potion (mob_effects texture, 16 columns). 0 = vanilla poison's slot (the icon overlaps vanilla's own); give it a free slot for a distinct look",
                         "自订毒药水的 HUD 图标格位（mob_effects 贴图 16 格）。0=复用原版毒位置（会与原版图标重叠）；可换到空位以示区别"));
 
+        // batch melee1 (B2 三条 — 条 250 D-5: 14 keys).
+        stunDifficulty = config.getInt("stunDifficulty", "combat", stunDifficulty, 5, 40,
+                comment("R196 Enchantment.java:30 difficulty for stun (15 native). The case-M window derives min(L)=max(diff−10,0)+diff×(L−1)+1 / max(L)=next-level cost −1 from this single key",
+                        "击晕的 R196 难度（源值 15）。案 M 窗口由单键派生"));
+        vampiricDifficulty = config.getInt("vampiricDifficulty", "combat", vampiricDifficulty, 5, 40,
+                comment("R196 Enchantment.java:34 difficulty for vampiric (20 native) — the L1 window already opens at 11",
+                        "吸血的 R196 难度（源值 20）——L1 窗口起点即 11"));
+        disarmingDifficulty = config.getInt("disarmingDifficulty", "combat", disarmingDifficulty, 5, 40,
+                comment("R196 Enchantment.java:41 difficulty for disarming (10 native)",
+                        "缴械的 R196 难度（源值 10）"));
+        stunMaxLevel = config.getInt("stunMaxLevel", "combat", stunMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69)",
+                        "击晕的最高等级（R196 = 5）"));
+        vampiricMaxLevel = config.getInt("vampiricMaxLevel", "combat", vampiricMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5 (Enchantment.java:67-69). The chance divisor is the separate vampiricChanceDivisor key",
+                        "吸血的最高等级（R196 = 5）"));
+        disarmingMaxLevel = config.getInt("disarmingMaxLevel", "combat", disarmingMaxLevel, 1, 10,
+                comment("R196 getNumLevels default = 5. Note: the disarm chance divisor REUSES this key (P = level/this, C-注4) — raising it lowers per-level disarm odds",
+                        "缴械的最高等级（R196 = 5）；缴械概率分母复用本键，改动会改变每级概率"));
+        stunChanceDivisor = config.getInt("stunChanceDivisor", "combat", stunChanceDivisor, 1, 100,
+                comment("R196 EntityPlayer.java:1250 roll face: stun triggers when level > random()*this (default 10 ⇒ P = level/10). Raise to soften odds",
+                        "击晕触发概率除数（R196 = 10；P=等级/除数）"));
+        stunDurationPerLevel = config.getInt("stunDurationPerLevel", "combat", stunDurationPerLevel, 0, 2000,
+                comment("R196 EntityPlayer.java:1251 duration = level × this (default 50 ⇒ 250 ticks at L5)",
+                        "击晕每级持续时间 tick（R196 = 50，满级 250）"));
+        stunAmplifierPerLevel = config.getInt("stunAmplifierPerLevel", "combat", stunAmplifierPerLevel, 0, 255,
+                comment("D-1 (条 250): R196 amplifier is 5×level, which in 1.12's slowness attribute (-15% per amplifier) leaves L1 at ×0.1 walk. The default here is 6 so L1 ALREADY lands ×0 — the same player-perceivable exit as R196's full-stop. Set 5 for the two-generation-faithful formula (文档须声明 L1 龟速)",
+                        "击晕每级减速级别（D-1 裁定默认 6：L1 即定身，出口值=R196；改 5 则按两代字面公式，1 级仅剩 10% 移速）"));
+        vampiricChanceDivisor = config.getInt("vampiricChanceDivisor", "combat", vampiricChanceDivisor, 1, 100,
+                comment("R196 EnchantmentHelper.java:372 gate: heal never occurs when random()*this > level (default 10 ⇒ P = level/10)",
+                        "吸血触发概率除数（R196 = 10；P=等级/除数）"));
+        vampiricTransferFactor = config.getFloat("vampiricTransferFactor", "combat", vampiricTransferFactor, 0.0F, 10.0F,
+                comment("R196 EnchantmentHelper.java:376 — transfer = (int)(damage × this × random()). Damage basis = the 1.12 melee f (includes cooldown/crit coefficients — B-5 declaration). Set 0.0 to switch the effect off",
+                        "吸血回复系数（R196 = 0.5；伤害基含冷却/暴击系数——判定对账见 B-5）。置 0 关闭"));
+        vampiricMinTransfer = config.getInt("vampiricMinTransfer", "combat", vampiricMinTransfer, 0, 100,
+                comment("R196 EnchantmentHelper.java:377-379 — transfer below this clamps to this (default 1)",
+                        "吸血最低回复点数（R196 = 1）"));
+        disarmLockTicks = config.getInt("disarmLockTicks", "combat", disarmLockTicks, 0, 6000,
+                comment("R196 EntityPlayer.java:1240 ticks_disarmed (40 native) — after a disarm the mob's pickup is locked this long (NBT persisted), otherwise it would instantly re-grab the dropped weapon",
+                        "缴械后怪物抬手锁时长 tick（R196 = 40；NBT 持窗）"));
+        meleeDebugLog = config.getBoolean("meleeDebugLog", "combat", false,
+                comment("[MeleeLog] rows of the melee1 batch: stun/vampiric/disarm success+fail lines carry roll and need on ONE line (B-4: no seeding — frequency windows). Silent when off",
+                        "[MeleeLog] 判行（melee1 批）：击晕/吸血/缴械成败行同打掷值与门槛（不可播种——频率判窗）。关闭则静默"));
+
         // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
         armorModelR196 = config.getBoolean("armorModelR196", "combat", true,
                 comment("R196 subtraction armor model (batch D): max(amount - effective_protection, 1.0F) on the 0-10 scale with flat enchant/potion weighting; false = vanilla 1.12 multiplicative model (armorModelR196=false is the W19 audit face)",
@@ -1160,7 +1233,8 @@ public final class ETIMConfig {
                 || Float.isNaN(weakStrikeHealthThreshold) || Float.isNaN(hungerDigStrDivisor)
                 || Float.isNaN(craftingSpeedPerLevel) || Float.isNaN(craftingBenchModifier)
                 || Float.isNaN(craftingCurveExponent) || Float.isNaN(craftingGenericDifficulty)
-                || Float.isNaN(speedPerLevel) || Float.isNaN(regenerationPerLevel)) {
+                || Float.isNaN(speedPerLevel) || Float.isNaN(regenerationPerLevel)
+                || Float.isNaN(vampiricTransferFactor)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }

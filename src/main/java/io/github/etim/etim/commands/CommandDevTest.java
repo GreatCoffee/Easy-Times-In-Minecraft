@@ -303,6 +303,16 @@ public class CommandDevTest extends CommandBase {
             playerIndex = 4;
         } else if (args.length > 3 && "endurance".equalsIgnoreCase(args[3])) {
             playerIndex = 4;
+        } else if (args.length > 3 && "stun".equalsIgnoreCase(args[3])) {
+            // melee1 (B2, 条 251 B-6): three tokens added for W-E2 staging.
+            enchantment = ETIMEnchantments.STUN;
+            playerIndex = 4;
+        } else if (args.length > 3 && "vampiric".equalsIgnoreCase(args[3])) {
+            enchantment = ETIMEnchantments.VAMPIRIC;
+            playerIndex = 4;
+        } else if (args.length > 3 && "disarming".equalsIgnoreCase(args[3])) {
+            enchantment = ETIMEnchantments.DISARMING;
+            playerIndex = 4;
         }
         EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
         ItemStack stack = player.getItemStackFromSlot(slot);

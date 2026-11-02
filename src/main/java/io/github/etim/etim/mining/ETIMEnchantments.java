@@ -25,6 +25,10 @@ public final class ETIMEnchantments {
     public static Enchantment POISON;
     public static Enchantment TRUE_FLIGHT;
     public static Enchantment QUICKNESS;
+    // batch melee1 (B2 三条, 条 249-251): R196 ids 80/84/91.
+    public static Enchantment STUN;
+    public static Enchantment VAMPIRIC;
+    public static Enchantment DISARMING;
 
     private ETIMEnchantments() {
     }
@@ -60,6 +64,18 @@ public final class ETIMEnchantments {
         QUICKNESS = new io.github.etim.etim.combat.EnchantmentQuickness();
         QUICKNESS.setRegistryName(new ResourceLocation(Tags.MOD_ID, "quickness"));
         ForgeRegistries.ENCHANTMENTS.register(QUICKNESS);
+        // Batch melee1 (B2 — 条 249-251): stun/vampiric/disarming, three
+        // levels keyed case-M windows, the shared ETIMMelee helper rides the
+        // two mixins MixinEntityPlayerMelee / MixinEntityMobMelee.
+        STUN = new io.github.etim.etim.combat.EnchantmentStun();
+        STUN.setRegistryName(new ResourceLocation(Tags.MOD_ID, "stun"));
+        ForgeRegistries.ENCHANTMENTS.register(STUN);
+        VAMPIRIC = new io.github.etim.etim.combat.EnchantmentVampiric();
+        VAMPIRIC.setRegistryName(new ResourceLocation(Tags.MOD_ID, "vampiric"));
+        ForgeRegistries.ENCHANTMENTS.register(VAMPIRIC);
+        DISARMING = new io.github.etim.etim.combat.EnchantmentDisarming();
+        DISARMING.setRegistryName(new ResourceLocation(Tags.MOD_ID, "disarming"));
+        ForgeRegistries.ENCHANTMENTS.register(DISARMING);
         // Case A poison potion (条 243/245) — R196 arithmetic on a self-owned
         // Potion (vanilla 1.12 poison is 25-tick + health-gated; ours is
         // 100>>amp + gate-less). Registered BEFORE cfg init (:87) like the
@@ -71,12 +87,15 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(ENDURANCE));
         ETIM.LOGGER.info("[EtimInit] enchant {} id={}", PIERCING.getRegistryName(),
                 Enchantment.getEnchantmentID(PIERCING));
-        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {}",
+        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {}",
                 SPEED.getRegistryName(),
                 Enchantment.getEnchantmentID(SPEED),
                 Enchantment.getEnchantmentID(REGENERATION),
                 Enchantment.getEnchantmentID(POISON),
                 Enchantment.getEnchantmentID(TRUE_FLIGHT),
-                Enchantment.getEnchantmentID(QUICKNESS));
+                Enchantment.getEnchantmentID(QUICKNESS),
+                Enchantment.getEnchantmentID(STUN),
+                Enchantment.getEnchantmentID(VAMPIRIC),
+                Enchantment.getEnchantmentID(DISARMING));
     }
 }

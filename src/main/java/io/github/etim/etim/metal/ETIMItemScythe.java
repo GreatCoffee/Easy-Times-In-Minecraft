@@ -67,6 +67,12 @@ public class ETIMItemScythe extends ItemTool implements ETIMMetalGear {
 		return metal.efficiency; // ×1.0 correction — the ItemTool default band
 	}
 
+	/** melee1 (B2, 条 251 B-1): the R196 material for the weapon-carrier gates. */
+	@Override
+	public ETIMMetals etimMetal() {
+		return metal;
+	}
+
 	@Override
 	public final float etimAttackDamage() {
 		return attackDamage;

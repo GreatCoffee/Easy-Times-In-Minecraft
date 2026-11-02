@@ -14,6 +14,18 @@ package io.github.etim.etim.metal;
  */
 public interface ETIMMetalGear {
 
+    /**
+     * melee1 (B2, 条 251 B-1): the metal accessor — the R196 weapon-carrier
+     * gates (EnchantmentVampiric:15-20 silver/mithril exclusion) read the
+     * ETIM metal from HERE, not from the vanilla tool material (ETIM tools
+     * all ride {@code IRON}). Default {@code null}: non-weapon gear never
+     * feeds a material gate; the weapon classes override with their
+     * constructor metal.
+     */
+    default ETIMMetals etimMetal() {
+        return null;
+    }
+
     /** R196 tool harvest level (补50 直读) — the mine-gate grade. */
     int etimGrade();
 
