@@ -181,4 +181,30 @@ public abstract class MixinItem {
                 player.getItemInUseCount());
         cir.setReturnValue(new ActionResult<ItemStack>(EnumActionResult.SUCCESS, stack));
     }
+
+    /**
+     * farm1 (B4, audit20 条 259 B-1 定裁 A): the VANILLA hoe harvest roll.
+     * 1.12 vanilla {@code ItemHoe} declares NO {@code onBlockDestroyed}, so
+     * vanilla hoes (wooden..golden) dispatch the base fake body here and
+     * NOWHERE else reaches it: the ETIM metal hoes override and return
+     * without the base body, and the mattock/scythe ride ItemTool's own
+     * override (the MixinItemTool chain) — so this TAIL hook is the vanilla
+     * arm ONLY, no double roll. The crop/mature/F7-matrix/enchant gates run
+     * inside ETIMFarm.onCropBroken (server-gated), R196 ItemHoe.onBlockDestroyed
+     * :99-113 equivalence for the whole carrier family.
+     */
+    @Inject(
+            method = "onBlockDestroyed(Lnet/minecraft/item/ItemStack;Lnet/minecraft/world/World;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/EntityLivingBase;)Z",
+            at = @At("TAIL"),
+            remap = true
+    )
+    private void etim$vanillaHoeHarvest(ItemStack stack, World world,
+                                        net.minecraft.block.state.IBlockState state,
+                                        net.minecraft.util.math.BlockPos pos,
+                                        EntityLivingBase entityLiving,
+                                        CallbackInfoReturnable<Boolean> cir) {
+        if ((Object) this instanceof net.minecraft.item.ItemHoe) {
+            io.github.etim.etim.farm.ETIMFarm.onCropBroken(entityLiving, stack, world, pos, state);
+        }
+    }
 }

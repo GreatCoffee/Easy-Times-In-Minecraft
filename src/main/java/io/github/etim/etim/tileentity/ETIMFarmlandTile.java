@@ -42,4 +42,20 @@ public class ETIMFarmlandTile extends TileEntity {
         compound.setBoolean("EtimFertilized", fertilized);
         return compound;
     }
+
+    /**
+     * A-1 (farm1 W-F, 会话七条 259): Forge's default kills non-vanilla TEs
+     * on ANY state change — farmland moisture dries/waters in ticks, so the
+     * fertilized bit died within seconds. R196 {@code setWetness} preserves
+     * bit 8 across moisture writes (BlockFarmland.java:180-182), so the TE
+     * survives SAME-block state changes and still dies with the block
+     * (turnToDirt/破块) — the identical "fertilized lives with the block"
+     * semantics.
+     */
+    @Override
+    public boolean shouldRefresh(net.minecraft.world.World world, net.minecraft.util.math.BlockPos pos,
+                                 net.minecraft.block.state.IBlockState oldState,
+                                 net.minecraft.block.state.IBlockState newState) {
+        return oldState.getBlock() != newState.getBlock();
+    }
 }
