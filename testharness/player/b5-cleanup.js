@@ -1,0 +1,17 @@
+'use strict';
+const fs = require('fs');
+const crypto = require('crypto');
+const ROOT = 'D:/OpenCodeWorkspace/Easy Times In Minecraft/git-workspace/etim';
+const cfgPath = ROOT + '/run/config/etim.cfg';
+const propsPath = ROOT + '/run/server.properties';
+let t = fs.readFileSync(cfgPath, 'utf8');
+t = t.replace(/^(    [A-Z]:butcheringDebugLog=).*$/m, (m, p1) => p1 + 'false');
+t = t.replace(/^(    [A-Z]:butcheringMaxLevel=).*$/m, (m, p1) => p1 + '3');
+fs.writeFileSync(cfgPath, t, 'utf8');
+const b = fs.readFileSync(cfgPath);
+console.log('cfg', b.length, crypto.createHash('sha256').update(b).digest('hex').toUpperCase());
+let p = fs.readFileSync(propsPath, 'utf8');
+p = p.replace(/^level-name=.*$/m, 'level-name=world');
+fs.writeFileSync(propsPath, p, 'utf8');
+const pb = fs.readFileSync(propsPath);
+console.log('props', pb.length, crypto.createHash('sha256').update(pb).digest('hex').toUpperCase());

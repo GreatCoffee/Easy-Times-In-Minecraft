@@ -1,0 +1,13 @@
+'use strict';
+const fs = require('fs');
+const c = require('crypto');
+const t = fs.readFileSync('testharness/reports/butchering-WB-verdict.md', 'utf8');
+const runs = t.match(/[0-9A-Fa-f]{64}/g) || [];
+console.log('hexruns', runs.length, runs.map((r) => r.slice(0, 8)).join(','));
+const raw = c.createHash('sha256').update(Buffer.from(t, 'utf8')).digest('hex').toUpperCase();
+const z = t.replace(/[0-9A-Fa-f]{64}/g, '0'.repeat(64));
+const jia = c.createHash('sha256').update(Buffer.from(z, 'utf8')).digest('hex').toUpperCase();
+console.log('raw ', raw);
+console.log('jia ', jia);
+const lines = t.split('\n');
+for (const l of lines) if (l.includes('SHA-256')) console.log('STATED', l.slice(0, 40), l.slice(-66));
