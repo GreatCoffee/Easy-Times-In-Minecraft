@@ -320,6 +320,10 @@ public class CommandDevTest extends CommandBase {
         } else if (args.length > 3 && "harvesting".equalsIgnoreCase(args[3])) {
             enchantment = ETIMEnchantments.HARVESTING;
             playerIndex = 4;
+        } else if (args.length > 3 && "butchering".equalsIgnoreCase(args[3])) {
+            // B5 (条 265/266): the butchering token for W-B staging.
+            enchantment = ETIMEnchantments.BUTCHERING;
+            playerIndex = 4;
         }
         EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
         ItemStack stack = player.getItemStackFromSlot(slot);

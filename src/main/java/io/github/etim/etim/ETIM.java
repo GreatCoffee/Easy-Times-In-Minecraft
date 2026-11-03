@@ -88,6 +88,8 @@ public final class ETIM {
         // the three zero-mixin event faces (consume/trample/harvest drops).
         io.github.etim.etim.farm.ETIMFarm.registerTile();
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.farm.ETIMFarmingEvents.class);
+        // Batch B5 (butchering — 条 262-265): the zero-mixin LivingDropsEvent face.
+        io.github.etim.etim.combat.ETIMButcheringEvents.register();
         ETIMConfig.init(event);
         // Batch B arrow identity (D-19/D-20/D-26): the etim:metal_arrow entity
         // rides AFTER ETIMConfig.init so the [ArrowLog] gate is live at

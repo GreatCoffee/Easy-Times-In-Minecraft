@@ -32,6 +32,8 @@ public final class ETIMEnchantments {
     // batch farm1 (B4 农作两条, 条 254-257): R196 ids 82/93.
     public static Enchantment FERTILITY;
     public static Enchantment HARVESTING;
+    // batch B5 butchering (条 262-265): R196 id 94 — the 14th registered enchant.
+    public static Enchantment BUTCHERING;
 
     private ETIMEnchantments() {
     }
@@ -88,6 +90,11 @@ public final class ETIMEnchantments {
         HARVESTING = new io.github.etim.etim.farm.EnchantmentHarvesting();
         HARVESTING.setRegistryName(new ResourceLocation(Tags.MOD_ID, "harvesting"));
         ForgeRegistries.ENCHANTMENTS.register(HARVESTING);
+        // Batch B5 (butchering — 条 262-265): R196 id 94, 3 levels, integer-level
+        // read (no fraction helper); carriers = ETIMItemKnifeFlint + ETIMItemDagger.
+        BUTCHERING = new io.github.etim.etim.combat.EnchantmentButchering();
+        BUTCHERING.setRegistryName(new ResourceLocation(Tags.MOD_ID, "etim_butchering"));
+        ForgeRegistries.ENCHANTMENTS.register(BUTCHERING);
         // Case A poison potion (条 243/245) — R196 arithmetic on a self-owned
         // Potion (vanilla 1.12 poison is 25-tick + health-gated; ours is
         // 100>>amp + gate-less). Registered BEFORE cfg init (:87) like the
@@ -99,7 +106,7 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(ENDURANCE));
         ETIM.LOGGER.info("[EtimInit] enchant {} id={}", PIERCING.getRegistryName(),
                 Enchantment.getEnchantmentID(PIERCING));
-        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {}",
+        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {} {}",
                 SPEED.getRegistryName(),
                 Enchantment.getEnchantmentID(SPEED),
                 Enchantment.getEnchantmentID(REGENERATION),
@@ -110,6 +117,7 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(VAMPIRIC),
                 Enchantment.getEnchantmentID(DISARMING),
                 Enchantment.getEnchantmentID(FERTILITY),
-                Enchantment.getEnchantmentID(HARVESTING));
+                Enchantment.getEnchantmentID(HARVESTING),
+                Enchantment.getEnchantmentID(BUTCHERING));
     }
 }

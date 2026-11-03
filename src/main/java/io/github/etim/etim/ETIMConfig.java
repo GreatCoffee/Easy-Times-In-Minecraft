@@ -426,6 +426,15 @@ public final class ETIMConfig {
     /** D-6 (条 250): the [MeleeLog] judgment channel gate — created before ship (纪律 9). */
     public static boolean meleeDebugLog = false;
 
+    // Batch B5 butchering (条 262-265 / 条 264 D-6 — 3 keys, category "combat").
+    /** R196 Enchantment.java:44 difficulty (10 native). 案 M 窗口单键派生。 */
+    public static int butcheringDifficulty = 10;
+    /** R196 getNumLevels()=3 (EnchantmentButchering.java:9-11) — a CAP only,
+     *  never a probability denominator (F2: the level is read as an INTEGER). */
+    public static int butcheringMaxLevel = 3;
+    /** D-6 (条 264): the [ButchLog] judgment channel gate — created before ship (纪律 9). */
+    public static boolean butcheringDebugLog = false;
+
     // Batch farm1 (B4 农作两条, 条 254-257 / 条 256 终裁 — 8 keys; category "farm").
     /** R196 Enchantment.java:32 difficulty. 沃肥（R196 难度 10）。 */
     public static int fertilityDifficulty = 10;
@@ -1047,6 +1056,19 @@ public final class ETIMConfig {
         meleeDebugLog = config.getBoolean("meleeDebugLog", "combat", false,
                 comment("[MeleeLog] rows of the melee1 batch: stun/vampiric/disarm success+fail lines carry roll and need on ONE line (B-4: no seeding — frequency windows). Silent when off",
                         "[MeleeLog] 判行（melee1 批）：击晕/吸血/缴械成败行同打掷值与门槛（不可播种——频率判窗）。关闭则静默"));
+
+        // batch B5 butchering (B5 屠宰附魔 — 条 262-265/条 264 D-6: 3 keys, category combat;
+        // maxLevel is a CAP only — the butchering face reads an INTEGER level, not a fraction;
+        // NO float keys so the NaN chain is untouched).
+        butcheringDifficulty = config.getInt("butcheringDifficulty", "combat", butcheringDifficulty, 5, 40,
+                comment("R196 Enchantment.java:44 difficulty for butchering (10 native). The case-M table window derives from this single key (L1=1..10, L2=11..20, L3=21..30 at diff 10)",
+                        "屠宰的 R196 难度（源值 10）。案 M 表窗由单键派生（难度 10 时一段=1..10、二段=11..20、三段=21..30）"));
+        butcheringMaxLevel = config.getInt("butcheringMaxLevel", "combat", butcheringMaxLevel, 1, 10,
+                comment("R196 EnchantmentButchering.getNumLevels()=3 — a LEVEL CAP only, NOT a probability denominator (butchering rolls use the raw integer level). At the current 1.12 table ceiling the slot-2 budget reaches L3 already (same window as disarming, diff 10)",
+                        "屠宰的最高等级（R196 = 3）——只做上限，不是概率分母（屠宰判定直接用整数等级掷骰）"));
+        butcheringDebugLog = config.getBoolean("butcheringDebugLog", "combat", false,
+                comment("[ButchLog] rows of the B5 batch: gate/kill per family line (cow/pig/sheep/horse/spider sets), roll+need on ONE line for the OR-gate face. Silent when off",
+                        "[ButchLog] 判行（B5 屠宰批）：各族死亡判行（牛/猪/羊/马/蜘蛛族）——掷值与门槛单行同打。关闭则静默"));
 
         // batch farm1 (B4 农作两条 — 条 256 D 位裁定／条 257 C-注1/2: 8 keys,
         // category "farm" per 终审; maxLevel doubles as the fraction denominator
