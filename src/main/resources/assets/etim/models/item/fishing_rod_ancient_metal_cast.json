@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "etim:items/rod_ancient_metal_cast"
+  }
+}

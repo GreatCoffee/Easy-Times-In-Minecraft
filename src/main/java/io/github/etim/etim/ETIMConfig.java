@@ -435,6 +435,49 @@ public final class ETIMConfig {
     /** D-6 (条 264): the [ButchLog] judgment channel gate — created before ship (纪律 9). */
     public static boolean butcheringDebugLog = false;
 
+    // Batch five fishing (条 268-271 / 条 270 D 位终裁 — 20 keys, category "fishing";
+    // D-10 甲 全量键；D-11 两新键随终裁落).
+    /** B0 钓鱼系统总开关（关＝vanilla 1.12 钓鱼原样）。 */
+    public static boolean fishingSystem = true;
+    /** R196 Enchantment.java:31 difficulty（10 native）。案 M 窗口单键派生。 */
+    public static int fishingFortuneDifficulty = 10;
+    /** 默认 5 级（R196 类不覆写 getNumLevels）——纯上限非分母（F2 整数级联）。 */
+    public static int fishingFortuneMaxLevel = 5;
+    /** R196 Enchantment.java:29 difficulty（10 native）。 */
+    public static int arrowRecoveryDifficulty = 10;
+    /** 默认 5 级——纯上限非分母（r(divisor) < L 整数级读）。 */
+    public static int arrowRecoveryMaxLevel = 5;
+    /** F11 件袋系统总开关（关＝1.12 原样零回收）。 */
+    public static boolean arrowRecoverySystem = true;
+    /** R196 :155 咬率 clamp 下界（600 native）。 */
+    public static int fishingBiteChanceMin = 600;
+    /** R196 :155 咬率 clamp 上界（2400 native）。 */
+    public static int fishingBiteChanceMax = 2400;
+    /** R196 :167 每级咬率乘数（float32 级联；饵钓共用此乘数）。 */
+    public static float fishingFortuneBiteFactor = 0.9F;
+    /** R196 :171 蚯蚓咬率乘数（级联段序之后）。 */
+    public static float fishingWormBiteFactor = 0.5F;
+    /** R196 :334 咬窗下界（30）。 */
+    public static int fishingBiteWindowMin = 30;
+    /** R196 :335 咬窗上界（59）。 */
+    public static int fishingBiteWindowMax = 59;
+    /** D-8 (条 270): the [FishLog] judgment channel gate. */
+    public static boolean fishingDebugLog = false;
+    /** R196 :415 大鱼前置骰面（0.2 = 小鱼基率 0.8 的补数）。 */
+    public static float fishingLargeFishChance = 0.2F;
+    /** R196 :426-428 洁净扫描半径（16 = 33×33 面宽之半）。 */
+    public static int fishingCleanScanRadius = 16;
+    /** R196 BlockGrass:191 蚯蚓分母基（16）。 */
+    public static int wormGrassChanceBase = 16;
+    /** R196 BlockGrass:184 蚯蚓雨天加成（12；封顶 14 面不设键）。 */
+    public static int wormGrassRainBonus = 12;
+    /** R196 ELB:1375 箭回收联合掷骰除数（5 → r(5)<L）。 */
+    public static int arrowRecoveryLevelDivisor = 5;
+    /** D-11（条 270 用户明文）：原版饵钓咬率面生效开关（默认开；关＝参与级联面归零）。 */
+    public static boolean vanillaLureActive = true;
+    /** D-11 丙-②b（条 270 用户明文）：海之眷顾每级额外 XP（0 = 等效无效果）。 */
+    public static int luckOfTheSeaXpPerLevel = 1;
+
     // Batch farm1 (B4 农作两条, 条 254-257 / 条 256 终裁 — 8 keys; category "farm").
     /** R196 Enchantment.java:32 difficulty. 沃肥（R196 难度 10）。 */
     public static int fertilityDifficulty = 10;
@@ -1070,6 +1113,71 @@ public final class ETIMConfig {
                 comment("[ButchLog] rows of the B5 batch: gate/kill per family line (cow/pig/sheep/horse/spider sets), roll+need on ONE line for the OR-gate face. Silent when off",
                         "[ButchLog] 判行（B5 屠宰批）：各族死亡判行（牛/猪/羊/马/蜘蛛族）——掷值与门槛单行同打。关闭则静默"));
 
+        // Batch five fishing (条 268-271 / 条 270 D 位终裁: 20 keys, category
+        // "fishing"; D-10 甲 全量键 + D-11 两新键. maxLevel keys are CAPS only —
+        // the both enchant faces read INTEGER levels, never denominators; the
+        // three float keys enter the NaN chain.)
+        fishingSystem = config.getBoolean("fishingSystem", "fishing", true,
+                comment("The R196 fishing-system master switch (B0). False = vanilla 1.12 fishing untouched",
+                        "R196 钓鱼系统总开关（B0）。false = 原版 1.12 钓鱼照旧"));
+        fishingFortuneDifficulty = config.getInt("fishingFortuneDifficulty", "fishing", fishingFortuneDifficulty, 5, 40,
+                comment("R196 Enchantment.java:31 difficulty for fishing_fortune (10 native). The case-M table window derives from this single key",
+                        "钓鱼（fishing_fortune）的 R196 难度（源值 10）。案 M 表窗由单键派生"));
+        fishingFortuneMaxLevel = config.getInt("fishingFortuneMaxLevel", "fishing", fishingFortuneMaxLevel, 1, 10,
+                comment("R196 default five levels (Enchantment.java:67-69 — no class override). A LEVEL CAP only, never a denominator",
+                        "最高等级（R196 默认 5——源码不覆写）。只做上限，不是概率分母"));
+        arrowRecoveryDifficulty = config.getInt("arrowRecoveryDifficulty", "fishing", arrowRecoveryDifficulty, 5, 40,
+                comment("R196 Enchantment.java:29 difficulty for arrow_recovery (10 native)",
+                        "箭回收（arrow_recovery）的 R196 难度（源值 10）"));
+        arrowRecoveryMaxLevel = config.getInt("arrowRecoveryMaxLevel", "fishing", arrowRecoveryMaxLevel, 1, 10,
+                comment("R196 default five levels — a CAP only (the joint roll reads an INTEGER level)",
+                        "最高等级（R196 默认 5）——只做上限（联合掷骰读整数级）"));
+        arrowRecoverySystem = config.getBoolean("arrowRecoverySystem", "fishing", true,
+                comment("The arrow-recovery (contained-arrow, corpse-drop) master switch. False = vanilla: hit arrows vanish without recovery",
+                        "箭回收系统总开关（命中记账、死亡随尸落箭）。false = 原版：命中即消失、零回收"));
+        fishingBiteChanceMin = config.getInt("fishingBiteChanceMin", "fishing", fishingBiteChanceMin, 1, 2400,
+                comment("R196 EntityFishHook:155 — the bite chance clamp LOWER bound (600 native = 1-in-600 at the peaks)",
+                        "咬率概率分母下界（源值 600——峰点约 30 秒一口）"));
+        fishingBiteChanceMax = config.getInt("fishingBiteChanceMax", "fishing", fishingBiteChanceMax, 600, 24000,
+                comment("R196 EntityFishHook:155 — the bite chance clamp UPPER bound (2400 native = the worst wait)",
+                        "咬率概率分母上界（源值 2400——最坏等待）"));
+        fishingFortuneBiteFactor = config.getFloat("fishingFortuneBiteFactor", "fishing", fishingFortuneBiteFactor, 0.5F, 1.0F,
+                comment("R196 :167 the per-level bite multiplier (0.9 native). The vanilla lure stack shares this factor (D-11 路线)",
+                        "每级咬率乘数（源值 0.9）。原版饵钓级联共用此乘数（D-11 路线）"));
+        fishingWormBiteFactor = config.getFloat("fishingWormBiteFactor", "fishing", fishingWormBiteFactor, 0.1F, 1.0F,
+                comment("R196 :171 the hotbar-bait multiplier (0.5 native) — applied AFTER the fortune cascade (T-1 段序)",
+                        "鱼饵乘数（源值 0.5）——在附魔级联之后生效（段序亲钉）"));
+        fishingBiteWindowMin = config.getInt("fishingBiteWindowMin", "fishing", fishingBiteWindowMin, 1, 600,
+                comment("R196 :334-335 the catchable window LOWER bound (30 native ticks)",
+                        "咬窗时长下界（源值 30 tick）"));
+        fishingBiteWindowMax = config.getInt("fishingBiteWindowMax", "fishing", fishingBiteWindowMax, 1, 600,
+                comment("R196 :334-335 the catchable window UPPER bound (59 native ticks)",
+                        "咬窗时长上界（源值 59 tick）"));
+        fishingDebugLog = config.getBoolean("fishingDebugLog", "fishing", false,
+                comment("[FishLog] rows of the batch: gate/window/catch/type/worm lines, values on ONE line. Silent when off",
+                        "[FishLog] 判行（五期钓鱼批）：咬门/咬窗/收杆/鱼种/蚯蚓行——数值单行同打。关闭则静默"));
+        fishingLargeFishChance = config.getFloat("fishingLargeFishChance", "fishing", fishingLargeFishChance, 0.0F, 1.0F,
+                comment("R196 :415 the large-fish pre-roll face (0.2 native = 80% small-fish base). Ocean+clean-scan still gates salmon",
+                        "大鱼前置概率（源值 0.2＝小鱼基率 0.8 的补数）。大鱼仍需洋区＋洁净扫描"));
+        fishingCleanScanRadius = config.getInt("fishingCleanScanRadius", "fishing", fishingCleanScanRadius, 0, 32,
+                comment("R196 :426-428 the clean-water scan radius (16 native = the 33×33 face). 0 = ocean-only shortcut face",
+                        "洁净扫描半径（源值 16＝33×33 面宽之半）。0 = 只看洋区"));
+        wormGrassChanceBase = config.getInt("wormGrassChanceBase", "fishing", wormGrassChanceBase, 1, 64,
+                comment("R196 BlockGrass:191 the worm denominator base (16 native: 1/(16-f))",
+                        "挖草掉蚯蚓的基数（源值 16：1/(16-f)）"));
+        wormGrassRainBonus = config.getInt("wormGrassRainBonus", "fishing", wormGrassRainBonus, 0, 15,
+                comment("R196 BlockGrass:184 the rain fortune bonus (12 native; the fortune-14 cap face is fixed)",
+                        "雨天蚯蚓加成（源值 12；封顶 14 面为固定）"));
+        arrowRecoveryLevelDivisor = config.getInt("arrowRecoveryLevelDivisor", "fishing", arrowRecoveryLevelDivisor, 1, 10,
+                comment("R196 ELB:1375 — the guaranteed-band roll divisor (5 native: r(5) < L)",
+                        "箭回收必定带掷骰除数（源值 5：r(5)<L）"));
+        vanillaLureActive = config.getBoolean("vanillaLureActive", "fishing", true,
+                comment("D-11 route (条 270): the VANILLA lure enchant feeds the SAME cascade as the fishing_fortune levels. False = lure stays inert",
+                        "原版饵钓（lure）级联生效开关（默认开；关＝饵钓不起作用）"));
+        luckOfTheSeaXpPerLevel = config.getInt("luckOfTheSeaXpPerLevel", "fishing", luckOfTheSeaXpPerLevel, 0, 5,
+                comment("D-11 丙-②b (条 270): the luck_of_the_sea bonus — extra catch XP per level (0 = inert). The loot face stays untouched",
+                        "海之眷顾加成：每级额外 XP（0 = 不生效）。渔获面不动"));
+
         // batch farm1 (B4 农作两条 — 条 256 D 位裁定／条 257 C-注1/2: 8 keys,
         // category "farm" per 终审; maxLevel doubles as the fraction denominator
         // (disarming reuse precedent); no fertilizer kill-switch (factor 1.0 +
@@ -1303,7 +1411,9 @@ public final class ETIMConfig {
                 || Float.isNaN(craftingCurveExponent) || Float.isNaN(craftingGenericDifficulty)
                 || Float.isNaN(speedPerLevel) || Float.isNaN(regenerationPerLevel)
                 || Float.isNaN(vampiricTransferFactor)
-                || Float.isNaN(fertilizedGrowthFactor) || Float.isNaN(harvestingYieldFactor)) {
+                || Float.isNaN(fertilizedGrowthFactor) || Float.isNaN(harvestingYieldFactor)
+                || Float.isNaN(fishingFortuneBiteFactor) || Float.isNaN(fishingWormBiteFactor)
+                || Float.isNaN(fishingLargeFishChance)) {
             throw new IllegalStateException("[ETIM] Invalid config: NaN in a numeric entry (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
         }
@@ -1311,6 +1421,12 @@ public final class ETIMConfig {
             throw new IllegalStateException("[ETIM] Invalid config: reach.blockReachBase (" + blockReachBase
                     + ") exceeds reach.creativeReach (" + creativeReach + ") — creative reach may not be weaker (file "
                     + config.getConfigFile().getAbsolutePath() + ")");
+        }
+        if (fishingBiteChanceMin > fishingBiteChanceMax || fishingBiteWindowMin > fishingBiteWindowMax) {
+            throw new IllegalStateException("[ETIM] Invalid config: fishing bounds must ascend (biteChanceMin "
+                    + fishingBiteChanceMin + " <= biteChanceMax " + fishingBiteChanceMax
+                    + "; biteWindowMin " + fishingBiteWindowMin + " <= biteWindowMax " + fishingBiteWindowMax
+                    + ") (file " + config.getConfigFile().getAbsolutePath() + ")");
         }
     }
 

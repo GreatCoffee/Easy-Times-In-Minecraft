@@ -72,10 +72,13 @@ public final class ETIM {
         io.github.etim.etim.mob.ETIMMobEntities.register();
         // Batch B1 metal content: items first (XP rows), blocks + recipes second.
         io.github.etim.etim.metal.ETIMItems.register();
-        io.github.etim.etim.metal.ETIMBlocks.register();
-        // Batch B2 metal gear: 50 tools + 40 armor + 5 chains, recipes + [EquipLog] dump.
+        io.github.etim.etim.metal.ETIMBlocks.register();        // Batch B2 metal gear: 50 tools + 40 armor + 5 chains, recipes + [EquipLog] dump.
         io.github.etim.etim.metal.ETIMGear.register();
         io.github.etim.etim.furnace.FurnaceHeat.addJudgedRecipes();
+        // Batch five fishing (条 268-271): the nine rods + worm pair +
+        // recipes (needs the metal nuggets above; the two event faces register
+        // with the farm/butchering trio below).
+        io.github.etim.etim.fishing.ETIMFishingItems.register();
         // Batch B1: ETIM's first GuiHandler (批文项2) + the dungeon-chest loot hook (B-2(a)).
         net.minecraftforge.fml.common.network.NetworkRegistry.INSTANCE.registerGuiHandler(
                 ETIM.instance(), new io.github.etim.etim.fml.ETIMGuiHandler());
@@ -90,6 +93,10 @@ public final class ETIM {
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.farm.ETIMFarmingEvents.class);
         // Batch B5 (butchering — 条 262-265): the zero-mixin LivingDropsEvent face.
         io.github.etim.etim.combat.ETIMButcheringEvents.register();
+        // Batch five fishing (条 268-271): the ItemFishedEvent / RightClickItem /
+        // HarvestDropsEvent trio + the arrow-recovery pair (zero extra mixin).
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.fishing.ETIMFishingEvents.class);
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.fishing.ETIMArrowRecovery.class);
         ETIMConfig.init(event);
         // Batch B arrow identity (D-19/D-20/D-26): the etim:metal_arrow entity
         // rides AFTER ETIMConfig.init so the [ArrowLog] gate is live at

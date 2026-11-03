@@ -382,6 +382,22 @@ public final class NutritionSystem {
                 new FoodValue(satiation, nutrition, sugarContent, protein, fats, phyto, true));
     }
 
+    /**
+     * Batch five (fishing, 条 268-271): the ETIM-item overload — the worm
+     * pair rides the same registry value semantics as the vanilla rows
+     * (R196 ItemMeat satiation/nutrition/protein/fats columns, always
+     * eatable). Call at item-registration time.
+     */
+    public static void addEtimFood(Item item, int satiation, int nutrition, int sugarContent,
+                                   boolean protein, boolean fats, boolean phyto) {
+        ResourceLocation name = item.getRegistryName();
+        if (name == null) {
+            throw new IllegalStateException("[ETIM] NutritionSystem.addEtimFood on unregistered item");
+        }
+        REGISTERED_FOODS.put(name.toString() + "@0",
+                new FoodValue(satiation, nutrition, sugarContent, protein, fats, phyto, true));
+    }
+
     /** R196 ItemSeedFood-style entry: values in the domain, eating path closed (ingestion audit §1.2). */
     private static void addPlantOnly(String item, int satiation, int nutrition, int sugarContent, boolean protein, boolean fats, boolean phyto) {
         REGISTERED_FOODS.put(new ResourceLocation("minecraft", item).toString() + "@0",

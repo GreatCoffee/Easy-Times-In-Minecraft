@@ -34,6 +34,10 @@ public final class ETIMEnchantments {
     public static Enchantment HARVESTING;
     // batch B5 butchering (条 262-265): R196 id 94 — the 14th registered enchant.
     public static Enchantment BUTCHERING;
+    // batch five fishing (条 268-271): R196 ids 81/51 — the 15th/16th enchants
+    // (both five-level defaults; carriers fishing-rod / bow family faces).
+    public static Enchantment FISHING_FORTUNE;
+    public static Enchantment ARROW_RECOVERY;
 
     private ETIMEnchantments() {
     }
@@ -95,6 +99,16 @@ public final class ETIMEnchantments {
         BUTCHERING = new io.github.etim.etim.combat.EnchantmentButchering();
         BUTCHERING.setRegistryName(new ResourceLocation(Tags.MOD_ID, "etim_butchering"));
         ForgeRegistries.ENCHANTMENTS.register(BUTCHERING);
+        // Batch five (fishing — 条 268-271): R196 ids 81/51, both five levels
+        // by default (no getNumLevels override); carriers = ItemFishingRod /
+        // ItemBow family faces. fishing_fortune = bite-cascade multiplier;
+        // arrow_recovery = the contained-arrow guaranteed band.
+        FISHING_FORTUNE = new io.github.etim.etim.fishing.EnchantmentFishingFortune();
+        FISHING_FORTUNE.setRegistryName(new ResourceLocation(Tags.MOD_ID, "fishing_fortune"));
+        ForgeRegistries.ENCHANTMENTS.register(FISHING_FORTUNE);
+        ARROW_RECOVERY = new io.github.etim.etim.fishing.EnchantmentArrowRecovery();
+        ARROW_RECOVERY.setRegistryName(new ResourceLocation(Tags.MOD_ID, "arrow_recovery"));
+        ForgeRegistries.ENCHANTMENTS.register(ARROW_RECOVERY);
         // Case A poison potion (条 243/245) — R196 arithmetic on a self-owned
         // Potion (vanilla 1.12 poison is 25-tick + health-gated; ours is
         // 100>>amp + gate-less). Registered BEFORE cfg init (:87) like the
@@ -106,7 +120,7 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(ENDURANCE));
         ETIM.LOGGER.info("[EtimInit] enchant {} id={}", PIERCING.getRegistryName(),
                 Enchantment.getEnchantmentID(PIERCING));
-        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {} {}",
+        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {} {} {}",
                 SPEED.getRegistryName(),
                 Enchantment.getEnchantmentID(SPEED),
                 Enchantment.getEnchantmentID(REGENERATION),
@@ -118,6 +132,8 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(DISARMING),
                 Enchantment.getEnchantmentID(FERTILITY),
                 Enchantment.getEnchantmentID(HARVESTING),
-                Enchantment.getEnchantmentID(BUTCHERING));
+                Enchantment.getEnchantmentID(BUTCHERING),
+                Enchantment.getEnchantmentID(FISHING_FORTUNE),
+                Enchantment.getEnchantmentID(ARROW_RECOVERY));
     }
 }

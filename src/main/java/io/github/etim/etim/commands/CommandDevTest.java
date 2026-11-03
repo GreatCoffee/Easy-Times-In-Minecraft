@@ -33,6 +33,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketSetExperience;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.FoodStats;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Style;
@@ -159,6 +160,18 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "anvilwear":
                 executeAnvilWear(server, sender, args);
+                break;
+            case "fishgate":
+                executeFishGate(server, sender, args);
+                break;
+            case "fishretract":
+                executeFishRetract(server, sender, args);
+                break;
+            case "fishprobe":
+                executeFishProbe(server, sender, args);
+                break;
+            case "arrowprobe":
+                executeArrowProbe(server, sender, args);
                 break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
@@ -323,6 +336,14 @@ public class CommandDevTest extends CommandBase {
         } else if (args.length > 3 && "butchering".equalsIgnoreCase(args[3])) {
             // B5 (条 265/266): the butchering token for W-B staging.
             enchantment = ETIMEnchantments.BUTCHERING;
+            playerIndex = 4;
+        } else if (args.length > 3 && "fishingFortune".equalsIgnoreCase(args[3])) {
+            // Batch five (条 268-271): the fishing_fortune token for W-FF staging.
+            enchantment = ETIMEnchantments.FISHING_FORTUNE;
+            playerIndex = 4;
+        } else if (args.length > 3 && "arrowRecovery".equalsIgnoreCase(args[3])) {
+            // Batch five (条 268-271): the arrow_recovery token for W-FF staging.
+            enchantment = ETIMEnchantments.ARROW_RECOVERY;
             playerIndex = 4;
         }
         EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
@@ -753,5 +774,136 @@ public class CommandDevTest extends CommandBase {
                 Arrays.toString(params));
         player.sendMessage(new TextComponentTranslation(key, params)
                 .setStyle(new Style().setColor(TextFormatting.GREEN)));
+    }
+
+    // ------------------------------------------------- batch five (fishing 工装 tokens, 条 268-271 §9)
+
+    /**
+     * {@code /etest fishgate <wt> [L] [lure] [worm] [light] [n]} — the
+     * parameterized nine-segment chain (W-FF3 precise ci / W-FF4 smoke).
+     * wt = RAW 1.12 worldTime (the token never touches the world clock);
+     * the chain derives adj=(wt+6000)%24000 itself.
+     */
+    private static void executeFishGate(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null;
+        if (player == null) {
+            throw new PlayerNotFoundException("commands.state.no_player");
+        }
+        long wt = Long.parseLong(args[1], 10);
+        int fortune = args.length > 2 ? CommandBase.parseInt(args[2], 0, 10) : 0;
+        int lure = args.length > 3 ? CommandBase.parseInt(args[3], 0, 10) : 0;
+        boolean worm = args.length > 4 && parseBool(args[4]);
+        boolean light = args.length > 5 && parseBool(args[5]);
+        int n = args.length > 6 ? CommandBase.parseInt(args[6], 1, 2000000) : 1;
+        int adj = (int) ((wt + 6000L) % 24000L);
+        int dist = Math.min(Math.abs(adj - 5500), Math.abs(adj - 17500));
+        // blue moon = world state face off in the token (pure chain, no clock write)
+        int[] ci = io.github.etim.etim.fishing.ETIMFishing.cascadeChain(player.world, adj,
+                fortune, lure, worm, light, false);
+        io.github.etim.etim.fishing.ETIMFishing.row("gate token=1 wt=" + wt + " adj=" + adj + " dist=" + dist
+                + " ci0=" + ci[0] + " light=" + (light ? 1 : 0) + " ci2=" + ci[2]
+                + " L=" + fortune + " lure=" + lure + " ci3=" + ci[3]
+                + " worm=" + (worm ? 1 : 0) + " ci4=" + ci[4]);
+        java.util.Random rnd = player.getRNG();
+        int hits = 0;
+        for (int i = 0; i < n; i++) {
+            if (rnd.nextInt(ci[4]) == 0) {
+                hits++;
+            }
+        }
+        io.github.etim.etim.fishing.ETIMFishing.row("gate-summary n=" + n + " hits=" + hits + " ci=" + ci[4]);
+        respond(player, "commands.etest.devok");
+    }
+
+    /**
+     * {@code /etest fishretract} — force the vanilla retraction path for the
+     * sender's live hook (W-FF5-assist; the [FishLog] catch row comes from
+     * the real ItemFishedEvent chain).
+     */
+    private static void executeFishRetract(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null;
+        if (player == null) {
+            throw new PlayerNotFoundException("commands.state.no_player");
+        }
+        if (player.fishEntity == null) {
+            throw new CommandException("commands.etest.usage");
+        }
+        int result = player.fishEntity.handleHookRetraction();
+        ItemStack held = player.getHeldItemMainhand();
+        if (held.getItem() instanceof net.minecraft.item.ItemFishingRod) {
+            held.damageItem(result, player);
+        }
+        player.swingArm(EnumHand.MAIN_HAND);
+        ETIM.LOGGER.info("[EtimTest] fishretract player={} result={}", player.getName(), result);
+        respond(player, "commands.etest.devok");
+    }
+
+    /** {@code /etest fishprobe type <n>} — the fish-type face ran at the sender's position (W-FF6; the三洋站位面 rides the world). */
+    private static void executeFishProbe(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null;
+        if (player == null) {
+            throw new PlayerNotFoundException("commands.state.no_player");
+        }
+        if (args.length < 2 || !"type".equalsIgnoreCase(args[1])) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        int n = args.length > 2 ? CommandBase.parseInt(args[2], 1, 1000000) : 100;
+        java.util.Random rnd = player.getRNG();
+        net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(player.posX,
+                player.posY - 0.2D, player.posZ);
+        int cod = 0;
+        int salmon = 0;
+        for (int i = 0; i < n; i++) {
+            ItemStack fish = io.github.etim.etim.fishing.ETIMFishing.rollFishType(player.world, rnd, pos);
+            if (fish.getMetadata() == 1) {
+                salmon++;
+            } else {
+                cod++;
+            }
+        }
+        io.github.etim.etim.fishing.ETIMFishing.row("type n=" + n + " cod=" + cod + " salmon=" + salmon
+                + " pos=" + pos + " biome=" + player.world.getBiome(pos).getRegistryName());
+        respond(player, "commands.etest.devok");
+    }
+
+    /**
+     * {@code /etest arrowprobe recovery <mat> <L> <n>} — the joint roll face
+     * (W-FF8): the guaranteed band r(divisor) < L plus the material chance.
+     */
+    private static void executeArrowProbe(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null;
+        if (player == null) {
+            throw new PlayerNotFoundException("commands.state.no_player");
+        }
+        if (args.length < 4 || !"recovery".equalsIgnoreCase(args[1])) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String mat = args[2].toLowerCase(java.util.Locale.ROOT);
+        int level = CommandBase.parseInt(args[3], 0, 10);
+        int n = args.length > 4 ? CommandBase.parseInt(args[4], 1, 1000000) : 100;
+        float c = io.github.etim.etim.fishing.ETIMFishing.recoveryChanceByName(mat);
+        java.util.Random rnd = player.getRNG();
+        int divisor = ETIMConfig.arrowRecoveryLevelDivisor;
+        int keep = 0;
+        for (int i = 0; i < n; i++) {
+            boolean pass5 = rnd.nextInt(divisor) < level;
+            boolean passC = rnd.nextFloat() < c;
+            if (pass5 || passC) {
+                keep++;
+            }
+        }
+        io.github.etim.etim.mob.ETIMArrowLog.row("recovery token=1 mat=" + mat + " L=" + level
+                + " divisor=" + divisor + " c=" + String.format(java.util.Locale.ROOT, "%.2f", c)
+                + " n=" + n + " keep=" + keep);
+        respond(player, "commands.etest.devok");
+    }
+
+    /** Tolerant boolean face for the 工装 params (1/true/on → true). */
+    private static boolean parseBool(String token) {
+        return "1".equals(token) || "true".equalsIgnoreCase(token) || "on".equalsIgnoreCase(token)
+                || "yes".equalsIgnoreCase(token);
     }
 }
