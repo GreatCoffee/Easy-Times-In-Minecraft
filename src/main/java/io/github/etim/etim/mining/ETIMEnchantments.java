@@ -120,7 +120,7 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(ENDURANCE));
         ETIM.LOGGER.info("[EtimInit] enchant {} id={}", PIERCING.getRegistryName(),
                 Enchantment.getEnchantmentID(PIERCING));
-        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {} {} {}",
+        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {} {} {} {}",
                 SPEED.getRegistryName(),
                 Enchantment.getEnchantmentID(SPEED),
                 Enchantment.getEnchantmentID(REGENERATION),
