@@ -1,6 +1,7 @@
 package io.github.etim.etim.farm;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.IGrowable;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
@@ -34,8 +35,9 @@ import net.minecraft.world.World;
  *       staged metadata growth; the 1.12 bridge rolls the SAME 0.5 and lets
  *       IGrowable pay the giant directly).</li>
  *   <li>brown mushroom on mycelium + INDOORS → same 0.5 roll face.</li>
- *   <li>mycelium TOP with a brown mushroom above → 0.5 roll face
- *       (R196 {@code BlockMycelium.fertilize}).</li>
+ *   <li>mycelium TOP with a brown mushroom above → the giant grows
+ *       directly, NO roll (R196 {@code BlockMycelium.fertilize}; W-FM B-1
+ *       修·甲 — the 0.5 roll was a porting slip, audit20 条 284 勘).</li>
  * </ul>
  */
 public final class ETIMItemManure extends Item {
@@ -96,15 +98,15 @@ public final class ETIMItemManure extends Item {
             block = state.getBlock();
         }
 
-        // the mycelium TOP face (R196 :59-64 → BlockMycelium.fertilize: the brown
-        // mushroom above takes the 0.5 giant roll)
+        // the mycelium TOP face (W-FM B-1 修·甲 【2026-11-04】: R196
+        // BlockMycelium.fertilize (:139-147) has NO roll — brown above goes
+        // straight to fertilizeMushroom; the 1.12 IGrowable.grow keeps its
+        // own legality/indoor gate as the face-local gate)
         if (block == Blocks.MYCELIUM && facing == EnumFacing.UP) {
             if (world.getBlockState(pos.up()).getBlock() == Blocks.BROWN_MUSHROOM) {
-                if (world.rand.nextFloat() < 0.5F) {
-                    ((net.minecraft.block.IGrowable) Blocks.BROWN_MUSHROOM).grow(world, world.rand,
-                            pos.up(), world.getBlockState(pos.up()));
-                }
-                ETIMFarm.row("fertilize src=manure chain=mycelium");
+                ((IGrowable) Blocks.BROWN_MUSHROOM).grow(world, world.rand,
+                        pos.up(), world.getBlockState(pos.up()));
+                ETIMFarm.row("fertilize src=manure chain=mycelium roll=none");
                 stack.shrink(1);
                 return EnumActionResult.SUCCESS;
             }
