@@ -84,10 +84,13 @@ public final class ETIMFarm {
 
     /** preInit face: the fertilized-bit TE carrier registration (D-1, 条 256)
      *  — the farmland-moisture batch (条 283) rides the same seam to register
-     *  the manure item. */
+     *  the manure item; the mushroom stage carrier joins at the B-3 修 TE
+     *  (条 284 甲). */
     public static void registerTile() {
         GameRegistry.registerTileEntity(ETIMFarmlandTile.class,
                 new ResourceLocation("etim", "farmland_fertility"));
+        GameRegistry.registerTileEntity(ETIMMushroomGrowthTile.class,
+                new ResourceLocation("etim", "mushroom_growth"));
         // Farmland-moisture batch (条 283, D-6 甲): the manure item (施用面;
         // 获取面 EntityLivestock/TileEntityChest挂账另批).
         ETIMItemManure.register();
