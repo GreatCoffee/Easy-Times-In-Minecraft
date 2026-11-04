@@ -334,4 +334,264 @@ public final class ETIMFarm {
         }
         return false;
     }
+
+    // --------------------------------- 耕湿批 B-3/B-4 修（条 284）helpers
+
+    /** R196 World.isOutdoors (:5658-5875) ported verbatim — the same-layer
+     *  7×7 flood plus {@code getPrecipitationHeight <= y}. The W-FM7 判窗
+     *  probes proved the canSeeSky coarse bridge does NOT agree with it at
+     *  edge positions (roofed plaza: canSeeSky false while the flood still
+     *  reaches; sunny ground: canSeeSky true while the light band demands
+     *  shade), so the A-1 fix replaces the bridge with the one-hand.
+     *  {@code initial_call} = the R196 flag that lets the rooftop walk
+     *  upward before flooding. */
+    public static boolean isOutdoorsMITE(World world, int x, int y, int z, boolean initial_call) {
+        if (world.provider.isNether()) {
+            return false;
+        }
+
+        boolean[] check_block = new boolean[49];
+        if (initial_call && isPassableMITE(world, x, y + 1, z)) {
+            if (isOutdoorsMITE(world, x, y + 1, z, false)) {
+                return true;
+            }
+
+            if (isPassableMITE(world, x, y + 2, z) && isOutdoorsMITE(world, x, y + 2, z, false)) {
+                return true;
+            }
+        }
+
+        if (isPassableMITE(world, x, y, z) && precipHeightMITE(world, x, z) <= y) {
+            return true;
+        }
+
+        if (isPassableMITE(world, x + 1, y, z)) {
+            if (precipHeightMITE(world, x + 1, z) <= y) {
+                return true;
+            }
+
+            check_block[18] = true;
+            check_block[26] = true;
+            check_block[32] = true;
+        }
+
+        if (isPassableMITE(world, x - 1, y, z)) {
+            if (precipHeightMITE(world, x - 1, z) <= y) {
+                return true;
+            }
+
+            check_block[16] = true;
+            check_block[22] = true;
+            check_block[30] = true;
+        }
+
+        if (isPassableMITE(world, x, y, z + 1)) {
+            if (precipHeightMITE(world, x, z + 1) <= y) {
+                return true;
+            }
+
+            check_block[30] = true;
+            check_block[38] = true;
+            check_block[32] = true;
+        }
+
+        if (isPassableMITE(world, x, y, z - 1)) {
+            if (precipHeightMITE(world, x, z - 1) <= y) {
+                return true;
+            }
+
+            check_block[16] = true;
+            check_block[10] = true;
+            check_block[18] = true;
+        }
+
+        if (check_block[18] && isPassableMITE(world, x + 1, y, z - 1)) {
+            if (precipHeightMITE(world, x + 1, z - 1) <= y) {
+                return true;
+            }
+
+            check_block[11] = true;
+            check_block[19] = true;
+        }
+
+        if (check_block[32] && isPassableMITE(world, x + 1, y, z + 1)) {
+            if (precipHeightMITE(world, x + 1, z + 1) <= y) {
+                return true;
+            }
+
+            check_block[33] = true;
+            check_block[39] = true;
+        }
+
+        if (check_block[30] && isPassableMITE(world, x - 1, y, z + 1)) {
+            if (precipHeightMITE(world, x - 1, z + 1) <= y) {
+                return true;
+            }
+
+            check_block[29] = true;
+            check_block[37] = true;
+        }
+
+        if (check_block[16] && isPassableMITE(world, x - 1, y, z - 1)) {
+            if (precipHeightMITE(world, x - 1, z - 1) <= y) {
+                return true;
+            }
+
+            check_block[9] = true;
+            check_block[15] = true;
+        }
+
+        if (check_block[26] && isPassableMITE(world, x + 2, y, z)) {
+            if (precipHeightMITE(world, x + 2, z) <= y) {
+                return true;
+            }
+
+            check_block[19] = true;
+            check_block[27] = true;
+            check_block[33] = true;
+        }
+
+        if (check_block[38] && isPassableMITE(world, x, y, z + 2)) {
+            if (precipHeightMITE(world, x, z + 2) <= y) {
+                return true;
+            }
+
+            check_block[37] = true;
+            check_block[39] = true;
+            check_block[45] = true;
+        }
+
+        if (check_block[22] && isPassableMITE(world, x - 2, y, z)) {
+            if (precipHeightMITE(world, x - 2, z) <= y) {
+                return true;
+            }
+
+            check_block[15] = true;
+            check_block[21] = true;
+            check_block[29] = true;
+        }
+
+        if (check_block[10] && isPassableMITE(world, x, y, z - 2)) {
+            if (precipHeightMITE(world, x, z - 2) <= y) {
+                return true;
+            }
+
+            check_block[3] = true;
+            check_block[9] = true;
+            check_block[11] = true;
+        }
+
+        if (check_block[11] && isPassableMITE(world, x + 1, y, z - 2)) {
+            if (precipHeightMITE(world, x + 1, z - 2) <= y) {
+                return true;
+            }
+
+            check_block[12] = true;
+        }
+
+        if (check_block[19] && isPassableMITE(world, x + 2, y, z - 1)) {
+            if (precipHeightMITE(world, x + 2, z - 1) <= y) {
+                return true;
+            }
+
+            check_block[12] = true;
+        }
+
+        if (check_block[33] && isPassableMITE(world, x + 2, y, z + 1)) {
+            if (precipHeightMITE(world, x + 2, z + 1) <= y) {
+                return true;
+            }
+
+            check_block[40] = true;
+        }
+
+        if (check_block[39] && isPassableMITE(world, x + 1, y, z + 2)) {
+            if (precipHeightMITE(world, x + 1, z + 2) <= y) {
+                return true;
+            }
+
+            check_block[40] = true;
+        }
+
+        if (check_block[37] && isPassableMITE(world, x - 1, y, z + 2)) {
+            if (precipHeightMITE(world, x - 1, z + 2) <= y) {
+                return true;
+            }
+
+            check_block[36] = true;
+        }
+
+        if (check_block[29] && isPassableMITE(world, x - 2, y, z + 1)) {
+            if (precipHeightMITE(world, x - 2, z + 1) <= y) {
+                return true;
+            }
+
+            check_block[36] = true;
+        }
+
+        if (check_block[15] && isPassableMITE(world, x - 2, y, z - 1)) {
+            if (precipHeightMITE(world, x - 2, z - 1) <= y) {
+                return true;
+            }
+
+            check_block[8] = true;
+        }
+
+        if (check_block[9] && isPassableMITE(world, x - 1, y, z - 2)) {
+            if (precipHeightMITE(world, x - 1, z - 2) <= y) {
+                return true;
+            }
+
+            check_block[8] = true;
+        }
+
+        if (check_block[12] && isPassableMITE(world, x + 2, y, z - 2) && precipHeightMITE(world, x + 2, z - 2) <= y) {
+            return true;
+        } else if (check_block[40] && isPassableMITE(world, x + 2, y, z + 2) && precipHeightMITE(world, x + 2, z + 2) <= y) {
+            return true;
+        } else if (check_block[36] && isPassableMITE(world, x - 2, y, z + 2) && precipHeightMITE(world, x - 2, z + 2) <= y) {
+            return true;
+        } else if (check_block[8] && isPassableMITE(world, x - 2, y, z - 2) && precipHeightMITE(world, x - 2, z - 2) <= y) {
+            return true;
+        } else if (check_block[27] && isPassableMITE(world, x + 3, y, z) && precipHeightMITE(world, x + 3, z) <= y) {
+            return true;
+        } else if (check_block[45] && isPassableMITE(world, x, y, z + 3) && precipHeightMITE(world, x, z + 3) <= y) {
+            return true;
+        } else {
+            return check_block[21] && isPassableMITE(world, x - 3, y, z) && precipHeightMITE(world, x - 3, z) <= y
+                ? true
+                : check_block[3] && isPassableMITE(world, x, y, z - 3) && precipHeightMITE(world, x, z - 3) <= y;
+        }
+    }
+
+    /** R196 {@code isAirOrPassableBlock} bridge — 1.12: an air block or any
+     *  block whose collision box is absent. */
+    public static boolean isPassableMITE(net.minecraft.world.World world, int x, int y, int z) {
+        net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(x, y, z);
+        net.minecraft.block.state.IBlockState state = world.getBlockState(pos);
+        return state.getBlock().isAir(state, world, pos)
+                || state.getCollisionBoundingBox(world, pos) == Block.NULL_AABB;
+    }
+
+    /** R196 {@code getPrecipitationHeight(x, z) <= y} bridge — 1.12 returns
+     *  the position itself; we take its Y. */
+    public static int precipHeightMITE(net.minecraft.world.World world, int x, int z) {
+        return world.getPrecipitationHeight(new net.minecraft.util.math.BlockPos(x, 0, z)).getY();
+    }
+
+    /** R196 {@code BlockMushroom.isLegalAt} (:121-123) bridge —
+     *  {@code hasNoSky || !canBlockSeeTheSky} plus the super
+     *  {@code isLegalOn} ground face (which the arms already enforce):
+     *  the light band cap rides the brown-only mycelium-tolerance face
+     *  (getMaxAllowedLightValue = 13 for brown, 15 for red = no cap). */
+    public static boolean mushroomLegalAtMITE(World world, BlockPos pos) {
+        if (!world.provider.isNether() && world.canSeeSky(pos)) {
+            return false;
+        }
+        if (world.getBlockState(pos).getBlock() == net.minecraft.init.Blocks.BROWN_MUSHROOM
+                && world.getLight(pos) > 13) {
+            return false;
+        }
+        return true;
+    }
 }

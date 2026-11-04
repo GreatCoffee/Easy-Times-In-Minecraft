@@ -21,33 +21,34 @@ import net.minecraft.world.World;
  * later batch, survival obtains manure via {@code /give etim:manure} for
  * now).
  *
- * <p>The place chain (R196 ItemManure.tryFertilizeBlock one-hand), after the
- * W-FM1 regression B-3/B-4 修·甲 (audit20 条 284): the mushroom growth is the
- * R195 three-stage maturity — R196 {@code BlockMushroom.tryGrowGiantMushroom}
- * carries {@code getGrowthBits()=3} in the block metadata; 1.12 mushrooms
- * have no metadata to spare, so the stage rides
- * {@link ETIMMushroomGrowthTile} (the farm1 fertilized-TE pattern, 条 256).
- * THREE staged arms:</p>
+ * <p>After the W-FM1/W-FM7 regression fixes (audit20 条 284, users 甲) the
+ * mushroom chain is the R196 three-stage maturity carried by
+ * {@link ETIMMushroomGrowthTile} (1.12 has no metadata to spare; the stage
+ * TE is collected via {@code MixinBlockMushroomTile}'s two needles on the
+ * hasTileEntity/createTileEntity seam — the farm1 farmland-TE pattern):</p>
  * <ul>
- *   <li>red on grass + OUTDOORS / brown on mycelium + INDOORS (the click
- *       arms, R196 :15-57): legality gates → the 0.5 roll (R196
- *       {@code ItemManure:51}) gates THIS click's stage increment — the manure
- *       is consumed on every gate-passed click, hit or miss; the giant pays at
- *       stage maturity (expected ~6 clicks per giant).</li>
- *   <li>mycelium TOP with a brown mushroom above (R196
- *       {@code BlockMycelium.fertilize}): NO roll, every click increments the
- *       stage — giant at the 3rd click; the indoors gate (R196
- *       {@code tryGrowGiantMushroom:183-191}) DENIES the grow but the manure
- *       is still consumed (B-4 修·甲 白吃 face — {@code fertilize} returns
- *       true regardless).</li>
- *   <li>the giant payer is 1.12 {@code BlockMushroom.generateBigMushroom}
- *       direct call (the one-hand :199-216 semantic — air → typed
- *       WorldGenBigMushroom → failed generate restores the small mushroom with
- *       the stage still at maturity for a retry).</li>
+ *   <li>the CLICK arms (R196 {@code ItemManure.tryFertilizeBlock:15-57}):
+ *       flight-safety gates = {@code isLegalAt} (the sky-occlusion bridge),
+ *       the ground match (red⇔grass / brown⇔mycelium), and
+ *       {@code isOutdoors} (the verbatim R196 flood port). Every gate-passed
+ *       click consumes the manure; the R196 :51 0.5 roll gates whether THIS
+ *       click increments the stage. Giant pays at stage maturity via 1.12
+ *       {@code BlockMushroom.generateBigMushroom} (the public direct call —
+ *       air → typed giant → restore-on-failure; on failure the mature stage
+ *       TE is re-pinned, the :213-215 metadata face).</li>
+ *   <li>a red mushroom ABOVE clicked-on grass (R196 :50-52 — W-FM7 B-1
+ *       修: the grass TOP entrance).</li>
+ *   <li>a mushroom standing on farmland recurses DOWN to the farmland arm
+ *       (R196 :22-24).</li>
+ *   <li>the MYCELIUM TOP arm (R196 {@code BlockMycelium.fertilize}): NO
+ *       roll, every legal click increments the stage — giant at the 3rd;
+ *       the R196 indoor gate (TRY {@code tryGrowGiantMushroom:183-191})
+ *       silently denies the grow but {@code fertilize} returns true, so the
+ *       manure IS consumed (B-4 修·甲 白吃 face).</li>
+ *   <li>the farmland TOP face: unchanged from 条 283 (A-2 no-consume when
+ *       already fertilized; C-15 log-only; the crops/stem recursion sits
+ *       before it).</li>
  * </ul>
- * <p>The farmland/crops/stem faces are unchanged from 条 283 (A-2 no-consume
- * recursion chain; C-15 log-only achievements; C-16 {@code canSeeSky} coarse
- * bridge for outdoors).</p>
  */
 public final class ETIMItemManure extends Item {
 
@@ -69,9 +70,9 @@ public final class ETIMItemManure extends Item {
     private ETIMItemManure() {
     }
 
-    /** The R196 stage core: {@code incrementGrowth + isMaturity} (:193-241).
-     *  Weighted face: returns the pre-increment stage, or {@code 3} when this
-     *  click PAID the giant (and {@code -1} when the roll skipped it). */
+    /** The R196 stage core ({@code incrementGrowth/isMature :193-241}).
+     *  Returns the pre-click stage, {@code MAX} when this click paid the
+     *  giant, or {@code -1} when the roll skipped the increment. */
     private static int etim$stage(World world, BlockPos pos, IBlockState state, Block block, boolean increment) {
         ETIMMushroomGrowthTile te = ETIMMushroomGrowthTile.get(world, pos);
         int stage = te == null ? 0 : te.getGrowth();
@@ -80,16 +81,26 @@ public final class ETIMItemManure extends Item {
         }
         if (te == null) {
             te = new ETIMMushroomGrowthTile();
-            world.setTileEntity(pos, te);
+            world.setTileEntity(pos, te); // effective since MixinBlockMushroomTile (A-2 修)
         }
-        te.setGrowth(stage + 1); // R196 incrementGrowth — clamped at max inside setGrowth
+        te.setGrowth(stage + 1); // R196 incrementGrowth clamped inside
         if (te.getGrowth() >= ETIMMushroomGrowthTile.MAX_GROWTH) {
-            // R196 :199-216 — the 1.12 public direct call carries the identical
-            // air → typed-giant → restore-on-failure spine.
-            ((BlockMushroom) block).generateBigMushroom(world, pos, state, world.rand);
+            boolean paid = ((BlockMushroom) block).generateBigMushroom(world, pos, state, world.rand);
+            if (!paid) {
+                // B-2 修 — R196 :213-215 restores the metadata with the
+                // maturity bit still set; the block churn can drop the TE,
+                // so re-pin the mature stage for the retry click.
+                ETIMMushroomGrowthTile pin = ETIMMushroomGrowthTile.get(world, pos);
+                if (pin == null) {
+                    pin = new ETIMMushroomGrowthTile();
+                    world.setTileEntity(pos, pin);
+                }
+                pin.setGrowth(ETIMMushroomGrowthTile.MAX_GROWTH);
+                ETIMFarm.row("fertilize src=manure giant=failed stage=3/3 (generate denied; retry next click)");
+            }
             return ETIMMushroomGrowthTile.MAX_GROWTH;
         }
-        return te.getGrowth();
+        return stage + 1;
     }
 
     @Override
@@ -103,31 +114,38 @@ public final class ETIMItemManure extends Item {
         Block block = state.getBlock();
         float randRoll = world.rand.nextFloat();
 
-        // the click arm (red: outdoor grass / brown: indoor mycelium — R196 :15-57)
-        if (block == Blocks.RED_MUSHROOM || block == Blocks.BROWN_MUSHROOM) {
+        // the mushroom CLICK arm (red: outdoor grass / brown: indoor mycelium — R196 :15-57)
+        if (block instanceof BlockMushroom) {
+            // R196 :22-24 — a mushroom standing on farmland recurses DOWN
             BlockPos below = pos.down();
-            Block ground = world.getBlockState(below).getBlock();
-            boolean outdoor = world.canSeeSky(pos); // C-16 coarse bridge
+            if (world.getBlockState(below).getBlock() == Blocks.FARMLAND) {
+                return onItemUse(player, world, below, hand, EnumFacing.UP, hitX, hitY, hitZ);
+            }
             boolean red = block == Blocks.RED_MUSHROOM;
+            Block ground = world.getBlockState(below).getBlock();
             boolean legalGround = red ? ground == Blocks.GRASS : ground == Blocks.MYCELIUM;
-            boolean legalOut = red ? outdoor : !outdoor;
-            // R196 :16-17 isLegalAt evidence — the 1.12 canBlockStay bridge
-            // (light <13 unless the mycelium/podzol short-circuit).
-            boolean legalLight = ((BlockMushroom) block).canBlockStay(world, pos, state);
-            if (!legalGround || !legalOut || !legalLight) {
-                return EnumActionResult.FAIL;
+            boolean outdoors = ETIMFarm.isOutdoorsMITE(world, pos.getX(), pos.getY(), pos.getZ(), true);
+            boolean legalOut = red ? outdoors : !outdoors;
+            boolean legal = ETIMFarm.mushroomLegalAtMITE(world, pos);
+            if (!legalGround || !legalOut || !legal) {
+                ETIMFarm.row("fertilize src=manure kind=" + (red ? "red" : "brown")
+                        + " gate=deny ground=" + (legalGround ? 1 : 0)
+                        + " out=" + (red ? (legalOut ? 1 : 0) : (legalOut ? 0 : 1))
+                        + " legal=" + (legal ? 1 : 0)
+                        + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ());
+                return EnumActionResult.FAIL; // R196 gate fail = silent, no consume
             }
             boolean rollHit = randRoll < 0.5F;
             int stage = etim$stage(world, pos, state, block, rollHit);
-            if (stage >= 0) {
+            if (stage < 0) {
+                ETIMFarm.row("fertilize src=manure kind=" + (red ? "red" : "brown")
+                        + " roll=" + String.format(java.util.Locale.ROOT, "%.2f", randRoll)
+                        + " stage=-1 (roll missed; manure consumed)");
+            } else {
                 ETIMFarm.row("fertilize src=manure kind=" + (red ? "red" : "brown")
                         + " roll=" + String.format(java.util.Locale.ROOT, "%.2f", randRoll)
                         + " stage=" + Math.min(stage, ETIMMushroomGrowthTile.MAX_GROWTH) + "/3 giant="
                         + (stage >= ETIMMushroomGrowthTile.MAX_GROWTH ? 1 : 0));
-            } else {
-                ETIMFarm.row("fertilize src=manure kind=" + (red ? "red" : "brown")
-                        + " roll=" + String.format(java.util.Locale.ROOT, "%.2f", randRoll)
-                        + " stage=-1 (roll missed; manure consumed)");
             }
             stack.shrink(1); // R196 :52-57 — the gated click consumes either way
             return EnumActionResult.SUCCESS;
@@ -140,32 +158,39 @@ public final class ETIMItemManure extends Item {
             block = state.getBlock();
         }
 
-        // the mycelium TOP face (R196 BlockMycelium.fertilize — NO roll, the
-        // stage increments EVERY click; B-4 修·甲 indoors gate first)
+        // the grass TOP entrance: a red mushroom ABOVE clicked-on grass
+        // walks up to the mushroom arm (R196 :50-52 — W-FM7 B-1 修)
+        if (block == Blocks.GRASS && facing == EnumFacing.UP
+                && world.getBlockState(pos.up()).getBlock() == Blocks.RED_MUSHROOM) {
+            return onItemUse(player, world, pos.up(), hand, EnumFacing.UP, hitX, hitY, hitZ);
+        }
+
+        // the MYCELIUM TOP arm (R196 BlockMycelium.fertilize — NO roll, the
+        // stage increments EVERY legal click; giant at the 3rd)
         if (block == Blocks.MYCELIUM && facing == EnumFacing.UP) {
             BlockPos above = pos.up();
             IBlockState aboveState = world.getBlockState(above);
-            if (aboveState.getBlock() == Blocks.BROWN_MUSHROOM) {
-                if (!((BlockMushroom) Blocks.BROWN_MUSHROOM).canBlockStay(world, above, aboveState)) {
-                    return EnumActionResult.FAIL; // R196 tryGrowGiantMushroom :170 isLegalAt
-                }
-                boolean outdoor = world.canSeeSky(above);
-                if (outdoor) {
-                    // B-4 修·甲: the giant is denied but the heredity of the
-                    // call chain returns true — manure consumed, stage frozen
-                    // (R196 :183-191 early false inside an ignored return).
-                    ETIMFarm.row("fertilize src=manure chain=mycelium roll=none outdoor=1 stage=-1 (no-grow; manure consumed)");
-                    stack.shrink(1);
-                    return EnumActionResult.SUCCESS;
-                }
-                int stage = etim$stage(world, above, aboveState, aboveState.getBlock(), true);
-                ETIMFarm.row("fertilize src=manure chain=mycelium roll=none stage="
-                        + Math.min(stage, ETIMMushroomGrowthTile.MAX_GROWTH) + "/3 giant="
-                        + (stage >= ETIMMushroomGrowthTile.MAX_GROWTH ? 1 : 0));
+            if (aboveState.getBlock() != Blocks.BROWN_MUSHROOM) {
+                return EnumActionResult.FAIL;
+            }
+            if (!ETIMFarm.mushroomLegalAtMITE(world, above)) {
+                return EnumActionResult.FAIL; // R196 tryGrowGiantMushroom :170 — silent
+            }
+            boolean outdoors = ETIMFarm.isOutdoorsMITE(world, above.getX(), above.getY(), above.getZ(), true);
+            if (outdoors) {
+                // B-4 修·甲 — R196 denies the grow but fertilize returns
+                // TRUE, so the manure is consumed (the 白吃 face); the stage
+                // stays untouched.
+                ETIMFarm.row("fertilize src=manure chain=mycelium roll=none outdoor=1 stage=-1 (no-grow; manure consumed)");
                 stack.shrink(1);
                 return EnumActionResult.SUCCESS;
             }
-            return EnumActionResult.FAIL;
+            int stage = etim$stage(world, above, aboveState, aboveState.getBlock(), true);
+            ETIMFarm.row("fertilize src=manure chain=mycelium roll=none stage="
+                    + Math.min(Math.max(stage, 0), ETIMMushroomGrowthTile.MAX_GROWTH) + "/3 giant="
+                    + (stage >= ETIMMushroomGrowthTile.MAX_GROWTH ? 1 : 0));
+            stack.shrink(1);
+            return EnumActionResult.SUCCESS;
         }
 
         // the farmland TOP face (R196 manure arm — A-2 already-fertilized ⇒ no consume)

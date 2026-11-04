@@ -3,6 +3,7 @@
         "MixinBlockCropsTick",
         "MixinBlockStemTick",
         "MixinBlockFarmland",
+        "MixinBlockMushroomTile",
         "MixinItemBucketUse",
         "MixinItemPotionUse","MixinEntityFallingBlock","MixinBlockAnvil","MixinSidedInvWrapper","MixinTileEntityHopper","MixinEntity","MixinEntityLiving","MixinEntityAnimal","MixinEntityWaterMob","MixinEntityOcelot","MixinEntityChicken","EntityAccessor","EntityLivingBaseAccessor","EntityLivingAccessor","MixinEntityLivingBaseDamage","MixinSpecialArmorProperties","MixinEntityArrow","MixinEntityZombie","MixinAbstractSkeletonEquip","MixinBlockCrops","MixinEntityAIAttackMelee","MixinEntitySpiderJockey","MixinItemBow","MixinEntityPlayerMelee","MixinEntityMobMelee","MixinEntityLivingDisarm","MixinBlockFarmlandTile","CPacketPlayerDiggingAccessor","CPacketPlayerTryUseItemOnBlockAccessor","MixinBlockFire","MixinEntityLivingBaseBlock",
         "MixinEntityFishHook"],"client":["MixinGuiIngameForge","MixinPlayerControllerMP","MixinEntityRenderer","MixinEntityPlayerSP","MixinGuiContainer","MixinGuiFurnace","MixinGuiRepair","MixinItemRendererBlockPose","MixinModelBipedBlockPose","MixinLayerHeldItemBlockPose"]}
