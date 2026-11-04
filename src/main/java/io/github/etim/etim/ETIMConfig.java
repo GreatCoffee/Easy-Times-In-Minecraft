@@ -249,7 +249,7 @@ public final class ETIMConfig {
 
 
     /** Maximum level of the tree-felling enchant (ToolSuite audit: level per-log recursion depth). 树木连根附魔的最高等级（ToolSuite 审计：等级 = 每根原木的递归深度）。 */
-    public static int treeFellingMaxLevel = 10;
+    public static int treeFellingMaxLevel = 5;
     /** Length of the debug overlay's DISPLAY-ONLY ray (never affects gameplay). 调试覆盖显示射线的长度（永不进入游戏判定）。 */
     public static float debugRayLength = 8.0F;
 
@@ -477,6 +477,18 @@ public final class ETIMConfig {
     public static boolean vanillaLureActive = true;
     /** D-11 丙-②b（条 270 用户明文）：海之眷顾每级额外 XP（0 = 等效无效果）。 */
     public static int luckOfTheSeaXpPerLevel = 1;
+
+    // Batch six D-1 pool (条 274-277 — R196 附魔池重锚; category "enchant").
+    /** 池总开关（C-18 收键）：false = 1.12 池行为整体回退（判窗负臂用）。 */
+    public static boolean enchantPoolR196 = true;
+    /** D-F（条 276 用户明文）：true = 丙（保留青金石消耗＋点数门）；false = 乙（去青金石、仅点数门）。 */
+    public static boolean enchantLapisRequired = true;
+    /** [EnchLog] 判行通道门（纪律 9，判窗前置造）。 */
+    public static boolean enchantDebugLog = false;
+    /** R196 EnchantmentFreeAction（id 87）difficulty（10 native）。案 M 窗单键派生。 */
+    public static int freeActionDifficulty = 10;
+    /** R196 free_action getNumLevels() = 4（D-C 甲收编）。 */
+    public static int freeActionMaxLevel = 4;
 
     // Batch farm1 (B4 农作两条, 条 254-257 / 条 256 终裁 — 8 keys; category "farm").
     /** R196 Enchantment.java:32 difficulty. 沃肥（R196 难度 10）。 */
@@ -860,8 +872,8 @@ public final class ETIMConfig {
                 comment("R196 mining reform (task 2.2): MITE dig-progress formula, tool-level gating and hardness table; on = the vanilla dig-wear guard reads the R196 hardness table (same source as the decay chain)",
                         "R196 挖掘改革（任务 2.2）：MITE 挖掘进度公式、工具等级门控与硬度表；开启时原版挖掘损耗守卫同读 R196 硬度表（与衰减链同源）"));
         treeFellingMaxLevel = config.getInt("treeFellingMaxLevel", "mining", treeFellingMaxLevel, 1, 20,
-                comment("Maximum level of the tree-felling enchant (each level fells one further wood log)",
-                        "树木连根附魔的最大等级（每级向上多伐一根原木）"));
+                comment("Maximum level of the tree-felling enchant (each level fells one further wood log). Default 5 = the R196 getNumLevels (tree_felling has no class override; was 10 — the A-3 漂移修复, 条 275/277)",
+                        "树木连根附魔的最大等级（每级向上多伐一根原木）。默认 5 = R196 类不覆写的源值（原默认 10 系 A-3 勘证的既有漂移——条 275/277 修复位）"));
 
         hungerCraftDeny = config.getBoolean("hungerCraftDeny", "hunger", true,
                 comment("Crafting output cannot be taken while hungry (R196 MITEContainerCrafting:96 freezes the craft timer)",
@@ -1177,6 +1189,27 @@ public final class ETIMConfig {
         luckOfTheSeaXpPerLevel = config.getInt("luckOfTheSeaXpPerLevel", "fishing", luckOfTheSeaXpPerLevel, 0, 5,
                 comment("D-11 丙-②b (条 270): the luck_of_the_sea bonus — extra catch XP per level (0 = inert). The loot face stays untouched",
                         "海之眷顾加成：每级额外 XP（0 = 不生效）。渔获面不动"));
+
+        // Batch six D-1 pool (条 274-277: 5 new keys, category "enchant";
+        // enchantPoolR196 = C-18 collected master gate (false = the 1.12 pool
+        // face rolls back); enchantLapisRequired = D-F 丙 default / 乙 switch;
+        // freeAction pair = D-C 甲收编 (R196 EnchantmentFreeAction id 87,
+        // diff 10 native, getNumLevels 4).
+        enchantPoolR196 = config.getBoolean("enchantPoolR196", "enchant", true,
+                comment("The R196 enchantment-pool master switch (build/altered/carrier/weights). False = vanilla 1.12 pool untouched",
+                        "R196 附魔池总开关（装配/放大/载体/权重）。false = 原版 1.12 池照旧"));
+        enchantLapisRequired = config.getBoolean("enchantLapisRequired", "enchant", true,
+                comment("D-F (条 276): true = lapis stays consumed and the level gate becomes the R196 points gate; false = lapis drops out entirely (points gate only)",
+                        "true = 保留青金石消耗、等级门换成点数门（丙）；false = 去青金石、仅点数门（乙）"));
+        enchantDebugLog = config.getBoolean("enchantDebugLog", "enchant", false,
+                comment("[EnchLog] rows of the pool batch: build/pick/conflict/level/fee/special/nonTable lines, values on ONE line. Silent when off",
+                        "[EnchLog] 判行（D-1 池批）：装配/抽取/冲突/槽级/学费/特例/非台面行——数值单行同打。关闭则静默"));
+        freeActionDifficulty = config.getInt("freeActionDifficulty", "enchant", freeActionDifficulty, 5, 40,
+                comment("R196 Enchantment.java:37 difficulty for free_action (10 native). The case-M window derives from this single key",
+                        "自由行动（free_action）的 R196 难度（源值 10）。案 M 表窗由单键派生"));
+        freeActionMaxLevel = config.getInt("freeActionMaxLevel", "enchant", freeActionMaxLevel, 1, 10,
+                comment("R196 EnchantmentFreeAction getNumLevels() = 4 native — a CAP only, never a denominator",
+                        "最高等级（R196 源值 4）——只做上限，不是概率分母"));
 
         // batch farm1 (B4 农作两条 — 条 256 D 位裁定／条 257 C-注1/2: 8 keys,
         // category "farm" per 终审; maxLevel doubles as the fraction denominator

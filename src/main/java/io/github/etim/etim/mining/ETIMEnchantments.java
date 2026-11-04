@@ -38,6 +38,9 @@ public final class ETIMEnchantments {
     // (both five-level defaults; carriers fishing-rod / bow family faces).
     public static Enchantment FISHING_FORTUNE;
     public static Enchantment ARROW_RECOVERY;
+    // batch six D-1 pool (条 274-277): R196 id 87 — the 17th enchant (D-C 甲;
+    // leggings slot, 4 levels native; effect face debt-registered 条 278).
+    public static Enchantment FREE_ACTION;
 
     private ETIMEnchantments() {
     }
@@ -109,6 +112,10 @@ public final class ETIMEnchantments {
         ARROW_RECOVERY = new io.github.etim.etim.fishing.EnchantmentArrowRecovery();
         ARROW_RECOVERY.setRegistryName(new ResourceLocation(Tags.MOD_ID, "arrow_recovery"));
         ForgeRegistries.ENCHANTMENTS.register(ARROW_RECOVERY);
+        // Batch six D-1 pool (条 274-277): R196 id 87, the 17th entry.
+        FREE_ACTION = new io.github.etim.etim.combat.EnchantmentFreeAction();
+        FREE_ACTION.setRegistryName(new ResourceLocation(Tags.MOD_ID, "free_action"));
+        ForgeRegistries.ENCHANTMENTS.register(FREE_ACTION);
         // Case A poison potion (条 243/245) — R196 arithmetic on a self-owned
         // Potion (vanilla 1.12 poison is 25-tick + health-gated; ours is
         // 100>>amp + gate-less). Registered BEFORE cfg init (:87) like the
@@ -120,7 +127,7 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(ENDURANCE));
         ETIM.LOGGER.info("[EtimInit] enchant {} id={}", PIERCING.getRegistryName(),
                 Enchantment.getEnchantmentID(PIERCING));
-        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {} {} {} {}",
+        ETIM.LOGGER.info("[EtimInit] enchant{} ids={} {} {} {} {} {} {} {} {} {} {} {} {} {}",
                 SPEED.getRegistryName(),
                 Enchantment.getEnchantmentID(SPEED),
                 Enchantment.getEnchantmentID(REGENERATION),
@@ -134,6 +141,7 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(HARVESTING),
                 Enchantment.getEnchantmentID(BUTCHERING),
                 Enchantment.getEnchantmentID(FISHING_FORTUNE),
-                Enchantment.getEnchantmentID(ARROW_RECOVERY));
+                Enchantment.getEnchantmentID(ARROW_RECOVERY),
+                Enchantment.getEnchantmentID(FREE_ACTION));
     }
 }

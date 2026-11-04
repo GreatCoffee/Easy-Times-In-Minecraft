@@ -33,6 +33,11 @@ public abstract class ETIMMiteEnchantment extends Enchantment {
     /** R196 {@code difficulty} (Enchantment.java:8-45 per id: 10 / 15 / 20). */
     protected abstract int difficulty();
 
+    /** Pool-batch public face (D-1 池批, 条 278): the cfg-live difficulty for the pool windows. */
+    public final int difficultyOpen() {
+        return this.difficulty();
+    }
+
     /** R196 Enchantment.java:124-141 min-cost formula, max(diff−10,0)+diff×(L−1)+1. */
     @Override
     public int getMinEnchantability(int enchantmentLevel) {

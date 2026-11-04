@@ -517,10 +517,26 @@ public class CommandDevTest extends CommandBase {
                         .append(enchantment.getMinEnchantability(level)).append('/')
                         .append(enchantment.getMaxEnchantability(level));
             }
-            ETIM.LOGGER.info("[EnchantLog] pool reg={} id={} weight={} table={} treasure={} window={} [server]",
+            // D-1 pool batch (条 278): the R196 weight + R196 case-M window columns —
+            // rw uses the pool table (vanilla-22 correspondence + ETIM cfg-live caps);
+            // rwindow prints the R196 minCost band [min(L), min(L+1)-1 / 999].
+            StringBuilder rwindow = new StringBuilder();
+            int cap = io.github.etim.etim.combat.ETIMEnchantPool.maxLevelOf(enchantment);
+            for (int level = 1; level <= cap; level++) {
+                if (level > 1) {
+                    rwindow.append(' ');
+                }
+                int lo = io.github.etim.etim.combat.ETIMEnchantPool.minCost(enchantment, level);
+                int hi = level >= cap ? 999
+                        : io.github.etim.etim.combat.ETIMEnchantPool.minCost(enchantment, level + 1) - 1;
+                rwindow.append('L').append(level).append('=').append(lo).append('/').append(hi);
+            }
+            ETIM.LOGGER.info("[EnchantLog] pool reg={} id={} weight={} table={} treasure={} window={} "
+                            + "rw={} rwindow={} [server]",
                     enchantment.getRegistryName(), Enchantment.getEnchantmentID(enchantment),
                     enchantment.getRarity().getWeight(), enchantment.canApplyAtEnchantingTable(stack),
-                    enchantment.isTreasureEnchantment(), window);
+                    enchantment.isTreasureEnchantment(), window,
+                    io.github.etim.etim.combat.ETIMEnchantPool.weightOf(enchantment), rwindow);
         }
     }
 
