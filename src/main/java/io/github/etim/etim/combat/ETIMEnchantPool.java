@@ -166,8 +166,12 @@ public final class ETIMEnchantPool {
                 && armor.getArmorMaterial() != ItemArmor.ArmorMaterial.CHAIN;
     }
 
+    /** R196 armor-slot bridge. NOTE: {@code ItemArmor#getEquipmentSlot()} is
+     *  @SideOnly(Side.CLIENT) in 1.12 Forge (ItemArmor:103-108) — the
+     *  dedicated server throws NoSuchMethodError (判窗 A-1, 条 279); the
+     *  {@code armorType} FIELD is common-side, so the slot compare rides it. */
     private static boolean armorSlot(Item item, net.minecraft.inventory.EntityEquipmentSlot slot) {
-        return item instanceof ItemArmor && ((ItemArmor) item).getEquipmentSlot() == slot;
+        return item instanceof ItemArmor && ((ItemArmor) item).armorType == slot;
     }
 
     /**
