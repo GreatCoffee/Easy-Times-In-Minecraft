@@ -51,21 +51,42 @@ public final class ETIMFarmingEvents {
         ETIMFarm.rollConsume(world, event.getPos().down());
     }
 
-    /** F10 — D-2 fertilizer-only trample immunity. */
+    /** F10 — D-2 fertilizer-only trample immunity updated for the moisture
+     *  batch (条 283, G4 R196 face): the WET half joins (moisture > 0), and
+     *  the R196 order face — the crop above takes the trample damage FIRST
+     *  (:71-80 onTrampledBy) even when the farmland itself is protected. */
     @SubscribeEvent
     public static void onFarmlandTrample(BlockEvent.FarmlandTrampleEvent event) {
         World world = event.getWorld();
         BlockPos pos = event.getPos();
         String posStr = pos.getX() + "," + pos.getY() + "," + pos.getZ();
-        io.github.etim.etim.tileentity.ETIMFarmlandTile te = ETIMFarm.farmlandTile(world, pos);
-        if (te == null || !te.isFertilized()) {
-            ETIMFarm.row("trample allow pos=" + posStr
-                    + " fertilized=false entity=" + event.getEntity().getName());
+        net.minecraft.block.state.IBlockState state = world.getBlockState(pos);
+        if (state.getBlock() != net.minecraft.init.Blocks.FARMLAND) {
             return;
         }
-        event.setCanceled(true);
-        ETIMFarm.row("fertilized trample-deny pos=" + posStr
-                + " entity=" + event.getEntity().getName());
+        // R196 onTrampledBy face: the plant above is trampled FIRST (both
+        // halves — the wet/fert check only shields the SOIL). The entity-hit
+        // face rides the vanilla canTrample roll (fallDistance−0.5 face).
+        net.minecraft.block.Block above = world.getBlockState(pos.up()).getBlock();
+        if (above instanceof net.minecraft.block.BlockCrops || above instanceof net.minecraft.block.BlockStem
+                || above == net.minecraft.init.Blocks.BROWN_MUSHROOM
+                || above == net.minecraft.init.Blocks.RED_MUSHROOM) {
+            world.destroyBlock(pos.up(), true);
+            ETIMFarm.row("trample plant pos=" + posStr
+                    + " entity=" + event.getEntity().getName());
+        }
+        io.github.etim.etim.tileentity.ETIMFarmlandTile te = ETIMFarm.farmlandTile(world, pos);
+        boolean fertilized = te != null && te.isFertilized();
+        boolean wet = state.getValue(net.minecraft.block.BlockFarmland.MOISTURE) > 0;
+        if (fertilized || wet) {
+            event.setCanceled(true);
+            ETIMFarm.row("trample deny pos=" + posStr
+                    + " fertilized=" + (fertilized ? 1 : 0) + " wet=" + (wet ? 1 : 0)
+                    + " entity=" + event.getEntity().getName());
+            return;
+        }
+        ETIMFarm.row("trample allow pos=" + posStr
+                + " fertilized=false wet=0 entity=" + event.getEntity().getName());
     }
 
     /** F4 — the harvesting yield bonus on the MAIN crop only, per-item extra roll. */

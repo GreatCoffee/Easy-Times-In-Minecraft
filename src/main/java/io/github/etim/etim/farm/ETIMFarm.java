@@ -82,10 +82,15 @@ public final class ETIMFarm {
         }
     }
 
-    /** preInit face: the fertilized-bit TE carrier registration (D-1, 条 256). */
+    /** preInit face: the fertilized-bit TE carrier registration (D-1, 条 256)
+     *  — the farmland-moisture batch (条 283) rides the same seam to register
+     *  the manure item. */
     public static void registerTile() {
         GameRegistry.registerTileEntity(ETIMFarmlandTile.class,
                 new ResourceLocation("etim", "farmland_fertility"));
+        // Farmland-moisture batch (条 283, D-6 甲): the manure item (施用面;
+        // 获取面 EntityLivestock/TileEntityChest挂账另批).
+        ETIMItemManure.register();
     }
 
     /** The fertilized TE at {@code pos}, or {@code null} (dry/non-farmland/never-set). */
@@ -247,5 +252,83 @@ public final class ETIMFarm {
         if (clear) {
             te.setFertilized(false);
         }
+    }
+
+    // ------------------------------------------------ 耕湿批（条 283）faces
+
+    /** R196 BlockFarmland.isWaterNearby (:226-249): the 9×2×9 water scan plus
+     *  the snow/ice 3×2×3 neighbour face (D-2 甲). */
+    public static boolean waterNearbyR196(World world, BlockPos pos) {
+        for (int dx = -4; dx <= 4; dx++) {
+            for (int dy = 0; dy <= 1; dy++) {
+                for (int dz = -4; dz <= 4; dz++) {
+                    if (world.getBlockState(pos.add(dx, dy, dz)).getMaterial()
+                            == net.minecraft.block.material.Material.WATER) {
+                        return true;
+                    }
+                }
+            }
+        }
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = 0; dy <= 1; dy++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    IBlockState state = world.getBlockState(pos.add(dx, dy, dz));
+                    if (state.getBlock() == Blocks.SNOW || state.getBlock() == Blocks.ICE
+                            || state.getBlock() == Blocks.PACKED_ICE) {
+                        return true; // snow/craftedSnow/ice → SNOW/ICE/PACKED_ICE (终审 裁量④)
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /** R196 isCropsNearby (:199-215): the 3×3 above-ring Crops/Stem face
+     *  (1.12 hasCrops is the single-point face — 退化判位差面). */
+    public static boolean cropsNearbyR196(World world, BlockPos pos) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                Block above = world.getBlockState(pos.add(dx, 1, dz)).getBlock();
+                if (above instanceof BlockCrops || above instanceof net.minecraft.block.BlockStem
+                        || above == Blocks.BROWN_MUSHROOM || above == Blocks.RED_MUSHROOM) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** The dry-face probe (G1 growth gate): below is farmland with MOISTURE 0. */
+    public static boolean isDryFarmland(World world, BlockPos farmPos) {
+        IBlockState state = world.getBlockState(farmPos);
+        return state.getBlock() == Blocks.FARMLAND
+                && state.getValue(net.minecraft.block.BlockFarmland.MOISTURE) == 0;
+    }
+
+    /** R196 moisture write face (metadata & 7 — the bit space is vanilla-native). */
+    public static void setMoisture(World world, BlockPos pos, int level) {
+        IBlockState state = world.getBlockState(pos);
+        if (state.getBlock() != Blocks.FARMLAND) {
+            return;
+        }
+        if (state.getValue(net.minecraft.block.BlockFarmland.MOISTURE) != level) {
+            world.setBlockState(pos, state
+                    .withProperty(net.minecraft.block.BlockFarmland.MOISTURE, Integer.valueOf(level)), 2);
+        }
+    }
+
+    /** R196 water face (:204-215): dry-to-7 in one step; false when already full (A-2). */
+    public static boolean waterSpot(World world, BlockPos pos) {
+        IBlockState state = world.getBlockState(pos);
+        if (state.getBlock() != Blocks.FARMLAND) {
+            return false;
+        }
+        if (state.getValue(net.minecraft.block.BlockFarmland.MOISTURE) < 7) {
+            if (!world.isRemote) {
+                setMoisture(world, pos, 7);
+            }
+            return true;
+        }
+        return false;
     }
 }
