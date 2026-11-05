@@ -446,6 +446,183 @@ public final class ETIMFarm {
         return block.getRegistryName() == null ? block.getClass().getSimpleName() : block.getRegistryName().toString();
     }
 
+    // ------------------------------------------------ 增速批（B-9 · growth-rate）
+
+    /** R196 {@code BlockGrowingPlant.getTemperatureTolerance :13-15} — the family base. */
+    private static final float GROW_TEMP_TOLERANCE = 1.0F;
+
+    /**
+     * B-9 temperature windows of the growth-rate family carriers (D-1 直抄):
+     * wheat/carrot/potato/beet family = 0.8-1.2 (R196 BlockCrops :35-42); pumpkin
+     * stem = 0.6-1.0, melon stem = 1.0-1.4 (R196 BlockStem :29-36). The berry-bush
+     * window (R196 BlockBush :209-216) has NO 1.12 carrier — range-out (摸底 §0/§7).
+     */
+    public static float[] growthTempWindow(Block blockIn) {
+        if (blockIn == net.minecraft.init.Blocks.PUMPKIN_STEM) {
+            return new float[] { 0.6F, 1.0F };
+        }
+        if (blockIn == net.minecraft.init.Blocks.MELON_STEM) {
+            return new float[] { 1.0F, 1.4F };
+        }
+        return new float[] { 0.8F, 1.2F };
+    }
+
+    /**
+     * R196 {@code BlockGrowingPlant.getTemperatureGrowthRateModifier :21-34} —
+     * {@code max(1 - delta/tolerance, 0)} with the 1.0 family tolerance; in-window
+     * modifiers sit at 1.0. The temperature source is the D-4 ruling
+     * {@code getTemperature(pos)} — the ETIMFoodStats :440 precedent (the vanilla
+     * height-cooling face above y=64 rides along; the MITE face reads the flat
+     * {@code biome.temperature} — the delta is the y-window edge only).
+     *
+     * @param out receives [0]=temperature [1]=window lo [2]=window hi [3]=mod
+     */
+    public static float temperatureModifier(World world, BlockPos pos, Block blockIn, float[] out) {
+        float[] w = growthTempWindow(blockIn);
+        float t = world.getBiome(pos).getTemperature(pos);
+        float delta = t < w[0] ? w[0] - t : (t > w[1] ? t - w[1] : 0.0F);
+        float mod = Math.max(1.0F - delta / GROW_TEMP_TOLERANCE, 0.0F);
+        out[0] = t;
+        out[1] = w[0];
+        out[2] = w[1];
+        out[3] = mod;
+        return mod;
+    }
+
+    /**
+     * B-9 (D-3 直抄) crops-only proximity penalty — R196
+     * {@code BlockGrowingPlant.getProximityGrowthRateModifier :38-84}: zero same-block
+     * neighbours ×0.5; a single neighbour whose rank-1 direction carries NO rank-2
+     * extension (the :69-83 cross) ×0.75; otherwise (≥2 neighbours, or a live extension)
+     * ×1.0. Stems never multiply this face (R196 BlockStem :218-221 tail).
+     */
+    public static float proximityModifierR196(World world, BlockPos pos, Block blockIn) {
+        boolean north = world.getBlockState(pos.north()).getBlock() == blockIn;
+        boolean east = world.getBlockState(pos.east()).getBlock() == blockIn;
+        boolean south = world.getBlockState(pos.south()).getBlock() == blockIn;
+        boolean west = world.getBlockState(pos.west()).getBlock() == blockIn;
+        int neighbors = (north ? 1 : 0) + (east ? 1 : 0) + (south ? 1 : 0) + (west ? 1 : 0);
+        if (neighbors > 1) {
+            return 1.0F;
+        }
+        if (neighbors == 0) {
+            return 0.5F; // R196 :64-66
+        }
+        if (north && (world.getBlockState(pos.north(2)).getBlock() == blockIn
+                || world.getBlockState(pos.north().east()).getBlock() == blockIn
+                || world.getBlockState(pos.north().west()).getBlock() == blockIn)) {
+            return 1.0F;
+        }
+        if (east && (world.getBlockState(pos.east().north()).getBlock() == blockIn
+                || world.getBlockState(pos.east(2)).getBlock() == blockIn
+                || world.getBlockState(pos.east().south()).getBlock() == blockIn)) {
+            return 1.0F;
+        }
+        if (south && (world.getBlockState(pos.south().east()).getBlock() == blockIn
+                || world.getBlockState(pos.south(2)).getBlock() == blockIn
+                || world.getBlockState(pos.south().west()).getBlock() == blockIn)) {
+            return 1.0F;
+        }
+        if (west && (world.getBlockState(pos.west().north()).getBlock() == blockIn
+                || world.getBlockState(pos.west().south()).getBlock() == blockIn
+                || world.getBlockState(pos.west(2)).getBlock() == blockIn)) {
+            return 1.0F;
+        }
+        return 0.75F;
+    }
+
+    /**
+     * B-9 composition (R196 crops :162-214 / stems :171-221) — the literal
+     * transcription order {@code base × fertilized × temp × humidity × global ×
+     * proximity} onto the vanilla dice chain (the wetness 3/1 weighting, the
+     * diagonal /4, the same-block /2 and the 25/rate dice are vanilla-identical;
+     * fertilized rides the same seam since farm1). Emits ONE composition judgment
+     * row (the [FarmLog] growth-rate face; supersedes the F8 ratio row on this path).
+     *
+     * @param fertilized whether the farmland below carries the fertilized TE bit
+     * @param fertilizedFactor the cfg multiplies when {@code fertilized} holds
+     */
+    public static float composeGrowthRateR196(World world, BlockPos pos, Block blockIn, float base,
+            boolean fertilized, float fertilizedFactor) {
+        boolean stem = blockIn instanceof net.minecraft.block.BlockStem;
+        float[] probe = new float[4];
+        float tempMod = temperatureModifier(world, pos, blockIn, probe);
+        float humMod = 1.0F;
+        if (blockIn == net.minecraft.init.Blocks.MELON_STEM
+                && world.getBiome(pos).isHighHumidity()) {
+            humMod = 1.2F; // R196 BlockStem :39-40
+        }
+        float global = ETIMConfig.globalGrowthRateFactor; // R196 :17-19
+        float proxMod = stem ? 1.0F : proximityModifierR196(world, pos, blockIn);
+        float value = base;
+        if (fertilized) {
+            value *= fertilizedFactor; // R196 :205-207 order face
+        }
+        value *= tempMod;
+        value *= humMod;
+        value *= global;
+        value *= proxMod;
+        row("growth rate block=" + name(blockIn)
+                + " family=" + (stem ? (blockIn == net.minecraft.init.Blocks.MELON_STEM ? "stem_melon" : "stem_pumpkin") : "crops")
+                + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                + " base=" + fmt(base)
+                + " fert=" + (fertilized ? fmt(fertilizedFactor) : "none")
+                + " temp=" + String.format(java.util.Locale.ROOT, "%.2f", probe[0])
+                + " window=" + String.format(java.util.Locale.ROOT, "%.1f..%.1f", probe[1], probe[2])
+                + " tempMod=" + fmt(tempMod)
+                + " hum=" + fmt(humMod)
+                + " prox=" + (stem ? "none" : fmt(proxMod))
+                + " global=" + fmt(global)
+                + " rate=" + fmt(value));
+        return value;
+    }
+
+    private static String fmt(float v) {
+        return String.format(java.util.Locale.ROOT, "%.3f", v);
+    }
+
+    /**
+     * B-9 updateTick-head freeze probe (the F1/D-1 light window plus the D-3
+     * temperature-zero rate): R196 freezes growth — and ONLY growth — behind the
+     * family light window 15..15 (BlockGrowingPlant :86-92; vanilla 1.12 gates
+     * {@code >= 9} at BlockCrops :81 / BlockStem :81) and behind a composed rate
+     * of zero (temperature is the only zeroable face with the base > 0 remainder;
+     * the 条 281 bound keeps the vanilla {@code 25.0F/rate} dice away from zero — a
+     * zero rate must NEVER reach the dice). Cancelling the whole tick keeps the
+     * freeze face (条 283) and the drought arm (B-8) semantics intact — both ride
+     * EARLIER in the same head. Returns true when the tick must freeze.
+     */
+    public static boolean growthFreezeProbe(World world, BlockPos pos, Block blockIn) {
+        if (!ETIMConfig.growthRateR196) {
+            return false;
+        }
+        if (!world.isAreaLoaded(pos, 1)) {
+            return false; // vanilla BlockCrops :80 gate — unloaded edges stay frozen silently
+        }
+        BlockPos head = pos.up();
+        int blv = world.getLightFromNeighbors(head);
+        boolean stem = blockIn instanceof net.minecraft.block.BlockStem;
+        // R196 :68 reads only the lower bound for stems; crops carry the full window (:115)
+        boolean lightBlocked = blv < ETIMConfig.growthLightMin || (!stem && blv > ETIMConfig.growthLightMax);
+        if (lightBlocked) {
+            row("growth gate light block=" + name(blockIn)
+                    + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                    + " blv=" + blv + " window=" + ETIMConfig.growthLightMin + ".." + ETIMConfig.growthLightMax);
+            return true;
+        }
+        float[] probe = new float[4];
+        float tempMod = temperatureModifier(world, pos, blockIn, probe);
+        if (tempMod <= 0.0F) {
+            row("growth gate rate-zero block=" + name(blockIn)
+                    + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                    + " temp=" + String.format(java.util.Locale.ROOT, "%.2f", probe[0])
+                    + " window=" + String.format(java.util.Locale.ROOT, "%.1f..%.1f", probe[1], probe[2])
+                    + " mod=0.00 (dice guard 条 281)");
+            return true;
+        }
+        return false;
+    }
+
     /** R196 moisture write face (metadata & 7 — the bit space is vanilla-native). */
     public static void setMoisture(World world, BlockPos pos, int level) {
         IBlockState state = world.getBlockState(pos);
