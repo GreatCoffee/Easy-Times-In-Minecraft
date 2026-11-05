@@ -38,7 +38,8 @@ public abstract class MixinTileEntityChest implements ETIMCompost.Carry {
     }
 
     @Inject(method = "writeToNBT", at = @At("TAIL"))
-    private void etim$writeCompost(NBTTagCompound compound, CallbackInfo ci) {
+    private void etim$writeCompost(NBTTagCompound compound,
+                                   org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<NBTTagCompound> cir) {
         compound.setFloat("compost", this.etim$compost);
     }
 }
