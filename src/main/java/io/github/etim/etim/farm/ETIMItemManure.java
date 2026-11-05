@@ -73,7 +73,7 @@ public final class ETIMItemManure extends Item {
     /** The R196 stage core ({@code incrementGrowth/isMature :193-241}).
      *  Returns the pre-click stage, {@code MAX} when this click paid the
      *  giant, or {@code -1} when the roll skipped the increment. */
-    private static int etim$stage(World world, BlockPos pos, IBlockState state, Block block, boolean increment) {
+    private static int etim$stage(EntityPlayer player, World world, BlockPos pos, IBlockState state, Block block, boolean increment) {
         ETIMMushroomGrowthTile te = ETIMMushroomGrowthTile.get(world, pos);
         int stage = te == null ? 0 : te.getGrowth();
         if (!increment) {
@@ -90,7 +90,7 @@ public final class ETIMItemManure extends Item {
             // 0.2) is denied in chargePlace: R196 charges the place face only
             // via tryPlaceHeldItemAsBlock (:2654-2659), which the manure
             // click never touches.
-            io.github.etim.etim.hunger.ETIMEndurance.stampCodeGrown(world.getTotalWorldTime());
+            io.github.etim.etim.hunger.ETIMEndurance.stampCodeGrown(player, world.getTotalWorldTime());
             boolean paid = ((BlockMushroom) block).generateBigMushroom(world, pos, state, world.rand);
             if (!paid) {
                 // B-2 修 — R196 :213-215 restores the metadata with the
@@ -142,7 +142,7 @@ public final class ETIMItemManure extends Item {
                 return EnumActionResult.FAIL; // R196 gate fail = silent, no consume
             }
             boolean rollHit = randRoll < 0.5F;
-            int stage = etim$stage(world, pos, state, block, rollHit);
+            int stage = etim$stage(player, world, pos, state, block, rollHit);
             if (stage < 0) {
                 ETIMFarm.row("fertilize src=manure kind=" + (red ? "red" : "brown")
                         + " roll=" + String.format(java.util.Locale.ROOT, "%.2f", randRoll)
@@ -191,7 +191,7 @@ public final class ETIMItemManure extends Item {
                 stack.shrink(1);
                 return EnumActionResult.SUCCESS;
             }
-            int stage = etim$stage(world, above, aboveState, aboveState.getBlock(), true);
+            int stage = etim$stage(player, world, above, aboveState, aboveState.getBlock(), true);
             ETIMFarm.row("fertilize src=manure chain=mycelium roll=none stage="
                     + Math.min(Math.max(stage, 0), ETIMMushroomGrowthTile.MAX_GROWTH) + "/3 giant="
                     + (stage >= ETIMMushroomGrowthTile.MAX_GROWTH ? 1 : 0));

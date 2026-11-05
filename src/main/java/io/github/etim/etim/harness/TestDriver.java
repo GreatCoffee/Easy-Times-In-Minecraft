@@ -118,7 +118,8 @@ public final class TestDriver {
             fields.etim$setFacingY(0.5F);
             fields.etim$setFacingZ(0.5F);
             player.connection.processTryUseItemOnBlock(packet);
-            ETIM.LOGGER.info("[TestLog] step=useblock player={} pos={}", player.getName(), pos);
+            ETIM.LOGGER.info("[TestLog] step=useblock player={} pos={} tick={}", player.getName(), pos,
+                    player.world.getTotalWorldTime());
         });
     }
 

@@ -43,13 +43,29 @@ import net.minecraft.util.math.MathHelper;
 public final class ETIMEndurance {
 
     /**
-     * World time of the last hoe-till charge. The server till also posts a
-     * PlaceEvent (ItemStack.java:200 wraps every server-side onItemUse in
-     * ForgeHooks.onPlaceItemIntoWorld, and the till returns SUCCESS) — that
-     * same-tick event is the till itself, not a placement. Server main
-     * thread only; a plain stamp is safe.
+     * Per-player till stamp (worldtime of the last hoe-till charge of THIS
+     * player). The server till also posts a PlaceEvent (ItemStack.java:200
+     * wraps every server-side onItemUse in ForgeHooks.onPlaceItemIntoWorld,
+     * and the till returns SUCCESS) — that same-tick event is the till
+     * itself, not a placement. Server main thread only; WeakHashMap keys on
+     * identity (Entity does not override equals) and self-cleans on
+     * respawn/exit. B-6 修（条 288 债面 → 289）: the pre-per-player global
+     * stamp mis-denied OTHER players' placements landing in the same tick.
      */
-    private static long lastTillChargeTick = Long.MIN_VALUE;
+    private static final java.util.Map<EntityPlayer, Long> TILL_STAMPS =
+            new java.util.WeakHashMap<EntityPlayer, Long>();
+
+    /**
+     * Per-player till stamp read side (same-tick consume-once).
+     */
+    private static boolean tillStampHit(EntityPlayer player, long tick) {
+        Long stamped = TILL_STAMPS.get(player);
+        if (stamped != null && stamped == tick) {
+            TILL_STAMPS.remove(player);
+            return true;
+        }
+        return false;
+    }
 
     /** R196 {@code getEnduranceModifier} (EnchantmentHelper.java:403-404). */
     public static float getEnduranceModifier(EntityPlayer player) {
@@ -72,23 +88,26 @@ public final class ETIMEndurance {
     }
 
     /**
-     * Tick stamp of the last ETIM code-grown block series (B-5 修, audit20
-     * 条 285-286 users 甲 ruling). The giant mushrooms built inside the
-     * manure {@code onItemUse} call are captured by the Forge place-snapshot
-     * wrapper ({@code ForgeHooks.onPlaceItemIntoWorld} — ItemStack.java:200)
-     * and post a {@code PlayerMultiBlockPlace} (= PlaceEvent) whose
-     * {@code placedBlock} reads the live giant block (hardness 0.2), but R196
-     * charges the place face ONLY through
+     * Per-player code-grown stamp (B-5 place-hunger 修, audit20 条 285-286
+     * users 甲 ruling; B-6 per-player 化 条 289). The giant mushrooms built
+     * inside the manure {@code onItemUse} call are captured by the Forge
+     * place-snapshot wrapper ({@code ForgeHooks.onPlaceItemIntoWorld} —
+     * ItemStack.java:200) and post a {@code PlayerMultiBlockPlace} (=
+     * PlaceEvent) whose {@code placedBlock} reads the live giant block
+     * (hardness 0.2), but R196 charges the place face ONLY through
      * {@code EntityPlayer.tryPlaceHeldItemAsBlock :2654-2659} — the manure
      * click never goes through it, so the accrued charge is a 1.12 wrapper
-     * artifact and is denied here. Same-tick plain stamp, the MixinItemHoe
-     * till precedent; server main thread only.
+     * artifact and is denied here. Same-tick consume-once, keyed per player
+     * (WeakHashMap identity, server main thread only) — the B-6 fix: a
+     * second player's ordinary placement in the same tick must NOT be
+     * denied by this player's code-grown series.
      */
-    private static long lastCodeGrownTick = Long.MIN_VALUE;
+    private static final java.util.Map<EntityPlayer, Long> CODE_GROWN_STAMPS =
+            new java.util.WeakHashMap<EntityPlayer, Long>();
 
     /** Called by ETIMItemManure around the {@code generateBigMushroom} call. */
-    public static void stampCodeGrown(long worldTime) {
-        lastCodeGrownTick = worldTime;
+    public static void stampCodeGrown(EntityPlayer player, long worldTime) {
+        CODE_GROWN_STAMPS.put(player, worldTime);
     }
 
     /** Judgment-channel row for a denied code-grown place charge. */
@@ -103,10 +122,12 @@ public final class ETIMEndurance {
      */
     public static void chargePlace(EntityPlayer player, float hardness) {
         long tick = player.world.getTotalWorldTime();
-        if (lastTillChargeTick == tick) {
-            return; // the same-tick PlaceEvent of a just-charged till
+        if (tillStampHit(player, tick)) {
+            return; // the same-tick PlaceEvent of this player's just-charged till
         }
-        if (lastCodeGrownTick == tick) {
+        Long grown = CODE_GROWN_STAMPS.get(player);
+        if (grown != null && grown == tick) {
+            CODE_GROWN_STAMPS.remove(player);
             logCodeGrownDeny(player, hardness);
             return;
         }
@@ -118,7 +139,7 @@ public final class ETIMEndurance {
     public static void chargeHoe(EntityPlayer player, float hardness) {
         charge(player, hardness / ETIMConfig.hoeHungerDivisor,
                 getEnduranceModifier(player), "hoeDrain hardness=" + hardness);
-        lastTillChargeTick = player.world.getTotalWorldTime();
+        TILL_STAMPS.put(player, player.world.getTotalWorldTime());
     }
 
     /** R196 ServerPlayer:641-643 (per active tick while drawing a bow). */
