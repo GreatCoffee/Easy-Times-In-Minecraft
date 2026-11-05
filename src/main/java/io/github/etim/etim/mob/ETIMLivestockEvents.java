@@ -200,11 +200,14 @@ public final class ETIMLivestockEvents {
         return "?";
     }
 
-    /** /etest livemano — the D-1 乙 force port: countdowns to 0, next tick drops. */
-    public static String forceManureZero(EntityLivingBase e) {
+    /** /etest livemano — the D-1 乙 force port: countdowns to 0 (optional food preset), next tick drops. */
+    public static String forceManureZero(EntityLivingBase e, Float foodSet) {
         ETIMLivestock.IState s = ETIMLivestock.get(e);
         if (s == null) {
             return null;
+        }
+        if (foodSet != null) {
+            s.setFood(foodSet);
         }
         s.setManureCountdown(0);
         return kind(e) + "#" + e.getEntityId();

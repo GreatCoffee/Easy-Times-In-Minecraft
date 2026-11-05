@@ -934,12 +934,13 @@ public class CommandDevTest extends CommandBase {
     // ------------------------------------------------- B-7 工装 tokens (粪获取面, D-1 乙)
 
     /**
-     * {@code /etest livemano [radius=6]} — the D-1 乙 force port: every
-     * livestock entity (cow/sheep/pig/chicken with the capability) inside
-     * the radius gets its manure countdown forced to 0 → the next
-     * onLivingUpdate tick of each fires the R196 :253-257 face (child /
-     * desperate animals stay gated, so the window also exercises the freeze
-     * conditions when the tester summons them).
+     * {@code /etest livemano [radius=6] [food]} — the D-1 乙 force port:
+     * every livestock entity (cow/sheep/pig/chicken with the capability)
+     * inside the radius gets its manure countdown forced to 0 → the next
+     * onLivingUpdate tick of each fires the R196 :253-257 face. The optional
+     * {@code food} setter writes the need FIRST (0.04 = the desperate
+     * freeze gate face; 0.5 = the normal pass face) so W-B7 can exercise
+     * gate determinism instead of starving an animal for 15k ticks.
      */
     private static void executeLiveMano(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         EntityPlayerMP player = sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null;
@@ -947,16 +948,21 @@ public class CommandDevTest extends CommandBase {
             throw new PlayerNotFoundException("commands.state.no_player");
         }
         int radius = args.length > 1 ? CommandBase.parseInt(args[1], 1, 64) : 6;
+        Float foodSet = null;
+        if (args.length > 2 && isNumber(args[2])) {
+            foodSet = (float) parseDouble(args[2], 0.0D, 1.0D);
+        }
         java.util.List<EntityLiving> hits = player.world.getEntitiesWithinAABB(EntityLiving.class,
                 player.getEntityBoundingBox().grow(radius));
         java.util.List<String> reset = new java.util.ArrayList<String>();
         for (EntityLiving e : hits) {
-            String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceManureZero(e);
+            String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceManureZero(e, foodSet);
             if (kind != null) {
                 reset.add(kind);
             }
         }
         io.github.etim.etim.farm.ETIMFarm.row("livemano radius=" + radius
+                + " food=" + (foodSet == null ? "-" : String.format(java.util.Locale.ROOT, "%.2f", foodSet))
                 + " reset=" + reset.size() + " kinds=" + String.join("+", reset));
         respond(player, "commands.etest.devok");
     }
