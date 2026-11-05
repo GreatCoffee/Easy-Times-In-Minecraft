@@ -20,6 +20,7 @@ import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntitySnowball;
@@ -36,6 +37,7 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.FoodStats;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -172,6 +174,12 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "arrowprobe":
                 executeArrowProbe(server, sender, args);
+                break;
+            case "livemano":
+                executeLiveMano(server, sender, args);
+                break;
+            case "chestio":
+                executeChestIO(server, sender, args);
                 break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
@@ -921,5 +929,131 @@ public class CommandDevTest extends CommandBase {
     private static boolean parseBool(String token) {
         return "1".equals(token) || "true".equalsIgnoreCase(token) || "on".equalsIgnoreCase(token)
                 || "yes".equalsIgnoreCase(token);
+    }
+
+    // ------------------------------------------------- B-7 工装 tokens (粪获取面, D-1 乙)
+
+    /**
+     * {@code /etest livemano [radius=6]} — the D-1 乙 force port: every
+     * livestock entity (cow/sheep/pig/chicken with the capability) inside
+     * the radius gets its manure countdown forced to 0 → the next
+     * onLivingUpdate tick of each fires the R196 :253-257 face (child /
+     * desperate animals stay gated, so the window also exercises the freeze
+     * conditions when the tester summons them).
+     */
+    private static void executeLiveMano(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null;
+        if (player == null) {
+            throw new PlayerNotFoundException("commands.state.no_player");
+        }
+        int radius = args.length > 1 ? CommandBase.parseInt(args[1], 1, 64) : 6;
+        java.util.List<EntityLiving> hits = player.world.getEntitiesWithinAABB(EntityLiving.class,
+                player.getEntityBoundingBox().grow(radius));
+        java.util.List<String> reset = new java.util.ArrayList<String>();
+        for (EntityLiving e : hits) {
+            String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceManureZero(e);
+            if (kind != null) {
+                reset.add(kind);
+            }
+        }
+        io.github.etim.etim.farm.ETIMFarm.row("livemano radius=" + radius
+                + " reset=" + reset.size() + " kinds=" + String.join("+", reset));
+        respond(player, "commands.etest.devok");
+    }
+
+    /**
+     * {@code /etest chestio <op> ...} — the chest-window 工装 bezel. Ops:
+     * {@code peek} | {@code add <slot> <item> [count=1]} | {@code clear} |
+     * {@code sete <float>} | {@code tick [n=1]}. The chest = nearest chest
+     * TE within 4 blocks of the sender. {@code tick} calls the R196 pump
+     * directly (one roll per worm per call — the window multiplies calls
+     * instead of waiting for the statistical cadence).
+     */
+    private static void executeChestIO(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null;
+        if (player == null) {
+            throw new PlayerNotFoundException("commands.state.no_player");
+        }
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        net.minecraft.tileentity.TileEntityChest chest = null;
+        net.minecraft.util.math.BlockPos chestPos = null;
+        int cx = MathHelper.floor(player.posX);
+        int cy = MathHelper.floor(player.posY);
+        int cz = MathHelper.floor(player.posZ);
+        for (net.minecraft.util.math.BlockPos pos : net.minecraft.util.math.BlockPos.getAllInBox(
+                new net.minecraft.util.math.BlockPos(cx - 4, cy - 4, cz - 4),
+                new net.minecraft.util.math.BlockPos(cx + 4, cy + 4, cz + 4))) {
+            net.minecraft.tileentity.TileEntity te = player.world.getTileEntity(pos);
+            if (te instanceof net.minecraft.tileentity.TileEntityChest) {
+                chest = (net.minecraft.tileentity.TileEntityChest) te;
+                chestPos = pos.toImmutable();
+                break;
+            }
+        }
+        if (chest == null) {
+            respondRaw(player, "[EtimTest] chestio: no chest within 4 blocks");
+            return;
+        }
+        io.github.etim.etim.farm.ETIMCompost.Carry carry = (io.github.etim.etim.farm.ETIMCompost.Carry) chest;
+        String op = args[1];
+        switch (op) {
+            case "peek":
+                io.github.etim.etim.farm.ETIMCompost.peekChest(chest, chestPos);
+                respond(player, "commands.etest.devok");
+                break;
+            case "add": {
+                if (args.length < 4) {
+                    throw new WrongUsageException("commands.etest.usage");
+                }
+                int slot = CommandBase.parseInt(args[2], 0, chest.getSizeInventory() - 1);
+                Item item = Item.getByNameOrId(args[3]);
+                if (item == null) {
+                    respondRaw(player, "[EtimTest] chestio: unknown item " + args[3]);
+                    return;
+                }
+                int count = args.length > 4 ? CommandBase.parseInt(args[4], 1, 64) : 1;
+                chest.setInventorySlotContents(slot, new ItemStack(item, count));
+                io.github.etim.etim.farm.ETIMCompost.peekChest(chest, chestPos);
+                respond(player, "commands.etest.devok");
+                break;
+            }
+            case "clear": {
+                for (int i = 0; i < chest.getSizeInventory(); i++) {
+                    chest.setInventorySlotContents(i, ItemStack.EMPTY);
+                }
+                io.github.etim.etim.farm.ETIMCompost.peekChest(chest, chestPos);
+                respond(player, "commands.etest.devok");
+                break;
+            }
+            case "sete": {
+                if (args.length < 3) {
+                    throw new WrongUsageException("commands.etest.usage");
+                }
+                float v = Float.parseFloat(args[2]);
+                carry.etim$setCompost(v);
+                io.github.etim.etim.farm.ETIMCompost.peekChest(chest, chestPos);
+                respond(player, "commands.etest.devok");
+                break;
+            }
+            case "tick": {
+                int n = args.length > 2 ? CommandBase.parseInt(args[2], 1, 100000) : 1;
+                for (int i = 0; i < n; i++) {
+                    io.github.etim.etim.farm.ETIMCompost.checkForWormComposting(chest, player.world, chestPos, player.world.rand);
+                }
+                io.github.etim.etim.farm.ETIMCompost.peekChest(chest, chestPos);
+                respond(player, "commands.etest.devok");
+                break;
+            }
+            default:
+                throw new WrongUsageException("commands.etest.usage");
+        }
+    }
+
+    /** Plain server-log mirror for the chestio edge replies ([EtimTest] channel). */
+    private static void respondRaw(EntityPlayerMP player, String line) {
+        ETIM.LOGGER.info(line);
+        player.sendMessage(new net.minecraft.util.text.TextComponentString(line));
     }
 }

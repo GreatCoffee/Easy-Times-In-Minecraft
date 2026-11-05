@@ -48,6 +48,7 @@ public final class ETIMLivestock {
                 tag.setFloat("water", instance.getWater());
                 tag.setFloat("freedom", instance.getFreedom());
                 tag.setBoolean("inited", instance.isInitialized());
+                tag.setInteger("manureCountdown", instance.getManureCountdown());
                 return tag;
             }
 
@@ -58,6 +59,7 @@ public final class ETIMLivestock {
                 instance.setWater(tag.getFloat("water"));
                 instance.setFreedom(tag.getFloat("freedom"));
                 instance.setInitialized(tag.getBoolean("inited"));
+                instance.setManureCountdown(tag.getInteger("manureCountdown"));
             }
         }, State::new);
     }
@@ -83,6 +85,7 @@ public final class ETIMLivestock {
             tag.setFloat("water", state.water);
             tag.setFloat("freedom", state.freedom);
             tag.setBoolean("inited", state.initialized);
+            tag.setInteger("manureCountdown", state.manureCountdown);
             return tag;
         }
 
@@ -93,6 +96,7 @@ public final class ETIMLivestock {
             state.water = tag.getFloat("water");
             state.freedom = tag.getFloat("freedom");
             state.initialized = tag.getBoolean("inited");
+            state.manureCountdown = tag.getInteger("manureCountdown");
         }
     }
 
@@ -118,6 +122,15 @@ public final class ETIMLivestock {
         boolean isInitialized();
 
         void setInitialized(boolean value);
+
+        /**
+         * R196 {@code manure_countdown} (:11) — the ticks-to-drop registry of
+         * face M1-1; the PERIOD itself is re-derived per session (R196 never
+         * persists {@code manure_period}, EntityLivestock.java:378-381).
+         */
+        int getManureCountdown();
+
+        void setManureCountdown(int value);
     }
 
     /** The capability implementation instance. */
@@ -126,6 +139,7 @@ public final class ETIMLivestock {
         float water;
         float freedom;
         boolean initialized;
+        int manureCountdown;
 
         @Override
         public float getFood() {
@@ -165,6 +179,16 @@ public final class ETIMLivestock {
         @Override
         public void setInitialized(boolean value) {
             this.initialized = value;
+        }
+
+        @Override
+        public int getManureCountdown() {
+            return this.manureCountdown;
+        }
+
+        @Override
+        public void setManureCountdown(int value) {
+            this.manureCountdown = value;
         }
 
         /** R196 setFood/setWater/setFreedom — {@code clamp_float(f, 0, 1)}. */

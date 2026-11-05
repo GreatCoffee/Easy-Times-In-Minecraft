@@ -506,6 +506,10 @@ public final class ETIMConfig {
     public static float harvestingYieldFactor = 0.5F;
     /** D-5 (条 256): the [FarmLog] judgment channel gate — created before ship (纪律 9). */
     public static boolean farmDebugLog = false;
+    /** B-7: the R196 chest worm-compost master switch (TileEntityChest.java:303-385 via the
+     *  chest random-tick lane, BlockChest.java:14/:180-191). Off = chests carry no compost
+     *  and stay vanilla-randomless. R196 箱子蚯蚓堆肥总开关。关闭则箱子回到原版（不随机 tick、不堆肥）。 */
+    public static boolean chestWormCompostR196 = true;
 
     // combat batch AD-10+SH (audit20-97 planned) ------------------------------
     /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
@@ -581,6 +585,11 @@ public final class ETIMConfig {
     public static boolean livestockNeedsR196 = true;
     /** Server-log [AILog] lines for despawn kills, holds and rerolls (dev channel). 服务端日志 [AILog] 行：消散击杀、挽留判定与计数重掷（开发通道）。 */
     public static boolean mobDebugLog = false;
+    /** R196 livestock manure periods (ticks): cow = base 24000 (EntityLivestock.java:29), pig x2 = 48000 (:30), sheep x2 = 48000 (:45), chicken x8x2 = 384000 (:24). Drop = 1 manure at countdown 0, then reroll period/2 + rand(period). 家畜掉粪周期（tick）：牛 24000（基类默认）、猪 ×2=48000、羊 ×2=48000、鸡 ×8×2=384000；倒数到 0 掉粪 1 个，再掷 period/2+随机(period)。 */
+    public static int livestockManurePeriodCow = 24000;
+    public static int livestockManurePeriodPig = 48000;
+    public static int livestockManurePeriodSheep = 48000;
+    public static int livestockManurePeriodChicken = 384000;
     /** Master switch of the R196 spawn cycle (audit 11 §4 + audit 14): cap table 50/10/5/5 over /256, hostile dual probability rings, the modifier four events and the admission fine print. Off = vanilla 1.12 world-entity spawner. R196 生成周期总开关（审计 11 §4 + 审计 14）：物种上限表 50/10/5/5 按区块 /256 折算、敌怪双概率环、四个调制事件与准入细则。关闭则回到原版 1.12 生物生成器。 */
     public static boolean mobSpawnR196 = true;
     /** R196 monster spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 50; vanilla 1.12 = 70). 敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）。 */
@@ -1239,6 +1248,9 @@ public final class ETIMConfig {
         farmDebugLog = config.getBoolean("farmDebugLog", "farm", false,
                 comment("[FarmLog] rows of the farm1 batch: tillage/harvest fertility rolls, fertilized set/clear, growth ratio, trample deny — roll and need on ONE line (B-4: no seeding). Silent when off",
                         "[FarmLog] 判行（farm1 批）：沃肥翻地/收成判定、施肥置/清位、增速比、防踩行——掷值与门槛单行同打。关闭则静默"));
+        chestWormCompostR196 = config.getBoolean("chestWormCompostR196", "farm", true,
+                comment("R196 chest worm-compost master switch (B-7): chests enter the random-tick lane and live worms in the chest turn hay/wheat/food into manure (TileEntityChest.java:303-385). Off = vanilla chests, no tick lane",
+                        "R196 箱子蚯蚓堆肥总开关（B-7）：箱子进入随机 tick 车，箱内活蚯蚓把干草/麦/食物转成粪（TileEntityChest.java:303-385）。关闭则箱子回到原版、不进随机 tick 车"));
 
         // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
         armorModelR196 = config.getBoolean("armorModelR196", "combat", true,
@@ -1331,6 +1343,18 @@ public final class ETIMConfig {
         mobDebugLog = config.getBoolean("mobDebugLog", "mobs", false,
                 comment("Server log [AILog] lines: despawn kills, holds and counter rerolls (dev channel)",
                         "服务端日志 [AILog] 行：消散击杀、挽留判定与计数重掷（开发通道）"));
+        livestockManurePeriodCow = config.getInt("livestockManurePeriodCow", "mobs", livestockManurePeriodCow, 1, 2400000,
+                comment("R196 cow manure period in ticks (base 24000 = 1 day at :29); drop 1 manure at 0, reroll period/2 + rand(period) (:256)",
+                        "R196 牛掉粪周期（tick，基类 :29 默认 24000=1游戏日）；倒数到 0 掉粪 1 个，再掷 period/2+随机(period)（:256）"));
+        livestockManurePeriodPig = config.getInt("livestockManurePeriodPig", "mobs", livestockManurePeriodPig, 1, 2400000,
+                comment("R196 pig manure period = base x2 = 48000 (EntityPig.java:30)",
+                        "R196 猪掉粪周期 = 基类 ×2 = 48000（EntityPig.java:30）"));
+        livestockManurePeriodSheep = config.getInt("livestockManurePeriodSheep", "mobs", livestockManurePeriodSheep, 1, 2400000,
+                comment("R196 sheep manure period = base x2 = 48000 (EntitySheep.java:45)",
+                        "R196 羊掉粪周期 = 基类 ×2 = 48000（EntitySheep.java:45）"));
+        livestockManurePeriodChicken = config.getInt("livestockManurePeriodChicken", "mobs", livestockManurePeriodChicken, 1, 24000000,
+                comment("R196 chicken manure period = base x8 x2 = 384000 (EntityChicken.java:24)",
+                        "R196 鸡掉粪周期 = 基类 ×8×2 = 384000（EntityChicken.java:24）"));
         mobSpawnR196 = config.getBoolean("mobSpawnR196", "mobs", true,
                 comment("R196 spawn cycle (audit 11 §4 + audit 14): creature caps 50/10/5/5 over /256 chunks with the deep doubling, hostile dual probability rings 0.10 (under y60) / 0.17 (surface) times the modifier events (decreased x0.5 / increased x2 / no-spawn windows, blood-moon and thunder restore only reduced mods), the %-400 peaceful windows with blue-moon animal gating, night moon rejection rates and the dual-light close branch. Off = vanilla 1.12 spawning",
                         "R196 生成周期（审计 11 §4 + 审计 14）：物种上限 50/10/5/5 ×区块数/256（深处加倍）、敌怪双概率环（y60 下 0.10/地表 0.17）×调制事件（缩减×0.5/翻倍×2/停发窗口，血月与雷雨只还原缩减类）、%-400 温驯窗口（动物加蓝月门）、夜间月亮拒率与双光照近距离准入。关闭则回到原版 1.12 生成"));

@@ -2,6 +2,7 @@ package io.github.etim.etim.mob;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.farm.ETIMItemManure;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -66,6 +67,8 @@ public final class ETIMLivestockEvents {
     private static final float PENALTY = -0.005F;
     /** R196 :218 — the cow's grass-eating destruction chance. */
     private static final float COW_DESTROY_CHANCE = 0.01F;
+    /** R196 :136-138 — isDesperateForFood = food &lt; 0.05F. */
+    private static final float DESPERATE_FOOD_GATE = 0.05F;
 
     /**
      * [AILog] dedup: one line per (entity, welfare-glyph) state flip — the
@@ -104,11 +107,19 @@ public final class ETIMLivestockEvents {
             s.setFood(0.8F + rand.nextFloat() * 0.2F);
             s.setWater(0.8F + rand.nextFloat() * 0.2F);
             s.setFreedom(0.8F + rand.nextFloat() * 0.2F);
+            // R196 :29/:380 — the initial countdown is a full-period random
+            // (setManurePeriod re-randomizes); B-7 faces it once with the
+            // FINAL per-species period instead of the R196 double random.
+            s.setManureCountdown(rand.nextInt(manurePeriod(e)));
             s.setInitialized(true);
         }
         if (e.ticksExisted % 100 == 0 && e.getRNG().nextInt(10) > 0) {
             updateWellness(e, s, e instanceof EntityCow);
         }
+        // B-7 face M1-1 — R196 EntityLivestock.onLivingUpdate :253-257, run PER
+        // TICK: the decrement is short-circuited behind the two gates, so a
+        // child or desperate (food < 0.05F) animal FREEZES its countdown.
+        tickManureCountdown(e, s);
         // value trace (run27 C3/C4/C5 判据面): one full-readout row per
         // ~60 s of entity age, gated per entity — the glyph-flip dedup hides
         // the absolute values between flips, and C4 needs rain-vs-dry
@@ -124,6 +135,80 @@ public final class ETIMLivestockEvents {
 
     private static final java.util.Map<EntityLivingBase, Long> RAIN_TRACE =
             new java.util.WeakHashMap<EntityLivingBase, Long>();
+
+    /**
+     * B-7 face M1-1/2 — R196 :253-257 verbatim: gates, one drop, then the
+     * {@code period/2 + rand.nextInt(period)} re-roll. The drop rides R196
+     * {@code dropItem(Item.manure.itemID, 1)} — 1.12 =
+     * {@code entityDropItem(new ItemStack(manure), 0)} (the ground-scatter
+     * freeze is face M1-4, in {@code MixinEntityItem}).
+     */
+    private static void tickManureCountdown(EntityLivingBase e, ETIMLivestock.IState s) {
+        if (e instanceof EntityAgeable && ((EntityAgeable) e).isChild()) {
+            return; // !isChild gate — R196 :253
+        }
+        if (s.getFood() < DESPERATE_FOOD_GATE) {
+            return; // isDesperateForFood gate — R196 :254 short-circuit = frozen countdown
+        }
+        int countdown = s.getManureCountdown() - 1; // R196 :254 --countdown
+        if (countdown > 0) {
+            s.setManureCountdown(countdown);
+            return;
+        }
+        int period = manurePeriod(e);
+        int next = period / 2 + e.getRNG().nextInt(period); // R196 :256
+        s.setManureCountdown(next);
+        e.entityDropItem(new net.minecraft.item.ItemStack(ETIMItemManure.item(), 1), 0.0F);
+        io.github.etim.etim.farm.ETIMFarm.row("manure src=livestock kind=" + kind(e)
+                + " drop=1 period=" + period + " countdown=" + next
+                + " pos=" + MathHelper.floor(e.posX) + "," + MathHelper.floor(e.posY) + "," + MathHelper.floor(e.posZ));
+    }
+
+    /**
+     * B-7 face M1-2 — the per-species period table: cow = the base 24000
+     * (EntityLivestock.java:29; EntityCow carries no override), pig ×2
+     * (EntityPig.java:30), sheep ×2 (EntitySheep.java:45), chicken ×8×2 =
+     * 384000 (EntityChicken.java:24). Configurable per rule 2; test cells
+     * override the countdown instead of the period.
+     */
+    private static int manurePeriod(EntityLivingBase e) {
+        if (e instanceof EntityChicken) {
+            return ETIMConfig.livestockManurePeriodChicken;
+        }
+        if (e instanceof EntityPig) {
+            return ETIMConfig.livestockManurePeriodPig;
+        }
+        if (e instanceof EntitySheep) {
+            return ETIMConfig.livestockManurePeriodSheep;
+        }
+        return ETIMConfig.livestockManurePeriodCow;
+    }
+
+    private static String kind(EntityLivingBase e) {
+        if (e instanceof EntityCow) {
+            return "cow";
+        }
+        if (e instanceof EntitySheep) {
+            return "sheep";
+        }
+        if (e instanceof EntityPig) {
+            return "pig";
+        }
+        if (e instanceof EntityChicken) {
+            return "chicken";
+        }
+        return "?";
+    }
+
+    /** /etest livemano — the D-1 乙 force port: countdowns to 0, next tick drops. */
+    public static String forceManureZero(EntityLivingBase e) {
+        ETIMLivestock.IState s = ETIMLivestock.get(e);
+        if (s == null) {
+            return null;
+        }
+        s.setManureCountdown(0);
+        return kind(e) + "#" + e.getEntityId();
+    }
 
     /** R196 updateWellness :215-239 — the benefit/penalty pass. */
     private static void updateWellness(EntityLivingBase e, ETIMLivestock.IState s, boolean cow) {
