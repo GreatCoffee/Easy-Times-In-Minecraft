@@ -19,8 +19,11 @@ import javax.annotation.Nullable;
  * NBT capability on the vanilla livestock entities (cow / sheep / pig /
  * chicken — R196's livestock family; MITE-specific strains do not exist in
  * 1.12). R196 keeps the three needs as plain floats with a data-watcher
- * boolean mirror; v1 keeps only the server-side floats + NBT (no client
- * mirror yet — there is no consumer for it until the production slice v2).
+ * boolean mirror; carried server-side + NBT. v2 (B-10, audit20 条 300) adds
+ * the production state — R196 {@code production_counter} (:9), the cow milk
+ * meter (:27-33) and the chicken feather meter (:9-10) — all server-side +
+ * NBT persisted (R196 :92/:45/:44-45), still with no client mirror (not
+ * needed by any judgment face).
  *
  * <p>Verbatim R196 values (EntityLivestock.java): initial state
  * {@code 0.8 + rand * 0.2} on all three needs (:26-28); the setters clamp
@@ -49,6 +52,10 @@ public final class ETIMLivestock {
                 tag.setFloat("freedom", instance.getFreedom());
                 tag.setBoolean("inited", instance.isInitialized());
                 tag.setInteger("manureCountdown", instance.getManureCountdown());
+                tag.setInteger("productionCounter", instance.getProductionCounter());
+                tag.setInteger("milk", instance.getMilk());
+                tag.setInteger("numFeathers", instance.getNumFeathers());
+                tag.setInteger("maxNumFeathers", instance.getMaxNumFeathers());
                 return tag;
             }
 
@@ -60,6 +67,10 @@ public final class ETIMLivestock {
                 instance.setFreedom(tag.getFloat("freedom"));
                 instance.setInitialized(tag.getBoolean("inited"));
                 instance.setManureCountdown(tag.getInteger("manureCountdown"));
+                instance.setProductionCounter(tag.getInteger("productionCounter"));
+                instance.setMilk(tag.getInteger("milk"));
+                instance.setNumFeathers(tag.getInteger("numFeathers"));
+                instance.setMaxNumFeathers(tag.getInteger("maxNumFeathers"));
             }
         }, State::new);
     }
@@ -86,6 +97,10 @@ public final class ETIMLivestock {
             tag.setFloat("freedom", state.freedom);
             tag.setBoolean("inited", state.initialized);
             tag.setInteger("manureCountdown", state.manureCountdown);
+            tag.setInteger("productionCounter", state.productionCounter);
+            tag.setInteger("milk", state.milk);
+            tag.setInteger("numFeathers", state.numFeathers);
+            tag.setInteger("maxNumFeathers", state.maxNumFeathers);
             return tag;
         }
 
@@ -97,6 +112,10 @@ public final class ETIMLivestock {
             state.freedom = tag.getFloat("freedom");
             state.initialized = tag.getBoolean("inited");
             state.manureCountdown = tag.getInteger("manureCountdown");
+            state.productionCounter = tag.getInteger("productionCounter");
+            state.milk = tag.getInteger("milk");
+            state.numFeathers = tag.getInteger("numFeathers");
+            state.maxNumFeathers = tag.getInteger("maxNumFeathers");
         }
     }
 
@@ -131,6 +150,36 @@ public final class ETIMLivestock {
         int getManureCountdown();
 
         void setManureCountdown(int value);
+
+        /**
+         * R196 {@code production_counter} (:9, NBT :92) — the wellness-pass
+         * work tally that {@code produceGoods} consumes (:245-251).
+         */
+        int getProductionCounter();
+
+        void setProductionCounter(int value);
+
+        /**
+         * R196 {@code EntityCow} milk meter (:27-33) — 0..100, created at 100
+         * (:18); reads 0 for a child (:32). Milking takes 100 (ItemBucket
+         * standard_volume 4 × 25, ItemVessel.java:105).
+         */
+        int getMilk();
+
+        void setMilk(int value);
+
+        /**
+         * R196 {@code EntityChicken} feather meter (:9-10) — overflow turned
+         * into feather drops by {@code gainFeather} (:193-199).
+         */
+        int getNumFeathers();
+
+        void setNumFeathers(int value);
+
+        /** R196 max feathers, init {@code 1..2} (:25-28). */
+        int getMaxNumFeathers();
+
+        void setMaxNumFeathers(int value);
     }
 
     /** The capability implementation instance. */
@@ -140,6 +189,10 @@ public final class ETIMLivestock {
         float freedom;
         boolean initialized;
         int manureCountdown;
+        int productionCounter;
+        int milk;
+        int numFeathers;
+        int maxNumFeathers;
 
         @Override
         public float getFood() {
@@ -189,6 +242,47 @@ public final class ETIMLivestock {
         @Override
         public void setManureCountdown(int value) {
             this.manureCountdown = value;
+        }
+
+        @Override
+        public int getProductionCounter() {
+            return this.productionCounter;
+        }
+
+        @Override
+        public void setProductionCounter(int value) {
+            this.productionCounter = Math.max(0, value);
+        }
+
+        @Override
+        public int getMilk() {
+            return this.milk;
+        }
+
+        /** R196 EntityCow.setMilk — {@code clamp_int(milk, 0, 100)} (:28). */
+        @Override
+        public void setMilk(int value) {
+            this.milk = value < 0 ? 0 : (value > 100 ? 100 : value);
+        }
+
+        @Override
+        public int getNumFeathers() {
+            return this.numFeathers;
+        }
+
+        @Override
+        public void setNumFeathers(int value) {
+            this.numFeathers = Math.max(0, value);
+        }
+
+        @Override
+        public int getMaxNumFeathers() {
+            return this.maxNumFeathers;
+        }
+
+        @Override
+        public void setMaxNumFeathers(int value) {
+            this.maxNumFeathers = Math.max(0, value);
         }
 
         /** R196 setFood/setWater/setFreedom — {@code clamp_float(f, 0, 1)}. */

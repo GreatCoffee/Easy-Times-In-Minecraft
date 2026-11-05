@@ -178,6 +178,9 @@ public class CommandDevTest extends CommandBase {
             case "livemano":
                 executeLiveMano(server, sender, args);
                 break;
+            case "prod":
+                executeProd(server, sender, args);
+                break;
             case "chestio":
                 executeChestIO(server, sender, args);
                 break;
@@ -973,6 +976,83 @@ public class CommandDevTest extends CommandBase {
         io.github.etim.etim.farm.ETIMFarm.row("livemano radius=" + radius
                 + " food=" + (foodSet == null ? "-" : String.format(java.util.Locale.ROOT, "%.2f", foodSet))
                 + " reset=" + reset.size() + " kinds=" + String.join("+", reset));
+        respond(player, "commands.etest.devok");
+    }
+
+    // ------------------------------------------------- B-10 工装 token (产出链, 条 300)
+
+    /**
+     * {@code /etest prod [radius=6] [counter=N] [milk=X] [feather=N]} — the
+     * B-10 force port: every livestock entity inside the radius gets the
+     * named production meters written (chicken counter 200 → the 1-in-20
+     * egg gate rolls from THIS pass onward; feather seeds the feather
+     * meter; milk seeds the cow milk meter 0..100). Absent tokens are
+     * left as-is; the echo line names the kinds so the window can pick its
+     * judge points without extra probing.
+     */
+    private static void executeProd(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        int radius = 6;
+        Integer counter = null;
+        Integer milk = null;
+        Integer feathers = null;
+        Integer step = null;
+        EntityPlayerMP player = null;
+        for (int i = 1; i < args.length; i++) {
+            String arg = args[i];
+            int eq = arg.indexOf('=');
+            if (eq < 0) {
+                // plain token: numeric = radius, anything else = the target player
+                if (isNumber(arg)) {
+                    radius = CommandBase.parseInt(arg, 1, 64);
+                } else {
+                    player = CommandBase.getPlayer(server, sender, arg);
+                }
+                continue;
+            }
+            String key = arg.substring(0, eq);
+            String value = arg.substring(eq + 1);
+            try {
+                int v = Integer.parseInt(value);
+                if ("counter".equals(key)) {
+                    counter = Math.max(0, v);
+                } else if ("milk".equals(key)) {
+                    milk = MathHelper.clamp(v, 0, 100);
+                } else if ("feather".equals(key) || "feathers".equals(key)) {
+                    feathers = Math.max(0, v);
+                } else if ("step".equals(key)) {
+                    step = MathHelper.clamp(v, 1, 2000);
+                } else {
+                    throw new WrongUsageException("commands.etest.usage");
+                }
+            } catch (NumberFormatException e) {
+                throw new WrongUsageException("commands.etest.usage");
+            }
+        }
+        if (player == null) {
+            if (sender instanceof EntityPlayerMP) {
+                player = (EntityPlayerMP) sender;
+            } else {
+                throw new PlayerNotFoundException("commands.state.no_player");
+            }
+        }
+        java.util.List<EntityLiving> hits = player.world.getEntitiesWithinAABB(EntityLiving.class,
+                player.getEntityBoundingBox().grow(radius));
+        java.util.List<String> kinds = new java.util.ArrayList<String>();
+        for (EntityLiving e : hits) {
+            String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceProd(e, counter, milk, feathers);
+            if (kind != null) {
+                if (step != null) {
+                    io.github.etim.etim.mob.ETIMLivestockEvents.pumpGoods(e, step);
+                }
+                kinds.add(kind);
+            }
+        }
+        io.github.etim.etim.farm.ETIMFarm.row("prod radius=" + radius
+                + " counter=" + (counter == null ? "-" : counter)
+                + " milk=" + (milk == null ? "-" : milk)
+                + " feather=" + (feathers == null ? "-" : feathers)
+                + " step=" + (step == null ? "-" : step)
+                + " set=" + kinds.size() + " kinds=" + String.join("+", kinds));
         respond(player, "commands.etest.devok");
     }
 

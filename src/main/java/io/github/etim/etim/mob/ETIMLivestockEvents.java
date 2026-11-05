@@ -2,6 +2,7 @@ package io.github.etim.etim.mob;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.farm.ETIMFarm;
 import io.github.etim.etim.farm.ETIMItemManure;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
@@ -54,11 +55,20 @@ import java.util.WeakHashMap;
  *       (self included) inside the box grown by (2, 0.5, 2).</li>
  * </ul>
  *
- * <p>v1 deliberately leaves out (queued v2): the production counter and
- * {@code produceGoods} (milk / wool / feather / egg goods), the manure
- * countdown, Block.onTrampledBy and the startle/memory fields, and the
- * client data-watcher mirror (no consumer until production). The v1
- * judgment surface is the [AILog] state-flip lines only.</p>
+ * <p>B-10 (条 300, production slice v2) adds the production family: the
+ * 100-tick counter arm and the {@code produceGoods} dispatch (milk meter /
+ * chicken feather + egg gates / sheep+pig reset — see {@link #produceGoods}),
+ * the chicken meter init, the milking face {@link #milkClick} (the vanilla
+ * infinite-milk path must be cancelled by the caller when on), the /etest
+ * {@code prod} force port and the production columns on the value-trace row.
+ * The wellness rule set above is untouched (the counter arm rides the SAME
+ * 9/10-gated pass — R196 :245-248 short-circuit order).</p>
+ *
+ * <p>v1 left un-carried (queued v2 and still queued here): the manure
+ * countdown (answered by B-7 face M1-1), Block.onTrampledBy and the
+ * startle/memory fields, and the client data-watcher mirror (no consumer
+ * for it until a client face exists). The v1 judgment surface remains the
+ * [AILog] state-flip lines; B-10 adds the [AILog] production rows.</p>
  */
 public final class ETIMLivestockEvents {
 
@@ -111,10 +121,38 @@ public final class ETIMLivestockEvents {
             // (setManurePeriod re-randomizes); B-7 faces it once with the
             // FINAL per-species period instead of the R196 double random.
             s.setManureCountdown(rand.nextInt(manurePeriod(e)));
+            // B-10 production meters — R196 ctors: EntityCow.setMilk(100)
+            // (:18); EntityChicken max 1..2 with the 1/2 trim (:25-28) and
+            // num = max (:30) — .ItemBucket standard_volume 4 × 25 = the
+            // full-meter milking threshold (ItemVessel.java:105).
+            if (e instanceof EntityCow) {
+                s.setMilk(100);
+            }
+            if (e instanceof EntityChicken) {
+                int max = rand.nextInt(2) + 1;
+                if (max > 1 && rand.nextInt(2) == 0) {
+                    max--;
+                }
+                s.setMaxNumFeathers(max);
+                s.setNumFeathers(max);
+            }
             s.setInitialized(true);
         }
-        if (e.ticksExisted % 100 == 0 && e.getRNG().nextInt(10) > 0) {
-            updateWellness(e, s, e instanceof EntityCow);
+        if (e.ticksExisted % 100 == 0) {
+            // R196 :245-248 verbatim short-circuit — updateWellness runs ONLY
+            // when the 9/10 roll passes; the production counter rises only
+            // when the wellness pass ENDED well on an adult (:238/:246).
+            boolean wellAfterPass = false;
+            if (e.getRNG().nextInt(10) > 0) {
+                wellAfterPass = updateWellness(e, s, e instanceof EntityCow);
+            }
+            if (ETIMConfig.livestockProductionR196) {
+                boolean child = e instanceof EntityAgeable && ((EntityAgeable) e).isChild();
+                if (wellAfterPass && !child) {
+                    s.setProductionCounter(s.getProductionCounter() + 1);
+                }
+                produceGoods(e, s); // R196 :250 — unconditional per 100-tick pass
+            }
         }
         // B-7 face M1-1 — R196 EntityLivestock.onLivingUpdate :253-257, run PER
         // TICK: the decrement is short-circuited behind the two gates, so a
@@ -128,6 +166,9 @@ public final class ETIMLivestockEvents {
             ETIM.LOGGER.info("[AILog] livestock-value food=" + String.format("%.2f", s.getFood())
                     + String.format(" water=%.2f", s.getWater())
                     + String.format(" freedom=%.2f", s.getFreedom())
+                    + " counter=" + s.getProductionCounter()
+                    + " milk=" + s.getMilk()
+                    + " feathers=" + s.getNumFeathers() + "/" + s.getMaxNumFeathers()
                     + " age=" + e.ticksExisted
                     + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
         }
@@ -213,8 +254,8 @@ public final class ETIMLivestockEvents {
         return kind(e) + "#" + e.getEntityId();
     }
 
-    /** R196 updateWellness :215-239 — the benefit/penalty pass. */
-    private static void updateWellness(EntityLivingBase e, ETIMLivestock.IState s, boolean cow) {
+    /** R196 updateWellness :215-239 — the benefit/penalty pass; returns this pass's isWell (:238). */
+    private static boolean updateWellness(EntityLivingBase e, ETIMLivestock.IState s, boolean cow) {
         World w = e.world;
         // C4-d instrument (run27 2026-10-13): one row per entity per ~2 s on
         // each updateWellness pass — names the verdict inputs directly
@@ -250,6 +291,173 @@ public final class ETIMLivestockEvents {
             s.setFreedom(s.getFreedom() + PENALTY);
         }
         logStateFlip(e, s);
+        // R196 :238 — updateWellness returns THIS pass's isWell verdict; the
+        // production counter arm (:246) consumes it (B-10).
+        return Math.min(s.getFreedom(), Math.min(s.getFood(), s.getWater())) >= 0.25F;
+    }
+
+    // -------------------------------------------------- production (B-10)
+
+    /**
+     * R196 {@code produceGoods} family (:250 dispatch, :301 abstract) — the
+     * per-100-tick consumption of {@code production_counter}:
+     * <ul>
+     *   <li>{@code EntityCow.produceGoods :80-83} — the milk meter absorbs
+     *       the counter (clamped 0..100), the counter zeroes.</li>
+     *   <li>{@code EntityChicken.produceGoods :82-95} — feather gate
+     *       {@code counter >= 100 && rand.nextInt(500) == 0} → one
+     *       {@code gainFeather}, {@code counter -= 100}; ELSE egg gate
+     *       {@code counter >= 200 && rand.nextInt(20) == 0} → plop + drop 1
+     *       egg, {@code counter -= 200}. Both gates roll EVERY pass once the
+     *       threshold holds.</li>
+     *   <li>{@code EntitySheep :267-269 / EntityPig :190-192} — counter
+     *       reset only (R196 sheep/pig produce nothing; sheep wool comes
+     *       from the shear/eatGrass faces instead).</li>
+     * </ul>
+     * Drops ride {@code dropItem(item, 1)} = {@code entityDropItem(stack,
+     * 0)} (the B-7 manure precedent — ground-scatter freeze in
+     * {@code MixinEntityItem}); the egg keeps the R196 plop pitch
+     * ({@code (f - f) * 0.2 + 1.0}).
+     */
+    private static void produceGoods(EntityLivingBase e, ETIMLivestock.IState s) {
+        if (e instanceof EntityCow) {
+            int counter = s.getProductionCounter();
+            if (counter > 0) {
+                s.setMilk(s.getMilk() + counter); // R196 :81 (clamp in setMilk)
+                s.setProductionCounter(0); // :82
+            }
+            return;
+        }
+        if (e instanceof EntityChicken) {
+            java.util.Random rand = e.getRNG();
+            int counter = s.getProductionCounter();
+            int featherThreshold = 100; // R196 :83
+            if (counter >= featherThreshold && rand.nextInt(featherThreshold * 5) == 0) { // :84
+                gainFeather(e, s);
+                s.setProductionCounter(s.getProductionCounter() - featherThreshold);
+            } else {
+                int eggThreshold = 200; // R196 :88
+                if (counter >= eggThreshold && rand.nextInt(20) == 0) { // :89
+                    e.playSound(net.minecraft.init.SoundEvents.ENTITY_CHICKEN_EGG, 1.0F,
+                            (rand.nextFloat() - rand.nextFloat()) * 0.2F + 1.0F);
+                    dropStack(e, new net.minecraft.item.ItemStack(net.minecraft.init.Items.EGG, 1));
+                    s.setProductionCounter(counter - eggThreshold);
+                    if (ETIMConfig.mobDebugLog) {
+                        ETIM.LOGGER.info("[AILog] production src=chicken kind=egg drop=1 counter="
+                                + s.getProductionCounter() + " entity=EntityChicken#" + e.getEntityId());
+                    }
+                }
+            }
+            return;
+        }
+        // EntitySheep :268 / EntityPig :191 — consume-and-drop-nothing cover
+        s.setProductionCounter(0);
+    }
+
+    /** R196 {@code EntityChicken.gainFeather :193-199} — meter fill, overflow = feather drop. */
+    private static void gainFeather(EntityLivingBase e, ETIMLivestock.IState s) {
+        if (s.getNumFeathers() < s.getMaxNumFeathers()) {
+            s.setNumFeathers(s.getNumFeathers() + 1);
+            if (ETIMConfig.mobDebugLog) {
+                ETIM.LOGGER.info("[AILog] production src=chicken kind=feather grew=true num="
+                        + s.getNumFeathers() + "/" + s.getMaxNumFeathers()
+                        + " entity=EntityChicken#" + e.getEntityId());
+            }
+        } else {
+            dropStack(e, new net.minecraft.item.ItemStack(net.minecraft.init.Items.FEATHER, 1));
+            if (ETIMConfig.mobDebugLog) {
+                ETIM.LOGGER.info("[AILog] production src=chicken kind=feather drop=1 num="
+                        + s.getNumFeathers() + "/" + s.getMaxNumFeathers()
+                        + " entity=EntityChicken#" + e.getEntityId());
+            }
+        }
+    }
+
+    private static void dropStack(EntityLivingBase e, net.minecraft.item.ItemStack stack) {
+        e.entityDropItem(stack, 0.0F);
+    }
+
+    /**
+     * B-10 milking face — R196 {@code ItemVessel.tryEntityInteraction
+     * :100-115}: an empty vessel on a cow serves milk only when the meter
+     * holds the full {@code standard_volume * 25} (bucket 4 × 25 = 100 =
+     * the whole meter, the same face twice-over for 1.12's single bucket),
+     * then drains exactly 100 (:107). Creative keeps the vessel and draws
+     * nothing (:108-110 verbatim — the drain still happens). Returns true
+     * when THIS click is answered (the caller must cancel the vanilla
+     * infinite-milk path); below the meter it answers FALSE-INTENT — the
+     * click is still ours (deny row, nothing given, vanilla must not run).
+     */
+    public static boolean milkClick(EntityCow cow, net.minecraft.entity.player.EntityPlayer player,
+                                    net.minecraft.util.EnumHand hand) {
+        if (cow.world.isRemote) {
+            return true; // server answers; client mirrors as handled
+        }
+        ETIMLivestock.IState s = ETIMLivestock.get(cow);
+        if (s == null) {
+            return false; // no capability → vanilla fallback (defensive)
+        }
+        int meter = cow.isChild() ? 0 : s.getMilk(); // R196 :32 — child reads 0
+        int need = 100; // ItemBucket.standard_volume 4 × 25 (ItemVessel.java:105)
+        if (meter < need) {
+            ETIMFarm.row("milk src=cow deny meter=" + meter + " need=" + need
+                    + " entity=EntityCow#" + cow.getEntityId());
+            return true; // denied — vanilla infinite milk must NOT run
+        }
+        s.setMilk(meter - need); // R196 :107 — the whole meter goes
+        if (!player.capabilities.isCreativeMode) {
+            net.minecraft.item.ItemStack held = player.getHeldItem(hand);
+            net.minecraft.item.ItemStack milk = new net.minecraft.item.ItemStack(
+                    net.minecraft.init.Items.MILK_BUCKET, 1);
+            if (held.getCount() <= 1) {
+                player.setHeldItem(hand, milk);
+            } else {
+                held.shrink(1);
+                if (!player.addItemStackToInventory(milk)) {
+                    player.dropItem(milk, false);
+                }
+            }
+        }
+        ETIMFarm.row("milk src=cow serve take=" + need + " meter=" + s.getMilk()
+                + " entity=EntityCow#" + cow.getEntityId());
+        return true;
+    }
+
+    /** B-10 工装 — the /etest prod force port (counter/milk/feather setters). */
+    public static String forceProd(EntityLivingBase e, Integer counter, Integer milk, Integer feathers) {
+        ETIMLivestock.IState s = ETIMLivestock.get(e);
+        if (s == null) {
+            return null;
+        }
+        if (counter != null) {
+            s.setProductionCounter(counter);
+        }
+        if (milk != null) {
+            s.setMilk(milk);
+        }
+        if (feathers != null) {
+            s.setNumFeathers(feathers);
+            if (s.getMaxNumFeathers() < feathers) {
+                s.setMaxNumFeathers(feathers);
+            }
+        }
+        return kind(e);
+    }
+
+    /**
+     * B-10 工装 — the /etest prod step pump: {@code produceGoods} called
+     * directly N times (the B-7 chest-face precedent — the window multiplies
+     * rolls instead of waiting out the statistical cadence; a 1/500 feather
+     * roll would never open inside a natural window).
+     */
+    public static void pumpGoods(EntityLivingBase e, int n) {
+        ETIMLivestock.IState s = ETIMLivestock.get(e);
+        if (s == null) {
+            return;
+        }
+        for (int i = 0; i < n; i++) {
+            produceGoods(e, s);
+        }
     }
 
     // ------------------------------------------------------------------ scans

@@ -605,6 +605,8 @@ public final class ETIMConfig {
     public static boolean livestockNeedsR196 = true;
     /** Server-log [AILog] lines for despawn kills, holds and rerolls (dev channel). 服务端日志 [AILog] 行：消散击杀、挽留判定与计数重掷（开发通道）。 */
     public static boolean mobDebugLog = false;
+    /** Master switch of the R196 production slice (audit20 条 299/300, B-10): the 100-tick production counter arm + produceGoods — cow milk meter (full at 100, one bucket of milk takes the whole meter), chicken feather meter (1..2) + egg gate (counter 200, 1-in-20 per pass), sheep/pig produce nothing (counter reset). Also silences the vanilla 6000-tick egg lane. Off = vanilla carries everything (infinite milk + vanilla eggs). R196 产出口总开关（条件 299/300，B-10）：100 tick 产出口增长臂＋produceGoods——牛奶表（满 100，一桶奶扣整表）、鸡羽表（1..2）+ 蛋门（计数 200、每 pass 1/20）、羊/猪不产（归零）。开启时同时静默原版 6000 tick 蛋道。关闭则回到原版（无穷奶 + 原版蛋）。 */
+    public static boolean livestockProductionR196 = true;
     /** R196 livestock manure periods (ticks): cow = base 24000 (EntityLivestock.java:29), pig x2 = 48000 (:30), sheep x2 = 48000 (:45), chicken x8x2 = 384000 (:24). Drop = 1 manure at countdown 0, then reroll period/2 + rand(period). 家畜掉粪周期（tick）：牛 24000（基类默认）、猪 ×2=48000、羊 ×2=48000、鸡 ×8×2=384000；倒数到 0 掉粪 1 个，再掷 period/2+随机(period)。 */
     public static int livestockManurePeriodCow = 24000;
     public static int livestockManurePeriodPig = 48000;
@@ -1415,8 +1417,11 @@ public final class ETIMConfig {
                 comment("R196 per-class mob attribute rows (audit 11 §3.1, vanilla-faithful classes only): skeleton 6 hp / 4 attack / 32 follow, zombie 5 attack / 32 follow / 0 armor, zombie pigman 8 attack / 32 follow, spider 12 hp / 4 attack / 28 follow. Off = vanilla 1.12 attributes",
                         "R196 怪物逐类属性表（审计 11 §3.1，仅原版等价类）：骷髅 6 血/4 攻/32 视距，僵尸 5 攻/32 视距/0 护甲，猪人 8 攻/32 视距，蜘蛛 12 血/4 攻/28 视距。关闭则回到原版 1.12 属性"));
         livestockNeedsR196 = config.getBoolean("livestockNeedsR196", "mobs", true,
-                comment("R196 livestock wellness pipeline v1 (audit 11 §2.2): food/water/freedom needs on cow/sheep/pig/chicken (0.8+rand*0.2 start, +0.1/-0.005 every 100 ticks at a 9/10 roll), near-grass food (cow eats 1% of found grass), near-water/rain fallback, crowd/freedom rules, NBT persistence. Production/milk/egg gates come in a later slice. Off = vanilla carries nothing",
-                        "R196 家畜需求管线 v1（审计 11 §2.2）：牛/羊/猪/鸡带食物/饮水/自由三需求（初始 0.8+随机0.2，每 100 tick 以 9/10 概率 +0.1/-0.005），草为食（牛 1% 概率吃掉发现草块），水/雨回退，拥挤/自由规则，NBT 持久化。产出（奶/蛋/羽等）门控留后续切片。关闭则回到原版家畜无需求"));
+                comment("R196 livestock wellness pipeline v1 (audit 11 §2.2): food/water/freedom needs on cow/sheep/pig/chicken (0.8+rand*0.2 start, +0.1/-0.005 every 100 ticks at a 9/10 roll), near-grass food (cow eats 1% of found grass), near-water/rain fallback, crowd/freedom rules, NBT persistence. The production family is a separate switch (livestockProductionR196). Off = vanilla carries nothing",
+                        "R196 家畜需求管线 v1（审计 11 §2.2）：牛/羊/猪/鸡带食物/饮水/自由三需求（初始 0.8+随机0.2，每 100 tick 以 9/10 概率 +0.1/-0.005），草为食（牛 1% 概率吃掉发现草块），水/雨回退，拥挤/自由规则，NBT 持久化。产出家族另走 livestockProductionR196 开关。关闭则回到原版家畜无需求"));
+        livestockProductionR196 = config.getBoolean("livestockProductionR196", "mobs", true,
+                comment("R196 production slice v2 (audit20 条 300, B-10): the 100-tick production counter arm + produceGoods — cow milk meter created at 100 (milking takes the WHOLE meter per empty bucket), chicken feather meter (1..2, overflow drops a feather) + egg gate (counter >= 200, 1-in-20 per pass with the plop), sheep/pig produce nothing. Also freezes the vanilla 6000-tick egg lane while on. Off = vanilla behavior (infinite milk + vanilla eggs)",
+                        "R196 产出切片 v2（audit20 条 300，B-10）：100 tick 产出口增长臂＋produceGoods——牛奶表起始满 100（挤一次扣整表）、鸡羽表（1..2，溢出掉羽 1）＋蛋门（计数≥200、每 pass 1/20 带 plop 音）、羊/猪不产（归零）。开启时冻结原版 6000 tick 蛋道。关闭则回到原版（无穷奶 + 原版蛋）"));
         zombieDigAI = config.getBoolean("zombieDigAI", "mobs", true,
                 comment("AI-02 zombie dig AI (R196 EntityAnimalWatcher): zombies pathing to an attack target chew through blocking blocks — beds included; blood-moon frenzy short-circuits the held-tool gate (bare hands dig). Off = vanilla zombies never dig, the bed dig-gate sensors read constant false",
                         "AI-02 僵尸挖掘 AI（R196 EntityAnimalWatcher）：寻路受阻的僵尸会挖穿阻挡方块——床包括在内；血月狂化短路手持工具门（徒手可挖）。关闭则回到原版僵尸（床边挖床三门读恒假）"));
