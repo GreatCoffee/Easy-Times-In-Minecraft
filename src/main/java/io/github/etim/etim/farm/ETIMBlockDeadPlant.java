@@ -51,6 +51,10 @@ public class ETIMBlockDeadPlant extends BlockCrops {
         super();
         this.stemModel = stemModel;
         this.setRegistryName("etim", name);
+        // B-8-1 (W-B8 verdict, B-level display face): the translation key rides
+        // the registry name — without it 1.12 renders tile.null.name in the
+        // testforblock denial line and F3-style naming. No judgment face.
+        this.setTranslationKey("etim." + name);
         this.setTickRandomly(false); // R196 BlockCropsDead :6 — never revives
     }
 

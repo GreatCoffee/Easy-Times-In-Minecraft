@@ -284,3 +284,5 @@ enchantment.etim_harvesting=Harvesting
 enchantment.etim_butchering=Butchering
 enchantment.etim_free_action=Free Action
 item.etim.manure.name=Manure
+tile.etim.dead_crop.name=Dead Crops
+tile.etim.dead_stem.name=Dead Stem
