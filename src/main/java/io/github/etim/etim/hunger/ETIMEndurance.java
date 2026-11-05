@@ -72,12 +72,43 @@ public final class ETIMEndurance {
     }
 
     /**
+     * Tick stamp of the last ETIM code-grown block series (B-5 修, audit20
+     * 条 285-286 users 甲 ruling). The giant mushrooms built inside the
+     * manure {@code onItemUse} call are captured by the Forge place-snapshot
+     * wrapper ({@code ForgeHooks.onPlaceItemIntoWorld} — ItemStack.java:200)
+     * and post a {@code PlayerMultiBlockPlace} (= PlaceEvent) whose
+     * {@code placedBlock} reads the live giant block (hardness 0.2), but R196
+     * charges the place face ONLY through
+     * {@code EntityPlayer.tryPlaceHeldItemAsBlock :2654-2659} — the manure
+     * click never goes through it, so the accrued charge is a 1.12 wrapper
+     * artifact and is denied here. Same-tick plain stamp, the MixinItemHoe
+     * till precedent; server main thread only.
+     */
+    private static long lastCodeGrownTick = Long.MIN_VALUE;
+
+    /** Called by ETIMItemManure around the {@code generateBigMushroom} call. */
+    public static void stampCodeGrown(long worldTime) {
+        lastCodeGrownTick = worldTime;
+    }
+
+    /** Judgment-channel row for a denied code-grown place charge. */
+    private static void logCodeGrownDeny(EntityPlayer player, float hardness) {
+        ETIMFoodStats.logFoodEntry(player, "placeDrainDeny src=giantGen hardness=" + hardness
+                + " (code-grown series; R196 face = tryPlaceHeldItemAsBlock only)");
+    }
+
+    /**
      * R196 EntityPlayer:2654-2661 (successful placement, server,
      * non-creative): {@code min(blockHardness, 20.0F) × mod}.
      */
     public static void chargePlace(EntityPlayer player, float hardness) {
-        if (lastTillChargeTick == player.world.getTotalWorldTime()) {
+        long tick = player.world.getTotalWorldTime();
+        if (lastTillChargeTick == tick) {
             return; // the same-tick PlaceEvent of a just-charged till
+        }
+        if (lastCodeGrownTick == tick) {
+            logCodeGrownDeny(player, hardness);
+            return;
         }
         charge(player, Math.min(hardness, ETIMConfig.placeHungerHardnessCap),
                 getEnduranceModifier(player), "placeDrain hardness=" + hardness);

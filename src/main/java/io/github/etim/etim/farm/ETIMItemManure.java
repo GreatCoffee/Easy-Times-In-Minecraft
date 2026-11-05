@@ -85,6 +85,12 @@ public final class ETIMItemManure extends Item {
         }
         te.setGrowth(stage + 1); // R196 incrementGrowth clamped inside
         if (te.getGrowth() >= ETIMMushroomGrowthTile.MAX_GROWTH) {
+            // B-5 修（条 285-286 用户甲）— stamp the code-grown series so the
+            // Forge place-snapshot wrapper's PlaceEvent (giant block hardness
+            // 0.2) is denied in chargePlace: R196 charges the place face only
+            // via tryPlaceHeldItemAsBlock (:2654-2659), which the manure
+            // click never touches.
+            io.github.etim.etim.hunger.ETIMEndurance.stampCodeGrown(world.getTotalWorldTime());
             boolean paid = ((BlockMushroom) block).generateBigMushroom(world, pos, state, world.rand);
             if (!paid) {
                 // B-2 修 — R196 :213-215 restores the metadata with the
