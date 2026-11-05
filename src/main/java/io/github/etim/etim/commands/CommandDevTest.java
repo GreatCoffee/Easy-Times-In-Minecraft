@@ -181,6 +181,9 @@ public class CommandDevTest extends CommandBase {
             case "chestio":
                 executeChestIO(server, sender, args);
                 break;
+            case "drought":
+                executeDrought(server, sender, args);
+                break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
         }
@@ -1067,5 +1070,39 @@ public class CommandDevTest extends CommandBase {
     private static void respondRaw(EntityPlayerMP player, String line) {
         ETIM.LOGGER.info(line);
         player.sendMessage(new net.minecraft.util.text.TextComponentString(line));
+    }
+
+    // ------------------------------------------------- B-8 工装 token (干旱死亡, D-4 乙补面)
+
+    /**
+     * {@code /etest drought probe <x> <y> <z>} — the verdict-input dump row.
+     * {@code /etest drought roll <x> <y> <z> [p=1.0]} — ONE forced drought
+     * evaluation at the position: p replaces the config chance (deterministic
+     * branch testing); master/gate/water protections still bite (the window
+     * exercises them for real). Rows fly on the [FarmLog] drought channel.
+     */
+    private static void executeDrought(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String op = args[1];
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = new BlockPos(CommandBase.parseInt(args[2]),
+                CommandBase.parseInt(args[3]), CommandBase.parseInt(args[4]));
+        // Console/RCON-capable: the judgment data lives ONLY on the [FarmLog]
+        // channel (纪律 9); a player sender additionally gets the green ack.
+        net.minecraft.world.World world = sender.getEntityWorld();
+        if ("probe".equals(op)) {
+            io.github.etim.etim.farm.ETIMFarm.probeDrought(world, pos);
+            return;
+        }
+        if ("roll".equals(op)) {
+            float p = args.length > 5 ? MathHelper.clamp(Float.parseFloat(args[5]), 0.0F, 1.0F) : 1.0F;
+            io.github.etim.etim.farm.ETIMFarm.forceDroughtRoll(world, pos, p);
+            return;
+        }
+        throw new WrongUsageException("commands.etest.usage");
     }
 }

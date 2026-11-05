@@ -31,6 +31,10 @@ public abstract class MixinBlockCropsTick {
         if (!world.isRemote && ETIMFarm.isDryFarmland(world, pos.down())) {
             ETIMFarm.row("growth gate dry block=" + state.getBlock().getRegistryName()
                     + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ());
+            // Drought-death batch (B-8, D-4 乙补面): the R196 :66-74 death arm
+            // rides the SAME face as the freeze gate — additive only, the
+            // cancel below stays the 条 283 verdict unchanged.
+            ETIMFarm.droughtDeathTick(world, pos, state, rand);
             ci.cancel();
         }
     }

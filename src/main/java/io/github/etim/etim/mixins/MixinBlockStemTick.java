@@ -23,6 +23,9 @@ public abstract class MixinBlockStemTick {
         if (!world.isRemote && ETIMFarm.isDryFarmland(world, pos.down())) {
             ETIMFarm.row("growth gate dry block=" + state.getBlock().getRegistryName()
                     + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ());
+            // Drought-death batch (B-8): stem arm — R196 :63 setDead face is
+            // carrier-substituted to etim:dead_stem (D-2 乙); additive only.
+            ETIMFarm.droughtDeathTick(world, pos, state, rand);
             ci.cancel();
         }
     }

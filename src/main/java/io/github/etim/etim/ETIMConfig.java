@@ -510,6 +510,12 @@ public final class ETIMConfig {
      *  chest random-tick lane, BlockChest.java:14/:180-191). Off = chests carry no compost
      *  and stay vanilla-randomless. R196 箱子蚯蚓堆肥总开关。关闭则箱子回到原版（不随机 tick、不堆肥）。 */
     public static boolean chestWormCompostR196 = true;
+    /** B-8 (D-4 乙补面): the drought-death master switch (R196 BlockCrops.updateTick :66-74 murder
+     *  arm). Off = the 条 283 freeze-only face returns. R196 干旱死亡总开关（关闭回到仅冻结的条 283 面）。 */
+    public static boolean droughtDeathR196 = true;
+    /** B-8: the drought roll per frozen random tick (R196 :67 = 0.05F — 平原干田约 23 分钟 64% 死,
+     *  moisture-batch survey). Guarded behind waterNearbyR196 (the death-exempt judgment). */
+    public static float droughtDeathChance = 0.05F;
 
     // combat batch AD-10+SH (audit20-97 planned) ------------------------------
     /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
@@ -1251,6 +1257,12 @@ public final class ETIMConfig {
         chestWormCompostR196 = config.getBoolean("chestWormCompostR196", "farm", true,
                 comment("R196 chest worm-compost master switch (B-7): chests enter the random-tick lane and live worms in the chest turn hay/wheat/food into manure (TileEntityChest.java:303-385). Off = vanilla chests, no tick lane",
                         "R196 箱子蚯蚓堆肥总开关（B-7）：箱子进入随机 tick 车，箱内活蚯蚓把干草/麦/食物转成粪（TileEntityChest.java:303-385）。关闭则箱子回到原版、不进随机 tick 车"));
+        droughtDeathR196 = config.getBoolean("droughtDeathR196", "farm", true,
+                comment("R196 drought death master switch (B-8): crops/vines on a dry farmland with NO water (or snow/ice) within the 9x2x9 + 3x2x3 scan roll death each random tick — mature crops pop their produce and vanish, immature ones leave a dead withered plant (BlockCrops.updateTick :66-74). Off = the freeze-only face 条 283",
+                        "R196 干旱死亡总开关（B-8）：枯田且 9×2×9＋3×2×3 内无水（无雪无冰）的作物/藤每次随机 tick 掷死签——成熟者旱收掉 1 个成品后消失，未熟者留枯死株（BlockCrops.updateTick :66-74）。关闭则回到条 283 仅冻结面"));
+        droughtDeathChance = config.getFloat("droughtDeathChance", "farm", droughtDeathChance, 0.0F, 1.0F,
+                comment("R196 drought roll per frozen random tick (R196 :67 = 0.05; plain biome: ~64% dead after ~23 min of dry farmland). Exempt when water/snow/ice nearby within 9x2x9 + 3x2x3",
+                        "R196 每 tick 死签概率（R196 :67 = 0.05；平原干田约 23 分钟 64% 死）。9×2×9＋3×2×3 内有水/雪/冰即免死"));
 
         // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
         armorModelR196 = config.getBoolean("armorModelR196", "combat", true,

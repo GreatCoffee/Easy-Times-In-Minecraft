@@ -89,6 +89,8 @@ public final class ETIM {
         ETIMEnchantments.register();
         // Batch farm1 (B4 — 条 254-257): the fertilized TE carrier (D-1) +
         // the three zero-mixin event faces (consume/trample/harvest drops).
+        // Drought-death batch (B-8): the two dead-plant carriers first.
+        io.github.etim.etim.farm.ETIMFarmBlocks.register();
         io.github.etim.etim.farm.ETIMFarm.registerTile();
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.farm.ETIMFarmingEvents.class);
         // Batch B5 (butchering — 条 262-265): the zero-mixin LivingDropsEvent face.

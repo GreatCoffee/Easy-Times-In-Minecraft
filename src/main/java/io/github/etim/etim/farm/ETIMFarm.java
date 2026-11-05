@@ -18,6 +18,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
+import java.util.Random;
+
 import io.github.etim.etim.metal.ETIMItemMattock;
 import io.github.etim.etim.metal.ETIMItemScythe;
 import io.github.etim.etim.tileentity.ETIMFarmlandTile;
@@ -306,6 +308,142 @@ public final class ETIMFarm {
         IBlockState state = world.getBlockState(farmPos);
         return state.getBlock() == Blocks.FARMLAND
                 && state.getValue(net.minecraft.block.BlockFarmland.MOISTURE) == 0;
+    }
+
+    // ------------------------------------------------ 干旱死亡批（D-4 乙补面·B-8）
+
+    /**
+     * R196 BlockCrops.updateTick :66-74 — the drought-death arm, fired from
+     * the two dry-gate mixin heads BEFORE the freeze cancel (the D-4 乙 freeze
+     * face of 条 283 stays byte-identical; this face is purely additive).
+     * Gate composition (literal transcription):
+     * <ol>
+     *   <li>master switch {@code droughtDeathR196};</li>
+     *   <li>{@code growth_rate == 0.0F} — in the 1.12 adapter this is the
+     *       frozen-dry-farmland face (the temperature-zero face of R196
+     *       getGrowthRate is NOT transcribed yet — debt face; D-3 minimal);
+     *   </li>
+     *   <li>{@code !BlockFarmland.isWaterNearby(farm)} — the ONLY death-exempt
+     *       judgment (R196 :66, 9×2×9 water + 3×2×3 snow/ice; ETIM
+     *       {@code waterNearbyR196});</li>
+     *   <li>{@code rand.nextFloat() < droughtDeathChance} (R196 :67
+     *       {@code 0.05F}).</li>
+     * </ol>
+     * Mature → R196 :70 drought-harvest: ONE item of the mature crop item
+     * (same identity face as the harvest chain via getItemDropped on the
+     * mature state — wheat/beet/carrot/potato all covered) then setBlock air
+     * (:71). Immature → R196 :73 swap to the dead plant block (growth kept).
+     */
+    public static void droughtDeathTick(World world, BlockPos pos, IBlockState state, Random rand) {
+        if (!ETIMConfig.droughtDeathR196) {
+            return;
+        }
+        if (waterNearbyR196(world, pos.down())) {
+            return; // R196 :66 second half — the death-exempt judgment
+        }
+        roll(world, pos, state, rand, ETIMConfig.droughtDeathChance);
+    }
+
+    /** /etest drought roll — one forced evaluation, p replaces the config chance. */
+    public static void forceDroughtRoll(World world, BlockPos pos, float p) {
+        IBlockState state = world.getBlockState(pos);
+        boolean dryFarm = isDryFarmland(world, pos.down());
+        boolean water = waterNearbyR196(world, pos.down());
+        String head = "drought force block=" + state.getBlock().getRegistryName()
+                + " age=" + ageOf(state) + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                + " dry=" + (dryFarm ? 1 : 0) + " water=" + (water ? 1 : 0)
+                + " master=" + (ETIMConfig.droughtDeathR196 ? 1 : 0)
+                + " p=" + String.format(java.util.Locale.ROOT, "%.2f", p);
+        if (!dryFarm) {
+            row(head + " branch=skip-not-dry (drought only rolls behind the freeze gate)");
+            return;
+        }
+        if (water) {
+            row(head + " branch=skip-water (death-exempt face)");
+            return;
+        }
+        if (!ETIMConfig.droughtDeathR196) {
+            row(head + " branch=skip-master-off");
+            return;
+        }
+        roll(world, pos, state, world.rand, p, head);
+    }
+
+    /** /etest drought probe — the verdict-input dump, no dice. */
+    public static void probeDrought(World world, BlockPos pos) {
+        IBlockState state = world.getBlockState(pos);
+        row("drought probe block=" + state.getBlock().getRegistryName()
+                + " age=" + ageOf(state) + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                + " below=" + world.getBlockState(pos.down()).getBlock().getRegistryName()
+                + " dry=" + (isDryFarmland(world, pos.down()) ? 1 : 0)
+                + " water=" + (waterNearbyR196(world, pos.down()) ? 1 : 0)
+                + " master=" + (ETIMConfig.droughtDeathR196 ? 1 : 0)
+                + " chance=" + String.format(java.util.Locale.ROOT, "%.2f", ETIMConfig.droughtDeathChance));
+    }
+
+    /** R196 :67-74 — the dice plus the mature/immature branch. */
+    private static void roll(World world, BlockPos pos, IBlockState state, Random rand, float chance) {
+        roll(world, pos, state, rand, chance, "");
+    }
+
+    private static void roll(World world, BlockPos pos, IBlockState state, Random rand, float chance, String head) {
+        if (!(state.getBlock() instanceof net.minecraft.block.BlockCrops)
+                && !(state.getBlock() instanceof net.minecraft.block.BlockStem)) {
+            if (!head.isEmpty()) {
+                row(head + " branch=skip-not-crop");
+            }
+            return;
+        }
+        float roll = rand.nextFloat(); // R196 :67 — one dice, frozen tick on miss
+        if (roll >= chance) {
+            if (!head.isEmpty()) {
+                row(head + " branch=roll-miss roll=" + String.format(java.util.Locale.ROOT, "%.3f", roll)
+                        + " >= " + String.format(java.util.Locale.ROOT, "%.2f", chance));
+            }
+            return; // R196 :68 — this tick only freezes (the 条 283 face intact)
+        }
+        boolean stem = state.getBlock() instanceof net.minecraft.block.BlockStem;
+        net.minecraft.block.BlockCrops crops = stem ? null : (net.minecraft.block.BlockCrops) state.getBlock();
+        String rollTxt = String.format(java.util.Locale.ROOT, "%.3f", roll);
+        if (crops != null && crops.isMaxAge(state)) {
+            // R196 :70-71 — drought-harvest: ONE mature crop item, then air
+            Item cropItem = crops.getItemDropped(state, world.rand, 0);
+            net.minecraft.entity.item.EntityItem ei = new net.minecraft.entity.item.EntityItem(
+                    world, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
+                    new net.minecraft.item.ItemStack(cropItem, 1));
+            ei.motionX = 0.0D;
+            ei.motionY = 0.0D;
+            ei.motionZ = 0.0D; // R196 dropItem ground-scatter face parity with manure M-1-4
+            world.spawnEntity(ei);
+            world.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
+            row(head + " drought event kind=mature block=" + name(state.getBlock()) + " age=" + ageOf(state)
+                    + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                    + " roll=" + rollTxt + " drop=" + cropItem.getRegistryName() + "#1");
+        } else {
+            int age = ageOf(state);
+            IBlockState dead = (stem ? ETIMBlockDeadPlant.DEAD_STEM : ETIMBlockDeadPlant.DEAD_CROP)
+                    .getDefaultState().withProperty(BlockCrops.AGE, Integer.valueOf(age));
+            world.setBlockState(pos, dead, 3);
+            row(head + " drought event kind=immature block=" + name(state.getBlock()) + " age=" + age
+                    + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                    + " roll=" + rollTxt
+                    + " dead=" + (stem ? "etim:dead_stem" : "etim:dead_crop") + " age=" + age);
+        }
+    }
+
+    /** The age value of any crop/stem host via its "age" property (public face). */
+    private static int ageOf(IBlockState state) {
+        for (java.util.Map.Entry<net.minecraft.block.properties.IProperty<?>, Comparable<?>> e
+                : state.getProperties().entrySet()) {
+            if (e.getKey().getName().equals("age")) {
+                return (Integer) e.getValue();
+            }
+        }
+        return -1;
+    }
+
+    private static String name(net.minecraft.block.Block block) {
+        return block.getRegistryName() == null ? block.getClass().getSimpleName() : block.getRegistryName().toString();
     }
 
     /** R196 moisture write face (metadata & 7 — the bit space is vanilla-native). */
