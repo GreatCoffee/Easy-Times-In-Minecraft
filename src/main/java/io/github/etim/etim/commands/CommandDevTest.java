@@ -949,8 +949,14 @@ public class CommandDevTest extends CommandBase {
         }
         int radius = args.length > 1 ? CommandBase.parseInt(args[1], 1, 64) : 6;
         Float foodSet = null;
-        if (args.length > 2 && isNumber(args[2])) {
-            foodSet = (float) parseDouble(args[2], 0.0D, 1.0D);
+        if (args.length > 2) {
+            // W-B7 C-7-2: decimals in — isNumber() is int-only and silently
+            // swallowed 0.04/0.5; the setter accepts any 0..1 float now.
+            try {
+                foodSet = MathHelper.clamp(Float.parseFloat(args[2]), 0.0F, 1.0F);
+            } catch (NumberFormatException e) {
+                throw new WrongUsageException("commands.etest.usage");
+            }
         }
         java.util.List<EntityLiving> hits = player.world.getEntitiesWithinAABB(EntityLiving.class,
                 player.getEntityBoundingBox().grow(radius));

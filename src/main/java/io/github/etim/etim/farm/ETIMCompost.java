@@ -284,6 +284,7 @@ public final class ETIMCompost {
                 continue; // :339 no room — the roll is voided
             }
             // --- success path (:340-365)
+            String foodName = source.getItem().getRegistryName().toString(); // capture BEFORE decr (B-7-1: the last exhaust hit otherwise logs air)
             chest.decrStackSize(sourceIndex, 1);
             float compost = carry.etim$getCompost() + value;
             carry.etim$setCompost(compost);
@@ -302,7 +303,7 @@ public final class ETIMCompost {
             }
             int converted = convertAsMuchCompostAsPossible(chest, pos); // :365
             manureProduced += converted;
-            foods.add(source.getItem().getRegistryName() + "#" + value);
+            foods.add(foodName + "#" + value);
         }
         if (!foods.isEmpty()) {
             ETIMFarm.row("compost src=chest pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
