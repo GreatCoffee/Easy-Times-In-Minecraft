@@ -58,7 +58,17 @@ public abstract class MixinBlockCrops {
         }
         io.github.etim.etim.tileentity.ETIMFarmlandTile te =
                 io.github.etim.etim.farm.ETIMFarm.farmlandTile(worldIn, pos.down());
-        if (te == null || !te.isFertilized()) {
+        boolean fertilized = te != null && te.isFertilized();
+        if (io.github.etim.etim.ETIMConfig.growthRateR196) {
+            // growth-rate batch (B-9): the R196 family composition replaces the
+            // F8-only path — base × fert × temp × hum × global × prox, ONE
+            // 'growth rate' row (the composition face supersedes the ratio row).
+            float value = io.github.etim.etim.farm.ETIMFarm.composeGrowthRateR196(worldIn, pos, blockIn,
+                    base, fertilized, io.github.etim.etim.ETIMConfig.fertilizedGrowthFactor);
+            cir.setReturnValue(value);
+            return;
+        }
+        if (!fertilized) {
             return;
         }
         float value = base * io.github.etim.etim.ETIMConfig.fertilizedGrowthFactor;

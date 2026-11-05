@@ -36,6 +36,13 @@ public abstract class MixinBlockCropsTick {
             // cancel below stays the 条 283 verdict unchanged.
             ETIMFarm.droughtDeathTick(world, pos, state, rand);
             ci.cancel();
+            return;
+        }
+        // growth-rate batch (B-9, D-1/D-3 直抄): the R196 light window + the
+        // temperature-zero rate gate — growth, and only growth, freezes this
+        // tick (the dry gate above already owns its own branch).
+        if (!world.isRemote && ETIMFarm.growthFreezeProbe(world, pos, state.getBlock())) {
+            ci.cancel();
         }
     }
 }

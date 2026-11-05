@@ -516,6 +516,20 @@ public final class ETIMConfig {
     /** B-8: the drought roll per frozen random tick (R196 :67 = 0.05F — 平原干田约 23 分钟 64% 死,
      *  moisture-batch survey). Guarded behind waterNearbyR196 (the death-exempt judgment). */
     public static float droughtDeathChance = 0.05F;
+    /** B-9 (growth-rate batch): the R196 growth-rate family master switch — temperature
+     *  window + humidity (melon ×1.2) + the global ×0.25 MITE modifier + the crops-only
+     *  proximity penalty, composed onto the vanilla dice via getGrowthChance (BlockGrowingPlant
+     *  :13-84, :174-180; BlockCrops :162-214; BlockStem :39-42, :171-221). Off = vanilla dice. */
+    public static boolean growthRateR196 = true;
+    /** B-9 (D-1 直抄): the growth light window gating updateTick (R196 BlockGrowingPlant :86-92
+     *  family base 15..15 — vanilla 1.12 gates light ≥ 9 at BlockCrops :81 / BlockStem :81).
+     *  Combined light (getLightFromNeighbors = sky+block合成) below min or above max freezes the tick. */
+    public static int growthLightMin = 15;
+    /** B-9 upper bound of the same window (R196 = 15; torch-adjacent 14 does NOT regrow — 指弱版裁定直抄). */
+    public static int growthLightMax = 15;
+    /** B-9: the global MITE growth-rate multiplier family base (R196 BlockGrowingPlant :17-19
+     *  = 0.25F — prime wheat plot ~2.9%/tick vs vanilla ~11%).  */
+    public static float globalGrowthRateFactor = 0.25F;
 
     // combat batch AD-10+SH (audit20-97 planned) ------------------------------
     /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
@@ -1263,6 +1277,18 @@ public final class ETIMConfig {
         droughtDeathChance = config.getFloat("droughtDeathChance", "farm", droughtDeathChance, 0.0F, 1.0F,
                 comment("R196 drought roll per frozen random tick (R196 :67 = 0.05; plain biome: ~64% dead after ~23 min of dry farmland). Exempt when water/snow/ice nearby within 9x2x9 + 3x2x3",
                         "R196 每 tick 死签概率（R196 :67 = 0.05；平原干田约 23 分钟 64% 死）。9×2×9＋3×2×3 内有水/雪/冰即免死"));
+        growthRateR196 = config.getBoolean("growthRateR196", "farm", true,
+                comment("R196 growth-rate family master switch (B-9): temperature windows (wheat 0.8-1.2, pumpkin stem 0.6-1.0, melon stem 1.0-1.4, tolerance 1.0), melon-stem high-humidity x1.2, the global MITE modifier, and the crops-only proximity penalty compose onto the vanilla 25/rate dice. Off = vanilla dice",
+                        "R196 增速法则族总开关（B-9）：温度窗（小麦 0.8-1.2、南瓜茎 0.6-1.0、西瓜茎 1.0-1.4，容忍 1.0）、西瓜茎高湿 ×1.2、全局 MITE 修饰、仅小麦的邻近惩罚，一并叠上原版 25/rate 掷骰。关闭则回原版骰"));
+        growthLightMin = config.getInt("growthLightMin", "farm", 15, 0, 15,
+                comment("B-9 (R196 直抄): min combined light at the crop head for ANY growth (R196 BlockGrowingPlant :86 = 15; vanilla 1.12 = 9). Torch-adjacent (14) freezes — full daylight or a 15-level lamp only",
+                        "B-9（R196 直抄）：作物头顶合成光下限（R196 = 15；原版 = 9）。火把贴脸 14 级会冻结生长——只有露天日光或满 15 级灯可长"));
+        growthLightMax = config.getInt("growthLightMax", "farm", 15, 0, 15,
+                comment("B-9 (R196 直抄): max combined light for growth (R196 :90 = 15 — open window upper bound is a no-op at the default; raise for grow-lamp farms",
+                        "B-9（R196 直抄）：作物生长的光照上限（R196 = 15；默认同为上限 15 等于不设顶，想放宽可调大）"));
+        globalGrowthRateFactor = config.getFloat("globalGrowthRateFactor", "farm", 0.25F, 0.01F, 100.0F,
+                comment("R196 the global growth-rate modifier (BlockGrowingPlant :17-19 = 0.25): multiplies every composed growth chance — prime wheat plot ~2.9%/tick vs vanilla ~11%",
+                        "R196 全局增速修饰（BlockGrowingPlant :17-19 = 0.25）：乘在合成的每一次生长概率上——满配湿润田小麦约 2.9%/tick 对原版约 11%"));
 
         // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
         armorModelR196 = config.getBoolean("armorModelR196", "combat", true,

@@ -27,6 +27,12 @@ public abstract class MixinBlockStemTick {
             // carrier-substituted to etim:dead_stem (D-2 乙); additive only.
             ETIMFarm.droughtDeathTick(world, pos, state, rand);
             ci.cancel();
+            return;
+        }
+        // growth-rate batch (B-9): the stem freeze face — R196 :68 reads only
+        // the lower light bound (see growthFreezeProbe's stem branch).
+        if (!world.isRemote && ETIMFarm.growthFreezeProbe(world, pos, state.getBlock())) {
+            ci.cancel();
         }
     }
 }
