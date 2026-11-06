@@ -2,9 +2,10 @@
 /**
  * f7-wb-lib.js - farmland-moisture batch (W-FM) verification harness shared lib
  *
- * Pins (W-B9 task book, 2026-11-05): HEAD d040dee | release 991,901 B
- * 54383A8A...10DD | dev 972,328 B DC1201EB...91D0 | sources 903,022 B
- * 17EBC24C...D72C | refmap 77/169 | mixins 73+10 | cfg 244 registered
+ * Pins (W-B12/W-B12b task books, 2026-11-06): HEAD 37dd834 | release 1,018,656 B
+ * 780E917A...1F41 (MD5 82DABAACC0F4D5209B730DEA68A62ED0) | dev 998,790 B
+ * 07F93E39...7372 | sources 928,517 B 94DE1D81...CBF3 |
+ * refmap 84/186 | mixins 80+10 | cfg 245 code / 247 file keys
  */
 'use strict';
 const fs = require('fs');
@@ -31,12 +32,12 @@ const PORT = 25565;
 const BOT = 'ETIM_F7';
 
 const PIN = {
-  head: 'd040dee',
-  rel: { bytes: 991901, sha: '54383A8A9B72A536C9FA242BFCC414C359299CACE8D900B54B11ADE82EFC10DD' },
-  dev: { bytes: 972328, sha: 'DC1201EB00F3061B5475C4AF054A4B36AFAD7300726CBDD5611BD983EDB591D0' },
-  src: { bytes: 903022, sha: '17EBC24CBE5B4047947478DFFE327BEB1D8C945DB6E27B046C69DF183E69D72C' },
+  head: '37dd834',
+  rel: { bytes: 1018656, sha: '780E917AC3F0940276219C5E6928A5DECB71F5F66869E961DFDCD92BE7ED1F41' },
+  dev: { bytes: 998790, sha: '07F93E396834F5C3EEF73EE17AF1EFFBC95F9DA9AB54AD1C1C980604EEE07372' },
+  src: { bytes: 928517, sha: '94DE1D81389B4D505B3EB65CFD54C8555694C0E5EC770A5429E41B1B02CCCBF3' },
 };
-const MK_PIN = { classes: 77, entries: 169, dual: 338, mixins: 73, client: 10 };
+const MK_PIN = { classes: 84, entries: 186, dual: 372, mixins: 80, client: 10 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);

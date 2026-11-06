@@ -11,6 +11,7 @@ import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntityChicken;
 import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.passive.EntityPig;
@@ -113,31 +114,7 @@ public final class ETIMLivestockEvents {
             return;
         }
         if (!s.isInitialized()) {
-            // R196 ctor :26-28 — 0.8 + rand * 0.2 per need, at construction
-            java.util.Random rand = e.getRNG();
-            s.setFood(0.8F + rand.nextFloat() * 0.2F);
-            s.setWater(0.8F + rand.nextFloat() * 0.2F);
-            s.setFreedom(0.8F + rand.nextFloat() * 0.2F);
-            // R196 :29/:380 — the initial countdown is a full-period random
-            // (setManurePeriod re-randomizes); B-7 faces it once with the
-            // FINAL per-species period instead of the R196 double random.
-            s.setManureCountdown(rand.nextInt(manurePeriod(e)));
-            // B-10 production meters — R196 ctors: EntityCow.setMilk(100)
-            // (:18); EntityChicken max 1..2 with the 1/2 trim (:25-28) and
-            // num = max (:30) — .ItemBucket standard_volume 4 × 25 = the
-            // full-meter milking threshold (ItemVessel.java:105).
-            if (e instanceof EntityCow) {
-                s.setMilk(100);
-            }
-            if (e instanceof EntityChicken) {
-                int max = rand.nextInt(2) + 1;
-                if (max > 1 && rand.nextInt(2) == 0) {
-                    max--;
-                }
-                s.setMaxNumFeathers(max);
-                s.setNumFeathers(max);
-            }
-            s.setInitialized(true);
+            ensureInitialized(e, s);
         }
         if (e.ticksExisted % 100 == 0) {
             // R196 :245-248 verbatim short-circuit — updateWellness runs ONLY
@@ -962,5 +939,220 @@ public final class ETIMLivestockEvents {
                 + (isChild ? " child=true" : "")
                 + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId()
                 + (server ? " [server]" : " [client]"));
+    }
+
+    // =====================================================================
+    // B-12 (audit20 条 309) — the mating chain helpers. The three mixins
+    // (MixinEntityAIMate / MixinEntityAgeable / MixinEntityEgg) call into
+    // this class so every R196 value face resolves in one place, the same
+    // way B-11 shared groundEatTick / eatCore / willEatCause.
+    // =====================================================================
+
+    /** R196 :144-146 — isDesperateForWater = water &lt; 0.05F (food Sym: :136-138). */
+    private static final float DESPERATE_WATER_GATE = 0.05F;
+
+    /** R196 {@code EntityLivestock} seat — the four hosts carry the capability. */
+    private static boolean isLivestock(EntityLivingBase e) {
+        return e instanceof EntityCow || e instanceof EntitySheep
+                || e instanceof EntityPig || e instanceof EntityChicken;
+    }
+
+    /**
+     * B-12 F-A(1)/F-A(2) — the spawnBaby {@code setGrowingAge} value
+     * mapper. R196 faces: {@code 6000 → 16000}
+     * ({@code setGrowingAgeAfterBreeding}, EntityAgeable:57-59 — breeder
+     * cooldown 13:20 vs vanilla 5:00) and {@code &lt;0 → -64000}
+     * ({@code setGrowingAgeToNewborn}, :53-55 — newborn child life 53:20
+     * vs vanilla 20:00). C-12-1: the Forge BabyEntitySpawnEvent cancelled
+     * branch writes {@code 6000} too and rides this same mapper — R196 has
+     * no event branch and the event-carrier face never fires in ETIM, so
+     * the R196 constant stands either way. Flag-off passes the vanilla
+     * value back untouched.
+     */
+    public static int r196BreedCooldown(int age) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return age;
+        }
+        if (age < 0) {
+            return -64000; // R196 EntityAgeable.getGrowingAgeOfNewborn :49-51
+        }
+        if (age == 6000) {
+            return 16000; // R196 EntityAgeable.setGrowingAgeAfterBreeding :57-59
+        }
+        return age;
+    }
+
+    /** F-A(2)/F-B(2)/F-C(1) — the newborn-age face alone (no cooldown arm). */
+    public static int r196NewbornAge(int age) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return age;
+        }
+        return age < 0 ? -64000 : age;
+    }
+
+    /**
+     * B-12 F-D — R196 {@code EntityLivestock.setGrowingAge :389-393}:
+     * a child whose next write advances the age ({@code par1 &gt; current})
+     * stays frozen while either desperate need holds ({@code &lt; 0.05F}).
+     * Returns true = drop the vanilla write (R196 skips
+     * {@code super.setGrowingAge} entirely). Livestock-only, needs-flag
+     * gated. Emits the one-shot [FarmLog] latch row on the state flip.
+     */
+    /** B-12 smoke probe — the [FarmLog] agegate cancel-facing row (rate-limited by the driver's dump cadence). */
+    public static void ageGateRow(String src, EntityAgeable e, int age) {
+        if (!ETIMConfig.mobDebugLog) {
+            return;
+        }
+        ETIMFarm.row("agegate src=" + src + " age=" + e.getGrowingAge() + " arg=" + age
+                + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+    }
+
+    public static boolean desperateAgeLock(EntityAgeable e, int age) {
+        if (!ETIMConfig.livestockNeedsR196 || !isLivestock(e) || !e.isChild()) {
+            return false;
+        }
+        if (age <= e.getGrowingAge()) {
+            return false; // R196 :390 — par1 <= current passes the gate
+        }
+        ETIMLivestock.IState s = ETIMLivestock.get(e);
+        if (s == null) {
+            return false; // defensive: no capability = vanilla
+        }
+        boolean desperate = s.getFood() < DESPERATE_FOOD_GATE || s.getWater() < DESPERATE_WATER_GATE;
+        if (desperate && ETIMConfig.mobDebugLog) {
+            ETIMFarm.row("agegate src=desperate lock age=" + e.getGrowingAge()
+                    + " food=" + fmt(s.getFood()) + " water=" + fmt(s.getWater())
+                    + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+        }
+        return desperate;
+    }
+
+    /**
+     * B-12 F-B(1) — R196 {@code EntityAgeable.setGrowingAge :33-47}: a
+     * child standing in a cauldron whose head cell is neither air nor a
+     * passable block cannot grow past its cell — the write re-issues as
+     * {@code -1}. Base-level in R196 (every ageable passes it), so no
+     * livestock restriction. The {@code !isAirOrPassableBlock(y+1, true)}
+     * carrier equivalent: the head cell is not air AND its material is
+     * not replaceable.
+     */
+    public static int cauldronAgeLock(EntityAgeable e, int age) {
+        if (!ETIMConfig.livestockNeedsR196 || !e.isChild() || age < 0) {
+            return age; // R196 :34-36 — the gate only watches child faces reaching >= 0
+        }
+        net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(e);
+        if (e.world.getBlockState(pos).getBlock() != net.minecraft.init.Blocks.CAULDRON) {
+            return age;
+        }
+        net.minecraft.util.math.BlockPos head = pos.up();
+        boolean headOpen = e.world.isAirBlock(head)
+                || e.world.getBlockState(head).getMaterial().isReplaceable();
+        if (headOpen) {
+            return age;
+        }
+        if (ETIMConfig.mobDebugLog) {
+            ETIMFarm.row("agegate src=cauldron lock age=" + e.getGrowingAge()
+                    + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+        }
+        return -1; // R196 :39
+    }
+
+    /**
+     * B-12 F-A(3) — R196 {@code EntityLivestock.adoptWellnessFromParents
+     * :395-409} verbatim: each need takes {@code min(parent_a, parent_b)},
+     * a non-livestock parent counting as 1.0F. Call gates: server-side
+     * (R196 :76 {@code !isRemote}) and a livestock child
+     * (R196 :76-77 {@code instanceof EntityLivestock}). Emits the spawn
+     * [FarmLog] row — the B-12 judgment channel.
+     */
+    public static void adoptWellnessFromParents(EntityAgeable child,
+                                                EntityAnimal parent_a, EntityAnimal parent_b) {
+        if (child.world.isRemote || !ETIMConfig.livestockNeedsR196) {
+            return;
+        }
+        if (!isLivestock(child)) {
+            return; // R196 :76-77 — only the livestock family adopts
+        }
+        ETIMLivestock.IState sc = ETIMLivestock.get(child);
+        if (sc == null) {
+            return;
+        }
+        // A-12-1 — apply the deferred init bundle first (R196's ctor faces)
+        // and flag it done, so the adoption below is the final write, not
+        // food for the first tick's random bundle. R196 :395-409 order:
+        // construction randoms -> adoption overwrite, within one instant.
+        ensureInitialized(child, sc);
+        float food = Math.min(parentNeed(parent_a, NEED.FOOD), parentNeed(parent_b, NEED.FOOD));
+        float water = Math.min(parentNeed(parent_a, NEED.WATER), parentNeed(parent_b, NEED.WATER));
+        float freedom = Math.min(parentNeed(parent_a, NEED.FREEDOM), parentNeed(parent_b, NEED.FREEDOM));
+        sc.setFood(food);
+        sc.setWater(water);
+        sc.setFreedom(freedom);
+        ETIMFarm.row("breed src=adopt child=" + kind(child)
+                + " food=" + fmt(food) + " water=" + fmt(water) + " freedom=" + fmt(freedom)
+                + " entity=" + child.getClass().getSimpleName() + "#" + child.getEntityId());
+    }
+
+    /** F-A(3) face selector — R196 :399-407's per-need fallback to 1.0F. */
+    private enum NEED { FOOD, WATER, FREEDOM }
+
+    private static float parentNeed(EntityAnimal parent, NEED need) {
+        if (!isLivestock(parent)) {
+            return 1.0F; // R196 :399-404 — non-livestock parent reads 1.0F
+        }
+        ETIMLivestock.IState s = ETIMLivestock.get(parent);
+        if (s == null) {
+            return 1.0F;
+        }
+        switch (need) {
+            case FOOD:
+                return s.getFood();
+            case WATER:
+                return s.getWater();
+            default:
+                return s.getFreedom();
+        }
+    }
+
+    /**
+     * A-12-1 (W-B12 verdict) — the delayed first-tick init face, extracted
+     * verbatim from the {@code !isInitialized()} branch of
+     * {@code onLivingUpdate}. R196 applies its {@code 0.8+rand*0.2} bundle
+     * at CONSTRUCTION, so the breeder's {@code adoptWellnessFromParents}
+     * overwrites it in the same instant (:395-409 call order). ETIM defers
+     * the bundle to the first tick — which would silently overwrite the
+     * adoption. Applying the bundle here first (manureCountdown / cow milk
+     * / chicken feathers) and flipping the init flag keeps the R196
+     * semantics: random init, then adoption, both before any tick passes.
+     */
+    private static void ensureInitialized(EntityLivingBase e, ETIMLivestock.IState s) {
+        if (s.isInitialized()) {
+            return;
+        }
+        // R196 ctor :26-28 — 0.8 + rand * 0.2 per need, at construction
+        java.util.Random rand = e.getRNG();
+        s.setFood(0.8F + rand.nextFloat() * 0.2F);
+        s.setWater(0.8F + rand.nextFloat() * 0.2F);
+        s.setFreedom(0.8F + rand.nextFloat() * 0.2F);
+        // R196 :29/:380 — the initial countdown is a full-period random
+        // (setManurePeriod re-randomizes); B-7 faces it once with the
+        // FINAL per-species period instead of the R196 double random.
+        s.setManureCountdown(rand.nextInt(manurePeriod(e)));
+        // B-10 production meters — R196 ctors: EntityCow.setMilk(100)
+        // (:18); EntityChicken max 1..2 with the 1/2 trim (:25-28) and
+        // num = max (:30) — .ItemBucket standard_volume 4 × 25 = the
+        // full-meter milking threshold (ItemVessel.java:105).
+        if (e instanceof EntityCow) {
+            s.setMilk(100);
+        }
+        if (e instanceof EntityChicken) {
+            int max = rand.nextInt(2) + 1;
+            if (max > 1 && rand.nextInt(2) == 0) {
+                max--;
+            }
+            s.setMaxNumFeathers(max);
+            s.setNumFeathers(max);
+        }
+        s.setInitialized(true);
     }
 }
