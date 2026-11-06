@@ -964,7 +964,7 @@ public class CommandDevTest extends CommandBase {
                 throw new WrongUsageException("commands.etest.usage");
             }
         }
-        java.util.List<EntityLiving> hits = player.world.getEntitiesWithinAABB(EntityLiving.class,
+java.util.List<EntityLiving> hits = player.world.getEntitiesWithinAABB(EntityLiving.class,
                 player.getEntityBoundingBox().grow(radius));
         java.util.List<String> reset = new java.util.ArrayList<String>();
         for (EntityLiving e : hits) {
@@ -1003,6 +1003,8 @@ public class CommandDevTest extends CommandBase {
         Float hp = null;
         Integer grass = null;
         Integer jump = null;
+                boolean probe = false;
+Integer ground = null;
         EntityPlayerMP player = null;
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
@@ -1032,6 +1034,10 @@ public class CommandDevTest extends CommandBase {
                     grass = MathHelper.clamp(v, 0, 64);   // force N sheepEatGrassBonus calls
                 } else if ("jump".equals(key)) {
                     jump = MathHelper.clamp(v, 0, 256);   // force N jumpFeather calls (1/40 each)
+                } else if ("foodground".equals(key) || "ground".equals(key)) {
+                    ground = MathHelper.clamp(v, 0, 2048); // force N groundEatTick calls (cooldown counts down per call)
+                } else if ("probe".equals(key)) {
+                    probe = true;
                 } else {
                     throw new WrongUsageException("commands.etest.usage");
                 }
@@ -1063,7 +1069,12 @@ public class CommandDevTest extends CommandBase {
         java.util.List<EntityLiving> hits = player.world.getEntitiesWithinAABB(EntityLiving.class,
                 player.getEntityBoundingBox().grow(radius));
         java.util.List<String> kinds = new java.util.ArrayList<String>();
-        for (EntityLiving e : hits) {
+                if (probe) {
+            for (EntityLiving e2 : hits) {
+                io.github.etim.etim.mob.ETIMLivestockEvents.navProbe(e2);
+            }
+        }
+for (EntityLiving e : hits) {
             String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceProd(e, counter, milk, feathers, water, food, hp);
             if (kind != null) {
                 if (step != null) {
@@ -1074,6 +1085,14 @@ public class CommandDevTest extends CommandBase {
                 }
                 for (int n = jump == null ? 0 : jump; n > 0; n--) {
                     io.github.etim.etim.mob.ETIMLivestockEvents.jumpFeather(e);
+                }
+                for (int n = ground == null
+                        ? 0
+                        : ground; n > 0 && !e.isDead; n--) {
+                    io.github.etim.etim.mob.ETIMLivestock.IState gs = io.github.etim.etim.mob.ETIMLivestock.get(e);
+                    if (gs != null) {
+                        io.github.etim.etim.mob.ETIMLivestockEvents.groundEatTick(e, gs);
+                    }
                 }
                 kinds.add(kind);
             }
@@ -1088,6 +1107,7 @@ public class CommandDevTest extends CommandBase {
                 + " hp=" + (hp == null ? "-" : hp)
                 + " grass=" + (grass == null ? "-" : grass)
                 + " jump=" + (jump == null ? "-" : jump)
+                + " foodground=" + (ground == null ? "-" : ground)
                 + " set=" + kinds.size() + " kinds(" + kinds.size() + ")=" + String.join("+", kinds));
         respond(player, "commands.etest.devok");
     }

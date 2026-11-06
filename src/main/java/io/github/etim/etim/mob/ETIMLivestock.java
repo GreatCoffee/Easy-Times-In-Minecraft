@@ -180,6 +180,19 @@ public final class ETIMLivestock {
         int getMaxNumFeathers();
 
         void setMaxNumFeathers(int value);
+
+        /**
+         * B-11 (条 306/307) — R196 {@code EntityLiving
+         * .food_or_repair_item_pickup_cooldown}
+         * (:30) — the ground-food eat
+         * rate limit, 400 on every eat (:670). Runtime only: R196 never
+         * persists it (the entity NBT has no such key), so this field rides
+         * the capability UNPERSISTED — deliberately absent from the storage
+         * serializers below.
+         */
+        int getPickupCooldown();
+
+        void setPickupCooldown(int value);
     }
 
     /** The capability implementation instance. */
@@ -193,6 +206,7 @@ public final class ETIMLivestock {
         int milk;
         int numFeathers;
         int maxNumFeathers;
+        int pickupCooldown;
 
         @Override
         public float getFood() {
@@ -283,6 +297,16 @@ public final class ETIMLivestock {
         @Override
         public void setMaxNumFeathers(int value) {
             this.maxNumFeathers = Math.max(0, value);
+        }
+
+        @Override
+        public int getPickupCooldown() {
+            return this.pickupCooldown;
+        }
+
+        @Override
+        public void setPickupCooldown(int value) {
+            this.pickupCooldown = Math.max(0, value);
         }
 
         /** R196 setFood/setWater/setFreedom — {@code clamp_float(f, 0, 1)}. */

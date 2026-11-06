@@ -10,6 +10,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.passive.EntityChicken;
 import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.passive.EntityPig;
@@ -158,6 +159,10 @@ public final class ETIMLivestockEvents {
         // TICK: the decrement is short-circuited behind the two gates, so a
         // child or desperate (food < 0.05F) animal FREEZES its countdown.
         tickManureCountdown(e, s);
+        // B-11 (条 306/307, D-1=needs) — the R196 ground-food eat arm
+        // (onLivingUpdate "looting" chain) rides the same needs-family
+        // per-tick seat; the handler's flag gate above is the D-1 carrier.
+        groundEatTick(e, s);
         // value trace (run27 C3/C4/C5 判据面): one full-readout row per
         // ~60 s of entity age, gated per entity — the glyph-flip dedup hides
         // the absolute values between flips, and C4 needs rain-vs-dry
@@ -225,7 +230,8 @@ public final class ETIMLivestockEvents {
         return ETIMConfig.livestockManurePeriodCow;
     }
 
-    private static String kind(EntityLivingBase e) {
+    /** the R196 kind glyph for the judge rows (public — shared with the B-11 AI class). */
+    public static String kind(EntityLivingBase e) {
         if (e instanceof EntityCow) {
             return "cow";
         }
@@ -520,6 +526,11 @@ public final class ETIMLivestockEvents {
         return false;
     }
 
+    /** B-11 carrier access — the same isFoodItem tables, for the AI class. */
+    public static boolean isFoodItemPublic(EntityLivingBase e, net.minecraft.item.ItemStack stack) {
+        return isFoodItem(e, stack);
+    }
+
     /**
      * The F-2 hand-feed face, the R196 chain verbatim:
      * <ol>
@@ -544,23 +555,74 @@ public final class ETIMLivestockEvents {
      */
     private static boolean handFeedClick(EntityLivingBase e, net.minecraft.entity.player.EntityPlayer player,
                                          net.minecraft.util.EnumHand hand, ETIMLivestock.IState s) {
-        net.minecraft.entity.EntityAgeable ageable = (net.minecraft.entity.EntityAgeable) e;
-        boolean fullHealth = e.getHealth() >= e.getMaxHealth(); // R196 hasFullHealth :701-703
-        boolean well = Math.min(s.getFreedom(), Math.min(s.getFood(), s.getWater())) >= 0.25F; // :113-117
-        boolean hungry = s.getFood() < 0.5F; // :128-130
-        boolean rejects = fullHealth && !well && !hungry; // :412-414
-        boolean inLove = e instanceof net.minecraft.entity.passive.EntityAnimal
-                && ((net.minecraft.entity.passive.EntityAnimal) e).isInLove();
-        boolean canEat = !inLove && ageable.getGrowingAge() == 0 // EntityAnimal :257-260
-                && !ageable.isChild() && !e.isDead && e.getHealth() > 0.0F; // EntityLiving :1330-1332
-        if (rejects || !canEat) {
-            String cause = rejects ? "family_gate" : (inLove ? "in_love"
-                    : (ageable.isChild() ? "child" : (e.isDead ? "dead" : "hp_low")));
+        // the R196 willEat family gate — the batch-2 gate order verbatim (the
+        // family gate FIRST, then the super.willEat chain) — see willEatCause.
+        String cause = willEatCause(e, s, player.getHeldItem(hand));
+        if (cause != null) {
             ETIMFarm.row("food src=" + kind(e) + " deny cause=" + cause
                     + " food=" + fmt(s.getFood()) + " hp=" + fmt(e.getHealth() / e.getMaxHealth())
                     + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
             return true;
         }
+        boolean love = eatCore(e, s);
+        if (!player.capabilities.isCreativeMode) {
+            net.minecraft.item.ItemStack held = player.getHeldItem(hand);
+            if (held.getCount() <= 1) {
+                player.setHeldItem(hand, net.minecraft.item.ItemStack.EMPTY);
+            } else {
+                held.shrink(1); // R196 :268 — convertOneOfHeldItem(null)
+            }
+        }
+        ETIMFarm.row("food src=" + kind(e) + " serve add=0.5 food=" + fmt(s.getFood())
+                + " hp=" + fmt(e.getHealth() / e.getMaxHealth()) + " love=" + love
+                + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+        return true;
+    }
+
+    /**
+     * The R196 willEat family gate, shared by the hand-feed click arm and the
+     * B-11 ground-pickup arm. Gate order is the R196 sentence structure
+     * verbatim: {@code EntityLivestock.willEat :411-414} (the rejection gate
+     * {@code hasFullHealth && !isWell && !isHungry → false}) FIRST, then the
+     * {@code super.willEat} chain — {@code EntityLiving :1335} isFoodItem +
+     * canEat, {@code EntityAnimal :257-260} !isInLove && adult, {@code
+     * EntityLiving :1330-1332} !child && alive. Returns {@code null} when the
+     * gate passes, or the deny-cause glyph for the judge rows.
+     */
+    static String willEatCause(EntityLivingBase e, ETIMLivestock.IState s, net.minecraft.item.ItemStack stack) {
+        boolean fullHealth = e.getHealth() >= e.getMaxHealth(); // R196 hasFullHealth :701-703
+        boolean well = Math.min(s.getFreedom(), Math.min(s.getFood(), s.getWater())) >= 0.25F; // :113-117
+        boolean hungry = s.getFood() < 0.5F; // :128-130
+        if (fullHealth && !well && !hungry) {
+            return "family_gate"; // :412-414 — the rejection gate first
+        }
+        net.minecraft.entity.EntityAgeable ageable = (net.minecraft.entity.EntityAgeable) e;
+        boolean inLove = e instanceof net.minecraft.entity.passive.EntityAnimal
+                && ((net.minecraft.entity.passive.EntityAnimal) e).isInLove();
+        boolean canEat = !inLove && ageable.getGrowingAge() == 0 // EntityAnimal :257-260
+                && !ageable.isChild() && !e.isDead && e.getHealth() > 0.0F; // EntityLiving :1330-1332
+        if (!canEat) {
+            return inLove ? "in_love" : (ageable.isChild() ? "child"
+                    : (e.isDead ? "dead" : "hp_low"));
+        }
+        if (!isFoodItem(e, stack)) {
+            return "not_food"; // EntityLiving :1335 — the isFoodItem half of super.willEat
+        }
+        return null;
+    }
+
+    /**
+     * The R196 onFoodEaten chain core, shared by the hand-feed click arm and
+     * the B-11 ground-pickup arm: {@code EntityLivestock.onFoodEaten
+     * :336-343} {@code addFood(0.5F)} then the super chain — the love arm
+     * FIRST ({@code EntityAnimal :282} → {@code EntityLivestock
+     * .func_110196_bT :345-350} isWell gate → {@code EntityAnimal :293-301}:
+     * health==max → inLove 600 + the heart state), THEN the heal arm
+     * ({@code EntityLiving :1338-1342 → healByPercentage(0.5F)},
+     * EntityLivingBase :2426-2433 = max·0.5 when hurt). Returns the love
+     * flag for the judge rows.
+     */
+    private static boolean eatCore(EntityLivingBase e, ETIMLivestock.IState s) {
         s.setFood(s.getFood() + 0.5F); // EntityLivestock :339 (clamp in setFood)
         boolean love = false;
         if (Math.min(s.getFreedom(), Math.min(s.getFood(), s.getWater())) >= 0.25F
@@ -574,18 +636,79 @@ public final class ETIMLivestockEvents {
         if (e.getHealth() < e.getMaxHealth()) {
             e.heal(e.getMaxHealth() * 0.5F); // EntityLiving :1340 — healByPercentage(0.5F)
         }
-        if (!player.capabilities.isCreativeMode) {
-            net.minecraft.item.ItemStack held = player.getHeldItem(hand);
-            if (held.getCount() <= 1) {
-                player.setHeldItem(hand, net.minecraft.item.ItemStack.EMPTY);
-            } else {
-                held.shrink(1); // R196 :268 — convertOneOfHeldItem(null)
-            }
+        return love;
+    }
+
+    /**
+     * B-11 (条 306/307) — the ground-food eat arm, R196 {@code
+     * EntityLiving.onLivingUpdate :630-691} verbatim (the "looting" chain —
+     * NOT behind canPickUpLoot, that gates only the equipment side arm
+     * :635/:468). Every server tick while alive: a &gt;0
+     * {@code food_or_repair_item_pickup_cooldown} counts down first
+     * (:646-648, the tick stays dry); else Entities inside the pickup box
+     * ({@code getBoundingBoxForItemPickup :441-443} = expand 1.0/0.25/1.0)
+     * pass the family {@code willEat} gate one at a time and are eaten via
+     * {@code onFoodEaten} (:657-659 — the chain above); the settlement
+     * (:669-685) sets cooldown = 400, takes ONE stack unit off the ground
+     * item, plays the pop (0.2F, pitch ±), kills the empty item or resets
+     * its despawn age to -18000. R196 {@code refreshDespawnCounter(-2400)}
+     * (:683) has no judge value in 1.12 (animals canDespawn=false natively)
+     * and is dropped; the tamed / repair / valuable arms have no livestock
+     * overrides (R196 N/A). The deny row is the observation-only carrier row
+     * (工装发明判位) — R196's non-eating fall-through is silent.
+     */
+    public static void groundEatTick(EntityLivingBase e, ETIMLivestock.IState s) {
+        if (!(e instanceof net.minecraft.entity.passive.EntityAnimal)) {
+            return;
         }
-        ETIMFarm.row("food src=" + kind(e) + " serve add=0.5 food=" + fmt(s.getFood())
-                + " hp=" + fmt(e.getHealth() / e.getMaxHealth()) + " love=" + love
-                + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
-        return true;
+        if (e.isDead || e.getHealth() <= 0.0F) { // R196 :639 gate half
+            return;
+        }
+        int cooldown = s.getPickupCooldown();
+        if (cooldown > 0) {
+            s.setPickupCooldown(cooldown - 1); // R196 :646-648 — decrement, dry tick
+            return;
+        }
+        java.util.List<EntityItem> items = e.world.getEntitiesWithinAABB(EntityItem.class,
+                e.getEntityBoundingBox().grow(1.0D, 0.25D, 1.0D)); // R196 :441-443
+        boolean denied = false;
+        for (EntityItem item_entity : items) {
+            if (item_entity.isDead || item_entity.getItem().isEmpty()) {
+                continue;
+            }
+            net.minecraft.item.ItemStack stack = item_entity.getItem();
+            if (!isFoodItem(e, stack)) {
+                continue; // World :4535-4546 — non-food items never open the scan
+            }
+            String cause = willEatCause(e, s, stack);
+            if (cause != null) {
+                if (!denied && e.ticksExisted % 20 == 0) { // observation row, 1 Hz — the R196 fall-through is silent
+                    denied = true;
+                    ETIMFarm.row("foodground src=" + kind(e) + " deny cause=" + cause
+                            + " item=" + stack.getItem().getRegistryName()
+                            + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+                }
+                continue;
+            }
+            boolean love = eatCore(e, s);
+            String itemGlyph = String.valueOf(stack.getItem().getRegistryName()); // logged BEFORE the mutate
+            stack.shrink(1); // R196 :675 — one stack unit off the ground pile
+            e.world.playSound(null, e.posX, e.posY, e.posZ,
+                    net.minecraft.init.SoundEvents.ENTITY_ITEM_PICKUP,
+                    net.minecraft.util.SoundCategory.NEUTRAL,
+                    0.2F, ((e.getRNG().nextFloat() - e.getRNG().nextFloat()) * 0.7F + 1.0F) * 2.0F); // :676
+            if (stack.isEmpty()) {
+                item_entity.setDead(); // :677-678
+            } else {
+                ((io.github.etim.etim.mixins.EntityItemAgeAccessor) (Object) item_entity).setAge(-18000); // :680
+            }
+            s.setPickupCooldown(400); // :670 — the 20 s rate limit
+            ETIMFarm.row("foodground src=" + kind(e) + " serve add=0.5 food=" + fmt(s.getFood())
+                    + " hp=" + fmt(e.getHealth() / e.getMaxHealth()) + " love=" + love
+                    + " item=" + itemGlyph
+                    + " cooldown=400 entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+            break; // :684 — one eat per tick
+        }
     }
 
     /**
@@ -671,6 +794,34 @@ public final class ETIMLivestockEvents {
             e.setHealth(MathHelper.clamp(hp, 0.0F, e.getMaxHealth()));
         }
         return kind(e);
+    }
+
+    /**
+     * B-11 工装内测位 (non-verdict debug) — one navigation-state line per
+     * living entity in radius: position, onGround, navigator path length /
+     * index / finished / swim flag, and the task engine's mutex state. Rides
+     * mobDebugLog like the other [AILog] surfaces.
+     */
+    public static void navProbe(EntityLivingBase e) {
+        if (!(e instanceof net.minecraft.entity.EntityLiving)) {
+            return;
+        }
+        net.minecraft.entity.EntityLiving living = (net.minecraft.entity.EntityLiving) e;
+        net.minecraft.pathfinding.Path path = living.getNavigator().getPath();
+        ETIM.LOGGER.info("[AILog] navprobe pos=(" + fmt2(e.posX) + "," + fmt2(e.posY) + "," + fmt2(e.posZ) + ")"
+                + " onGround=" + e.onGround
+                + " aiDisabled=" + living.isAIDisabled()
+                + " moveForward=" + String.format("%.3f", living.moveForward)
+                + " path=" + (path == null ? "null" : ("len=" + path.getCurrentPathLength()
+                        + " idx=" + path.getCurrentPathIndex()
+                        + " fin=" + path.isFinished()
+                        + " end=(" + path.getFinalPathPoint().x + "," + path.getFinalPathPoint().y + ","
+                        + path.getFinalPathPoint().z + ")"))
+                + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+    }
+
+    private static String fmt2(double d) {
+        return String.format("%.2f", d);
     }
 
     /**

@@ -4,6 +4,7 @@ import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
 import io.github.etim.etim.mob.ETIMLivestockEvents;
 import io.github.etim.etim.mob.ETIMMoonState;
+import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntityChicken;
 import net.minecraft.entity.passive.EntityCow;
@@ -17,7 +18,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import io.github.etim.etim.mob.ETIMEntityAIMoveToFoodItem;
 
 /**
  * EntityAnimal overrides canDespawn in vanilla 1.12 with {@code false}
@@ -60,6 +64,21 @@ public abstract class MixinEntityAnimal {
         if (ETIMLivestockEvents.interactClick((EntityAnimal) (Object) this, player, hand)) {
             cir.setReturnValue(true);
         }
+    }
+
+    /**
+     * B-11 (条 306/307) — the R196 Animal-layer task seat: the {@code
+     * EntityAnimal} ctor :9 adds the ground-food pickup AI at task 1
+     * (speed 1.0F, swim allowed). The 1.12 four livestock hosts add their
+     * {@code EntityAIPanic} at the SAME priority 1 AFTER this base ctor body
+     * (super runs first → this TAIL injection precedes the host body), so
+     * the AI holds the R196 insertion-order seat; the AI self-gates through
+     * the needs-family flag + the capability at canUse time (D-1 = needs).
+     */
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void etim$foodPickupAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        ((EntityLiving) (Object) this).tasks.addTask(1,
+                new ETIMEntityAIMoveToFoodItem((EntityLiving) (Object) this));
     }
 
     /**
