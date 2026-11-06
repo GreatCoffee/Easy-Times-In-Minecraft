@@ -443,7 +443,18 @@ tasks.register('etimTestServerModsHold') {
          'etim-1.0.0.jar'].each { n ->
             def f = new File(obfDir, n)
             if (f.exists()) {
-                f.renameTo(new File(holdDir, n))
+                // b13-obf round r3: File.renameTo returns FALSE SILENTLY on
+                // Windows when dest exists — the hold dir keeps last round's
+                // copy, the mods jar stays put and the FML DupMods crash
+                // resurfaces (etim: classpath + mods copy = Dup). Delete the
+                // stale dest first, THEN move.
+                def dest = new File(holdDir, n)
+                if (dest.exists() && !dest.delete()) {
+                    throw new GradleException("[etim-harness] cannot clear stale hold entry ${dest}")
+                }
+                if (!f.renameTo(dest)) {
+                    throw new GradleException("[etim-harness] cannot hold (move ${f} -> ${dest})")
+                }
             }
         }
         println '[etim-harness] server mods hold complete'
@@ -596,6 +607,16 @@ tasks.register('etimExtrasOffRestore') {
         dependsOn 'etimExtrasOffGate'
         finalizedBy 'etimExtrasOffRestore'
     }
+}
+
+// b13-obf r5: the runObfServer world carries stale registry remnant rows
+// (etim:endurance, etim:... from past config versions) — FML stops
+// boot awaiting the interactive /fml confirm|cancel query. The dedicated
+// server has no interactive stdin in the harness driver, so preselect
+// confirm (delete the stale entries — the harness server world is
+// disposable; the driver wipes run/obfuscated between verdict rounds).
+tasks.named('runObfServer').configure {
+    jvmArgs '-Dfml.queryResult=confirm'
 }
 
 // ETIM test harness: dump the runObfServer javaexec launch line (runner-driven

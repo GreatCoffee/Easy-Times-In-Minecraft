@@ -187,6 +187,9 @@ public class CommandDevTest extends CommandBase {
             case "drought":
                 executeDrought(server, sender, args);
                 break;
+            case "blight":
+                executeBlight(server, sender, args);
+                break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
         }
@@ -1237,6 +1240,44 @@ for (EntityLiving e : hits) {
         if ("roll".equals(op)) {
             float p = args.length > 5 ? MathHelper.clamp(Float.parseFloat(args[5]), 0.0F, 1.0F) : 1.0F;
             io.github.etim.etim.farm.ETIMFarm.forceDroughtRoll(world, pos, p);
+            return;
+        }
+        throw new WrongUsageException("commands.etest.usage");
+    }
+
+    // ------------------------------------------------- B-13 工装 token (枯萎 blight)
+    // 底本：executeDrought 馆例。三条 op 吃 /etest blight 的席位：
+    //   probe <x> <y> <z>           — 判读前 dump（无骰）
+    //   set <x> <y> <z> <0|1>       — 直接装/拆 bit 8（播判读窗的种子）
+    //   roll <x> <y> <z> [p] [blood] — 强制走一次 arm 体（drought roll 馆例）：
+    //       blood=1 → 血月臂（dedicated 位由工装过——R196 一手在 dedicated 恒 false，
+    //                  判读窗须强制才能摸到 F-B 面；p 忽略、用 0.25F 常量——判值直抄）
+    //       否则    → 低光臂，p 缺省＝常量 × biome 修 × (1 − blv/16)（现算现掷）
+    private static void executeBlight(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String op = args[1];
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = new BlockPos(CommandBase.parseInt(args[2]),
+                CommandBase.parseInt(args[3]), CommandBase.parseInt(args[4]));
+        net.minecraft.world.World world = sender.getEntityWorld();
+        if ("probe".equals(op)) {
+            io.github.etim.etim.farm.ETIMBlight.probeBlight(world, pos);
+            return;
+        }
+        if ("set".equals(op)) {
+            if (args.length != 6) {
+                throw new WrongUsageException("commands.etest.usage");
+            }
+            io.github.etim.etim.farm.ETIMBlight.forceSetBlight(world, pos, "1".equals(args[5]) || "true".equals(args[5]));
+            return;
+        }
+        if ("roll".equals(op)) {
+            boolean blood = args.length > 5 && ("1".equals(args[5]) || "true".equals(args[5]));
+            io.github.etim.etim.farm.ETIMBlight.forceBlightRoll(world, pos, blood);
             return;
         }
         throw new WrongUsageException("commands.etest.usage");

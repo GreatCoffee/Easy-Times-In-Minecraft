@@ -25,13 +25,14 @@ const path = require('path');
 
 function startServer(opts) {
   const root = opts.root;
+  const task = opts.task || 'runServer';
   const tag = opts.tag || 'server';
   const outDir = path.join(root, 'testharness', 'build-logs');
   fs.mkdirSync(outDir, { recursive: true });
   const logPath = path.join(outDir, tag + '.out');
   const out = fs.createWriteStream(logPath, { flags: 'w' });
 
-  const child = spawn('cmd.exe', ['/d', '/s', '/c', 'gradlew.bat runServer --console=plain'], {
+  const child = spawn('cmd.exe', ['/d', '/s', '/c', 'gradlew.bat ' + task + ' --console=plain'], {
     cwd: root,
     env: Object.assign({}, process.env),
     windowsHide: true,

@@ -530,6 +530,12 @@ public final class ETIMConfig {
     /** B-9: the global MITE growth-rate multiplier family base (R196 BlockGrowingPlant :17-19
      *  = 0.25F — prime wheat plot ~2.9%/tick vs vanilla ~11%).  */
     public static float globalGrowthRateFactor = 0.25F;
+    /** B-13 (blight batch, 条 314): the R196 blight family master switch — the blighted
+     *  arm (1/64 death + 1/2-odds ±1 spread, BlockCrops :75-98), the blood-moon 25% arm
+     *  (:100-107, judge dice order BEFORE the low-light dice) and the low-light dice
+     *  (:109-114 = 5.0E-4F × biomeMod × (1 − blv/16F)); bit 8 rides the crop metadata
+     *  verbatim. Off = no blight anywhere (bit stays 0, bone meal keeps vanilla growth). */
+    public static boolean blightR196 = true;
 
     // combat batch AD-10+SH (audit20-97 planned) ------------------------------
     /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
@@ -1291,6 +1297,9 @@ public final class ETIMConfig {
         globalGrowthRateFactor = config.getFloat("globalGrowthRateFactor", "farm", 0.25F, 0.01F, 100.0F,
                 comment("R196 the global growth-rate modifier (BlockGrowingPlant :17-19 = 0.25): multiplies every composed growth chance — prime wheat plot ~2.9%/tick vs vanilla ~11%",
                         "R196 全局增速修饰（BlockGrowingPlant :17-19 = 0.25）：乘在合成的每一次生长概率上——满配湿润田小麦约 2.9%/tick 对原版约 11%"));
+        blightR196 = config.getBoolean("blightR196", "farm", true,
+                comment("R196 blight family master switch (B-13): blighted crops (metadata bit 8) die 1/64 per random tick and spread to a neighboring crop (1/2 odds, \u00b11 offsets); blood-moon nights blight a 25% open-sky crop; low light rolls 5.0E-4 x biome modifier x (1 - light/16). Bone meal only unblights (R196 has no bonemeal growth face); a blighted crop drops nothing. Off = no blight, vanilla bone meal",
+                        "R196 枯萎族总开关（B-13）：枯萎作物（meta 第 8 位）每随机 tick 掷 1/64 死签并向邻株 1/2 概率传染（\u00b11 邻域）；血月露天作物 25% 中枯；低光按 5.0E-4 × 生物群系修正 × (1 − 光/16) 掷枯。骨粉只解枯（R196 无骨粉催长道）；枯株断零掉落。关闭则无枯萎、骨粉回原版催长"));
 
         // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
         armorModelR196 = config.getBoolean("armorModelR196", "combat", true,

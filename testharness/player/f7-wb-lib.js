@@ -37,7 +37,7 @@ const PIN = {
   dev: { bytes: 998790, sha: '07F93E396834F5C3EEF73EE17AF1EFFBC95F9DA9AB54AD1C1C980604EEE07372' },
   src: { bytes: 928517, sha: '94DE1D81389B4D505B3EB65CFD54C8555694C0E5EC770A5429E41B1B02CCCBF3' },
 };
-const MK_PIN = { classes: 84, entries: 186, dual: 372, mixins: 80, client: 10 };
+const MK_PIN = { classes: 84, entries: 192, dual: 384, mixins: 80, client: 10 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);

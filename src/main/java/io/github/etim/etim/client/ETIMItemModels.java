@@ -1,5 +1,6 @@
 package io.github.etim.etim.client;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
@@ -32,6 +33,37 @@ public final class ETIMItemModels {
 
     @SubscribeEvent
     public static void onModelRegistry(ModelRegistryEvent event) {
+        // B-13 (blight batch): the BLIGHTED property rides the state container
+        // of BlockCrops (bit 8) AND ETIMBlockDeadPlant (which extends it).
+        // Every touched blockstate json keys its variants by "age=N" only —
+        // without a state mapper the variant lookup would go
+        // "age=N,blighted=false" and all crops render purple-black. The
+        // mapper strips every property but age (vanilla reuse verdict, 条
+        // 314 摸底 §三: blighted textures sell later).
+        net.minecraft.client.renderer.block.statemap.StateMapperBase blightStripper =
+                new net.minecraft.client.renderer.block.statemap.StateMapperBase() {
+                    @Override
+                    protected net.minecraft.client.renderer.block.model.ModelResourceLocation
+                    getModelResourceLocation(IBlockState state) {
+                        ResourceLocation name = state.getBlock().getRegistryName();
+                        int age = state.getValue(net.minecraft.block.BlockCrops.AGE);
+                        return new ModelResourceLocation(name.toString(), "age=" + age);
+                    }
+                };
+        int stripped = 0;
+        for (net.minecraft.block.Block b : new net.minecraft.block.Block[] {
+                net.minecraft.init.Blocks.WHEAT,
+                net.minecraft.init.Blocks.CARROTS,
+                net.minecraft.init.Blocks.POTATOES,
+                io.github.etim.etim.farm.ETIMBlockDeadPlant.DEAD_CROP,
+                io.github.etim.etim.farm.ETIMBlockDeadPlant.DEAD_STEM }) {
+            if (b != null) {
+                ModelLoader.setCustomStateMapper(b, blightStripper);
+                stripped++;
+            }
+        }
+        ETIM.LOGGER.info("[TestLog] blight state mapper: " + stripped + " crop blocks stripped to age variants [client]");
+
         int registered = 0;
         for (Item item : ForgeRegistries.ITEMS.getValues()) {
             ResourceLocation name = item.getRegistryName();

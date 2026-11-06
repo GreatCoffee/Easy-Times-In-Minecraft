@@ -1,5 +1,6 @@
 package io.github.etim.etim.mixins;
 
+import io.github.etim.etim.farm.ETIMBlight;
 import io.github.etim.etim.farm.ETIMFarm;
 import net.minecraft.block.BlockCrops;
 import net.minecraft.util.math.BlockPos;
@@ -25,9 +26,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BlockCrops.class)
 public abstract class MixinBlockCropsTick {
 
-    @Inject(method = "updateTick", at = @At("HEAD"), cancellable = true)
-    private void etim$dryGate(World world, BlockPos pos, net.minecraft.block.state.IBlockState state,
-                              java.util.Random rand, CallbackInfo ci) {
+    @Inject(method = "updateTick", at = @At("HEAD"), cancellable = true, require = 1)
+    private void etim$cropTickArm(World world, BlockPos pos, net.minecraft.block.state.IBlockState state,
+                                  java.util.Random rand, CallbackInfo ci) {
         if (!world.isRemote && ETIMFarm.isDryFarmland(world, pos.down())) {
             ETIMFarm.row("growth gate dry block=" + state.getBlock().getRegistryName()
                     + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ());
@@ -35,6 +36,16 @@ public abstract class MixinBlockCropsTick {
             // rides the SAME face as the freeze gate — additive only, the
             // cancel below stays the 条 283 verdict unchanged.
             ETIMFarm.droughtDeathTick(world, pos, state, rand);
+            ci.cancel();
+            return;
+        }
+        // blight batch (B-13, 条 314): the R196 :75-114 blight family — the
+        // RED LINE face (growth-rate 摸底 :29/:71): the arm runs BEFORE the
+        // light-window freeze and outside its cancel domain. R196's else-if
+        // chain gives the blighted arm / blood-moon / low-light dice the
+        // whole tick, so a consumed roll cancels the vanilla body here;
+        // misses fall through to freeze + vanilla growth (B-9 shapes).
+        if (!world.isRemote && ETIMBlight.blightTickArm(world, pos, state, rand)) {
             ci.cancel();
             return;
         }
