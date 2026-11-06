@@ -2,8 +2,15 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
+import io.github.etim.etim.mob.ETIMLivestockEvents;
 import io.github.etim.etim.mob.ETIMMoonState;
 import net.minecraft.entity.passive.EntityAnimal;
+import net.minecraft.entity.passive.EntityChicken;
+import net.minecraft.entity.passive.EntityCow;
+import net.minecraft.entity.passive.EntityPig;
+import net.minecraft.entity.passive.EntitySheep;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,6 +34,32 @@ public abstract class MixinEntityAnimal {
             return;
         }
         cir.setReturnValue(DespawnRules.canDespawn((EntityAnimal) (Object) this));
+    }
+
+    /**
+     * B-10 batch 2 (audit20 条 303) — the R196 interaction family face
+     * (water vessel / hand feed; the cow empty-bucket milking arm answers
+     * earlier at MixinEntityCow HEAD and never reaches here). This mixin owns
+     * the base {@code processInteract} because the chicken has no override of
+     * its own while the cow/sheep/pig bodies reach this exact method through
+     * their super fall-through; per the R196 non-lined hands (dye / saddle /
+     * spawn egg …) dispatch returns false so the vanilla body stands. An
+     * answered hand cancels entirely — the 1.12 vanilla instant-breed /
+     * child-ageUp arms of this same body are faces R196 never has.
+     */
+    @Inject(method = "processInteract", at = @At("HEAD"), cancellable = true)
+    private void etim$interactGate(EntityPlayer player, EnumHand hand, CallbackInfoReturnable<Boolean> cir) {
+        if (!ETIMConfig.livestockProductionR196) {
+            return;
+        }
+        Object self = (Object) this;
+        if (!(self instanceof EntityCow || self instanceof EntitySheep
+                || self instanceof EntityPig || self instanceof EntityChicken)) {
+            return; // the R196 livestock family is these four; the rest keeps vanilla
+        }
+        if (ETIMLivestockEvents.interactClick((EntityAnimal) (Object) this, player, hand)) {
+            cir.setReturnValue(true);
+        }
     }
 
     /**

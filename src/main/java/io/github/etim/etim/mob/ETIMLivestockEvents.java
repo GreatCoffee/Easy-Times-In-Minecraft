@@ -423,8 +423,228 @@ public final class ETIMLivestockEvents {
         return true;
     }
 
+    // ----------------------------------------------- interact family (B-10 batch 2)
+
+    /**
+     * B-10 batch 2 (audit20 条 303) — the R196 entity-interaction family
+     * dispatch, called from {@code MixinEntityAnimal.processInteract} HEAD
+     * (chicken has no override of its own; the cow/sheep/pig overrides reach
+     * this body via their super fall-through). R196 arm order inside one held
+     * item: the water-vessel arm first ({@code ItemVessel.tryEntityInteraction
+     * :116-127}), then the hand-feed arm ({@code EntityAnimal
+     * .onEntityRightClicked :262-276} + the {@code EntityLivestock.willEat
+     * :411-414} gate + {@code onFoodEaten :336-343}). The cow empty-bucket
+     * milking arm answers at {@code MixinEntityCow} HEAD (batch 1) and never
+     * reaches here. Any hand our family does not own (dye / saddle / spawn
+     * egg / sword hooks) returns false so the vanilla body stands.
+     */
+    public static boolean interactClick(EntityLivingBase e, net.minecraft.entity.player.EntityPlayer player,
+                                        net.minecraft.util.EnumHand hand) {
+        if (e.world.isRemote) {
+            return true; // server answers; client mirrors as handled (batch-1 precedent)
+        }
+        if (!ETIMConfig.livestockProductionR196) {
+            return false;
+        }
+        ETIMLivestock.IState s = ETIMLivestock.get(e);
+        if (s == null) {
+            return false; // no capability → vanilla (defensive)
+        }
+        net.minecraft.item.ItemStack held = player.getHeldItem(hand);
+        if (held.isEmpty()) {
+            return false;
+        }
+        if (held.getItem() == net.minecraft.init.Items.WATER_BUCKET) {
+            return waterClick(e, player, hand, s);
+        }
+        if (isFoodItem(e, held)) {
+            return handFeedClick(e, player, hand, s);
+        }
+        return false;
+    }
+
+    /**
+     * The F-1 water face — R196 {@code ItemVessel.tryEntityInteraction
+     * :116-127} verbatim. A water vessel on a thirsty livestock
+     * ({@code isThirsty()} = {@code water < 0.5F}, EntityLivestock :124-126)
+     * takes {@code 0.25F * standard_volume} water (= 0.25 × 4 = +1.0 for the
+     * 1.12 water bucket, ItemBucket:11) and converts to the empty vessel
+     * unless creative (:121-123). A NON-thirsty click is R196's silent
+     * fall-through (the :127 {@code return true} only lives inside the
+     * isThirsty branch) — this carrier returns false so the vanilla body
+     * runs its harmless no-op exactly like R196's fall would, with an
+     * observation-only deny row (the batch-1 milk-deny-row precedent).
+     */
+    private static boolean waterClick(EntityLivingBase e, net.minecraft.entity.player.EntityPlayer player,
+                                      net.minecraft.util.EnumHand hand, ETIMLivestock.IState s) {
+        float meter = s.getWater();
+        if (meter >= 0.5F) {
+            ETIMFarm.row("water src=" + kind(e) + " deny meter=" + fmt(meter)
+                    + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+            return false;
+        }
+        s.setWater(meter + 1.0F); // R196 :120 — 0.25F * standard_volume, clamp in setWater
+        if (!player.capabilities.isCreativeMode) {
+            net.minecraft.item.ItemStack held = player.getHeldItem(hand);
+            net.minecraft.item.ItemStack empty = new net.minecraft.item.ItemStack(net.minecraft.init.Items.BUCKET, 1);
+            if (held.getCount() <= 1) {
+                player.setHeldItem(hand, empty);
+            } else {
+                held.shrink(1);
+                if (!player.addItemStackToInventory(empty)) {
+                    player.dropItem(empty, false);
+                }
+            }
+        }
+        ETIMFarm.row("water src=" + kind(e) + " serve add=1.0 meter=" + fmt(s.getWater())
+                + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+        return true;
+    }
+
+    /** R196 isFoodItem tables (one line each): cow/sheep wheat, chicken seeds, pig carrot|brownPod. */
+    private static boolean isFoodItem(EntityLivingBase e, net.minecraft.item.ItemStack held) {
+        net.minecraft.item.Item item = held.getItem();
+        if (e instanceof EntityCow || e instanceof EntitySheep) {
+            return item == net.minecraft.init.Items.WHEAT; // EntityCow :121 / EntitySheep :273
+        }
+        if (e instanceof EntityChicken) {
+            return item == net.minecraft.init.Items.WHEAT_SEEDS; // EntityChicken :149
+        }
+        if (e instanceof EntityPig) {
+            if (item == net.minecraft.init.Items.CARROT) {
+                return true; // EntityPig :165-167
+            }
+            return item instanceof net.minecraft.item.ItemBlock
+                    && ((net.minecraft.item.ItemBlock) item).getBlock() == net.minecraft.init.Blocks.BROWN_MUSHROOM; // :169-174
+        }
+        return false;
+    }
+
+    /**
+     * The F-2 hand-feed face, the R196 chain verbatim:
+     * <ol>
+     *   <li>the gate {@code EntityLivestock.willEat :412-414}:
+     *       {@code hasFullHealth() && !isWell() && !isHungry() → false},
+     *       else the {@code super.willEat} chain ({@code EntityLiving :1335}
+     *       isFoodItems+canEat, {@code EntityAnimal :257-260} !isInLove &&
+     *       adult, {@code EntityLiving :1330-1332} !child && alive);</li>
+     *   <li>{@code EntityLivestock.onFoodEaten :336-343}: {@code addFood(0.5F)}
+     *       then the super chain — the love arm FIRST ({@code EntityAnimal
+     *       :282} → {@code EntityLivestock.func_110196_bT :345-350} isWell
+     *       gate → {@code EntityAnimal :293-301}: health==max → inLove 600 +
+     *       the (byte)18 heart state), THEN the heal arm ({@code EntityLiving
+     *       :1338-1342 → healByPercentage(0.5F)}, EntityLivingBase
+     *       :2426-2433 = max·0.5 when hurt);</li>
+     *   <li>the consume arm {@code EntityAnimal.onEntityRightClicked
+     *       :265-270}: creative keeps the hand, else one item leaves.</li>
+     * </ol>
+     * A willEat-false or canEat-false food hand is ANSWERED (true, deny row,
+     * vanilla untouched) — falling through would hand the same wheat to
+     * 1.12's vanilla instant-breed / child-ageUp arms, faces R196 never has.
+     */
+    private static boolean handFeedClick(EntityLivingBase e, net.minecraft.entity.player.EntityPlayer player,
+                                         net.minecraft.util.EnumHand hand, ETIMLivestock.IState s) {
+        net.minecraft.entity.EntityAgeable ageable = (net.minecraft.entity.EntityAgeable) e;
+        boolean fullHealth = e.getHealth() >= e.getMaxHealth(); // R196 hasFullHealth :701-703
+        boolean well = Math.min(s.getFreedom(), Math.min(s.getFood(), s.getWater())) >= 0.25F; // :113-117
+        boolean hungry = s.getFood() < 0.5F; // :128-130
+        boolean rejects = fullHealth && !well && !hungry; // :412-414
+        boolean inLove = e instanceof net.minecraft.entity.passive.EntityAnimal
+                && ((net.minecraft.entity.passive.EntityAnimal) e).isInLove();
+        boolean canEat = !inLove && ageable.getGrowingAge() == 0 // EntityAnimal :257-260
+                && !ageable.isChild() && !e.isDead && e.getHealth() > 0.0F; // EntityLiving :1330-1332
+        if (rejects || !canEat) {
+            String cause = rejects ? "family_gate" : (inLove ? "in_love"
+                    : (ageable.isChild() ? "child" : (e.isDead ? "dead" : "hp_low")));
+            ETIMFarm.row("food src=" + kind(e) + " deny cause=" + cause
+                    + " food=" + fmt(s.getFood()) + " hp=" + fmt(e.getHealth() / e.getMaxHealth())
+                    + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+            return true;
+        }
+        s.setFood(s.getFood() + 0.5F); // EntityLivestock :339 (clamp in setFood)
+        boolean love = false;
+        if (Math.min(s.getFreedom(), Math.min(s.getFood(), s.getWater())) >= 0.25F
+                && e instanceof net.minecraft.entity.passive.EntityAnimal) {
+            net.minecraft.entity.passive.EntityAnimal a = (net.minecraft.entity.passive.EntityAnimal) e;
+            if (a.getHealth() >= a.getMaxHealth()) { // EntityAnimal :294 — love rides full health
+                a.setInLove((net.minecraft.entity.player.EntityPlayer) null); // :295-299 — inLove 600 + hearts
+                love = true;
+            }
+        }
+        if (e.getHealth() < e.getMaxHealth()) {
+            e.heal(e.getMaxHealth() * 0.5F); // EntityLiving :1340 — healByPercentage(0.5F)
+        }
+        if (!player.capabilities.isCreativeMode) {
+            net.minecraft.item.ItemStack held = player.getHeldItem(hand);
+            if (held.getCount() <= 1) {
+                player.setHeldItem(hand, net.minecraft.item.ItemStack.EMPTY);
+            } else {
+                held.shrink(1); // R196 :268 — convertOneOfHeldItem(null)
+            }
+        }
+        ETIMFarm.row("food src=" + kind(e) + " serve add=0.5 food=" + fmt(s.getFood())
+                + " hp=" + fmt(e.getHealth() / e.getMaxHealth()) + " love=" + love
+                + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+        return true;
+    }
+
+    /**
+     * The F-3 jump feather face — R196 {@code EntityChicken.jump :185-191}
+     * (after super.jump: !child && 1-in-40 && not in water →
+     * {@code tryDropFeather(true)} :201-209, the retain-at-least-one arm:
+     * the meter needs 2+, one feather falls and the meter steps down).
+     */
+    public static void jumpFeather(EntityLivingBase e) {
+        if (!(e instanceof EntityChicken)) {
+            return;
+        }
+        EntityChicken c = (EntityChicken) e;
+        ETIMLivestock.IState s = ETIMLivestock.get(c);
+        if (s == null) {
+            return;
+        }
+        if (c.isChild() || e.getRNG().nextInt(40) != 0
+                || c.isInsideOfMaterial(net.minecraft.block.material.Material.WATER)) {
+            return; // R196 :188
+        }
+        if (s.getNumFeathers() >= 2) { // :202 — retain_at_least_one = true
+            dropStack(c, new net.minecraft.item.ItemStack(net.minecraft.init.Items.FEATHER, 1));
+            s.setNumFeathers(s.getNumFeathers() - 1);
+            if (ETIMConfig.mobDebugLog) {
+                ETIM.LOGGER.info("[AILog] production src=chicken kind=feather jump=true drop=1 num="
+                        + s.getNumFeathers() + "/" + s.getMaxNumFeathers()
+                        + " entity=EntityChicken#" + c.getEntityId());
+            }
+        }
+    }
+
+    /**
+     * The F-4 sheep eating tail — R196 {@code EntitySheep.eatGrassBonus
+     * :223-231}. 1.12's vanilla body already carries the R196 first two
+     * statements verbatim (setSheared(false) + child addGrowth(60)), so this
+     * mixin only appends the tail {@code addFood(0.5F)} (:230) and rides the
+     * needs flag like the rest of the three-need face.
+     */
+    public static void sheepEatGrassBonus(EntityLivingBase e) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return;
+        }
+        ETIMLivestock.IState s = ETIMLivestock.get(e);
+        if (s == null) {
+            return;
+        }
+        s.setFood(s.getFood() + 0.5F);
+        ETIMFarm.row("grass src=" + kind(e) + " add=0.5 face=eatGrassBonus food=" + fmt(s.getFood())
+                + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+    }
+
+    private static String fmt(float f) {
+        return String.format("%.2f", f);
+    }
+
     /** B-10 工装 — the /etest prod force port (counter/milk/feather setters). */
-    public static String forceProd(EntityLivingBase e, Integer counter, Integer milk, Integer feathers) {
+    public static String forceProd(EntityLivingBase e, Integer counter, Integer milk, Integer feathers,
+                                   Float water, Float food, Float hp) {
         ETIMLivestock.IState s = ETIMLivestock.get(e);
         if (s == null) {
             return null;
@@ -440,6 +660,15 @@ public final class ETIMLivestockEvents {
             if (s.getMaxNumFeathers() < feathers) {
                 s.setMaxNumFeathers(feathers);
             }
+        }
+        if (water != null) {
+            s.setWater(water); // clamp in setWater :55-61
+        }
+        if (food != null) {
+            s.setFood(food); // clamp in setFood :40-45
+        }
+        if (hp != null) {
+            e.setHealth(MathHelper.clamp(hp, 0.0F, e.getMaxHealth()));
         }
         return kind(e);
     }

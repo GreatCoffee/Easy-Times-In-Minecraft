@@ -982,13 +982,15 @@ public class CommandDevTest extends CommandBase {
     // ------------------------------------------------- B-10 工装 token (产出链, 条 300)
 
     /**
-     * {@code /etest prod [radius=6] [counter=N] [milk=X] [feather=N]} — the
-     * B-10 force port: every livestock entity inside the radius gets the
-     * named production meters written (chicken counter 200 → the 1-in-20
-     * egg gate rolls from THIS pass onward; feather seeds the feather
-     * meter; milk seeds the cow milk meter 0..100). Absent tokens are
-     * left as-is; the echo line names the kinds so the window can pick its
-     * judge points without extra probing.
+     * {@code /etest prod [radius=6] [counter=N] [milk=X] [feather=N]
+     * [water=F] [food=F] [hp=F]} — the B-10 force port (批量二扩 seed 位):
+     * every livestock entity inside the radius gets the named production
+     * meters written (chicken counter 200 → the 1-in-20 egg gate rolls from
+     * THIS pass onward; feather seeds the feather meter; milk seeds the cow
+     * milk meter 0..100; water/food seed the need meters 0..1; hp seeds the
+     * health), the batch-2 interact/jump/eatGrass faces included. Absent
+     * tokens are left as-is; the echo line names the kinds so the window can
+     * pick its judge points without extra probing.
      */
     private static void executeProd(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         int radius = 6;
@@ -996,6 +998,11 @@ public class CommandDevTest extends CommandBase {
         Integer milk = null;
         Integer feathers = null;
         Integer step = null;
+        Float water = null;
+        Float food = null;
+        Float hp = null;
+        Integer grass = null;
+        Integer jump = null;
         EntityPlayerMP player = null;
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
@@ -1021,11 +1028,29 @@ public class CommandDevTest extends CommandBase {
                     feathers = Math.max(0, v);
                 } else if ("step".equals(key)) {
                     step = MathHelper.clamp(v, 1, 2000);
+                } else if ("grass".equals(key)) {
+                    grass = MathHelper.clamp(v, 0, 64);   // force N sheepEatGrassBonus calls
+                } else if ("jump".equals(key)) {
+                    jump = MathHelper.clamp(v, 0, 256);   // force N jumpFeather calls (1/40 each)
                 } else {
                     throw new WrongUsageException("commands.etest.usage");
                 }
             } catch (NumberFormatException e) {
-                throw new WrongUsageException("commands.etest.usage");
+                float f;
+                try {
+                    f = Float.parseFloat(value);
+                } catch (NumberFormatException e2) {
+                    throw new WrongUsageException("commands.etest.usage");
+                }
+                if ("water".equals(key)) {
+                    water = MathHelper.clamp(f, 0.0F, 1.0F);
+                } else if ("food".equals(key)) {
+                    food = MathHelper.clamp(f, 0.0F, 1.0F);
+                } else if ("hp".equals(key)) {
+                    hp = MathHelper.clamp(f, 0.0F, 1024.0F);
+                } else {
+                    throw new WrongUsageException("commands.etest.usage");
+                }
             }
         }
         if (player == null) {
@@ -1039,10 +1064,16 @@ public class CommandDevTest extends CommandBase {
                 player.getEntityBoundingBox().grow(radius));
         java.util.List<String> kinds = new java.util.ArrayList<String>();
         for (EntityLiving e : hits) {
-            String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceProd(e, counter, milk, feathers);
+            String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceProd(e, counter, milk, feathers, water, food, hp);
             if (kind != null) {
                 if (step != null) {
                     io.github.etim.etim.mob.ETIMLivestockEvents.pumpGoods(e, step);
+                }
+                for (int n = grass == null ? 0 : grass; n > 0; n--) {
+                    io.github.etim.etim.mob.ETIMLivestockEvents.sheepEatGrassBonus(e);
+                }
+                for (int n = jump == null ? 0 : jump; n > 0; n--) {
+                    io.github.etim.etim.mob.ETIMLivestockEvents.jumpFeather(e);
                 }
                 kinds.add(kind);
             }
@@ -1052,7 +1083,12 @@ public class CommandDevTest extends CommandBase {
                 + " milk=" + (milk == null ? "-" : milk)
                 + " feather=" + (feathers == null ? "-" : feathers)
                 + " step=" + (step == null ? "-" : step)
-                + " set=" + kinds.size() + " kinds=" + String.join("+", kinds));
+                + " water=" + (water == null ? "-" : water)
+                + " food=" + (food == null ? "-" : food)
+                + " hp=" + (hp == null ? "-" : hp)
+                + " grass=" + (grass == null ? "-" : grass)
+                + " jump=" + (jump == null ? "-" : jump)
+                + " set=" + kinds.size() + " kinds(" + kinds.size() + ")=" + String.join("+", kinds));
         respond(player, "commands.etest.devok");
     }
 
