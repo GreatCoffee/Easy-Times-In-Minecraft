@@ -190,6 +190,9 @@ public class CommandDevTest extends CommandBase {
             case "blight":
                 executeBlight(server, sender, args);
                 break;
+            case "rain":
+                executeRain(server, sender, args);
+                break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
         }
@@ -1315,6 +1318,44 @@ for (EntityLiving e : hits) {
         if ("roll".equals(op)) {
             boolean blood = args.length > 5 && ("1".equals(args[5]) || "true".equals(args[5]));
             io.github.etim.etim.farm.ETIMBlight.forceBlightRoll(world, pos, blood);
+            return;
+        }
+        throw new WrongUsageException("commands.etest.usage");
+    }
+
+    // ------------------------------------------------- C-16 工装 token (R196 雨)
+
+    /**
+     * {@code /etest rain set <strength>} — R196 World.setRainStrength
+     * (:5388-5391, prev=current=par1 snap) on the sender's world. The ETIM
+     * weather clock keeps draining after the snap (W-C16 实测 1.0→0.43 ≈
+     * 1.2 s，≈0.46/s — NOT the vanilla 0.01/s 80 s face), so the strength
+     * gate (&gt;0.2) stays live only a couple of seconds — drivers send
+     * set + probe in the SAME batch and re-farmland inside the window.
+     * {@code /etest rain probe} — the strength dump (no set).
+     */
+    private static void executeRain(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        net.minecraft.world.World world = sender.getEntityWorld();
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        if ("probe".equals(args[1])) {
+            ETIM.LOGGER.info("[WeatherLog] rain probe rain=" + String.format(java.util.Locale.ROOT, "%.4f", world.rainingStrength)
+                    + " thunder=" + String.format(java.util.Locale.ROOT, "%.4f", world.thunderingStrength)
+                    + " [server]");
+            return;
+        }
+        if ("set".equals(args[1])) {
+            if (args.length < 3) {
+                throw new WrongUsageException("commands.etest.usage");
+            }
+            float str = MathHelper.clamp(Float.parseFloat(args[2]), 0.0F, 1.0F);
+            // R196 World.setRainStrength :5388-5391 verbatim — prev=current.
+            // (The direct method call trips NoSuchMethodError in the srg
+            // runtime; the two fields are public and remapped.)
+            world.prevRainingStrength = str;
+            world.rainingStrength = str;
+            ETIM.LOGGER.info("[WeatherLog] rain set str=" + String.format(java.util.Locale.ROOT, "%.4f", str) + " [server]");
             return;
         }
         throw new WrongUsageException("commands.etest.usage");

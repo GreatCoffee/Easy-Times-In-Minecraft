@@ -4,6 +4,7 @@ import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.farm.ETIMFarm;
 import io.github.etim.etim.farm.ETIMItemManure;
+import io.github.etim.etim.weather.ETIMRain;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -251,7 +252,7 @@ public final class ETIMLivestockEvents {
                 RAIN_TRACE.put(e, System.currentTimeMillis());
                 ETIM.LOGGER.info("[AILog] livestock-raincheck pos=(" + Math.floor(e.posX) + "," + Math.floor(e.posY) + "," + Math.floor(e.posZ)
                         + ") nearWater=" + isNearWaterSource(w, e)
-                        + " rainingAt=" + w.isRainingAt(new net.minecraft.util.math.BlockPos(e.posX, e.posY, e.posZ))
+                        + " rainingAt=" + ETIMRain.isInRain(w, new net.minecraft.util.math.BlockPos(e.posX, e.posY, e.posZ))
                         + " isRaining=" + w.isRaining()
                         + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
             }
@@ -263,7 +264,7 @@ public final class ETIMLivestockEvents {
         }
         if (isNearWaterSource(w, e)) {
             s.setWater(s.getWater() + BENEFIT);
-        } else if (w.isRainingAt(new BlockPos(e.posX, e.posY, e.posZ))) {
+        } else if (ETIMRain.isInRain(w, new net.minecraft.util.math.BlockPos(Math.floor(e.posX), Math.floor(e.posY), Math.floor(e.posZ)))) {
             s.setWater(s.getWater() + BENEFIT / 10.0F);
         } else {
             s.setWater(s.getWater() + PENALTY);

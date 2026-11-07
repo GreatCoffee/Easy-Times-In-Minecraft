@@ -6,6 +6,7 @@ import io.github.etim.etim.Tags;
 import io.github.etim.etim.nutrition.NutritionSystem;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.playerstate.PlayerStatLimits;
+import io.github.etim.etim.weather.ETIMRain;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.MobEffects;
@@ -424,9 +425,9 @@ public final class ETIMFoodStats {
     public static float getHungerMultiplier(EntityPlayer player) {
         World world = player.world;
         BlockPos foot = new BlockPos(player.posX, MathHelper.floor(player.posY), player.posZ);
-        BlockPos showers = world.isRainingAt(foot.up()) ? foot.up() : null;
+        BlockPos showers = ETIMRain.isInRain(world, foot.up()) ? foot.up() : null;
         float rainFactor = showers != null
-                ? (world.isThundering() ? ETIMConfig.wetnessRainThunder : ETIMConfig.wetnessRainLight)
+                ? (ETIMRain.isThundering(world) ? ETIMConfig.wetnessRainThunder : ETIMConfig.wetnessRainLight)
                 : 0.0F;
         float immersionFactor = world.getBlockState(foot.up()).getMaterial() == net.minecraft.block.material.Material.WATER
                 ? ETIMConfig.wetnessImmerseAbove

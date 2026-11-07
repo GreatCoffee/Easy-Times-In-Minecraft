@@ -5,6 +5,7 @@ import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.mob.ETIMEntityArrow;
 import io.github.etim.etim.metal.ETIMItemArrow;
+import io.github.etim.etim.weather.ETIMRain;
 
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -191,7 +192,7 @@ public final class ETIMFishing {
         int adj = adjustedTime(hook.world);
         int dist = Math.min(Math.abs(adj - 5500), Math.abs(adj - 17500));
         boolean blueMoon = blueMoonNight(hook.world);
-        boolean light = hook.world.isRainingAt(hookPos.up()) && hook.world.isThundering();
+        boolean light = ETIMRain.canLightningStrikeAt(hook.world, hookPos.up());
 
         int fortune = level(angler, ETIMEnchantments.FISHING_FORTUNE);
         int lure = ETIMConfig.vanillaLureActive ? level(angler, net.minecraft.init.Enchantments.LURE) : 0;

@@ -1,6 +1,7 @@
 package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.farm.ETIMFarm;
+import io.github.etim.etim.weather.ETIMRain;
 import net.minecraft.block.BlockFarmland;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -27,11 +28,12 @@ import java.util.Random;
  * the drying roll (dot = clamp≥0) → wetness−1, or at wetness 0 the dirt
  * decay (air above AND no crops nearby — the 3×3 face).</p>
  *
- * <p>消 face bridge (终审 裁量③): the R196 {@code canLightningStrikeAt}
- * rain face rides {@code world.isRainingAt(pos.up())} (the C-16 three-claw
- * note — rainStrength>0.2/canSnowAt/blood-moon are NOT ported). The decay
- * face pays the vanilla {@code turnToDirt} (B-14 — the entity lift-up half
- * stays).</p>
+ * <p> rain face bridge (C-16, 条 325): the R196 {@code canLightningStrikeAt}
+ * rain face now judges through {@link ETIMRain#canLightningStrikeAt} — the
+ * C-16 three-claw chain (rainStrength>0.2 gate / canSnowAt claw dropped /
+ * blood moon) has been ported first-hand (World :5414-5429 + BiomeGenBase
+ * :277-279). The decay face pays the vanilla {@code turnToDirt} (B-14 — the
+ * entity lift-up half stays).</p>
  */
 @Mixin(BlockFarmland.class)
 public abstract class MixinBlockFarmland {
@@ -53,7 +55,7 @@ public abstract class MixinBlockFarmland {
                 ETIMFarm.row("moisture tick pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
                         + " src=water wet=" + moisture + "→" + 7);
             }
-        } else if (world.isRainingAt(pos.up())) {
+        } else if (ETIMRain.canLightningStrikeAt(world, pos.up())) {
             if (moisture < 7) {
                 int next = moisture + 1; // D-1 甲: the rain DRIP (+1 per random tick)
                 world.setBlockState(pos, state.withProperty(BlockFarmland.MOISTURE, next), 2);

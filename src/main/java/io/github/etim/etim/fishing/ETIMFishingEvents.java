@@ -1,6 +1,7 @@
 package io.github.etim.etim.fishing;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.weather.ETIMRain;
 
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.player.EntityPlayer;
@@ -117,7 +118,7 @@ public final class ETIMFishingEvents {
         int denom = ETIMConfig.wormGrassChanceBase; // R196 :191 (16)
         int bonus = ETIMConfig.wormGrassRainBonus; // R196 :184 (+12, cap 14 face)
         int f = Math.min(e.getFortuneLevel(), 3); // :178
-        boolean rain = e.getWorld().isRainingAt(e.getPos().up());
+        boolean rain = ETIMRain.isInRain(e.getWorld(), e.getPos().up());
         if (rain) {
             f += bonus;
         }
