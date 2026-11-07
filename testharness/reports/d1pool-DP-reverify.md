@@ -86,6 +86,7 @@
 - **B 级 0**。
 - **C 级 3（本轮新增）**：
   - **C-8（A-6「胸甲 8 枚/权 235」实测为 8 枚/权 215）**：budget 18 下可达 8 枚与 A-6 的枚数一致，但权重和实测 215（protection 100＋fire/blast/proj/unbreaking 各 25＝200＋thorns/endurance/regeneration 各 5＝15）；235 与任何 8 枚子集都对不上（疑把 thorns 记成 25）。全池 11 枚权重和 219。填充口径待主会话裁决；不影响 χ² 判（模型与真机同表）。
+    > **C-8 定谳（2026-11-07 主会话，六期债清牌）**：R196 一手 `EnumRarity.standard_weight`＝common 100／uncommon 25／rare 5／epic 1（`mite-src/decompile/src/net/minecraft/EnumRarity.java:4-8`）——weight 来源＝`Enchantment 构造 :54 this.weight = rarity.standard_weight`（**difficulty 字段与 weight 无关**）。实测 215/219 两值与一手表逐项吻合；A-6 的 235＝W19 护甲判窗录入时把 regeneration 的 difficulty(20) 误加进权重和（8 枚 215＋20＝235）——录入误无判值破位（χ² 模型与真机同表，本档 §4 已证）。填充口径＝一手 Rarity 表，无落码面。
   - **C-9（工装洪泛→ServerHangWatchdog，非产品缺陷）**：首轮 bulk 试跑以 500/s 灌包，服务器单 tick 积压 3 万余次附魔 ⇒ `crash-2026-11-04_15.48.54-server.txt`（"single server tick took 60.18 seconds"，23,935 B `8A108C74…`）。改用**自限速闭环**（每批 12 条、等 build 计数追上再发、积压 >60 即暂停）后 200,000 抽全程 96 build/s、零积压、零新 crash。**crash 计数 20→21 的唯一增量即此条**，登记为工装面，不入产品缺陷。
   - **C-10（怪装门工装通道：spawn egg → `/summon`）**：`use_item` 通道需客户端射线命中方块（首试 0 生成、0 tension 行）；改 `summon minecraft:zombie <x> <y> <z>`（`CommandSummon:119-121` 对 `EntityLiving` 显式调 `onInitialSpawn`，与自然生成同源）后 480/480 命中。任务书「spawn egg＋time set 1530000」两处需订正：通道改 `/summon`，`worldTime` 用 **1536000**（1530000 落在 moon phase 7，clamped 只有 0.78，日志会打 `0.78` 而非 `0.88`）。
 - **承接上轮 C**：C-1（`table=` 列是 1.12 面）／C-2（52.8% 口径）／C-3（silk 剪刀·刀 E=0）／C-4（青金石 deny 工装）／C-5（书 E=1）／C-6（treeFelling 尾格 41/999＋无 freeAction 令牌）／C-7（`frac` 3 位截断）状态不变，本轮不重测。
