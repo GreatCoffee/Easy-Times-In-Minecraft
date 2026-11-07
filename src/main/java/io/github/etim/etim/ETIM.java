@@ -95,6 +95,10 @@ public final class ETIM {
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.farm.ETIMFarmingEvents.class);
         // Batch B5 (butchering — 条 262-265): the zero-mixin LivingDropsEvent face.
         io.github.etim.etim.combat.ETIMButcheringEvents.register();
+        // Batch B16 (条 327/328): the chicken num_feathers family — the F-1
+        // death arm (LivingDropsEvent strip+recompose) and the F-2 hurt arm
+        // (LivingHurtEvent per-point roll), zero extra mixin.
+        io.github.etim.etim.mob.ETIMFeatherEvents.register();
         // Batch five fishing (条 268-271): the ItemFishedEvent / RightClickItem /
         // HarvestDropsEvent trio + the arrow-recovery pair (zero extra mixin).
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.fishing.ETIMFishingEvents.class);
