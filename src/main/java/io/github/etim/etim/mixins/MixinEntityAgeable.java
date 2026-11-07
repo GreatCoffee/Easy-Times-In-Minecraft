@@ -53,9 +53,6 @@ public abstract class MixinEntityAgeable {
     @Unique
     private boolean etim$ageGateReentry;
 
-    @Unique
-    private java.util.Set<Integer> etim$entranceMarker = new java.util.HashSet<Integer>();
-
     @Shadow
     public abstract void setGrowingAge(int age);
 
@@ -138,10 +135,6 @@ public abstract class MixinEntityAgeable {
                  ordinal = 0),
         require = 1)
     private void etim$horseAgeBurst(EntityAgeable ageable, int vanillaAge) {
-        if (ETIMConfig.mobDebugLog && !etim$entranceMarker.contains(ageable.getEntityId())) {
-            etim$entranceMarker.add(ageable.getEntityId());
-            ETIMLivestockEvents.ageGateRow("horseEntranceGuard", ageable, vanillaAge);
-        }
         if (ETIMConfig.livestockNeedsR196
             && (Object) ageable instanceof AbstractHorse
             && !ageable.world.isRemote) {

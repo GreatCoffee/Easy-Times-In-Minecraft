@@ -2,10 +2,12 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
+import io.github.etim.etim.mob.ETIMLivestockEvents;
 import net.minecraft.entity.passive.EntityOcelot;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -18,6 +20,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * The vanilla 1.12 chicken-jockey gate is NOT carried — MITE 1.6.4 has no
  * chicken-jockey despawn rule, so chickens ride the plain animal layer
  * (noted in the run27 deviation list).
+ *
+ * <p>B-18 (audit20 条 309 C级 8) — the kitten-litter birth face: when a
+ * wild (skin 0) cat naturally spawns, the 1/7 gate births two kittens whose
+ * age 1.12 hardcodes to {@code -24000} ({@code EntityOcelot.onInitialSpawn
+ * :448}); R196 {@code EntityOcelot.onSpawnWithEgg :261} routes the same
+ * litter through {@code setGrowingAgeToNewborn()} = {@code -64000}. The
+ * redirect maps the kitten write via the shared B-12 newborn helper (flag
+ * inside, vanilla passthrough off-flag); the despawn face above is a
+ * different body — no composition overlap.</p>
  */
 @Mixin(EntityOcelot.class)
 public abstract class MixinEntityOcelot {
@@ -30,5 +41,17 @@ public abstract class MixinEntityOcelot {
         EntityOcelot self = (EntityOcelot) (Object) this;
         cir.setReturnValue(!self.isTamed() && self.ticksExisted > 2400
                 && DespawnRules.canDespawn(self));
+    }
+
+    @Redirect(
+        method = "onInitialSpawn",
+        at = @At(value = "INVOKE",
+                 target = "Lnet/minecraft/entity/passive/EntityOcelot;setGrowingAge(I)V"),
+        require = 1)
+    private void etim$ocelotLitterAge(EntityOcelot kitten, int vanillaAge) {
+        kitten.setGrowingAge(ETIMLivestockEvents.r196NewbornAge(vanillaAge));
+        if (kitten.getGrowingAge() != vanillaAge) {
+            ETIMLivestockEvents.ageGateRow("ocelotLitter", kitten, kitten.getGrowingAge());
+        }
     }
 }
