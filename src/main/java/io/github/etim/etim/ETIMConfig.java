@@ -489,6 +489,12 @@ public final class ETIMConfig {
     public static int freeActionDifficulty = 10;
     /** R196 free_action getNumLevels() = 4（D-C 甲收编）。 */
     public static int freeActionMaxLevel = 4;
+    /** B-15 (free-action effect face, 条 321): R196 Potion :244-249 shred face
+     *  master switch — SLOWNESS attribute modifiers shred by
+     *  (1 − L × 0.8F / 4) for the wearer's free_action gear level (divisor 4
+     *  = R196 EnchantmentFreeAction.getNumLevels() native, in-code constant).
+     *  Off = vanilla apply, no shred. */
+    public static boolean freeActionShredR196 = true;
 
     // Batch farm1 (B4 农作两条, 条 254-257 / 条 256 终裁 — 8 keys; category "farm").
     /** R196 Enchantment.java:32 difficulty. 沃肥（R196 难度 10）。 */
@@ -1254,6 +1260,9 @@ public final class ETIMConfig {
         freeActionMaxLevel = config.getInt("freeActionMaxLevel", "enchant", freeActionMaxLevel, 1, 10,
                 comment("R196 EnchantmentFreeAction getNumLevels() = 4 native — a CAP only, never a denominator",
                         "最高等级（R196 源值 4）——只做上限，不是概率分母"));
+        freeActionShredR196 = config.getBoolean("freeActionShredR196", "enchant", true,
+                comment("R196 free-action shred face (B-15, 条 321): a SLOWNESS potion modifier on an entity wearing free_action gear is applied pre-shredded — amount x (1 - level x 0.8 / 4), so level 4 applies only 20 percent of the slow. Off = vanilla apply",
+                        "R196 拼命（free_action）削减面（B-15，条 321）：佩戴 free_action 装备时，缓慢药水属性以 (1 − 等级 × 0.8 / 4) 削减后写入——4 级时缓慢只剩 20%。关闭则原版缓慢全额生效"));
 
         // batch farm1 (B4 农作两条 — 条 256 D 位裁定／条 257 C-注1/2: 8 keys,
         // category "farm" per 终审; maxLevel doubles as the fraction denominator

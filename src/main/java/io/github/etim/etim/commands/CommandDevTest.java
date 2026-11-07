@@ -328,39 +328,76 @@ public class CommandDevTest extends CommandBase {
         }
         Enchantment enchantment = ETIMEnchantments.ENDURANCE;
         int playerIndex = 3;
-        if (args.length > 3 && "piercing".equalsIgnoreCase(args[3])) {
-            enchantment = ETIMEnchantments.PIERCING;
-            playerIndex = 4;
-        } else if (args.length > 3 && "endurance".equalsIgnoreCase(args[3])) {
-            playerIndex = 4;
-        } else if (args.length > 3 && "stun".equalsIgnoreCase(args[3])) {
-            // melee1 (B2, 条 251 B-6): three tokens added for W-E2 staging.
-            enchantment = ETIMEnchantments.STUN;
-            playerIndex = 4;
-        } else if (args.length > 3 && "vampiric".equalsIgnoreCase(args[3])) {
-            enchantment = ETIMEnchantments.VAMPIRIC;
-            playerIndex = 4;
-        } else if (args.length > 3 && "disarming".equalsIgnoreCase(args[3])) {
-            enchantment = ETIMEnchantments.DISARMING;
-            playerIndex = 4;
-        } else if (args.length > 3 && "fertility".equalsIgnoreCase(args[3])) {
-            // farm1 (B4, 条 257 B-side): two tokens added for W-F staging.
-            enchantment = ETIMEnchantments.FERTILITY;
-            playerIndex = 4;
-        } else if (args.length > 3 && "harvesting".equalsIgnoreCase(args[3])) {
-            enchantment = ETIMEnchantments.HARVESTING;
-            playerIndex = 4;
-        } else if (args.length > 3 && "butchering".equalsIgnoreCase(args[3])) {
-            // B5 (条 265/266): the butchering token for W-B staging.
-            enchantment = ETIMEnchantments.BUTCHERING;
-            playerIndex = 4;
-        } else if (args.length > 3 && "fishingFortune".equalsIgnoreCase(args[3])) {
-            // Batch five (条 268-271): the fishing_fortune token for W-FF staging.
-            enchantment = ETIMEnchantments.FISHING_FORTUNE;
-            playerIndex = 4;
-        } else if (args.length > 3 && "arrowRecovery".equalsIgnoreCase(args[3])) {
-            // Batch five (条 268-271): the arrow_recovery token for W-FF staging.
-            enchantment = ETIMEnchantments.ARROW_RECOVERY;
+        // B-15 (条 321/322): the token slots are 3 OR 4 — the legacy shape
+        // rides the args[3] names ("piercing"/"stun"/... ; old shape
+        // "/etest enchant LEGS 4 <token> <player>"); the B-15 shape
+        // ("[slot] [level] [player] <freeAction>") rides args[4]. The
+        // player index is the NEXT slot after the token slot.
+        boolean tokenAt3 = false;
+        int tokenIdx = -1;
+        for (int i = 3; i <= 5 && i < args.length; i++) {
+            if (args[i].matches("(?i)piercing|endurance|stun|vampiric|disarming|fertility|harvesting|butchering|fishingFortune|arrowRecovery|freeAction|poison")) {
+                tokenIdx = i;
+                break;
+            }
+        }
+        String tokenKey = tokenIdx == -1 ? null : args[tokenIdx];
+        if (tokenKey != null) {
+            tokenAt3 = tokenIdx == 3;
+            // legacy: "/etest enchant LEGS 4 <tok> <player>" → player at 4;
+            // B-15:    "/etest enchant LEGS 1 ETIM_F7 freeAction" → player at 4;
+            // B-15 alt:"/etest enchant LEGS 1 ETIM_F7 freeAction" idx5 → player at 4;
+            // mid form: "/etest enchant LEGS 1 freeAction ETIM_F7"? no — idx3→4 or idx4→3 cover it
+            playerIndex = tokenAt3 ? 4 : (tokenIdx == 5 ? 4 : 3);
+        } else {
+            playerIndex = 3; // the bare shape "/etest enchant LEGS 4 [player]"
+        }
+        if (tokenKey != null) {
+            boolean legacy = tokenAt3;
+            if ("piercing".equalsIgnoreCase(tokenKey)) {// batch E / AD-7
+                enchantment = ETIMEnchantments.PIERCING;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("endurance".equalsIgnoreCase(tokenKey)) {
+                playerIndex = legacy ? 4 : 3;
+            } else if ("stun".equalsIgnoreCase(tokenKey)) {
+                // melee1 (B2, 条 251 B-6): three tokens added for W-E2 staging.
+                enchantment = ETIMEnchantments.STUN;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("vampiric".equalsIgnoreCase(tokenKey)) {
+                enchantment = ETIMEnchantments.VAMPIRIC;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("disarming".equalsIgnoreCase(tokenKey)) {
+                enchantment = ETIMEnchantments.DISARMING;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("fertility".equalsIgnoreCase(tokenKey)) {
+                // farm1 (B4, 条 257 B-side): two tokens added for W-F staging.
+                enchantment = ETIMEnchantments.FERTILITY;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("harvesting".equalsIgnoreCase(tokenKey)) {
+                enchantment = ETIMEnchantments.HARVESTING;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("butchering".equalsIgnoreCase(tokenKey)) {
+                // B5 (条 265/266): the butchering token for W-B staging.
+                enchantment = ETIMEnchantments.BUTCHERING;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("fishingFortune".equalsIgnoreCase(tokenKey)) {
+                // Batch five (条 268-271): the fishing_fortune token.
+                enchantment = ETIMEnchantments.FISHING_FORTUNE;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("arrowRecovery".equalsIgnoreCase(tokenKey)) {
+                // Batch five (条 268-271): the arrow_recovery token.
+                enchantment = ETIMEnchantments.ARROW_RECOVERY;
+                playerIndex = legacy ? 4 : 3;
+            } else if ("freeAction".equalsIgnoreCase(tokenKey)) {
+                // B15 (条 321/322): the free_action token — legs-slot gear ench
+                // for the slow-shred staging.
+                enchantment = ETIMEnchantments.FREE_ACTION;
+                playerIndex = legacy ? 4 : 3;
+            }
+        } else if (args.length > 3 && "freeAction".equalsIgnoreCase(args[3])) {
+            // B15 (条 321/322): the free_action token — legs-slot gear ench for
+            // the slow-shred staging (/etest enchant LEGS <N> ETIM_F7 freeAction).
+            enchantment = ETIMEnchantments.FREE_ACTION;
             playerIndex = 4;
         }
         EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);

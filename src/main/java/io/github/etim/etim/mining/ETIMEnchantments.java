@@ -144,4 +144,16 @@ public final class ETIMEnchantments {
                 Enchantment.getEnchantmentID(ARROW_RECOVERY),
                 Enchantment.getEnchantmentID(FREE_ACTION));
     }
+
+    /**
+     * B-15 (free-action effect face, 条 321): the R196 wearer's free_action
+     * gear level — {@code EnchantmentHelper.getFreeActionModifier(entity)}
+     * (:395-397 verbatim) rides 1.12
+     * {@code getMaxEnchantmentLevel(ench, living)} (:216) which scans ALL
+     * equipment slots (= R196 {@code getLastActiveItems} equivalence, the
+     * armor-legs seat per the B-2 EnchantmentFreeAction batch).
+     */
+    public static int getFreeActionLevels(net.minecraft.entity.EntityLivingBase entity) {
+        return net.minecraft.enchantment.EnchantmentHelper.getMaxEnchantmentLevel(FREE_ACTION, entity);
+    }
 }

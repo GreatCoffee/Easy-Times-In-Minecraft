@@ -9,4 +9,4 @@
         "MixinEntityFishHook",
         "MixinStructureComponent",
         "MixinStructureVillageField1",
-        "MixinStructureVillageField2"],"client":["MixinGuiIngameForge","MixinPlayerControllerMP","MixinEntityRenderer","MixinEntityPlayerSP","MixinGuiContainer","MixinGuiFurnace","MixinGuiRepair","MixinItemRendererBlockPose","MixinModelBipedBlockPose","MixinLayerHeldItemBlockPose"]}
+        "MixinStructureVillageField2","MixinPotion"],"client":["MixinGuiIngameForge","MixinPlayerControllerMP","MixinEntityRenderer","MixinEntityPlayerSP","MixinGuiContainer","MixinGuiFurnace","MixinGuiRepair","MixinItemRendererBlockPose","MixinModelBipedBlockPose","MixinLayerHeldItemBlockPose"]}
