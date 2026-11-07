@@ -37,7 +37,7 @@ const PIN = {
   dev: { bytes: 998790, sha: '07F93E396834F5C3EEF73EE17AF1EFFBC95F9DA9AB54AD1C1C980604EEE07372' },
   src: { bytes: 928517, sha: '94DE1D81389B4D505B3EB65CFD54C8555694C0E5EC770A5429E41B1B02CCCBF3' },
 };
-const MK_PIN = { classes: 87, entries: 197, dual: 394, mixins: 84, client: 10 }; // B-15 收编
+const MK_PIN = { classes: 87, entries: 198, dual: 396, mixins: 84, client: 10 }; // B-17 收编 (horse-burst redirect refmap 197→198, dual 394→396)
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);

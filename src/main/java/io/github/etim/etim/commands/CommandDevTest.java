@@ -193,6 +193,9 @@ public class CommandDevTest extends CommandBase {
             case "rain":
                 executeRain(server, sender, args);
                 break;
+            case "age":
+                executeAge(server, sender, args);
+                break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
         }
@@ -1152,6 +1155,45 @@ for (EntityLiving e : hits) {
                 + " jump=" + (jump == null ? "-" : jump)
                 + " foodground=" + (ground == null ? "-" : ground)
                 + " set=" + kinds.size() + " kinds(" + kinds.size() + ")=" + String.join("+", kinds));
+        respond(player, "commands.etest.devok");
+    }
+
+    /**
+     * {@code /etest age} — the B-17 smoke snapshot tool: walks the
+     * EntityAgeable list inside the sender's 16-block AABB and prints one
+     * [FarmLog] ageSnapshot row per entity — growingAge, isChild(),
+     * ticksExisted and entityId (forcedAgeTimer dropped from the row: the
+     * 1.12 field is protected and the snapshot face doesn't need it). The
+     * rows land through the same farm-row lane (mobDebugLog +
+     * farmDebugLog gates), so the driver can parse the age state without
+     * a blind /data poll that has no chat relay (the r1/r4 lesson).
+     * Non-invasive: writes nothing to the entity.
+     */
+    private static void executeAge(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player;
+        try {
+            player = getCommandSenderAsPlayer(sender);
+        } catch (PlayerNotFoundException e) {
+            // the smoke driver sends /etest age from the server console — the
+            // sender is the console itself and has no game profile; fall back
+            // to the bot player named as the optional arg (default ETIM_F7,
+            // the only mineflayer bot the test arena uses).
+            String name = args.length >= 2 ? args[1] : "ETIM_F7";
+            player = server.getPlayerList().getPlayerByUsername(name);
+            if (player == null) {
+                throw new PlayerNotFoundException("commands.state.no_player", name);
+            }
+        }
+        java.util.List<net.minecraft.entity.EntityAgeable> hits
+            = player.world.getEntitiesWithinAABB(net.minecraft.entity.EntityAgeable.class,
+                    player.getEntityBoundingBox().grow(16.0D));
+        for (net.minecraft.entity.EntityAgeable e : hits) {
+            io.github.etim.etim.farm.ETIMFarm.row("ageSnapshot kind=" + e.getClass().getSimpleName()
+                    + " id=" + e.getEntityId()
+                    + " age=" + e.getGrowingAge()
+                    + " isChild=" + e.isChild()
+                    + " ticksExisted=" + e.ticksExisted);
+        }
         respond(player, "commands.etest.devok");
     }
 

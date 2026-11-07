@@ -5,9 +5,9 @@
 > **dev/sources**：1,025,155 B `2F79055C…`／952,863 B `694D27AD…`（起收同值）
 > **refmap**：classes **87** / entries **197**（dual 394，双树同）｜**mixins**：**84** + 10 client｜`mkCounts().ok=true`
 > **窗口**：2 boot（`Done (6.694s)`／`Done (6.567s)`，mixinFail 0×2）＋2 停服（exit 0＋BUILD SUCCESSFUL 1m 8s／35s）｜单假人 `ETIM_F7`｜判窗世界 `w-b16v`（驱动自建；`w-b16a` 保留不动）
-> **判决**：**W0 ✓｜W1 ✓｜W2 ✓｜W3 ✓｜W4 ✓｜W5 ✓**（A 0／B 0／D 0／C 7）
+> **判决**：**W0 ✓｜W1 ✓｜W2 ✓｜W3 ✓｜W4 ✓｜W5 ✓**（A 0／B 0／D 0／C 8）
 > **判据来源**：本窗第 4 跑（run 1–3 存在工装缺陷，逐条登记于 §3，跑数不入判）
-> **报告字节规格**：`10,288 B｜UTF-8 无 BOM｜LF｜0 U+FFFD｜✓ 13 / ✗ 2｜81 行`
+> **报告字节规格**：`11,002 B｜UTF-8 无 BOM｜LF｜0 U+FFFD｜✓ 13 / ✗ 2｜82 行`
 
 ## §1 逐臂判读
 
@@ -57,7 +57,7 @@
 - **A 级：0** —— 六臂全绿，F-1／F-2 判值面均落地。
 - **B 级：0** —— 本批零 mixin／零 cfg 新增（`mkCounts().ok=true`，87/197/394＋84+10 起收同）。
 - **D 级：0** —— 互通差异均为命中箭数层面，无判值面破位（见 §4）。
-- **C 级：7**
+- **C 级：8**
   - **C-B16-1**（口径·R196 与 1.12 的 amount 基数）：1.12 `LivingHurtEvent.amount` 为护甲后值，R196 `:160-186` knockback 臂用护甲前基数——本窗鸡无甲，`raw=3.000 armorIn=3.000 armorOut=3.000` 三值同（b1:4676），掷常式在 0.2F/点面无法区分两代口径；**判值面无破**，维持任务书注记级。
   - **C-B16-2**（工装·拾取竞速）：A1 行 `droppedFeathers=3` 而 sweep `feather=1`（bot 在 ±1.4 拾取半径内拿走 2 片）；A2 行 2／sweep 2 对齐。**精确计数以行 `droppedFeathers` 为准**，sweep 只作正值对照（≥1 容差），与任务书预登记一致。
   - **C-B16-3**（口径·二次命中致死分流）：A4 同轮 6 发起击后另有 2 只被第二箭打死（b1:4712／4715，`absorption=2.000 final=1.000`→hp 3→0），走 `src=death` 面（`feathers==droppedFeathers`）。判窗只以 `src=hurt` 行证明非致命首击主面（6 行），致死分流登记备查。
@@ -65,6 +65,7 @@
   - **C-B16-5**（工装·run 1 判值器空读）：驱动 `const row = (a) => a.row || {}` 对 `a1`（行数组）取 `[].row` → W1/W2/W3 在 run 1 被误判 ✗（行本身完全正确）。已修为数组取 `a[0]`；**判值面未被污染，run 1 只作缺陷记录**。
   - **C-B16-6**（工装·run 1/2 停机与挂起）：驱动 W5 后未停 boot 2，服务端继续监听 25565（run 2 结束后仍 LISTENING，并锁住 `run/w-b16v/region` 致 run 3 EPERM）；且 mineflayer socket 不释放，进程在 `[done]` 后不退出。已加 `stopBoot()` 收 boot 2＋显式 `process.exit`，W0 改为要求 **两条**停服记录全绿。遗留实例以 RCON/强制停（RCON 登录后 ECONNRESET，属已知 RCON 哑挂惯性）清场，判窗世界重建。
   - **C-B16-7**（工装·run 1 硬禁面破位）：W5 的箭道原为 `z=242.5`＝bot 自身所在轴，12 箭把 `ETIM_F7` 射死（b2 run 1 `ETIM_F7 was shot by Arrow`＋`[DeathLog]`）。已改为 `z=241.5`（与 W4 同轴偏置）＋W5 全程 `gamemode 3`，并新增 `botShot1/botShot2` 计数器硬门（W4/W5 判值要求 0）；终跑 `botShot1=0`、`botShot2=0`、两日志 `ETIM_F7 was shot`／`DeathLog` **0 行**。
+   - **C-B16-8**（纪律·超时铁律违规，2026-11-07 自登记）：本窗驱动两次以前台阻塞方式等待——run 3 用 `timeout:600000`（10 分钟）起跑，跑满 **600 s** 被工具打断；run 4 用 `timeout:900000`（15 分钟）起跑（实际服务端日志跨度 `17:46:47`→`17:48:30` ≈ **1m43s**，上限却写成 15 分钟）。两者同时违反 `AGENTS.md`「等待/超时纪律」§1（单次 ≤180 s）与 §2（每 30 s 巡检）。**判值面不受影响**（判据取自日志行与 json，与等待时长无关），但按 §6 自登记、不隐匿；后续同类驱动一律 `background=true`＋30 s 读流文件，禁止前台长超时，违规当轮产出否决重做。
 
 ## §4 收口五件
 
@@ -74,7 +75,7 @@
 - **残留**：crash **23→23**；端口 25565 **0**；GradleStart JVM **0**；HEAD `3086043a` 窗内 **0 提交**；obf 配置未触碰。
 - **互通（vs `build-logs/f11-b16-smoke.json`）**：A1/A2/A3/A3b 四行逐字段同值（`feathers` 3/2/5/4、`droppedFeathers` 3/2/0/0、`meat` raw/none/cooked/none）；差异仅 A4 命中规模——smoke `a4c=2/dropped=2`，本窗 `a4c=6/dropped=4`（12 箭单轮命中 6 发），逐行字段语义一致（`amount=3.00 points=3 rolls=3 dropped∈{0,1}`），**非判值偏差，按 C 级登记**（§3 C-B16-2/C-B16-3 已注）。
 
-> 正本：`testharness/reports/b16-verify-verdict.md`｜byte 五项：`10,288 B｜首字节 0x23｜CR 0｜U+FFFD 0｜LF 80（split 81）`
-> SHA-256 甲（全档零位）`3EA275596B3D6C17780CF4649D88E258DC13019519AC6D2F0CAA3DBC2257B6D7`
-> SHA-256 乙（LF 归零零位）`3EA275596B3D6C17780CF4649D88E258DC13019519AC6D2F0CAA3DBC2257B6D7`
-> SHA-256 丙（行链零位）`DF3186666D60318B314EDCCA3409F05F827A22AB4A11E96CCA8E54617A3E5232`
+> 正本：`testharness/reports/b16-verify-verdict.md`｜byte 五项：`11,002 B｜首字节 0x23｜CR 0｜U+FFFD 0｜LF 81（split 82）`
+> SHA-256 甲（全档零位）`1FD04BD63B7A2EC2C1F96872DFF4DE10F7178765F3693E6E9DEDBA344692C36F`
+> SHA-256 乙（LF 归零零位）`1FD04BD63B7A2EC2C1F96872DFF4DE10F7178765F3693E6E9DEDBA344692C36F`
+> SHA-256 丙（行链零位）`B29AB8BB090C415FC94823504B06E330C2EEF368815F530A84E5039EE0CCB418`
