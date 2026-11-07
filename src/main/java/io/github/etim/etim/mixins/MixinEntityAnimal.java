@@ -22,6 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import io.github.etim.etim.mob.ETIMEntityAIMoveToFoodItem;
+import io.github.etim.etim.mob.ETIMEntityAISeekShelterFromRain;
 
 /**
  * EntityAnimal overrides canDespawn in vanilla 1.12 with {@code false}
@@ -79,6 +80,25 @@ public abstract class MixinEntityAnimal {
     private void etim$foodPickupAITask(net.minecraft.world.World world, CallbackInfo ci) {
         ((EntityLiving) (Object) this).tasks.addTask(1,
                 new ETIMEntityAIMoveToFoodItem((EntityLiving) (Object) this));
+    }
+
+    /**
+     * B-19 (C-16-5 residual) — the R196 {@code EntityLivestock} ctor :23
+     * shelter seat: {@code addTask(4, EntityAISeekShelterFromRain, 1.0F)} on
+     * the four livestock only (R196 {@code EntityLivestock} = cow/pig/sheep/
+     * chicken; other 1.12 {@code EntityAnimal}s keep vanilla and get no
+     * seat). The AI self-gates the family flag + the thirsty cut + the rain
+     * face at canUse time (D-1 = needs).
+     */
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void etim$shelterAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        Object self = (Object) this;
+        if (!(self instanceof EntityCow || self instanceof EntitySheep
+                || self instanceof EntityPig || self instanceof EntityChicken)) {
+            return; // the R196 livestock family is these four; the rest keeps vanilla
+        }
+        ((EntityLiving) (Object) this).tasks.addTask(4,
+                new ETIMEntityAISeekShelterFromRain((EntityLiving) (Object) this, 1.0F));
     }
 
     /**
