@@ -536,6 +536,13 @@ public final class ETIMConfig {
      *  (:109-114 = 5.0E-4F × biomeMod × (1 − blv/16F)); bit 8 rides the crop metadata
      *  verbatim. Off = no blight anywhere (bit stays 0, bone meal keeps vanilla growth). */
     public static boolean blightR196 = true;
+    /** B-14 (village-field batch, 条 318): the R196 abandoned-village master switch —
+     *  generated village Fields plant DEAD crops only (BlockCropsDead family die,
+     *  ComponentVillageField :45-56 — the :54 default face), ages 2..6 (:91-113), no
+     *  water strips and plain oak frames (no biome theming). Off = vanilla fields
+     *  (10-face live-crop die, water strips, acacia/spruce/sandstone frames).
+     *  Existing villages are NOT rewritten — the face applies to later generation. */
+    public static boolean villageFieldsR196 = true;
 
     // combat batch AD-10+SH (audit20-97 planned) ------------------------------
     /** R196 sword/shield blocking master switch (R196 Damage.java:195-211):
@@ -1300,6 +1307,12 @@ public final class ETIMConfig {
         blightR196 = config.getBoolean("blightR196", "farm", true,
                 comment("R196 blight family master switch (B-13): blighted crops (metadata bit 8) die 1/64 per random tick and spread to a neighboring crop (1/2 odds, \u00b11 offsets); blood-moon nights blight a 25% open-sky crop; low light rolls 5.0E-4 x biome modifier x (1 - light/16). Bone meal only unblights (R196 has no bonemeal growth face); a blighted crop drops nothing. Off = no blight, vanilla bone meal",
                         "R196 枯萎族总开关（B-13）：枯萎作物（meta 第 8 位）每随机 tick 掷 1/64 死签并向邻株 1/2 概率传染（\u00b11 邻域）；血月露天作物 25% 中枯；低光按 5.0E-4 × 生物群系修正 × (1 − 光/16) 掷枯。骨粉只解枯（R196 无骨粉催长道）；枯株断零掉落。关闭则无枯萎、骨粉回原版催长"));
+
+        // B-14 village-field faces (worldgen domain — Configuration files create the
+        // category on first read; no other keys live here yet)
+        villageFieldsR196 = config.getBoolean("villageFieldsR196", "worldgen", true,
+                comment("R196 abandoned-village master switch (B-14): generated village fields plant DEAD crops only (ComponentVillageField.getRandomCrop :45-56 — the :54 default face is the cropsDead block), each cell rolls growth 2..6, there are no water strips and frames are plain oak (no biome theming; vanilla acacia/spruce/sandstone frames are normalized). Existing villages are NOT rewritten — the face applies to villages generated afterwards. Off = vanilla fields",
+                        "R196 荒废村庄总开关（B-14）：生成的村庄田只播种枯死作物（ComponentVillageField.getRandomCrop :45-56——:54 默认面即枯麦块），每格独立掷生长 2..6，无水行，木框归素橡木（无生物群系定制；原版 acacia/spruce/sandstone 框一律归一）。已有村庄不回写——面只作用于之后生成的村庄。关闭则回原版村庄田"));
 
         // batch D combat faces (armorD-verdict A-2: declared :347/:350 but never read back — dead channel)
         armorModelR196 = config.getBoolean("armorModelR196", "combat", true,

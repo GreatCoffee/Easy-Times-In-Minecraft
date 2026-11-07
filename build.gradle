@@ -417,6 +417,15 @@ tasks.register('restoreCompatMods') {
                 into obfDir
             }
         }
+        // B-14 obf chain face: etim loads from the runObfServer CLASSPATH
+        // (build.gradle runObfServer stanza appends build/libs/etim-1.0.0.jar) —
+        // NOT from the mods folder. With the jar in mods, MixinBooter injects
+        // it into the LaunchClassLoader AND the mods-dir scan lists it, and
+        // FML sees TWO candidates of the same file → DuplicateModsFound
+        // (Loader.findClasspathMods + LibraryManager.gatherLegacyCanidates,
+        // Loader.identifyDuplicates :466 named both etim@etim-1.0.0.jar).
+        // The hold keeps the mods folder etim-free so the single classpath
+        // candidate is the only source.
     }
 }
 
@@ -437,9 +446,13 @@ tasks.register('etimTestServerModsHold') {
          'rad-1.12-1.1.0.jar', 'StepUp-1.0.2-mc1.10-1.12.jar',
          'MouseTweaks-2.10.1-mc1.12.2.jar', 'jecharacters-1.12.0-3.7.3.jar',
          'osxnarratorblocker-1.0.jar', 'fencejumper-1.12-1.0.5.jar',
-         // the project's own release-style jar double-loads on the server
-         // (classpath container + mods copy = the same file scanned twice):
-         // runObfServer loads etim from the classpath alone.
+         // the project's own release-style jar loads from the runObfServer
+         // CLASSPATH (JavaExec stanza appends build/libs/etim-1.0.0.jar).
+         // With the jar in BOTH mods and the classpath, MixinBooter's
+         // LaunchClassLoader injection + the mods-dir scan yield two
+         // candidates of the same file → DuplicateModsFound (b14 obf round
+         // r2, Loader.identifyDuplicates :466). The classpath copy is the
+         // single source; the hold keeps the mods folder etim-free.
          'etim-1.0.0.jar'].each { n ->
             def f = new File(obfDir, n)
             if (f.exists()) {
@@ -617,6 +630,15 @@ tasks.register('etimExtrasOffRestore') {
 // disposable; the driver wipes run/obfuscated between verdict rounds).
 tasks.named('runObfServer').configure {
     jvmArgs '-Dfml.queryResult=confirm'
+    // B-14 obf chain face: the release jar rides the javaexec classpath as
+    // the ONLY etim source (mods folder keeps it held away by
+    // etimTestServerModsHold). FML's findClasspathMods then produces a
+    // single candidate — the mods-side jar would dupe it
+    // (Loader.identifyDuplicates :466, b14 obf r2).
+    if (!file("build/libs/etim-1.0.0.jar").exists()) {
+        throw new GradleException('[etim-harness] obf server requires build/libs/etim-1.0.0.jar — run :build first')
+    }
+    classpath = classpath + files('build/libs/etim-1.0.0.jar')
 }
 
 // ETIM test harness: dump the runObfServer javaexec launch line (runner-driven
