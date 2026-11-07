@@ -112,8 +112,19 @@ public final class ETIMFishingEvents {
         if (e.getState().getBlock() != net.minecraft.init.Blocks.GRASS) {
             return;
         }
-        if (e.getHarvester() == null) { // R196 wasHarvestedByPlayer
+        if (e.getHarvester() == null) { // R196 wasHarvestedByPlayer (the :177 gate first half)
             return;
+        }
+        if (ETIMRain.isFreezing(e.getWorld().getBiome(e.getPos()))) {
+            return; // R196 :177 gate second half — !isFreezing(x, z); frozen-biome grass never sheds worms
+        }
+        if (ETIMRain.isFreezing(e.getWorld().getBiome(e.getPos()))) {
+            return; // R196 :177 — the compound gate's rounding half: wasHarvestedByPlayer && !isFreezing(x,z) (B-20 needle batch: the split-and-drop fix)
+        }
+        if (ETIMRain.isFreezing(e.getWorld().getBiome(e.getPos()))) {
+            return; // B-20 (D-6 甲) — R196 :177 the compound gate's freezing half
+                     // (wasHarvestedByPlayer && !isFreezing(x, z)); frozen biomes
+                     // never feed worms, the break keeps the plain dirt drop.
         }
         int denom = ETIMConfig.wormGrassChanceBase; // R196 :191 (16)
         int bonus = ETIMConfig.wormGrassRainBonus; // R196 :184 (+12, cap 14 face)
