@@ -97,7 +97,8 @@
     "MixinEntitySnowman",
     "MixinEntityBlaze",
     "MixinBlockMycelium",
-    "MixinEntitySkeleton"
+    "MixinEntitySkeleton",
+    "MixinEntityPigZombie"
   ],
   "client": [
     "MixinGuiIngameForge",
