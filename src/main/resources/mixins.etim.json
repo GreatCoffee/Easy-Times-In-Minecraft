@@ -98,7 +98,8 @@
     "MixinEntityBlaze",
     "MixinBlockMycelium",
     "MixinEntitySkeleton",
-    "MixinEntityPigZombie"
+    "MixinEntityPigZombie",
+    "MixinEntitySheepEatGrassSeat"
   ],
   "client": [
     "MixinGuiIngameForge",
