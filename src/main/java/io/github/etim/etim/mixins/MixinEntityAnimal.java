@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import io.github.etim.etim.mob.ETIMEntityAIMoveToFoodItem;
 import io.github.etim.etim.mob.ETIMEntityAISeekFoodIfHungry;
+import io.github.etim.etim.mob.ETIMEntityAISeekOpenSpaceIfCrowded;
 import io.github.etim.etim.mob.ETIMEntityAISeekShelterFromRain;
 import io.github.etim.etim.mob.ETIMEntityAISeekWaterIfThirsty;
 import io.github.etim.etim.mob.ETIMEntityAIGetOutOfWater;
@@ -139,6 +140,24 @@ public abstract class MixinEntityAnimal {
         }
         ((EntityLiving) (Object) this).tasks.addTask(4,
                 new ETIMEntityAIGetOutOfWater((EntityLiving) (Object) this, 1.0F));
+    }
+
+    /**
+     * B-26 — the R196 {@code EntityLivestock} ctor :21 seat:
+     * {@code addTask(3, EntityAISeekOpenSpaceIfCrowded, 1.0F)} — the family's
+     * ONLY mutex-3 seat (movement+look) and the livestock-exclusive crowd
+     * face. Same four-livestock gate; the AI self-gates the family flag +
+     * freedom + the crowd rule at canUse time.
+     */
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void etim$seekOpenAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        Object self = (Object) this;
+        if (!(self instanceof EntityCow || self instanceof EntitySheep
+                || self instanceof EntityPig || self instanceof EntityChicken)) {
+            return; // the R196 livestock family is these four; the rest keeps vanilla
+        }
+        ((EntityLiving) (Object) this).tasks.addTask(3,
+                new ETIMEntityAISeekOpenSpaceIfCrowded((EntityLiving) (Object) this, 1.0F));
     }
 
     /**

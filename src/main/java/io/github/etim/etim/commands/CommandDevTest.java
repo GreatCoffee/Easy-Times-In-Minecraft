@@ -1046,6 +1046,7 @@ java.util.List<EntityLiving> hits = player.world.getEntitiesWithinAABB(EntityLiv
         Integer step = null;
         Float water = null;
         Float food = null;
+        Float freedom = null;
         Float hp = null;
         Integer grass = null;
         Integer jump = null;
@@ -1098,6 +1099,8 @@ Integer ground = null;
                     water = MathHelper.clamp(f, 0.0F, 1.0F);
                 } else if ("food".equals(key)) {
                     food = MathHelper.clamp(f, 0.0F, 1.0F);
+                } else if ("freedom".equals(key)) {
+                    freedom = MathHelper.clamp(f, 0.0F, 1.0F);
                 } else if ("hp".equals(key)) {
                     hp = MathHelper.clamp(f, 0.0F, 1024.0F);
                 } else {
@@ -1121,7 +1124,7 @@ Integer ground = null;
             }
         }
 for (EntityLiving e : hits) {
-            String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceProd(e, counter, milk, feathers, water, food, hp);
+            String kind = io.github.etim.etim.mob.ETIMLivestockEvents.forceProd(e, counter, milk, feathers, water, food, hp, freedom);
             if (kind != null) {
                 if (step != null) {
                     io.github.etim.etim.mob.ETIMLivestockEvents.pumpGoods(e, step);

@@ -745,7 +745,7 @@ public final class ETIMLivestockEvents {
 
     /** B-10 工装 — the /etest prod force port (counter/milk/feather setters). */
     public static String forceProd(EntityLivingBase e, Integer counter, Integer milk, Integer feathers,
-                                   Float water, Float food, Float hp) {
+                                   Float water, Float food, Float hp, Float freedom) {
         ETIMLivestock.IState s = ETIMLivestock.get(e);
         if (s == null) {
             return null;
@@ -770,6 +770,9 @@ public final class ETIMLivestockEvents {
         }
         if (hp != null) {
             e.setHealth(MathHelper.clamp(hp, 0.0F, e.getMaxHealth()));
+        }
+        if (freedom != null) {
+            s.setFreedom(freedom); // clamp in setFreedom :55-61 (the clamped 0..1 float, R196 :55-61 verbatim)
         }
         return kind(e);
     }
