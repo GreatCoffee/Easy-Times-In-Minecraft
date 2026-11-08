@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import io.github.etim.etim.mob.ETIMEntityAIMoveToFoodItem;
 import io.github.etim.etim.mob.ETIMEntityAISeekShelterFromRain;
+import io.github.etim.etim.mob.ETIMEntityAIGetOutOfWater;
 
 /**
  * EntityAnimal overrides canDespawn in vanilla 1.12 with {@code false}
@@ -99,6 +100,22 @@ public abstract class MixinEntityAnimal {
         }
         ((EntityLiving) (Object) this).tasks.addTask(4,
                 new ETIMEntityAISeekShelterFromRain((EntityLiving) (Object) this, 1.0F));
+    }
+
+    /**
+     * B-22 — the R196 {@code EntityLivestock} ctor :24 twin seat: the
+     * get-out-of-water arm rides the SAME priority-4 group and the same
+     * four-livestock gate (the twin of the B-19 rain-shelter seat above).
+     */
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void etim$outOfWaterAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        Object self = (Object) this;
+        if (!(self instanceof EntityCow || self instanceof EntitySheep
+                || self instanceof EntityPig || self instanceof EntityChicken)) {
+            return; // the R196 livestock family is these four; the rest keeps vanilla
+        }
+        ((EntityLiving) (Object) this).tasks.addTask(4,
+                new ETIMEntityAIGetOutOfWater((EntityLiving) (Object) this, 1.0F));
     }
 
     /**

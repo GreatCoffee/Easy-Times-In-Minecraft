@@ -1,6 +1,7 @@
 package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.mob.ETIMEntityAISeekShelterFromRain;
+import io.github.etim.etim.mob.ETIMEntityAIGetOutOfWater;
 import io.github.etim.etim.mob.ETIMLivestockEvents;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.passive.AbstractHorse;
@@ -38,6 +39,17 @@ public abstract class MixinAbstractHorse {
     private void etim$shelterAITask(net.minecraft.world.World world, CallbackInfo ci) {
         ((EntityLiving) (Object) this).tasks.addTask(4,
                 new ETIMEntityAISeekShelterFromRain((EntityLiving) (Object) this, 1.0F));
+    }
+
+    /**
+     * B-22 — the R196 {@code EntityHorse} ctor :66 twin seat: the
+     * get-out-of-water arm at the same priority-4 group (the twin of the
+     * B-19 rain-shelter seat above).
+     */
+    @Inject(method = "<init>(Lnet/minecraft/world/World;)V", at = @At("TAIL"))
+    private void etim$outOfWaterAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        ((EntityLiving) (Object) this).tasks.addTask(4,
+                new ETIMEntityAIGetOutOfWater((EntityLiving) (Object) this, 1.0F));
     }
 
     @Redirect(
