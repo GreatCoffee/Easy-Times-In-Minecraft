@@ -96,7 +96,8 @@
     "MixinEntityVillager",
     "MixinEntitySnowman",
     "MixinEntityBlaze",
-    "MixinBlockMycelium"
+    "MixinBlockMycelium",
+    "MixinEntitySkeleton"
   ],
   "client": [
     "MixinGuiIngameForge",

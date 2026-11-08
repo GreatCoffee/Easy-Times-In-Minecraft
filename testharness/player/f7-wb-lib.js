@@ -37,7 +37,7 @@ const PIN = {
   dev: { bytes: 998790, sha: '07F93E396834F5C3EEF73EE17AF1EFFBC95F9DA9AB54AD1C1C980604EEE07372' },
   src: { bytes: 928517, sha: '94DE1D81389B4D505B3EB65CFD54C8555694C0E5EC770A5429E41B1B02CCCBF3' },
 };
-const MK_PIN = { classes: 94, entries: 212, dual: 424, mixins: 91, client: 10 }; // B-19 收编 (spawnegg clear: +3 mixin classes 87→90, refmap entries 198→207, dual 396→414)
+const MK_PIN = { classes: 95, entries: 214, dual: 428, mixins: 92, client: 10 }; // B-24 收编 (fleesun: +1 mixin class 91→92, refmap entries 212→214, dual 424→428)
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);
