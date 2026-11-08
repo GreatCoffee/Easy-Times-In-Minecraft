@@ -22,7 +22,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import io.github.etim.etim.mob.ETIMEntityAIMoveToFoodItem;
+import io.github.etim.etim.mob.ETIMEntityAISeekFoodIfHungry;
 import io.github.etim.etim.mob.ETIMEntityAISeekShelterFromRain;
+import io.github.etim.etim.mob.ETIMEntityAISeekWaterIfThirsty;
 import io.github.etim.etim.mob.ETIMEntityAIGetOutOfWater;
 
 /**
@@ -81,6 +83,27 @@ public abstract class MixinEntityAnimal {
     private void etim$foodPickupAITask(net.minecraft.world.World world, CallbackInfo ci) {
         ((EntityLiving) (Object) this).tasks.addTask(1,
                 new ETIMEntityAIMoveToFoodItem((EntityLiving) (Object) this));
+    }
+
+    /**
+     * B-23 — the R196 {@code EntityLivestock} ctor :19-20 needs-quest seats:
+     * {@code addTask(2, SeekFoodIfHungry, 1.0F, swim=true)} +
+     * {@code addTask(2, SeekWaterIfThirsty, 1.0F, swim=false)} on the four
+     * livestock only (R196 EntityLivestock = cow/pig/sheep/chicken; horses
+     * and villagers carry no seats for this family). The arms self-gate the
+     * family flag + the need meters at canUse time.
+     */
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void etim$needsSeekAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        Object self = (Object) this;
+        if (!(self instanceof EntityCow || self instanceof EntitySheep
+                || self instanceof EntityPig || self instanceof EntityChicken)) {
+            return; // the R196 livestock family is these four; the rest keeps vanilla
+        }
+        ((EntityLiving) (Object) this).tasks.addTask(2,
+                new ETIMEntityAISeekFoodIfHungry((EntityLiving) (Object) this, 1.0F));
+        ((EntityLiving) (Object) this).tasks.addTask(2,
+                new ETIMEntityAISeekWaterIfThirsty((EntityLiving) (Object) this, 1.0F));
     }
 
     /**

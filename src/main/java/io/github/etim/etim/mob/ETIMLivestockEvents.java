@@ -826,10 +826,16 @@ public final class ETIMLivestockEvents {
      * (MITE :169) and eats it without drops ({@code destroyBlock(info,false)}).
      */
     private static boolean isNearFood(World w, EntityLivingBase e, float destroyChance) {
-        int bx = MathHelper.floor(e.posX);
-        int by = MathHelper.floor(e.posY);
-        int bz = MathHelper.floor(e.posZ);
-        int top = MathHelper.floor(e.height);
+        return isNearFoodAt(w, MathHelper.floor(e.posX), MathHelper.floor(e.posY),
+                MathHelper.floor(e.posZ), MathHelper.floor(e.height), destroyChance, e);
+    }
+
+    /**
+     * B-23 — the coord-based core of the R196 isNearFood scan (the AI arms
+     * probe candidate/final points with the owner's own height tower).
+     */
+    public static boolean isNearFoodAt(World w, int bx, int by, int bz, int tower, float destroyChance, net.minecraft.entity.EntityLivingBase entity) {
+        int top = tower;
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= top; dy++) {
                 for (int dz = -1; dz <= 1; dz++) {
@@ -838,11 +844,11 @@ public final class ETIMLivestockEvents {
                     if (state.getBlock() != Blocks.GRASS && state.getBlock() != Blocks.TALLGRASS) {
                         continue;
                     }
-                    if (destroyChance > 0.0F && e.getRNG().nextFloat() < destroyChance) {
+                    if (destroyChance > 0.0F && entity != null && entity.getRNG().nextFloat() < destroyChance) {
                         w.destroyBlock(pos, false);
                         if (ETIMConfig.mobDebugLog) {
                             ETIM.LOGGER.info("[AILog] livestock ate grass at " + pos
-                                    + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
+                                    + " entity=" + entity.getClass().getSimpleName() + "#" + entity.getEntityId());
                         }
                     }
                     return true;
@@ -860,11 +866,17 @@ public final class ETIMLivestockEvents {
      * {@code isSideSolid(world, up, DOWN)}.
      */
     private static boolean isNearWaterSource(World w, EntityLivingBase e) {
-        int bx = MathHelper.floor(e.posX);
-        int by = MathHelper.floor(e.posY);
-        int bz = MathHelper.floor(e.posZ);
-        int top = MathHelper.floor(e.height);
-        double eyeY = e.posY + e.getEyeHeight();
+        return isNearWaterSourceAt(w, MathHelper.floor(e.posX), MathHelper.floor(e.posY),
+                MathHelper.floor(e.posZ), MathHelper.floor(e.height), e.posY + e.getEyeHeight());
+    }
+
+    /**
+     * B-23 — the coord-based core of the R196 isNearWaterSource scan (the AI
+     * arms probe candidate/final points with the owner's own tower + eye
+     * line).
+     */
+    public static boolean isNearWaterSourceAt(World w, int bx, int by, int bz, int tower, double eyeY) {
+        int top = tower;
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= top; dy++) {
                 for (int dz = -1; dz <= 1; dz++) {
