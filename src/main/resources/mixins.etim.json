@@ -99,7 +99,9 @@
     "MixinBlockMycelium",
     "MixinEntitySkeleton",
     "MixinEntityPigZombie",
-    "MixinEntitySheepEatGrassSeat"
+    "MixinEntitySheepEatGrassSeat",
+    "MixinEntityWolf",
+    "MixinEntityWitch"
   ],
   "client": [
     "MixinGuiIngameForge",

@@ -37,7 +37,7 @@ const PIN = {
   dev: { bytes: 998790, sha: '07F93E396834F5C3EEF73EE17AF1EFFBC95F9DA9AB54AD1C1C980604EEE07372' },
   src: { bytes: 928517, sha: '94DE1D81389B4D505B3EB65CFD54C8555694C0E5EC770A5429E41B1B02CCCBF3' },
 };
-const MK_PIN = { classes: 97, entries: 216, dual: 432, mixins: 94, client: 10 }; // B-28 eat-grass seat (+1 mixin class 93->94, entries 215->216, dual 430->432) // B-24 fleesun -> B-25 outoflava batch (+1 mixin class 92->93, entries 214->215, dual 428->430) // B-24 收编 (fleesun: +1 mixin class 91→92, refmap entries 212→214, dual 424→428)
+const MK_PIN = { classes: 99, entries: 218, dual: 436, mixins: 96, client: 10 }; // B-30 wander-back seat (witch mixin class 95->96, entries 217->218, dual 434->436) // B-29 panic seat (+1 mixin class 94->95, entries 216->217, dual 432->434) // B-28 eat-grass seat (+1 mixin class 93->94, entries 215->216, dual 430->432) // B-24 fleesun -> B-25 outoflava batch (+1 mixin class 92->93, entries 214->215, dual 428->430) // B-24 收编 (fleesun: +1 mixin class 91→92, refmap entries 212→214, dual 424→428)
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);

@@ -17,12 +17,15 @@ import net.minecraft.entity.passive.EntityChicken;
 import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.entity.passive.EntitySheep;
+import net.minecraft.entity.passive.EntityWolf;
+import net.minecraft.entity.monster.EntityWitch;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
@@ -98,10 +101,48 @@ public final class ETIMLivestockEvents {
     @SubscribeEvent
     public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
         Entity e = event.getObject();
+        // B-30 载体：R196 EntityWitch :46 的 wander-back face 以 spawn 场
+        // （World.spawnEntityInWorld :1993-1995 记 floor(pos)，Entity
+        // :1846-1848 NBT 持久）为判值核心——女巫必须进 capability attach
+        // 才有 spawn 三元组的落点；welfare/manure/breed 链对女巫全部由
+        // onLivingUpdate 的 witch skip 挡住（R196 女巫无 wellness 面）。
+        // B-29 r2 破案修位：R196 EntityWolf 是 EntityLivestock 家族成员
+        // （flee face 全套载体；MixinEntityWolf 的 panic 座同源），缺 wolf
+        //会造成 get(entity) 恒 null → considerFleeing 写不进 → 狼被打
+        //revenge=true 仍无 start（verify-b1 Wolf#2000 probe inv=32/48 两行
+        //revenge=true/flee=false 铁证）。
         if (e instanceof EntityCow || e instanceof EntitySheep
-                || e instanceof EntityPig || e instanceof EntityChicken) {
+                || e instanceof EntityPig || e instanceof EntityChicken
+                || e instanceof EntityWolf || e instanceof EntityWitch) {
             event.addCapability(ETIMLivestock.CAPABILITY_KEY, new ETIMLivestock.Provider());
         }
+    }
+
+    /**
+     * B-30 — R196 {@code World.spawnEntityInWorld :1993-1995} carrier:
+     * the first join-world position ({@code floor(posX/Y/Z)}) is memoized
+     * once and NBT-persisted ({@code Entity :1846-1848} parity), so the
+     * wander-back AI has a target across reloads. The {@code spawnSet}
+     * flag makes every later join (chunk reload) a no-op — the R196
+     * chunk-read path bypasses {@code :1993} the same way.
+     */
+    @SubscribeEvent
+    public static void onEntityJoinWorld(EntityJoinWorldEvent event) {
+        if (event.getWorld().isRemote) {
+            return;
+        }
+        Entity e = event.getEntity();
+        if (!(e instanceof EntityWitch)) {
+            return;
+        }
+        ETIMLivestock.IState s = ETIMLivestock.get((net.minecraft.entity.EntityLivingBase) e);
+        if (s == null || s.getSpawnSet()) {
+            return;
+        }
+        s.setSpawnX(MathHelper.floor(e.posX));
+        s.setSpawnY(MathHelper.floor(e.posY));
+        s.setSpawnZ(MathHelper.floor(e.posZ));
+        s.setSpawnSet(true);
     }
 
     @SubscribeEvent
@@ -110,6 +151,12 @@ public final class ETIMLivestockEvents {
             return;
         }
         EntityLivingBase e = event.getEntityLiving();
+        if (e instanceof EntityWitch) {
+            // B-30: the witch is capability-attached for the spawn memo ONLY
+            // — the R196 witch has no wellness/manure/breed face, the
+            // livestock wellness pass must never see it.
+            return;
+        }
         ETIMLivestock.IState s = ETIMLivestock.get(e);
         if (s == null) {
             return;
@@ -221,6 +268,9 @@ public final class ETIMLivestockEvents {
         }
         if (e instanceof EntityChicken) {
             return "chicken";
+        }
+        if (e instanceof net.minecraft.entity.monster.EntityWitch) {
+            return "witch";
         }
         return "?";
     }

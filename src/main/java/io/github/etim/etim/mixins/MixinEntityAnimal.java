@@ -2,6 +2,9 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
+import io.github.etim.etim.mob.ETIMEntityAIAvoidPotentialPredators;
+import io.github.etim.etim.mob.ETIMEntityAIPanic;
+import io.github.etim.etim.mob.ETIMEntityAIGetOutOfWater;
 import io.github.etim.etim.mob.ETIMLivestockEvents;
 import io.github.etim.etim.mob.ETIMMoonState;
 import net.minecraft.entity.EntityLiving;
@@ -177,6 +180,46 @@ public abstract class MixinEntityAnimal {
         }
         ((EntityLiving) (Object) this).tasks.addTask(2,
                 new ETIMEntityAIAvoidPotentialPredators((net.minecraft.entity.EntityCreature) (Object) this, 1.0F, false));
+    }
+
+    /**
+     * B-29 — the R196 panic seat (REPLACE, the B-28 baked precedent): the
+     * four-livestock kind gate removes the VANILLA {@code EntityAIPanic}
+     * entry (R196 seats own the priority-1 slot: cow 1.6F/0.5F, pig 1.4F/
+     * 0.5F, sheep 1.4F/0.5F, chicken 1.3F/0.75F per the R196 ctor table:
+     * EntityCow :17/EntityPig :28/EntitySheep :43/EntityChicken :22) and
+     * fills the R196 shape. The vanilla speed table rides the same kind
+     * gate face.
+     */
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void etim$panicFleeAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        Object self = (Object) this;
+        if (!(self instanceof EntityCow || self instanceof EntitySheep
+                || self instanceof EntityPig || self instanceof EntityChicken)) {
+            return; // the R196 livestock family is these four; the rest keeps vanilla
+        }
+        EntityLiving living = (EntityLiving) self;
+        if (world.isRemote || !ETIMConfig.livestockNeedsR196) {
+            return; // flag off: the vanilla AI keeps the seat (the flag-off pass-through)
+        }
+        // remove the vanilla entry first — R196 owns the priority-1 slot
+        java.util.Iterator<net.minecraft.entity.ai.EntityAITasks.EntityAITaskEntry> it = living.tasks.taskEntries.iterator();
+        while (it.hasNext()) {
+            net.minecraft.entity.ai.EntityAITasks.EntityAITaskEntry entry = it.next();
+            if (entry.action instanceof net.minecraft.entity.ai.EntityAIPanic) {
+                it.remove();
+                break;
+            }
+        }
+        float speed = 1.4F; // pig/sheep row
+        float chance = 0.5F;
+        if (self instanceof EntityCow) {
+            speed = 1.6F; // R196 EntityCow :17
+        } else if (self instanceof EntityChicken) {
+            speed = 1.3F; // R196 EntityChicken :22
+            chance = 0.75F;
+        }
+        living.tasks.addTask(1, new ETIMEntityAIPanic(living, speed, chance));
     }
 
     /**

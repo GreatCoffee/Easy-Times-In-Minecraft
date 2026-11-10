@@ -101,6 +101,18 @@ public final class ETIMLivestock {
             tag.setInteger("milk", state.milk);
             tag.setInteger("numFeathers", state.numFeathers);
             tag.setInteger("maxNumFeathers", state.maxNumFeathers);
+            // B-29 (the panic face): R196 EntityLivingBase :415 has_decided_to_flee
+            // + EntityLiving :333 spooked_until; the fleeing face (:49) is
+            // runtime-only and never persisted per R196.
+            tag.setBoolean("hasDecidedToFlee", state.hasDecidedToFlee);
+            tag.setLong("spookedUntil", state.spookedUntil);
+            // B-30 (the witch wander-back face): R196 Entity :1846-1848
+            // spawn_x/spawn_y/spawn_z NBT keys — the entity's first join-world
+            // position, persisted so the AI walks back across reloads.
+            tag.setInteger("spawnX", state.spawnX);
+            tag.setInteger("spawnY", state.spawnY);
+            tag.setInteger("spawnZ", state.spawnZ);
+            tag.setBoolean("spawnSet", state.spawnSet);
             return tag;
         }
 
@@ -116,6 +128,12 @@ public final class ETIMLivestock {
             state.milk = tag.getInteger("milk");
             state.numFeathers = tag.getInteger("numFeathers");
             state.maxNumFeathers = tag.getInteger("maxNumFeathers");
+            state.hasDecidedToFlee = tag.getBoolean("hasDecidedToFlee");
+            state.spookedUntil = tag.getLong("spookedUntil");
+            state.spawnX = tag.getInteger("spawnX");
+            state.spawnY = tag.getInteger("spawnY");
+            state.spawnZ = tag.getInteger("spawnZ");
+            state.spawnSet = tag.getBoolean("spawnSet");
         }
     }
 
@@ -193,6 +211,54 @@ public final class ETIMLivestock {
         int getPickupCooldown();
 
         void setPickupCooldown(int value);
+
+        /**
+         * B-29 (R196 panic face) — {@code EntityLivingBase.has_decided_to_flee
+         * (:48, NBT :415/:464)}: the revenge-driven flee flag the panic AI
+         * consumes. Persisted per R196.
+         */
+        boolean getHasDecidedToFlee();
+
+        void setHasDecidedToFlee(boolean value);
+
+        /** R196 {@code EntityLivingBase.fleeing (:49)} — the runtime escape face. */
+        boolean getFleeing();
+
+        void setFleeing(boolean value);
+
+        /** R196 {@code EntityLiving.spooked_until (:31, NBT :333/:394)} — the
+         * spook expiry (the panic trigger face gates on
+         * {@code spooked_until > worldTime}, EntityLiving :1445-1449). */
+        long getSpookedUntil();
+
+        void setSpookedUntil(long value);
+
+        /**
+         * B-30 (the wander-back face) — R196 {@code Entity.spawn_x/y/z
+         * (Entity.java:83-85, NBT :1846-1848/:1896-1898)}: the entity's
+         * first-in-world position, set at {@code World.spawnEntityInWorld
+         * :1993-1995} (floor of the join position) and persisted. 1.12 has
+         * no spawn-point fields on Entity — this face stores them in the
+         * capability instead, set once at first
+         * {@code EntityJoinWorldEvent} (the {@code spawnSet} latch rides
+         * the same NBT so chunk reloads never re-pin the position).
+         */
+        int getSpawnX();
+
+        void setSpawnX(int value);
+
+        int getSpawnY();
+
+        void setSpawnY(int value);
+
+        int getSpawnZ();
+
+        void setSpawnZ(int value);
+
+        /** the first-join latch — false until onEntityJoinWorld pins the spawn. */
+        boolean getSpawnSet();
+
+        void setSpawnSet(boolean value);
     }
 
     /** The capability implementation instance. */
@@ -207,6 +273,13 @@ public final class ETIMLivestock {
         int numFeathers;
         int maxNumFeathers;
         int pickupCooldown;
+        boolean hasDecidedToFlee;
+        boolean fleeing;
+        long spookedUntil;
+        int spawnX;
+        int spawnY;
+        int spawnZ;
+        boolean spawnSet;
 
         @Override
         public float getFood() {
@@ -307,6 +380,85 @@ public final class ETIMLivestock {
         @Override
         public void setPickupCooldown(int value) {
             this.pickupCooldown = Math.max(0, value);
+        }
+
+        /**
+         * B-29 (R196 panic face) — {@code EntityLivingBase.has_decided_to_flee
+         * (:48, NBT :415/:464)}: the revenge-driven flee flag the panic AI
+         * consumes. Persisted per R196.
+         */
+        @Override
+        public boolean getHasDecidedToFlee() {
+            return this.hasDecidedToFlee;
+        }
+
+        @Override
+        public void setHasDecidedToFlee(boolean value) {
+            this.hasDecidedToFlee = value;
+        }
+
+        /** R196 {@code EntityLivingBase.fleeing (:49)} — the runtime escape face. */
+        @Override
+        public boolean getFleeing() {
+            return this.fleeing;
+        }
+
+        @Override
+        public void setFleeing(boolean value) {
+            this.fleeing = value;
+        }
+
+        /** R196 {@code EntityLiving.spooked_until (:31, NBT :333/:394)} — the
+         * spook expiry (the panic trigger face gates on
+         * {@code spooked_until > worldTime}, EntityLiving :1445-1449). */
+        @Override
+        public long getSpookedUntil() {
+            return this.spookedUntil;
+        }
+
+        @Override
+        public void setSpookedUntil(long value) {
+            this.spookedUntil = value;
+        }
+
+        @Override
+        public int getSpawnX() {
+            return this.spawnX;
+        }
+
+        @Override
+        public void setSpawnX(int value) {
+            this.spawnX = value;
+        }
+
+        @Override
+        public int getSpawnY() {
+            return this.spawnY;
+        }
+
+        @Override
+        public void setSpawnY(int value) {
+            this.spawnY = value;
+        }
+
+        @Override
+        public int getSpawnZ() {
+            return this.spawnZ;
+        }
+
+        @Override
+        public void setSpawnZ(int value) {
+            this.spawnZ = value;
+        }
+
+        @Override
+        public boolean getSpawnSet() {
+            return this.spawnSet;
+        }
+
+        @Override
+        public void setSpawnSet(boolean value) {
+            this.spawnSet = value;
         }
 
         /** R196 setFood/setWater/setFreedom — {@code clamp_float(f, 0, 1)}. */
