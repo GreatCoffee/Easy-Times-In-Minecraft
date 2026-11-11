@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMEntityAIBreakDoor;
 import io.github.etim.etim.mob.ETIMEntityAIDig;
+import io.github.etim.etim.mob.ETIMEntityAIMoveToTree;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.pathfinding.PathNavigateGround;
@@ -14,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Zombie seat host — four injections stacked per batch:
+ * Zombie seat host — five injections stacked per batch:
  *
  * <p><b>AI-02 dig seat</b> — R196 hangs the dig task in the digger-base
  * constructor (EntityAnimalWatcher.java:14 {@code tasks.addTask(1, new
@@ -40,6 +41,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * shape. R196 ghoul/earth-elemental seats are MITE-only entities and stay
  * C-level (摸底正本 {@code playground/audit/breakdoor-立项摸底.md}; the
  * frenzy carrier is {@code ETIMDigging.isFrenzied}, 补裁 C-9a).</p>
+ *
+ * <p><b>B-33 tree seat</b> — the R196 {@code EntityZombie :34} constant
+ * {@code tasks.addTask(3, new EntityAIMoveToTree(this, 1.0F))}: the burning
+ * zombie chases the tree a real player is perched in and arms the fire
+ * countdown on path-found. Vanilla 1.12 has no seat here (the R196 booking
+ * shares priority 3 with vanilla faces — EntityAITasks allows same-priority
+ * stacking, the R196 face); flag off = no booking (the execution face is
+ * flag-gated too).</p>
  */
 @Mixin(EntityZombie.class)
 public abstract class MixinEntityZombie {
@@ -77,6 +86,7 @@ public abstract class MixinEntityZombie {
             ((PathNavigateGround) living.getNavigator()).setBreakDoors(true); // R196 EntityZombie :18
         }
         living.tasks.addTask(1, new ETIMEntityAIBreakDoor(living)); // R196 EntityZombie :20
+        living.tasks.addTask(3, new ETIMEntityAIMoveToTree(living, 1.0F)); // R196 EntityZombie :34 (B-33 tree seat)
     }
 
     /**

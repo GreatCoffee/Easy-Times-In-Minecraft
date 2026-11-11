@@ -100,4 +100,17 @@ public abstract class MixinEntity {
             cir.setReturnValue(io.github.etim.etim.ETIMConfig.portalCooldown);
         }
     }
+
+    /**
+     * B-33 — the R196 {@code Entity.onUpdate} fire-spread block
+     * (:566-603) carrier: TAIL of the 1.12 {@code onUpdate}. The R196 slot
+     * sits between {@code setFlag(0, fire>0)} and {@code firstUpdate=false}
+     * — the drift is C-level (摸底 §3); the flag + {@code isRemote} +
+     * chance-ladder guards all live in
+     * {@link io.github.etim.etim.mob.ETIMFireSpreadRules#spreadFireFromEntity}.
+     */
+    @Inject(method = "onUpdate", at = @At("TAIL"))
+    private void etim$fireSpreadTick(CallbackInfo ci) {
+        io.github.etim.etim.mob.ETIMFireSpreadRules.spreadFireFromEntity((Entity) (Object) this);
+    }
 }

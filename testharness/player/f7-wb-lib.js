@@ -6,6 +6,7 @@
  * 780E917A...1F41 (MD5 82DABAACC0F4D5209B730DEA68A62ED0) | dev 998,790 B
  * 07F93E39...7372 | sources 928,517 B 94DE1D81...CBF3 |
  * refmap 84/186 | mixins 80+10 | cfg 245 code / 247 file keys
+ * (Historical. Current pins below are refreshed per batch: B-33 build3.)
  */
 'use strict';
 const fs = require('fs');
@@ -32,12 +33,12 @@ const PORT = 25565;
 const BOT = 'ETIM_F7';
 
 const PIN = {
-  head: '37dd834',
-  rel: { bytes: 1018656, sha: '780E917AC3F0940276219C5E6928A5DECB71F5F66869E961DFDCD92BE7ED1F41' },
-  dev: { bytes: 998790, sha: '07F93E396834F5C3EEF73EE17AF1EFFBC95F9DA9AB54AD1C1C980604EEE07372' },
-  src: { bytes: 928517, sha: '94DE1D81389B4D505B3EB65CFD54C8555694C0E5EC770A5429E41B1B02CCCBF3' },
+  head: 'b33-build3',
+  rel: { bytes: 1127247, sha: '06680A25FBF59919C0C90B0B3DE53821688EFB2AA976E93A35158216F1966A03' }, // b33-build3 (r2 re-pin: tree judge rows src=zombie)
+  dev: { bytes: 1105661, sha: '229FA9CA492F212C786132B77790C79D0BC06160A2AF43524437AF3516C7B5A0' },
+  src: { bytes: 1031091, sha: '60989ACA6B7542A9E308015A43DADE11F4023E6E20B91CACA9AF77CACDFB6CBE' },
 };
-const MK_PIN = { classes: 100, entries: 221, dual: 442, mixins: 98, client: 10 }; // B-31 break-door seat (+2 mixin classes 96->98 [PathNavigateAccessor new + zombie stack injects], entries 218->221, dual 436->442) // B-30 wander-back seat (witch mixin class 95->96, entries 217->218, dual 434->436) // B-29 panic seat (+1 mixin class 94->95, entries 216->217, dual 432->434) // B-28 eat-grass seat (+1 mixin class 93->94, entries 215->216, dual 430->432) // B-24 fleesun -> B-25 outoflava batch (+1 mixin class 92->93, entries 214->215, dual 428->430) // B-24 收编 (fleesun: +1 mixin class 91→92, refmap entries 212→214, dual 424→428)
+const MK_PIN = { classes: 100, entries: 223, dual: 446, mixins: 98, client: 10 }; // B-33 tree seat (+2 inject entries 221->223 [MixinEntityLiving.onUpdate TAIL countdown tick + MixinEntity.onUpdate TAIL fire-spread hook], dual 442->446; zero new mixin classes, 100/98/10 unchanged) // B-31 break-door seat (+2 mixin classes 96->98 [PathNavigateAccessor new + zombie stack injects], entries 218->221, dual 436->442) // B-30 wander-back seat (witch mixin class 95->96, entries 217->218, dual 434->436) // B-29 panic seat (+1 mixin class 94->95, entries 216->217, dual 432->434) // B-28 eat-grass seat (+1 mixin class 93->94, entries 215->216, dual 430->432) // B-24 fleesun -> B-25 outoflava batch (+1 mixin class 92->93, entries 214->215, dual 428->430) // B-24 收编 (fleesun: +1 mixin class 91→92, refmap entries 212→214, dual 424→428)
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);

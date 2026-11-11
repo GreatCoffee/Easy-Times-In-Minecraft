@@ -2,10 +2,12 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
+import io.github.etim.etim.mob.ETIMFireCountdownDuck;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -26,7 +28,51 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * zero new mixin files).</p>
  */
 @Mixin(EntityLiving.class)
-public abstract class MixinEntityLiving {
+public abstract class MixinEntityLiving implements ETIMFireCountdownDuck {
+
+    /**
+     * B-33 — the R196 {@code increased_chance_of_spreading_fire_countdown}
+     * field (EntityLiving.java:41), mixin-carried (1.12 has no such field);
+     * public via the {@link ETIMFireCountdownDuck} contract so
+     * {@link io.github.etim.etim.mob.ETIMFireSpreadRules} and
+     * {@link io.github.etim.etim.mob.ETIMEntityAIMoveToTree} can read/write
+     * it. Written at {@code startExecuting} (R196 MoveToTree :65), read by
+     * the fire-spread ladder (R196 Entity.java:576-579), decremented here.
+     */
+    @Unique
+    public int etim$increasedChanceOfSpreadingFireCountdown;
+
+    @Unique
+    @Override
+    public int etim$getIncreasedChanceOfSpreadingFireCountdown() {
+        return this.etim$increasedChanceOfSpreadingFireCountdown;
+    }
+
+    @Unique
+    @Override
+    public void etim$setIncreasedChanceOfSpreadingFireCountdown(int value) {
+        this.etim$increasedChanceOfSpreadingFireCountdown = value;
+    }
+
+    /**
+     * B-33 — R196 {@code EntityLiving.onUpdate} countdown self-decrement
+     * (:209-212, inside the server guard): the tick the AI write rides out
+     * from (arm at path-found, then 100 ticks of boosted spread). The R196
+     * slot sits mid-{@code onUpdate}; the 1.12 carrier is a TAIL injection
+     * (position drift is C-level, same shape as the Entity hook).
+     */
+    @Inject(method = "onUpdate", at = @At("TAIL"))
+    private void etim$fireCountdownTick(CallbackInfo ci) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return; // flag off: vanilla 1.12 has no countdown at all
+        }
+        if (((EntityLiving) (Object) this).world.isRemote) {
+            return; // R196 :208 — the server guard the decrement lives inside
+        }
+        if (this.etim$increasedChanceOfSpreadingFireCountdown > 0) {
+            this.etim$increasedChanceOfSpreadingFireCountdown--;
+        }
+    }
 
     @Inject(method = "despawnEntity", at = @At("HEAD"), cancellable = true)
     private void etim$tryDespawnEntity(CallbackInfo ci) {
