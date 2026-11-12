@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMEntityAISeekShelterFromRain;
 import io.github.etim.etim.mob.ETIMEntityAIMoveToRepairItem;
+import io.github.etim.etim.mob.ETIMEntityAIAvoidFire;
 import net.minecraft.entity.EntityLiving;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -46,5 +47,21 @@ public abstract class MixinEntitySnowman {
             return; // flag off: vanilla keeps its shape (the pass-through)
         }
         living.tasks.addTask(2, new ETIMEntityAIMoveToRepairItem(living)); // R196 EntitySnowman :15
+    }
+
+    /**
+     * B-36 — the R196 {@code EntitySnowman :16} AvoidFire seat:
+     * {@code addTask(2, new EntityAIAvoidFire(this, 1.0F, true))} — the
+     * third handler. The snowman is fire-vulnerable (its own AwayFromFire
+     * face in vanilla is absent from the 1.12 ctor {@code :51-55}); the
+     * family flag gates the seat (the fifteenth reuse).
+     */
+    @Inject(method = "<init>(Lnet/minecraft/world/World;)V", at = @At("TAIL"))
+    private void etim$avoidFireAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        EntityLiving living = (EntityLiving) (Object) this;
+        if (world.isRemote || !ETIMConfig.livestockNeedsR196) {
+            return; // flag off: vanilla keeps its shape (the pass-through)
+        }
+        living.tasks.addTask(2, new ETIMEntityAIAvoidFire(living, 1.0F, true)); // R196 EntitySnowman :16
     }
 }

@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
 import io.github.etim.etim.mob.ETIMEntityAIAvoidPotentialPredators;
+import io.github.etim.etim.mob.ETIMEntityAIAvoidFire;
 import io.github.etim.etim.mob.ETIMEntityAIPanic;
 import io.github.etim.etim.mob.ETIMEntityAIGetOutOfWater;
 import io.github.etim.etim.mob.ETIMLivestockEvents;
@@ -220,6 +221,23 @@ public abstract class MixinEntityAnimal {
             chance = 0.75F;
         }
         living.tasks.addTask(1, new ETIMEntityAIPanic(living, speed, chance));
+    }
+
+    /**
+     * B-36 — the R196 {@code EntityAnimal :10} AvoidFire seat:
+     * {@code addTask(2, new EntityAIAvoidFire(this, 1.0F, true))}. The seat
+     * sits in the R196 base ctor, so it faces every {@code EntityAnimal}
+     * subclass — no kind gate here (the R196 base-ctor face), only the
+     * family flag. 1.12 vanilla animals stand in fires and burn; this face
+     * makes them flee (the B-36 摸底: the whole fire-retreat chain).
+     */
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void etim$avoidFireAITask(net.minecraft.world.World world, CallbackInfo ci) {
+        EntityLiving living = (EntityLiving) (Object) this;
+        if (world.isRemote || !ETIMConfig.livestockNeedsR196) {
+            return; // flag off: the vanilla AI keeps its shape (the flag-off pass-through)
+        }
+        living.tasks.addTask(2, new ETIMEntityAIAvoidFire(living, 1.0F, true)); // R196 EntityAnimal :10
     }
 
     /**
