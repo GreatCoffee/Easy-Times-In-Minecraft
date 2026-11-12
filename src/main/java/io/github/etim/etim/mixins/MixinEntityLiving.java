@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
 import io.github.etim.etim.mob.ETIMFireCountdownDuck;
+import io.github.etim.etim.mob.ETIMRepairCooldownDuck;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
@@ -28,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * zero new mixin files).</p>
  */
 @Mixin(EntityLiving.class)
-public abstract class MixinEntityLiving implements ETIMFireCountdownDuck {
+public abstract class MixinEntityLiving implements ETIMFireCountdownDuck, ETIMRepairCooldownDuck {
 
     /**
      * B-33 — the R196 {@code increased_chance_of_spreading_fire_countdown}
@@ -55,11 +56,40 @@ public abstract class MixinEntityLiving implements ETIMFireCountdownDuck {
     }
 
     /**
+     * B-35 — the R196 {@code food_or_repair_item_pickup_cooldown} field
+     * (EntityLiving.java:30), mixin-carried for the non-livestock
+     * repair family (skeleton/snowman; the livestock carry it in the
+     * {@code ETIMLivestock.IState}, the B-11 arm). Written at pickup
+     * (= 400, R196 :662) via {@link ETIMRepairCooldownDuck}, read by
+     * {@link io.github.etim.etim.mob.ETIMEntityAIMoveToRepairItem},
+     * decremented in the {@code onUpdate} handler below (R196
+     * :646-647, the pickup-block slot — TAIL carrier is C-level).
+     */
+    @Unique
+    public int etim$repairPickupCooldown;
+
+    @Unique
+    @Override
+    public int etim$getRepairPickupCooldown() {
+        return this.etim$repairPickupCooldown;
+    }
+
+    @Unique
+    @Override
+    public void etim$setRepairPickupCooldown(int value) {
+        this.etim$repairPickupCooldown = value;
+    }
+
+    /**
      * B-33 — R196 {@code EntityLiving.onUpdate} countdown self-decrement
      * (:209-212, inside the server guard): the tick the AI write rides out
      * from (arm at path-found, then 100 ticks of boosted spread). The R196
      * slot sits mid-{@code onUpdate}; the 1.12 carrier is a TAIL injection
      * (position drift is C-level, same shape as the Entity hook).
+     *
+     * <p>B-35 — the repair-pickup cooldown decrement rides the same
+     * handler (R196 :646-647, inside the ground-pickup block; the TAIL
+     * carrier is C-level per the B-35 摸底 §3-①).</p>
      */
     @Inject(method = "onUpdate", at = @At("TAIL"))
     private void etim$fireCountdownTick(CallbackInfo ci) {
@@ -71,6 +101,9 @@ public abstract class MixinEntityLiving implements ETIMFireCountdownDuck {
         }
         if (this.etim$increasedChanceOfSpreadingFireCountdown > 0) {
             this.etim$increasedChanceOfSpreadingFireCountdown--;
+        }
+        if (this.etim$repairPickupCooldown > 0) { // B-35 — R196 :646-647
+            this.etim$repairPickupCooldown--;
         }
     }
 
