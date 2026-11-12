@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -153,5 +154,102 @@ public abstract class MixinEntityLiving implements ETIMFireCountdownDuck, ETIMRe
         io.github.etim.etim.combat.ETIMEnchantPool.row("nonTable src=mob tension="
                 + String.format(java.util.Locale.ROOT, "%.2f", tension));
         ci.cancel();
+    }
+
+    /**
+     * B-38 drop-face pack — the R196 equipment drop rules (EntityLiving
+     * :982-1020) replace the vanilla body (:1027: {@code chance > 1 || roll
+     * < chance} per slot). Cancelled at HEAD behind the R196 flag; the
+     * skeleton/zombie dropLoot cancels (B-38) call this same method for
+     * their equipment arm, so the rules apply exactly once per death.
+     */
+    @Inject(method = "dropEquipment(ZI)V", at = @At("HEAD"), cancellable = true)
+    private void etim$r196DropEquipment(boolean wasRecentlyHit, int lootingModifier, CallbackInfo ci) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return;
+        }
+        EntityLiving self = (EntityLiving) (Object) this;
+        if (self.world.isRemote) {
+            ci.cancel();
+            return;
+        }
+        io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(self, wasRecentlyHit, lootingModifier);
+        ci.cancel();
+    }
+
+    /**
+     * B-38 drop-face pack — the massive-fall few-items mercy gate (R196
+     * EntityLivingBase :910) applied to the 1.12 loot-table branch (the
+     * vanilla dropLoot :583-614). The skeleton/zombie dropLoot cancels
+     * (B-38) run their own mercy gate and cancel this body before it is
+     * reached; other mobs keep their loot tables but lose them on a
+     * massive-fall kill unless the 10% mercy roll succeeds.
+     */
+    @Redirect(
+            method = "dropLoot(ZILnet/minecraft/util/DamageSource;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/storage/loot/LootTable;generateLootForPools(Ljava/util/Random;Lnet/minecraft/world/storage/loot/LootContext;)Ljava/util/List;"))
+    private java.util.List<net.minecraft.item.ItemStack> etim$massiveFallLootGate(
+            net.minecraft.world.storage.loot.LootTable table, java.util.Random rand,
+            net.minecraft.world.storage.loot.LootContext context) {
+        if (ETIMConfig.livestockNeedsR196
+                && !((EntityLivingBase) (Object) this).world.isRemote
+                && io.github.etim.etim.mob.ETIMMobDrops.massiveFallSkipsFewItems((EntityLivingBase) (Object) this)) {
+            return java.util.Collections.emptyList();
+        }
+        return table.generateLootForPools(rand, context);
+    }
+
+    /**
+     * B-38 drop-face pack — the R196 skeleton/zombie drop tables. The
+     * method is declared on {@code EntityLiving} (Mixin cannot target an
+     * inherited method from the subclass mixins), so the tables dispatch
+     * here with instanceof gates: R196 EntitySkeleton :143-187 (the wither
+     * coal + skull rare / normal arrows / bones) and R196 EntityZombie
+     * :142-158 (the rotten flesh + the nugget/seed rare chain). The
+     * massive-fall mercy gate (R196 EntityLivingBase :910) runs first, then
+     * the verbatim table, then the equipment rules — the vanilla :608
+     * equipment call is inside the cancelled body, so the equipment arm is
+     * re-issued here exactly once.
+     */
+    @Inject(method = "dropLoot(ZILnet/minecraft/util/DamageSource;)V", at = @At("HEAD"), cancellable = true)
+    private void etim$r196MobDrops(boolean wasRecentlyHit, int lootingModifier,
+                                   net.minecraft.util.DamageSource source, CallbackInfo ci) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return;
+        }
+        EntityLiving self = (EntityLiving) (Object) this;
+        if (self instanceof net.minecraft.entity.monster.AbstractSkeleton) {
+            net.minecraft.entity.monster.AbstractSkeleton skeleton =
+                    (net.minecraft.entity.monster.AbstractSkeleton) self;
+            if (skeleton.world.isRemote) {
+                ci.cancel();
+                return;
+            }
+            if (io.github.etim.etim.mob.ETIMMobDrops.massiveFallSkipsFewItems(skeleton)) {
+                io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(skeleton, wasRecentlyHit, lootingModifier);
+                ci.cancel();
+                return;
+            }
+            io.github.etim.etim.mob.ETIMMobDrops.skeletonTable(skeleton, wasRecentlyHit, lootingModifier);
+            io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(skeleton, wasRecentlyHit, lootingModifier);
+            ci.cancel();
+        } else if (self instanceof net.minecraft.entity.monster.EntityZombie) {
+            net.minecraft.entity.monster.EntityZombie zombie =
+                    (net.minecraft.entity.monster.EntityZombie) self;
+            if (zombie.world.isRemote) {
+                ci.cancel();
+                return;
+            }
+            if (io.github.etim.etim.mob.ETIMMobDrops.massiveFallSkipsFewItems(zombie)) {
+                io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(zombie, wasRecentlyHit, lootingModifier);
+                ci.cancel();
+                return;
+            }
+            io.github.etim.etim.mob.ETIMMobDrops.zombieTable(zombie, wasRecentlyHit, lootingModifier);
+            io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(zombie, wasRecentlyHit, lootingModifier);
+            ci.cancel();
+        }
     }
 }

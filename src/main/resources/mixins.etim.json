@@ -103,6 +103,7 @@
     "MixinEntitySheepEatGrassSeat",
     "MixinEntityWolf",
     "MixinEntityWitch",
+    "ETIMEntityLivingDropsAccessor",
     "PathNavigateAccessor"
   ],
   "client": [
