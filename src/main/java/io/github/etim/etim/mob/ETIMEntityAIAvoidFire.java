@@ -374,7 +374,7 @@ public class ETIMEntityAIAvoidFire extends net.minecraft.entity.ai.EntityAIBase 
         if (state.getMaterial().isLiquid()) { // R196 :5648 include_liquid=false
             return false;
         }
-        return !block.isPassable(this.world, pos); // R196 :5648 !isSolid — the 1.12 passable carrier
+        return block.isPassable(this.world, pos); // R196 :5648 not-solid -> passable-true; the polarity was flipped until B-37 (self-masked in B-36 window - see C-B37 register)
     }
 
     /** R196 EntityAIMovementTask :47-73 — the base startExecuting with the LIVE canSwim retry arm. */

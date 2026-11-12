@@ -53,7 +53,7 @@ import java.util.UUID;
  *       cap has no 1.12 API on {@code getPathToXYZ}).</li>
  *   <li>{@code World.isAirOrPassableBlock} (:5634-5652) — the y-bounds →
  *       TRUE quirk kept verbatim; {@code !blockExists → false}; air →
- *       true; liquid → false; else {@code !block.isPassable(world, pos)}
+ *       true; liquid -> false; else {@code block.isPassable(world, pos)} (NOT-solid -> true)
  *       (Block.java:424).</li>
  * </ul>
  *
@@ -275,6 +275,6 @@ public class ETIMEntityAIWitchRoaming extends net.minecraft.entity.ai.EntityAIBa
         if (state.getMaterial().isLiquid()) {
             return false;
         }
-        return !block.isPassable(this.world, pos); // 1.12 carrier (Block.java:424)
+        return block.isPassable(this.world, pos); // 1.12 carrier (Block.java:424); R196 else-branch = NOT-solid → passable-true (the polarity was flipped until B-37, self-masked in B-34/B-36 windows — see C-B37 register)
     }
 }
