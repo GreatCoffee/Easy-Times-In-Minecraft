@@ -102,8 +102,16 @@ public final class TestDriver {
                 () -> feedDig(player, pos, CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, "stop"));
     }
 
-    /** {@code /etest useblock <x> <y> <z>} — one right-click on the block (till/place faces). */
+    /** {@code /etest useblock <x> <y> <z> [player]} — one right-click on the block (UP face). */
     public static void useBlock(EntityPlayerMP player, BlockPos pos) {
+        useBlock(player, pos, EnumFacing.UP);
+    }
+
+    /** {@code /etest useblock <x> <y> <z> <face> [player]} — the B-40 face arms: the packet
+     * direction flows straight into {@code processRightClickBlock} (rfg NetHandlerPlayServer:769
+     * uses the packet direction verbatim — no server ray re-derivation), so a forged
+     * non-UP direction reaches the item's use face (the census :94 top-face gate reject arm). */
+    public static void useBlock(EntityPlayerMP player, BlockPos pos, EnumFacing face) {
         schedule(player, "useblock", 1, () -> {
             // No-arg ctor + field injection: the six-argument convenience
             // constructor is @SideOnly(CLIENT) and stripped from the
@@ -112,14 +120,14 @@ public final class TestDriver {
             CPacketPlayerTryUseItemOnBlockAccessor fields =
                     (CPacketPlayerTryUseItemOnBlockAccessor) (Object) packet;
             fields.etim$setPosition(pos);
-            fields.etim$setPlacedBlockDirection(EnumFacing.UP);
+            fields.etim$setPlacedBlockDirection(face);
             fields.etim$setHand(EnumHand.MAIN_HAND);
             fields.etim$setFacingX(0.5F);
             fields.etim$setFacingY(0.5F);
             fields.etim$setFacingZ(0.5F);
             player.connection.processTryUseItemOnBlock(packet);
-            ETIM.LOGGER.info("[TestLog] step=useblock player={} pos={} tick={}", player.getName(), pos,
-                    player.world.getTotalWorldTime());
+            ETIM.LOGGER.info("[TestLog] step=useblock player={} pos={} face={} tick={}", player.getName(), pos,
+                    face.getName(), player.world.getTotalWorldTime());
         });
     }
 

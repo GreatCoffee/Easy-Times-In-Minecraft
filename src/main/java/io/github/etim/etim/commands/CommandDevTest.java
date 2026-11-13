@@ -707,15 +707,29 @@ public class CommandDevTest extends CommandBase {
         respond(player, "commands.etest.drive_queued", "dig " + pos);
     }
 
-    /** {@code /etest useblock <x> <y> <z> [player]} — queues one right-click on the block. */
+    /** {@code /etest useblock <x> <y> <z> [face] [player]} — queues one right-click on the
+     * block; the optional face token (up/down/north/south/west/east, default up) forges the
+     * packet direction for the B-40 face arms (TestDriver.useBlock). */
     private static void executeUseBlock(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 4) {
             throw new WrongUsageException("commands.etest.usage");
         }
-        EntityPlayerMP player = targetOrSender(server, sender, args, 4);
         BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
-        TestDriver.useBlock(player, pos);
-        respond(player, "commands.etest.drive_queued", "useblock " + pos);
+        net.minecraft.util.EnumFacing face = net.minecraft.util.EnumFacing.UP;
+        int playerIndex = 4;
+        if (args.length >= 5) {
+            net.minecraft.util.EnumFacing parsed = null;
+            for (net.minecraft.util.EnumFacing f : net.minecraft.util.EnumFacing.VALUES) {
+                if (f.getName2().equalsIgnoreCase(args[4])) { parsed = f; break; }
+            }
+            if (parsed != null) {
+                face = parsed;
+                playerIndex = 5;
+            }
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
+        TestDriver.useBlock(player, pos, face);
+        respond(player, "commands.etest.drive_queued", "useblock " + pos + " " + face.getName());
     }
 
     /** {@code /etest useitem [player]} — queues one right-click into the air. */
