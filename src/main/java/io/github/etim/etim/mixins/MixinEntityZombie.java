@@ -4,15 +4,21 @@ import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMEntityAIBreakDoor;
 import io.github.etim.etim.mob.ETIMEntityAIDig;
 import io.github.etim.etim.mob.ETIMEntityAIMoveToTree;
+import io.github.etim.etim.mob.ETIMEntityRevenant;
+import io.github.etim.etim.mob.ETIMSmartDuck;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.monster.EntityZombie;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.pathfinding.PathNavigateGround;
+import net.minecraft.util.DamageSource;
 import net.minecraft.world.DifficultyInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Zombie seat host — five injections stacked per batch:
@@ -49,12 +55,37 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * shares priority 3 with vanilla faces — EntityAITasks allows same-priority
  * stacking, the R196 face); flag off = no booking (the execution face is
  * flag-gated too).</p>
+ *
+ * <p><b>B-39 is-smart face</b> — the R196 {@code is_smart} flag (R196
+ * {@code EntityZombie :13}): seeded at the constructor (R196 :35
+ * {@code is_smart = isRevenant() || rand.nextInt(8) == 0}), upgraded to
+ * {@code true} on player-caused surviving damage (R196 :100), persisted
+ * through the {@code is_smart} NBT key (R196 :221/:239). Consumer =
+ * {@code ETIMDigging.isDiggingEnabled} (R196 :404-411): a smart or frenzied
+ * zombie digs bare-handed, a plain one needs a held ItemTool. All three
+ * injection targets are EntityZombie overrides in 1.12
+ * ({@code attackEntityFrom :253} / {@code writeEntityToNBT :400} /
+ * {@code readEntityFromNBT :415}), so they inject on the subclass mixin
+ * (the B-38 dropLoot lesson does not bite here).</p>
  */
 @Mixin(EntityZombie.class)
-public abstract class MixinEntityZombie {
+public abstract class MixinEntityZombie implements ETIMSmartDuck {
 
     @Shadow(aliases = "isBreakDoorsTaskSet")
     private boolean isBreakDoorsTaskSet;
+
+    @Unique
+    private boolean etim$isSmartValue;
+
+    @Override
+    public boolean etim$isSmart() {
+        return this.etim$isSmartValue;
+    }
+
+    @Override
+    public void etim$setSmart(boolean value) {
+        this.etim$isSmartValue = value;
+    }
 
     @Inject(method = "initEntityAI", at = @At("TAIL"))
     private void etim$addDigAI(CallbackInfo ci) {
@@ -87,6 +118,7 @@ public abstract class MixinEntityZombie {
         }
         living.tasks.addTask(1, new ETIMEntityAIBreakDoor(living)); // R196 EntityZombie :20
         living.tasks.addTask(3, new ETIMEntityAIMoveToTree(living, 1.0F)); // R196 EntityZombie :34 (B-33 tree seat)
+        this.etim$setSmart(living instanceof ETIMEntityRevenant || living.getRNG().nextInt(8) == 0); // R196 :35 (B-39 seed roll)
     }
 
     /**
@@ -109,5 +141,66 @@ public abstract class MixinEntityZombie {
             ((PathNavigateGround) living.getNavigator()).setBreakDoors(enabled); // vanilla :139
         }
         ci.cancel();
+    }
+
+    /**
+     * B-39 — the R196 {@code EntityZombie :100} player-hit upgrade:
+     * {@code result != null && !result.entityWasDestroyed() &&
+     * result.entityWasNegativelyAffected() && damage.wasCausedByPlayer()}.
+     * The 1.12 transposition folds onto the boolean return: {@code true}
+     * from the vanilla body = the damage was applied (negatively affected;
+     * a blocked/cancelled hit returns false), and {@code getHealth() > 0}
+     * at TAIL = not destroyed outright. Server side only, flag-gated.
+     *
+     * <p><b>Injection point note (B-39 r5 verdict):</b> this override has
+     * TWO returns (the {@code return true} inside the super-block and the
+     * final {@code return false}); {@code @At("TAIL")} only matches the
+     * LAST return, so every applied-damage path (which returns true)
+     * bypassed the handler entirely. {@code @At("RETURN")} matches every
+     * return; the {@code getReturnValueZ()} gate keeps the R196 semantics.</p>
+     */
+    @Inject(method = "attackEntityFrom(Lnet/minecraft/util/DamageSource;F)Z",
+            at = @At("RETURN"), cancellable = true)
+    private void etim$smartOnPlayerHit(DamageSource source, float amount,
+                                       CallbackInfoReturnable<Boolean> cir) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return;
+        }
+        EntityZombie zombie = (EntityZombie) (Object) this;
+        if (zombie.world.isRemote || !cir.getReturnValueZ() || zombie.getHealth() <= 0.0F) {
+            return;
+        }
+        if (source.getTrueSource() instanceof net.minecraft.entity.player.EntityPlayer) {
+            this.etim$setSmart(true); // R196 :100
+        }
+    }
+
+    /**
+     * B-39 — the R196 {@code is_smart} NBT round-trip (R196 :221 write /
+     * :239 read; the key name is the R196 original). Both methods are
+     * EntityZombie overrides in 1.12 (:400/:415).
+     */
+    @Inject(method = "writeEntityToNBT(Lnet/minecraft/nbt/NBTTagCompound;)V", at = @At("TAIL"))
+    private void etim$writeSmartNBT(NBTTagCompound compound, CallbackInfo ci) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return; // flag off: vanilla keeps its shape (no is_smart key)
+        }
+        compound.setBoolean("is_smart", this.etim$isSmartValue); // R196 :221
+    }
+
+    @Inject(method = "readEntityFromNBT(Lnet/minecraft/nbt/NBTTagCompound;)V", at = @At("TAIL"))
+    private void etim$readSmartNBT(NBTTagCompound compound, CallbackInfo ci) {
+        if (!ETIMConfig.livestockNeedsR196) {
+            return; // flag off: no is_smart key was written either
+        }
+        // R196 :239 reads unconditionally, but R196's own spawn path never
+        // readFromNBTs an empty tag. 1.12 /summon DOES (CommandSummon :90-109
+        // always routes through EntityList.createEntityFromNBT → readFromNBT
+        // with an id-only tag), which would wipe the constructor seed. Saved
+        // entities always carry the key (the write face is unconditional), so
+        // hasKey separates "restore a saved entity" from "fresh construction".
+        if (compound.hasKey("is_smart")) {
+            this.etim$isSmartValue = compound.getBoolean("is_smart"); // R196 :239
+        }
     }
 }

@@ -7,6 +7,7 @@ import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.Tags;
 import io.github.etim.etim.mining.ETIMMining;
 import io.github.etim.etim.playerstate.ETIMBedSafety;
+import io.github.etim.etim.mob.ETIMSmartDuck;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFalling;
 import net.minecraft.block.BlockLeaves;
@@ -291,7 +292,8 @@ public final class ETIMDigging {
      * constant-false B 级登记 is superseded.
      */
     public static boolean isSmart(EntityZombie digger) {
-        return digger instanceof ETIMEntityRevenant;
+        return digger instanceof ETIMEntityRevenant
+                || (ETIMSmartDuck.carries(digger) && ((ETIMSmartDuck) digger).etim$isSmart()); // B-39 flag face
     }
 
     /**
