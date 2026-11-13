@@ -40,6 +40,18 @@ public abstract class MixinPlayerInteractionManager {
         etim$harvested.set(this.world.getBlockState(pos));
     }
 
+    /**
+     * B-41 census 普查A :89 — the R196 creative-sword gate
+     * ({@code ItemInWorldManager.tryHarvestBlock :127-129}) was landed here
+     * as a HEAD inject and REMOVED after the W-B41 r2 verdict: 1.12 Forge
+     * vanilla already has the same face ({@code Item.canDestroyBlockInCreative
+     * :1081-1084 = !(this instanceof ItemSword)} + {@code
+     * ForgeHooks.onBlockBreakEvent :818-825} pre-cancel → {@code
+     * tryHarvestBlock :309 exp=-1}), so the gate was a duplicate (probe5: the
+     * creative sword stays blocked with both ETIM flags off) — census :89
+     * records the zero-port (vanilla parity), D ruling 2026-11-13.
+     */
+
     @Inject(method = "tryHarvestBlock", at = @At("TAIL"))
     private void etim$postHarvest(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         IBlockState harvested = etim$harvested.get();

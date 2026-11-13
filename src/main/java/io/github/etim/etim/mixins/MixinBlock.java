@@ -5,7 +5,6 @@ import io.github.etim.etim.mining.ETIMMining;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemSword;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,12 +35,19 @@ public abstract class MixinBlock {
         if (!ETIMConfig.miningReform) {
             return;
         }
-        // Audit P1.4: creative WITH a sword harvests nothing at all — not
-        // even block removal (ItemInWorldManager.java:127-129 door). The
-        // vanilla creative channel consults the same funnel, so a 0F return
-        // blocks the instant as well as progressive digging.
+        // Audit P1.4: creative keeps the vanilla piano (instant break) — a
+        // fixed 1.0F stays >= 1.0F so every creative dig is instant, with no
+        // per-item faces.
+        //
+        // B-41 tombstone (census 普查A :89): the former sword → 0.0F arm (the
+        // R196 ItemInWorldManager :127-129 creative-sword rule) was removed
+        // after the W-B41 r2 verdict — 1.12 Forge vanilla already has the
+        // same face (Item.canDestroyBlockInCreative :1081-1084 +
+        // ForgeHooks.onBlockBreakEvent :818-825 pre-cancel), so the arm was a
+        // duplicate (probe5: the creative sword stays blocked with both ETIM
+        // flags off) — census :89 records the zero-port, D ruling 2026-11-13.
         if (player.capabilities.isCreativeMode) {
-            cir.setReturnValue(player.getHeldItemMainhand().getItem() instanceof ItemSword ? 0.0F : 1.0F);
+            cir.setReturnValue(1.0F);
             return;
         }
         cir.setReturnValue(ETIMMining.getProgressPerTick(player, state, world, pos));

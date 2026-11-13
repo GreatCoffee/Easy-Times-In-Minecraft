@@ -1,210 +1,70 @@
 package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
-import io.github.etim.etim.combat.ETIMBlockLog;
-import io.github.etim.etim.combat.ETIMBlocking;
-import io.github.etim.etim.ingest.ETIMIngestibles;
-import io.github.etim.etim.nutrition.NutritionSystem;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.EnumAction;
+import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.stats.StatList;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumHand;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Task 2.4: base-{@link Item} plumbing for the R196 block-挂值 foods (sugar,
- * brown/red mushrooms, and the egg's eating half). Vanilla 1.12 leaves these
- * items un-eatable; R196 carries their values in the shared {@code setFoodValue}
- * domain (ingestion audit §2, Block.java:3399-3400) and everything runs the
- * standard 32-tick eat family of values.
+ * B-41 census 普查A :92 — the R196 stick/bone break face
+ * ({@code Item.hitEntity :954-987}): hitting an entity with a stick or a
+ * bone has a chance to BREAK the weapon outright (1/50 for the stick, 1/100
+ * for the bone — the census row phrased the inverse "免磨损", corrected per
+ * the code, 摸底 §0). Gates, verbatim: server-only (:955-957), the attacker
+ * must be a player (:959-961), creative players never roll (:964-966), and
+ * only the two hardcoded items participate (:968-977). On the roll the
+ * R196 plays the break effect ({@code causeBreakingItemEffect}) and
+ * clears the held slot ({@code convertOneOfHeldItem(null)} — MITE's
+ * single-item inventory makes "clear the slot" = "break one item"); the
+ * 1.12 port breaks ONE item from the stack
+ * ({@code stack.shrink(1)}) + {@code EntityLivingBase#renderBrokenItemStack}
+ * (public, :1257 — the ITEM_BREAK sound + the particles) and keeps the
+ * R196 {@code true} return (the vanilla "the item wore" contract slot;
+ * the stack semantics delta is registered in 摸底 §3).
  *
- * <p>All four branches quit unless {@code foodModel} is on — then the items
- * revert to plain vanilla identity. The wiring:</p>
- * <ul>
- *   <li>{@code getItemUseAction} / {@code getMaxItemUseDuration} — same as
- *       vanilla {@code ItemFood} (EAT / 32 ticks), so the hold, the eat
- *       sound loop and the finish callback behave identically;</li>
- *   <li>{@code onItemRightClick} — mirrors vanilla
- *       {@code ItemFood.onItemRightClick:99-106}: the five-arg gate
- *       ({@code ETIMFoodStats.canIngest}) decides between {@code setActiveHand}
- *       + SUCCESS and a silent FAIL;</li>
- *   <li>{@code onItemUseFinish} — vanilla {@code ItemFood.onItemUseFinish:67}
- *       {@code stack.shrink(1)}, mirrored (creative mode is restored by
- *       {@code PlayerInteractionManager.processRightClick}); the value
- *       application itself runs in the task-1.5 finish hook ([FoodLog]).</li>
- * </ul>
- *
- * <p>The egg reaches the finish/action/duration injections through this
- * whitelist but not the right-click one — vanilla
- * {@code ItemEgg.onItemRightClick} overrides the base method and the eat/throw
- * fork lives in {@code MixinItemEgg}.</p>
+ * <p>The mixin sits on the ROOT {@link Item} (the vanilla stick/bone are
+ * plain instances, not tool subclasses), so the handler is a cheap identity
+ * gate — every other item (including the ETIM metal tools with their own
+ * wear faces) walks through untouched. Flag <b>livestockNeedsR196</b>
+ * (the twentieth reuse): flag off = vanilla keeps its shape (sticks/bones
+ * never break on a hit). Judgement row {@code [SwingLog] stickbreak
+ * item=… chance=… entity=…} (the mobDebugLog gate).</p>
  */
 @Mixin(Item.class)
 public abstract class MixinItem {
 
-    @Inject(
-            method = "getItemUseAction(Lnet/minecraft/item/ItemStack;)Lnet/minecraft/item/EnumAction;",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void etim$useAction(ItemStack stack, CallbackInfoReturnable<EnumAction> cir) {
-        if (ETIMConfig.foodModel && ETIMIngestibles.isIngestible(stack)) {
-            cir.setReturnValue(EnumAction.EAT);
+    @Inject(method = "hitEntity", at = @At("HEAD"), cancellable = true)
+    private void etim$stickBreak(ItemStack stack, EntityLivingBase target, EntityLivingBase attacker,
+                                 CallbackInfoReturnable<Boolean> cir) {
+        if (!ETIMConfig.livestockNeedsR196 || attacker.world.isRemote || !(attacker instanceof EntityPlayer)) {
+            return; // R196 :955-961 (server-only, player-only)
         }
-    }
-
-    @Inject(
-            method = "getMaxItemUseDuration(Lnet/minecraft/item/ItemStack;)I",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void etim$useDuration(ItemStack stack, CallbackInfoReturnable<Integer> cir) {
-        if (ETIMConfig.foodModel && ETIMIngestibles.isIngestible(stack)) {
-            cir.setReturnValue(ETIMConfig.ingestUseDurationTicks);
+        EntityPlayer player = (EntityPlayer) attacker;
+        if (player.capabilities.isCreativeMode) {
+            return; // R196 :964-966 (creative never rolls)
         }
-    }
-
-    @Inject(
-            method = "onItemRightClick(Lnet/minecraft/world/World;Lnet/minecraft/entity/player/EntityPlayer;Lnet/minecraft/util/EnumHand;)Lnet/minecraft/util/ActionResult;",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void etim$startEating(World world, EntityPlayer player, EnumHand hand,
-                                  CallbackInfoReturnable<ActionResult<ItemStack>> cir) {
-        ItemStack stack = player.getHeldItem(hand);
-        if (!ETIMConfig.foodModel || !ETIMIngestibles.isIngestible(stack)) {
-            return;
-        }
-        String item = ETIMIngestibles.itemKey(stack);
-        if (ETIMIngestibles.tryStartEating(player, hand, stack, item)) {
-            cir.setReturnValue(new ActionResult<ItemStack>(EnumActionResult.SUCCESS, stack));
+        int chance;
+        if ((Object) this == Items.STICK) { // R196 :969-971 (this == stick)
+            chance = 50;
+        } else if ((Object) this == Items.BONE) { // R196 :972-977 (this == bone)
+            chance = 100;
         } else {
-            cir.setReturnValue(new ActionResult<ItemStack>(EnumActionResult.FAIL, stack));
-        }
-    }
-
-    @Inject(
-            method = "onItemUseFinish(Lnet/minecraft/item/ItemStack;Lnet/minecraft/world/World;Lnet/minecraft/entity/EntityLivingBase;)Lnet/minecraft/item/ItemStack;",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void etim$finishShrink(ItemStack stack, World world, EntityLivingBase entityLiving,
-                                   CallbackInfoReturnable<ItemStack> cir) {
-        if (!ETIMConfig.foodModel || !ETIMIngestibles.isIngestible(stack)
-                || !(entityLiving instanceof EntityPlayer)) {
             return;
         }
-        // Vanilla ItemFood: shrink at finish (PlayerInteractionManager restores the
-        // count in creative); R196 additionally tracks the object-use stat.
-        stack.shrink(1);
-        ((EntityPlayer) entityLiving).addStat(StatList.getObjectUseStats(stack.getItem()));
-        cir.setReturnValue(stack);
-    }
-    // The batch-3 quality durability write-through lives in
-    // {@link MixinItemStack#getMaxDamage} — the forge-patch overload
-    // Item.getMaxDamage(ItemStack) has no MCP-stable obf mapping, so the
-    // ItemStack gate is the port spot (see that class's javadoc).
-
-    // ==================== AD-10+SH (step 2 of the §9.1 order) ====================
-
-    /**
-     * M1-3 — the R196 {@code ItemTool.getItemInUseAction}:217-219 (unconditional
-     * BLOCK) face: the action value itself is UNCONDITIONAL on {@code canBlock}
-     * (the gate lives at the 起手 entry, M1-1). The {@code cir.isCancelled()}
-     * yield keeps the food face above in charge for the ingestible stacks —
-     * the two predicates never overlap (tools are not ingestible), but the
-     * yield makes the ordering irrelevant (C-1 structurally eliminated: all
-     * three branches ride the already-patched bodies, no second cancel face).
-     */
-    @Inject(
-            method = "getItemUseAction(Lnet/minecraft/item/ItemStack;)Lnet/minecraft/item/EnumAction;",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void etim$blockAction(ItemStack stack, CallbackInfoReturnable<EnumAction> cir) {
-        if (cir.isCancelled()) {
-            return;
-        }
-        if (ETIMConfig.blockModel && ETIMBlocking.isBlockCarrier(stack)) {
-            cir.setReturnValue(EnumAction.BLOCK);
-        }
-    }
-
-    /**
-     * M1-4 — the R196 {@code ItemTool}:222-224 (72000) face: WITHOUT it the
-     * {@code Item.getMaxItemUseDuration} default 0 (Item.java:441-444) makes
-     * {@code onItemUseStart} (:2978-2979) reject the start — a dead gate.
-     */
-    @Inject(
-            method = "getMaxItemUseDuration(Lnet/minecraft/item/ItemStack;)I",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void etim$blockDuration(ItemStack stack, CallbackInfoReturnable<Integer> cir) {
-        if (!ETIMConfig.blockModel || !ETIMBlocking.isBlockCarrier(stack)) {
-            return;
-        }
-        cir.setReturnValue(72000);
-    }
-
-    /**
-     * M1-2 — the R196 {@code ItemTool.onItemRightClick}:227-234 start face. The
-     * vanilla base body returns PASS; when it is a carrier and the hand is
-     * free, the stack enters the use state (SUCCESS — the vanilla
-     * {@code ItemStack.useItemRightClick} route then just carries the same
-     * stack). Single-use-state preserved (A-6): an active eat/bow hold is
-     * never stolen.
-     */
-    @Inject(
-            method = "onItemRightClick(Lnet/minecraft/world/World;Lnet/minecraft/entity/player/EntityPlayer;Lnet/minecraft/util/EnumHand;)Lnet/minecraft/util/ActionResult;",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void etim$startBlocking(World world, EntityPlayer player, EnumHand hand,
-                                    CallbackInfoReturnable<ActionResult<ItemStack>> cir) {
-        ItemStack stack = player.getHeldItem(hand);
-        if (!ETIMConfig.blockModel || !ETIMBlocking.isBlockCarrier(stack)
-                || player.isHandActive()) {
-            return;                                     // in-use (eat/bow/block) — never steal the state
-        }
-        player.setActiveHand(hand);
-        ETIMBlockLog.start(player, hand, stack, stack.getMaxItemUseDuration(),
-                player.getItemInUseCount());
-        cir.setReturnValue(new ActionResult<ItemStack>(EnumActionResult.SUCCESS, stack));
-    }
-
-    /**
-     * farm1 (B4, audit20 条 259 B-1 定裁 A): the VANILLA hoe harvest roll.
-     * 1.12 vanilla {@code ItemHoe} declares NO {@code onBlockDestroyed}, so
-     * vanilla hoes (wooden..golden) dispatch the base fake body here and
-     * NOWHERE else reaches it: the ETIM metal hoes override and return
-     * without the base body, and the mattock/scythe ride ItemTool's own
-     * override (the MixinItemTool chain) — so this TAIL hook is the vanilla
-     * arm ONLY, no double roll. The crop/mature/F7-matrix/enchant gates run
-     * inside ETIMFarm.onCropBroken (server-gated), R196 ItemHoe.onBlockDestroyed
-     * :99-113 equivalence for the whole carrier family.
-     */
-    @Inject(
-            method = "onBlockDestroyed(Lnet/minecraft/item/ItemStack;Lnet/minecraft/world/World;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/EntityLivingBase;)Z",
-            at = @At("TAIL"),
-            remap = true
-    )
-    private void etim$vanillaHoeHarvest(ItemStack stack, World world,
-                                        net.minecraft.block.state.IBlockState state,
-                                        net.minecraft.util.math.BlockPos pos,
-                                        EntityLivingBase entityLiving,
-                                        CallbackInfoReturnable<Boolean> cir) {
-        if ((Object) this instanceof net.minecraft.item.ItemHoe) {
-            io.github.etim.etim.farm.ETIMFarm.onCropBroken(entityLiving, stack, world, pos, state);
+        if (attacker.getRNG().nextInt(chance) == 0) { // R196 :979 (itemRand roll)
+            if (ETIMConfig.mobDebugLog) {
+                io.github.etim.etim.ETIM.LOGGER.info("[SwingLog] stickbreak item={} chance={} entity={}",
+                        ((Item) (Object) this).getRegistryName(), chance, player.getName()); // NOSONAR roll row
+            }
+            player.renderBrokenItemStack(stack); // the R196 causeBreakingItemEffect carrier (rfg :1257, public)
+            stack.shrink(1); // the R196 convertOneOfHeldItem(null) semantic under the 1.12 stack model (摸底 §3)
+            cir.setReturnValue(true); // R196 :982 (the vanilla "the item wore" contract)
         }
     }
 }
