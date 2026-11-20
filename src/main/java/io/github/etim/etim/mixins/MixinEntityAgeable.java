@@ -80,6 +80,27 @@ public abstract class MixinEntityAgeable {
         }
     }
 
+    /**
+     * B-48 (census D :211) — R196 {@code EntityAgeable.addGrowth:23-31}:
+     * {@code age += growth * 5}, clamped at 0. 1.12 {@code addGrowth}
+     * delegates to {@code ageUp(growth, false)} which multiplies by 20,
+     * so the R196 multiplier needs its own body here.
+     */
+    @Inject(method = "addGrowth", at = @At("HEAD"), cancellable = true, require = 1)
+    private void etim$addGrowth(int growth, CallbackInfo ci) {
+        EntityAgeable self = (EntityAgeable) (Object) this;
+        if (!ETIMConfig.livestockNeedsR196 || self.world.isRemote) {
+            return;
+        }
+        int next = self.getGrowingAge() + growth * 5; // R196 :25
+        if (next > 0) {
+            next = 0; // R196 :26-28
+        }
+        ETIMLivestockEvents.ageGateRow("addGrowth", self, next);
+        this.setGrowingAge(next);
+        ci.cancel();
+    }
+
     @Redirect(
         method = "processInteract",
         at = @At(value = "INVOKE",

@@ -188,6 +188,36 @@ public abstract class MixinEntityWolf implements ETIMWolfHostilityDuck {
     }
 
     /** R196 :104-105 — the persistence, the R196 key names. */
+    // ------------------------------------------------------------------
+    // B-48 (census D :121) — the R196 EntityWolf:48-50 attribute row
+    // ------------------------------------------------------------------
+
+    /**
+     * R196 {@code EntityWolf:48-50} is tame-sensitive: 12 hp / 32 follow
+     * when tamed, 8 / 16 when wild, attack 3, speed 0.4. 1.12's
+     * {@code setTamed} rewrites max health to 20/8 and attack to 4, so the
+     * R196 values are restored at the tail; a freshly tamed wolf at full
+     * wild health also takes the R196 +4 health delta.
+     */
+    @Inject(method = "setTamed", at = @At("TAIL"))
+    private void etim$tamedAttributes(boolean tamed, CallbackInfo ci) {
+        net.minecraft.entity.passive.EntityWolf wolf = (net.minecraft.entity.passive.EntityWolf) (Object) this;
+        if (wolf.world.isRemote || !ETIMConfig.mobStatsR196) {
+            return;
+        }
+        float healthBefore = wolf.getHealth();
+        double maxHealth = tamed ? 12.0 : 8.0;
+        wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.4);
+        wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MAX_HEALTH).setBaseValue(maxHealth);
+        wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(3.0);
+        wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(tamed ? 32.0 : 16.0);
+        if (tamed && healthBefore <= 8.0F) {
+            wolf.setHealth(Math.min(12.0F, healthBefore + 4.0F)); // R196 :345-350 delta
+        } else if (wolf.getHealth() > maxHealth) {
+            wolf.setHealth((float) maxHealth);
+        }
+    }
+
     @Inject(method = "writeEntityToNBT", at = @At("TAIL"))
     private void etim$wolfHostilityWrite(NBTTagCompound compound, CallbackInfo ci) {
         compound.setBoolean("hostile_to_players", this.etim$hostileToPlayers);

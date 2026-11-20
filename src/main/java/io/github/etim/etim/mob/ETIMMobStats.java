@@ -23,17 +23,18 @@ import java.util.Map;
  * revenant/bone-lord classes carry their R196 attributes in-class (mob 批
  * T1①) and are skipped here, and the pre-batch "BoneLord has no 1.12
  * counterpart" claim is superseded. Rows whose value already equals the
- * vanilla constant are left untouched. The movement-speed rows stay parked
- * for the vanilla classes — the R196/1.12 scales were audited SAME
- * (mob 批终审 item 1, byte-equal zombie base), so a landing is possible, but
- * the skeleton 0.3F row is a vanilla behavior change and stays out of the
- * mob batch (挂账 B-1).
+ * vanilla constant are left untouched. B-48 (census D :103/:121) lands the
+ * previously parked movement-speed face — R196 {@code EntitySkeleton:33}
+ * 0.3F — and the tame-sensitive wolf row (R196 {@code EntityWolf:48-50}:
+ * 12/8 hp, 32/16 follow, 3 attack, 0.4 speed); the wolf taming path is
+ * re-applied from {@code MixinEntityWolf.setTamed}.
  *
  * <p>Vanilla 1.12 anchors (this repo's deobf sources) against the R196
  * table:</p>
  * <ul>
  *   <li>{@code EntitySkeleton} — no per-class overrides (hp 20 / attack 2
- *       base / follow 16) → R196 {@code hp 6 / attack 4 / follow 32}.</li>
+ *       base / follow 16 / speed 0.25) → R196 {@code hp 6 / attack 4 /
+ *       follow 32 / speed 0.3}.</li>
  *   <li>{@code EntityZombie} — follow 35 / attack 3 / armor 2 → R196
  *       {@code attack 5 / follow 32 / armor 0} ("armor no per-class
  *       override, grep all-zero").</li>
@@ -41,8 +42,11 @@ import java.util.Map;
  *       {@code attack 8 / follow 32}.</li>
  *   <li>{@code EntitySpider} — hp 16 / attack 2 base / follow 16 → R196
  *       {@code hp 12 / attack 4 / follow 28}.</li>
+ *   <li>{@code EntityWolf} — speed 0.3 / hp 20 tamed or 8 wild / attack 4 /
+ *       follow 16 → R196 {@code speed 0.4 / hp 12 tamed or 8 wild /
+ *       attack 3 / follow 32 tamed or 16 wild}.</li>
  *   <li>Skipped-on-equality rows: zombie/creeper hp 20, giant 100/50,
- *       witch 26, wolf 8/3 (all match vanilla already).</li>
+ *       witch 26 (all match vanilla already).</li>
  * </ul>
  *
  * <p>Hook choice: {@code EntityJoinWorldEvent} (server-side) naturally
@@ -56,32 +60,34 @@ import java.util.Map;
  */
 public final class ETIMMobStats {
 
-    /** one per-class row: maxHealth / attackDamage / followRange / armor (null = untouched). */
+    /** one per-class row: maxHealth / attackDamage / followRange / armor / movementSpeed (null = untouched). */
     private static final class Row {
         final Double maxHealth;
         final Double attackDamage;
         final Double followRange;
         final Double armor;
+        final Double movementSpeed;
 
-        Row(Double maxHealth, Double attackDamage, Double followRange, Double armor) {
+        Row(Double maxHealth, Double attackDamage, Double followRange, Double armor, Double movementSpeed) {
             this.maxHealth = maxHealth;
             this.attackDamage = attackDamage;
             this.followRange = followRange;
             this.armor = armor;
+            this.movementSpeed = movementSpeed;
         }
     }
 
     private static final Map<Class<?>, Row> ROWS = new HashMap<>();
 
     static {
-        // audit 11 §3.1 (Skeleton:32/:34/:225 — 6 hp, 4 attack, 32 follow)
-        ROWS.put(EntitySkeleton.class, new Row(6.0, 4.0, 32.0, null));
+        // audit 11 §3.1 (Skeleton:32/:34/:225 — 6 hp, 4 attack, 32 follow) + B-48 (Skeleton:33 — speed 0.3)
+        ROWS.put(EntitySkeleton.class, new Row(6.0, 4.0, 32.0, null, 0.3));
         // audit 11 §3.1 (Zombie:43 — attack 5, follow 32) + §3.1 "armor all-zero"
-        ROWS.put(EntityZombie.class, new Row(null, 5.0, 32.0, 0.0));
+        ROWS.put(EntityZombie.class, new Row(null, 5.0, 32.0, 0.0, null));
         // audit 11 §3.1 (PigZ:22 — attack 8, follow 32)
-        ROWS.put(EntityPigZombie.class, new Row(null, 8.0, 32.0, null));
+        ROWS.put(EntityPigZombie.class, new Row(null, 8.0, 32.0, null, null));
         // audit 11 §3.1 (Arachnid spider base :115-118 — hp 12, attack 4, follow 28)
-        ROWS.put(EntitySpider.class, new Row(12.0, 4.0, 28.0, null));
+        ROWS.put(EntitySpider.class, new Row(12.0, 4.0, 28.0, null, null));
     }
 
     private ETIMMobStats() {
@@ -93,6 +99,12 @@ public final class ETIMMobStats {
             return;
         }
         Entity e = event.getEntity();
+        // B-48 (census D :121) — R196 EntityWolf:48-50 is tame-sensitive, so the
+        // wolf rides its own dynamic row instead of the static table.
+        if (e instanceof net.minecraft.entity.passive.EntityWolf) {
+            applyWolf((net.minecraft.entity.passive.EntityWolf) e);
+            return;
+        }
         // mob 批 T1①: ETIM-owned entity classes carry their R196 attributes
         // in-class (the ETIMEntityArachnid precedent) — the vanilla-class rows
         // below must not clobber them (the revenant 7.0 attack / the bone
@@ -130,6 +142,20 @@ public final class ETIMMobStats {
         return depth;
     }
 
+    /**
+     * B-48 (census D :121) — R196 {@code EntityWolf:48-50}: speed 0.4,
+     * max health 12 tamed / 8 wild, attack 3, follow 32 tamed / 16 wild.
+     * The same values are re-applied from {@code MixinEntityWolf.setTamed}
+     * so taming a wild wolf lifts it from 8/16 to 12/32 mid-life.
+     */
+    private static void applyWolf(net.minecraft.entity.passive.EntityWolf wolf) {
+        boolean tamed = wolf.isTamed();
+        applyValue(wolf, SharedMonsterAttributes.MOVEMENT_SPEED, 0.4);
+        applyValue(wolf, SharedMonsterAttributes.MAX_HEALTH, tamed ? 12.0 : 8.0);
+        applyValue(wolf, SharedMonsterAttributes.ATTACK_DAMAGE, 3.0);
+        applyValue(wolf, SharedMonsterAttributes.FOLLOW_RANGE, tamed ? 32.0 : 16.0);
+    }
+
     private static void apply(net.minecraft.entity.EntityLivingBase e, Row row) {
         if (row.maxHealth != null) {
             applyValue(e, SharedMonsterAttributes.MAX_HEALTH, row.maxHealth);
@@ -143,6 +169,9 @@ public final class ETIMMobStats {
         }
         if (row.armor != null) {
             applyValue(e, SharedMonsterAttributes.ARMOR, row.armor);
+        }
+        if (row.movementSpeed != null) {
+            applyValue(e, SharedMonsterAttributes.MOVEMENT_SPEED, row.movementSpeed);
         }
     }
 
@@ -175,6 +204,7 @@ public final class ETIMMobStats {
         if (attribute == SharedMonsterAttributes.ATTACK_DAMAGE) return "attackDamage";
         if (attribute == SharedMonsterAttributes.FOLLOW_RANGE) return "followRange";
         if (attribute == SharedMonsterAttributes.ARMOR) return "armor";
+        if (attribute == SharedMonsterAttributes.MOVEMENT_SPEED) return "movementSpeed";
         return attribute.getName();
     }
 }

@@ -181,6 +181,9 @@ public class CommandDevTest extends CommandBase {
             case "infernal":
                 executeInfernal(server, sender, args);
                 break;
+            case "wolf":
+                executeWolf(server, sender, args);
+                break;
             case "moon":
                 executeMoon(server, sender, args);
                 break;
@@ -240,6 +243,9 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "age":
                 executeAge(server, sender, args);
+                break;
+            case "addgrowth":
+                executeAddGrowth(server, sender, args);
                 break;
             default:
                 throw new WrongUsageException("commands.etest.usage");
@@ -863,6 +869,35 @@ public class CommandDevTest extends CommandBase {
                 + " fireImmune=" + creeper.isImmuneToFire() + " defense=" + defense));
     }
 
+    /**
+     * {@code /etest wolf <x> <y> <z> <true|false>} �� B-48 probe for the
+     * tame-sensitive R196 EntityWolf:48-50 row. Spawns a wolf (the join
+     * event applies the wild row), then calls {@code setTamed} so the
+     * mixin tail restores the tamed 12 hp / 32 follow / 3 attack / 0.4
+     * speed face.
+     */
+    private static void executeWolf(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        boolean tamed = Boolean.parseBoolean(args[4]);
+        net.minecraft.entity.passive.EntityWolf wolf = new net.minecraft.entity.passive.EntityWolf(w);
+        wolf.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(wolf);
+        wolf.setTamed(tamed);
+        ETIM.LOGGER.info("[AILog] wolf probe tamed={} hp={} max={} attack={} follow={} speed={} [server]",
+                tamed, wolf.getHealth(), wolf.getMaxHealth(),
+                wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).getAttributeValue(),
+                wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.FOLLOW_RANGE).getAttributeValue(),
+                wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MOVEMENT_SPEED).getAttributeValue());
+        sender.sendMessage(new TextComponentString("[etest] wolf tamed=" + tamed
+                + " hp=" + wolf.getHealth() + " max=" + wolf.getMaxHealth()));
+    }
+
     private static void executeMoon(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");
@@ -1454,6 +1489,44 @@ for (EntityLiving e : hits) {
                     + " age=" + e.getGrowingAge()
                     + " isChild=" + e.isChild()
                     + " ticksExisted=" + e.ticksExisted);
+        }
+        respond(player, "commands.etest.devok");
+    }
+
+    /**
+     * {@code /etest addgrowth <n>} �� B-48 probe for the R196
+     * {@code EntityAgeable.addGrowth:23-31} multiplier: calls
+     * {@code addGrowth(n)} on every ageable inside the sender's 16-block box
+     * and prints one [FarmLog] before/after row per entity. Before/after
+     * diff must be {@code n*5} (R196) rather than {@code n*20} (1.12
+     * {@code ageUp}).
+     */
+    private static void executeAddGrowth(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        int growth = CommandBase.parseInt(args[1]);
+        EntityPlayerMP player;
+        try {
+            player = getCommandSenderAsPlayer(sender);
+        } catch (PlayerNotFoundException e) {
+            String name = args.length >= 3 ? args[2] : "ETIM_F7";
+            player = server.getPlayerList().getPlayerByUsername(name);
+            if (player == null) {
+                throw new PlayerNotFoundException("commands.state.no_player", name);
+            }
+        }
+        java.util.List<net.minecraft.entity.EntityAgeable> hits
+            = player.world.getEntitiesWithinAABB(net.minecraft.entity.EntityAgeable.class,
+                    player.getEntityBoundingBox().grow(16.0D));
+        for (net.minecraft.entity.EntityAgeable e : hits) {
+            int before = e.getGrowingAge();
+            e.addGrowth(growth);
+            io.github.etim.etim.farm.ETIMFarm.row("addGrowth kind=" + e.getClass().getSimpleName()
+                    + " id=" + e.getEntityId()
+                    + " n=" + growth
+                    + " before=" + before
+                    + " after=" + e.getGrowingAge());
         }
         respond(player, "commands.etest.devok");
     }
