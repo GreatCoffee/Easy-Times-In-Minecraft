@@ -67,6 +67,7 @@ public final class ETIM {
         ETIMFoodStats.register();
         io.github.etim.etim.death.ETIMDeathXp.register();
         io.github.etim.etim.skill.ETIMSkills.register();
+        io.github.etim.etim.skill.ETIMSkillNetwork.registerMessages();
         io.github.etim.etim.mob.ETIMLivestock.register();
         io.github.etim.etim.mob.ETIMDigging.register();
         io.github.etim.etim.mob.ETIMSpiderEntities.register();

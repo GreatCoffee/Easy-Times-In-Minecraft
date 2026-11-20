@@ -1,9 +1,14 @@
 package io.github.etim.etim.client;
 
+import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.crafting.CraftingProgressNetwork;
 import io.github.etim.etim.nutrition.NutritionNetwork;
 import io.github.etim.etim.nutrition.NutritionSystem;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
+import io.github.etim.etim.skill.ETIMSkillNetwork;
+import io.github.etim.etim.skill.ETIMSkills;
+import io.github.etim.etim.skill.IETIMSkills;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -49,6 +54,11 @@ public final class ClientNetworkHooks {
                 FoodDebugSyncHandler.class,
                 FoodDebugNetwork.PacketFoodDebug.class,
                 FoodDebugNetwork.PACKET_FOOD_DEBUG,
+                Side.CLIENT);
+        ETIMSkillNetwork.CHANNEL.registerMessage(
+                SkillSyncHandler.class,
+                ETIMSkillNetwork.PacketSkillSync.class,
+                ETIMSkillNetwork.PACKET_SYNC,
                 Side.CLIENT);
     }
 
@@ -138,6 +148,34 @@ public final class ClientNetworkHooks {
                 capsule.setEssentialFats(message.essentialFats);
                 capsule.setPhytonutrients(message.phytonutrients);
                 capsule.setInsulinResistance(message.insulinResistance);
+            });
+            return null;
+        }
+    }
+
+    /** CLIENT-side mirror of the server skill mask + enabled flag (C-1). */
+    public static final class SkillSyncHandler
+            implements IMessageHandler<ETIMSkillNetwork.PacketSkillSync, IMessage> {
+        @Override
+        public IMessage onMessage(ETIMSkillNetwork.PacketSkillSync message, MessageContext ctx) {
+            if (ctx.side != Side.CLIENT) {
+                return null;
+            }
+            Minecraft.getMinecraft().addScheduledTask(() -> {
+                ETIMSkills.setClientEnabled(message.enabled);
+                ETIMSkills.setClientMask(message.mask);
+                if (ETIMConfig.anvilDebugLog) {
+                    ETIM.LOGGER.info("[SkillLog] client mask={} enabled={} [client]",
+                            message.mask, message.enabled);
+                }
+                EntityPlayer player = Minecraft.getMinecraft().player;
+                if (player == null) {
+                    return;
+                }
+                IETIMSkills state = ETIMSkills.get(player);
+                if (state != null) {
+                    state.setMask(message.mask);
+                }
             });
             return null;
         }

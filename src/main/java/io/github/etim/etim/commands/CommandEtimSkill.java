@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.skill.ETIMSkill;
+import io.github.etim.etim.skill.ETIMSkillNetwork;
 import io.github.etim.etim.skill.ETIMSkillRules;
 import io.github.etim.etim.skill.ETIMSkills;
 import io.github.etim.etim.skill.IETIMSkills;
@@ -110,6 +111,7 @@ public class CommandEtimSkill extends CommandBase {
             player.sendMessage(new TextComponentTranslation("commands.etimskill.learned", skill.key(), cost));
             ETIM.LOGGER.info("[SkillLog] learn player={} skill={} cost={} mask={} [server]",
                     player.getName(), skill.key(), cost, ETIMSkills.mask(player));
+            ETIMSkillNetwork.sync(player);
             return;
         }
 
@@ -123,6 +125,7 @@ public class CommandEtimSkill extends CommandBase {
             player.sendMessage(new TextComponentTranslation("commands.etimskill.abandoned", skill.key()));
             ETIM.LOGGER.info("[SkillLog] abandon player={} skill={} mask={} [server]",
                     player.getName(), skill.key(), ETIMSkills.mask(player));
+            ETIMSkillNetwork.sync(player);
             return;
         }
 

@@ -7,7 +7,7 @@ const path = require('path');
 
 const RUN = process.env.RUN || 'r1';
 const A = 'ETIM_F7';
-const EXPECTED_SHA = process.env.EXPECTED_SHA || '6380ABE54CB9F5A06E0294B97A9C6710BDCEB730B5EC6FA96A81F3A0678B9CD6';
+const EXPECTED_SHA = process.env.EXPECTED_SHA || '0BDF24C877DDACF1EF288EA70D5742547A9864883534AA579CC1BB06449926B1';
 let bot = null, srv = null, propsBefore = null, cfgBefore = null;
 
 function note(msg) { console.log(`[${new Date().toISOString()}] ${msg}`); }
@@ -87,11 +87,16 @@ async function main() {
   const bootLines = slice(bootFrom);
   const mixinFail = bootLines.filter(s => /Mixin apply failed|Exception in thread|MixinApplyError/.test(s)).length;
 
-  // W0: capability is attached and starts empty.
+  // W0: capability is attached; the no-arg form from the bot (a player)
+  // defaults to the sender, and the explicit-player form both answer.
+  const selfFrom = srv.all.length;
+  bot.chat('/etest skills');
+  await sleep(700);
+  const self = has(slice(selfFrom), /\[SkillLog\] get player=ETIM_F7 mask=0 \[server\]/);
   const w0from = srv.all.length;
   await cmd(`etest skills ${A}`, 500);
   const w0lines = slice(w0from);
-  const w0 = has(w0lines, /\[SkillLog\] get player=ETIM_F7 mask=0 \[server\]/);
+  const w0 = self && has(w0lines, /\[SkillLog\] get player=ETIM_F7 mask=0 \[server\]/);
 
   // W1: skills on + empty mask → anvil plan refuses with fail=3, required=blacksmithing bit.
   await cmd(`etest skills ${A} 0`, 400);

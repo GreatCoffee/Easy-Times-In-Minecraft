@@ -58,7 +58,10 @@ public final class ETIMSkills {
 
     public static int mask(EntityPlayer player) {
         IETIMSkills state = get(player);
-        return state == null ? 0 : state.getMask();
+        if (state != null) {
+            return state.getMask();
+        }
+        return player != null && player.world.isRemote ? clientMask : 0;
     }
 
     public static boolean has(EntityPlayer player, ETIMSkill skill) {
@@ -80,6 +83,31 @@ public final class ETIMSkills {
 
     public static boolean enabled(World world) {
         return world != null && !world.isRemote && ETIMConfig.skillsEnabled;
+    }
+
+    /**
+     * CLIENT mirror of the server's {@code skillsEnabled} switch, updated by
+     * {@link ETIMSkillNetwork}. Server-authoritative gate still reads the
+     * config on the logical server.
+     */
+    private static volatile boolean clientEnabled = false;
+    private static volatile int clientMask = 0;
+
+    public static void setClientEnabled(boolean enabled) {
+        clientEnabled = enabled;
+    }
+
+    /** Fallback when the client-side capability attach has not run yet. */
+    public static void setClientMask(int mask) {
+        clientMask = mask;
+    }
+
+    /** Gate used by the anvil plan on both sides (server config / client mirror). */
+    public static boolean enabled(EntityPlayer player) {
+        if (player == null) {
+            return false;
+        }
+        return player.world.isRemote ? clientEnabled : ETIMConfig.skillsEnabled;
     }
 
     public static final class Provider implements ICapabilitySerializable<NBTBase> {

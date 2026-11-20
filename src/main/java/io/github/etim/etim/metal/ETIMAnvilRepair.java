@@ -303,10 +303,10 @@ public final class ETIMAnvilRepair {
         }
 
         // B-45 / R196 ContainerRepair :109-115: with skills enabled, the
-        // item's repair skill set must intersect the player's mask. Server
-        // only: the client preview stays permissive (the tooltip sync is a
-        // later face), while the server refuses the take.
-        if (ETIMConfig.skillsEnabled && !player.world.isRemote) {
+        // item's repair skill set must intersect the player's mask. The gate
+        // runs on both sides: the server reads the config, the client reads
+        // the C-1 mirror packet, so the anvil preview shows fail=3 too.
+        if (io.github.etim.etim.skill.ETIMSkills.enabled(player)) {
             int required = io.github.etim.etim.skill.ETIMSkillRegistry.repairMask(first);
             if (required != 0 && !io.github.etim.etim.skill.ETIMSkills.hasAny(player, required)) {
                 plan.kind = Kind.SKILL;

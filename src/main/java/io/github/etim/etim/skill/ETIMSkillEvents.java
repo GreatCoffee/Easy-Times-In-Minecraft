@@ -38,5 +38,21 @@ public final class ETIMSkillEvents {
         }
         to.setMask(from.getMask());
         to.setLastLearnDay(from.getLastLearnDay());
+        ETIMSkillNetwork.sync(player);
+    }
+
+    @SubscribeEvent
+    public static void onLoggedIn(net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent event) {
+        ETIMSkillNetwork.sync(event.player);
+    }
+
+    @SubscribeEvent
+    public static void onRespawn(net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerRespawnEvent event) {
+        ETIMSkillNetwork.sync(event.player);
+    }
+
+    @SubscribeEvent
+    public static void onChangedDimension(net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent event) {
+        ETIMSkillNetwork.sync(event.player);
     }
 }

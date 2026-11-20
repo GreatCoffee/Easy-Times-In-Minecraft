@@ -1581,7 +1581,12 @@ public final class ETIMConfig {
         if (FMLCommonHandler.instance().getSide() == Side.SERVER) {
             return false;
         }
-        String code = Minecraft.getMinecraft().getLanguageManager().getCurrentLanguage().getLanguageCode();
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft == null || minecraft.getLanguageManager() == null
+                || minecraft.getLanguageManager().getCurrentLanguage() == null) {
+            return false;
+        }
+        String code = minecraft.getLanguageManager().getCurrentLanguage().getLanguageCode();
         return code != null && code.startsWith("zh");
     }
 }
