@@ -9,6 +9,8 @@ import io.github.etim.etim.harness.TestDriver;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.mining.ETIMOozeSpawn;
+import io.github.etim.etim.mob.ETIMMoonState;
+import io.github.etim.etim.mob.ETIMSpawnTables;
 import io.github.etim.etim.metal.ETIMAnvilRepair;
 import io.github.etim.etim.skill.ETIMSkill;
 import io.github.etim.etim.skill.ETIMSkills;
@@ -26,6 +28,7 @@ import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntitySnowball;
@@ -38,17 +41,20 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketSetExperience;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.DamageSource;import net.minecraft.util.EnumHand;
 import net.minecraft.util.FoodStats;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 
 import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * {@code /etest} — dev/test state setter for the debug-overlay test rounds
@@ -158,6 +164,15 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "anvilplan":
                 executeAnvilPlan(server, sender, args);
+                break;
+            case "spawnpick":
+                executeSpawnPick(server, sender, args);
+                break;
+            case "moon":
+                executeMoon(server, sender, args);
+                break;
+            case "totaltime":
+                executeTotalTime(server, sender, args);
                 break;
             case "useblock":
                 executeUseBlock(server, sender, args);
@@ -743,6 +758,62 @@ public class CommandDevTest extends CommandBase {
         BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
         ETIMOozeSpawn.forceSpawn(sender.getEntityWorld(), pos);
         sender.sendMessage(new TextComponentString("[etest] ooze " + pos));
+    }
+
+    /**
+     * {@code /etest spawnpick <x> <y> <z> <n>} — B-46 deterministic spawn-pick
+     * probe: runs {@link ETIMSpawnTables#pickSpawn} n times on the given block
+     * and reports per-class counts. The gate-reject budget is reset first, so
+     * the window can read the first 128 gate rows verbatim.
+     */
+    private static void executeSpawnPick(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        int n = CommandBase.parseInt(args[4], 1, 20000);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        ETIMSpawnTables.resetGateLogBudget();
+        Map<String, Integer> counts = new TreeMap<>();
+        for (int i = 0; i < n; i++) {
+            Biome.SpawnListEntry entry = ETIMSpawnTables.pickSpawn(w, EnumCreatureType.MONSTER, pos);
+            String key = entry == null ? "null" : entry.entityClass.getSimpleName();
+            counts.merge(key, 1, Integer::sum);
+        }
+        ETIM.LOGGER.info("[SpawnLog] spawnpick n={} at {} counts={}", n, pos, counts);
+        sender.sendMessage(new TextComponentString("[etest] spawnpick n=" + n + " " + counts));
+    }
+
+    /** {@code /etest moon <none|blue|blood|full|new>} — B-46 test-only moon
+     * override; the product default reads the vanilla clock. */
+    private static void executeMoon(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String value = args[1].equalsIgnoreCase("none") ? "" : args[1].toLowerCase();
+        if (!value.matches("^(|blue|blood|full|new)$")) {
+            throw new CommandException("commands.etest.usage");
+        }
+        ETIMMoonState.setOverride(value);
+        ETIM.LOGGER.info("[TestLog] moon override={} [server]", value.isEmpty() ? "none" : value);
+        sender.sendMessage(new TextComponentString("[etest] moon " + (value.isEmpty() ? "none" : value)));
+    }
+
+    /** {@code /etest totaltime <ticks>} — B-46 test-only total-world-time set,
+     * the clock behind the blood-moon-night gate. */
+    private static void executeTotalTime(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        long ticks = CommandBase.parseLong(args[1]);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        w.getWorldInfo().setWorldTotalTime(ticks);
+        ETIM.LOGGER.info("[TestLog] totaltime={} [server]", ticks);
+        sender.sendMessage(new TextComponentString("[etest] totaltime " + ticks));
     }
 
     /** {@code /etest skills [player] [mask]} — get/set the B-45 skill mask. */

@@ -186,6 +186,7 @@ public final class ETIMSpawnCycle {
         ETIMMoonState.Phase phase = ETIMMoonState.phase(w);
         if (forHostileMobs) {
             densitySkipLogBudget = 2; // audit19 #5: per-pass instrument budget
+            ETIMSpawnTables.resetGateLogBudget(); // B-46 deep/slime gate rows
         }
         st.eligible.clear();
         int count = 0;

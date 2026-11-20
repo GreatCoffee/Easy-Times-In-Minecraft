@@ -31,9 +31,11 @@ import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.entity.passive.EntitySheep;
 import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.entity.passive.EntitySquid;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.WeightedRandom;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.init.Biomes;
+import net.minecraft.init.Blocks;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
 
@@ -42,15 +44,17 @@ import net.minecraft.world.biome.Biome;
  * :3.2 biome overrides), filtered to entity classes ETIM currently has.
  *
  * <p>MITE-exclusive classes (ghoul, wight, invisibleStalker,
- * hellhound, woodSpider, shadow, earthElemental, jelly, blob, ooze,
+ * hellhound, shadow, earthElemental, jelly, blob, ooze,
  * pudding, clayGolem, vampireBat, nightwing, direWolf,
  * infernal creeper variant, guardians) have no 1.12 entity yet — their weight
  * rows stay in the gap list (audit 14 §3.1/§3.2) and are filled back in when
  * each class lands. LANDED so far: the three spiders (2026-10-23, 审计补46/47)
  * and the revenant + bone lord (mob 批 2026-10-24, R196 BiomeGenBase :178
  * Revenant 10(1,1) / :185 BoneLord 5(1,1)) — those rows are live below. Class-fine rules that survive the
- * filter here: the ghast 48² dedup; the slime structure rule rides on the
- * vanilla slime {@code getCanSpawnHere} body.</p>
+ * filter here: the ghast 48² dedup; the slime "no stone above" gate, the
+ * revenant y≤44/blood-moon gate and the bone-lord y≤32/blood-moon gate
+ * (B-46, R196 WorldServer:630-633/:650-653/:674-677). The wood-spider
+ * carrier exists but stays out of the table per verdict G-S5.</p>
  */
 public final class ETIMSpawnTables {
 
@@ -229,15 +233,20 @@ public final class ETIMSpawnTables {
      *   <li><b>ghast</b> (:705-711): the 48² dedup (strict &lt; 2304) —
      *       wired here via {@link #ghastDedup} (was dead code); the boundary
      *       is aligned to R196's strict {@code <}.</li>
+     *   <li><b>slime</b> (:630-633): accepted only when no stone sits above
+     *       the candidate column (B-46);</li>
+     *   <li><b>revenant / bone lord</b> (:650-653 / :674-677): overworld
+     *       candidates below y≤44 / y≤32 pass; above the threshold they pass
+     *       only on a blood-moon night (B-46).</li>
      * </ul>
-     * R196's infernal-creeper / WoodSpider / BlackWidow branches have no
-     * ETIM counterpart entities — 未立项面不落（audit12 对照表仅列三门）。
+     * R196's infernal-creeper branch has no ETIM counterpart entity
+     * (未立项). BlackWidow has a carrier and is gated below; WoodSpider's
+     * carrier exists but stays out of the spawn table per verdict G-S5.
      * 会话五裁定（裁定回执 补16）：R196 WorldServer:714-716 = BlackWidowSpider
      * 专属 50% 通过门（per-attempt 50% accept，else 续走 :614 内部 16-attempt
      * 循环重掷——null 仅在 16 连败后，p≈2⁻¹⁶；调用方 SpawnerAnimals 对 null
      * 的续试是外层，非门本体）+ :718-720 = DemonSpider/PhaseSpider 专属
-     * y≤32 地下支——载体类均不在 1.12 宇宙 ⇒ 不可达 ⇒ 登记等价不立项；
-     * 三类入宇宙时随类立项（v2+ 触发条件挂账）。
+     * y≤32 地下支（载体在役）。
      * 16 attempts exhausted → null.
      */
     public static Biome.SpawnListEntry pickSpawn(WorldServer w, EnumCreatureType type, BlockPos pos) {
@@ -289,6 +298,31 @@ public final class ETIMSpawnTables {
                 }
                 continue;
             }
+            // B-46（R196 WorldServer:630-633 一手）：slime 只在「上方没有石头」
+            // 时放行；stoneAbove 命中任一石变体即拒，非空气非石先打断扫描。
+            if (cls == EntitySlime.class && stoneAbove(w, pos)) {
+                if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
+                    --gateLogBudget;
+                    ETIM.LOGGER.info("[SpawnLog] slime-gate reject stoneAbove at " + posToString(pos));
+                }
+                continue;
+            }
+            // B-46（R196 WorldServer:650-653 / :674-677 一手）：亡魂 y≤44、
+            // 骨王 y≤32；主世界超过阈值时只放行血月夜（isBloodMoon(true)）。
+            if (cls == ETIMEntityRevenant.class || cls == ETIMEntityBoneLord.class) {
+                int threshold = cls == ETIMEntityRevenant.class ? 44 : 32;
+                boolean blood = bloodMoonNight(w);
+                if (io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w)
+                        && pos.getY() > threshold && !blood) {
+                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
+                        --gateLogBudget;
+                        ETIM.LOGGER.info("[SpawnLog] deep-gate reject cls=" + cls.getSimpleName()
+                                + " y=" + pos.getY() + " threshold=" + threshold
+                                + " blood=" + blood + " at " + posToString(pos));
+                    }
+                    continue;
+                }
+            }
             if (cls == EntityGhast.class && ghastDedup(w, pos)) {
                 // ❗B2-6（会话七终验回执）：dedup was a silent null — verdict
                 // line for the F-4a face (48² dedup, strict < 2304).
@@ -301,6 +335,42 @@ public final class ETIMSpawnTables {
             return picked;
         }
         return null;
+    }
+
+    /** B-46 instrument budget: gate-reject rows are per-pass capped so a
+     * debug window does not flood; the probe command's summary is uncapped. */
+    private static int gateLogBudget = 0;
+
+    /** Resets the B-46 gate-reject budget at each hostile pass head. */
+    public static void resetGateLogBudget() {
+        gateLogBudget = 128;
+    }
+
+    /**
+     * B-46: R196 {@code World.blockTypeIsAbove(Block.stone,x,y,z)} — true when
+     * stone is the first non-air block in the column above the candidate.
+     * The scan stops at the first non-air block (a non-stone roof means the
+     * slime is allowed), mirroring {@code id > 0 → false} in the one-hand.
+     */
+    private static boolean stoneAbove(WorldServer w, BlockPos pos) {
+        int top = w.getHeight(new BlockPos(pos.getX(), 0, pos.getZ())).getY();
+        for (int y = pos.getY() + 1; y <= top; y++) {
+            BlockPos at = new BlockPos(pos.getX(), y, pos.getZ());
+            IBlockState state = w.getBlockState(at);
+            if (state.getBlock() == Blocks.STONE) {
+                return true;
+            }
+            if (!state.getBlock().isAir(state, w, at)) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /** B-46: R196 {@code isBloodMoon(true)} equivalent — blood phase and the
+     * total-world-time night window (ETIMDigging:284 precedent). */
+    private static boolean bloodMoonNight(WorldServer w) {
+        return ETIMMoonState.phase(w) == ETIMMoonState.Phase.BLOOD && ETIMMoonState.isNight(w);
     }
 
     private static Biome.SpawnListEntry pickWeighted(WorldServer w, EnumCreatureType type, BlockPos pos) {
