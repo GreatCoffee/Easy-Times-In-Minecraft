@@ -33,9 +33,9 @@ import java.util.List;
  *   <li>zombie weapon: {@code EntityZombie.java:171-201} — chance 0.05F
  *       (villager 0.2F) + weighted lists with day≥10/20 gates. The
  *       {@code isInTournamentMode} gates stay dropped (ETIM has no
- *       tournament face, 批文 §三 gate 例外); the {@code cudgelWood}/
- *       {@code clubWood}/{@code scythe} rows drop — no ETIM items
- *       (C 级登记 + 裁决 2 挂账).</li>
+ *       tournament face, 批文 §三 gate 例外); B-43 :84 landed the
+ *       {@code cudgelWood}/{@code clubWood} rows (the former C-1 drop);
+ *       the {@code scythe} row already rode the scythe batch.</li>
  *   <li>skeleton weapon: {@code EntitySkeleton.java:189-202} — the R196
  *       type-2 melee face mapped onto 1.12 normal skeletons (C 级登记:
  *       1.12 has no melee skeleton variant), 1/20 + day gates,
@@ -393,9 +393,9 @@ public final class ETIMMobEquip {
      * R196 EntitySkeleton onSpawnWithEgg type faces (:218-231 + :189-202) —
      * the bone-lord troop equip (T2① 兵团装备面): type 0 archer (bow +
      * armor), type 1 nether melee (iron sword, quality POOR, attack 4, no
-     * armor), type 2 melee (1/20 + day≥10 rusted weapon else bare hands —
-     * the clubWood row drops, C-1 — + armor). The follow-up setCombatTask in
-     * onInitialSpawn binds the AI by the held item.
+     * armor), type 2 melee (1/20 + day≥10 rusted weapon else clubWood —
+     * B-43 :84 closed the former C-1 drop — + armor). The follow-up
+     * setCombatTask in onInitialSpawn binds the AI by the held item.
      */
     private static void troopEquip(EntityLiving skeleton, int type) {
         if (type == 1) {
@@ -415,7 +415,11 @@ public final class ETIMMobEquip {
                         randomizeForMob(skeleton, new ItemStack(melee), false));
                 log("mob troop equip entity=" + skeleton.getName() + " type=2 melee=" + melee.getRegistryName());
             } else {
-                log("mob troop equip entity=" + skeleton.getName() + " type=2 bare (club dropped, C-1)");
+                // :201 fallback — B-43 :84 closes the C-1 club row: type 2
+                // carries clubWood when the 1/20 rusted roll misses.
+                skeleton.setItemStackToSlot(EntityEquipmentSlot.MAINHAND,
+                        randomizeForMob(skeleton, new ItemStack(ETIMGear.clubWood), false));
+                log("mob troop equip entity=" + skeleton.getName() + " type=2 club");
             }
             addRandomArmor(skeleton); // :206 addRandomEquipment second half
             return;
@@ -467,7 +471,10 @@ public final class ETIMMobEquip {
                 items.add(new Object[]{ETIMGear.gear("pickaxe_rusted_iron"), 1});
             }
         } else {
-            // :191-196 — cudgel/club rows dropped (no ETIM items, C 级登记).
+            // :191-196 — cudgel/club rows (B-43 :84: the two R196 wooden
+            // blunt weapons landed; the former C-1 drop is closed).
+            items.add(new Object[]{ETIMGear.cudgelWood, 1});
+            items.add(new Object[]{ETIMGear.clubWood, 1});
             items.add(new Object[]{ETIMGear.gear("sword_rusted_iron"), 1});
             items.add(new Object[]{ETIMGear.gear("dagger_rusted_iron"), 1});
         }

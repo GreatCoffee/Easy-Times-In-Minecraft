@@ -2,6 +2,7 @@ package io.github.etim.etim.metal;
 
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -45,6 +46,9 @@ public final class ETIMGear {
 
     /** scythe/knife + 箭合成面 批: the flint knife + the five craftable metal arrows. */
     public static Item knifeFlint;
+    /** B-43 census A :84: the two R196 wooden blunt weapons (ItemCudgel/ItemClub). */
+    public static Item cudgelWood;
+    public static Item clubWood;
     private static final java.util.Map<ETIMMetals, Item> CRAFT_ARROWS = new java.util.EnumMap<>(ETIMMetals.class);
 
     /** All B2 gear items in registration order (chains first, then tools, then armor). */
@@ -109,6 +113,9 @@ public final class ETIMGear {
             register("scythe_" + metal.name, new ETIMItemScythe(metal));
         }
         knifeFlint = register("knife_flint", new ETIMItemKnifeFlint());
+        // B-43 census A :84 — R196 Item.java:418-419, wood only.
+        cudgelWood = register("cudgel_wood", new ETIMItemCudgel());
+        clubWood = register("club_wood", new ETIMItemClub());
         CRAFT_ARROWS.put(ETIMMetals.COPPER, register("arrow_copper", new ETIMItemArrow(ETIMMetals.COPPER)));
         CRAFT_ARROWS.put(ETIMMetals.SILVER, register("arrow_silver", new ETIMItemArrow(ETIMMetals.SILVER)));
         CRAFT_ARROWS.put(ETIMMetals.MITHRIL, register("arrow_mithril", new ETIMItemArrow(ETIMMetals.MITHRIL)));
@@ -280,8 +287,8 @@ public final class ETIMGear {
         // scythe/knife + 箭合成面 批 29 rows (批文 §〇, R196 一手):
         registerBatchRecipes();
         int added = etimRecipeCount() - before;
-        if (added != 35) {
-            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 35 batch rows (2 iron-nugget 9:1 + 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint + 6 chain form + 6 chain dismantle + 4 gold chain-armor, metgear 批 条 214), registered " + added);
+        if (added != 37) {
+            throw new IllegalStateException("[ETIM] gear recipe count drifted: expected 37 batch rows (2 iron-nugget 9:1 + 5 scythe + 5 arrow + 5 dismantle + 1 sinew + 1 knife_flint + 2 cudgel/club + 6 chain form + 6 chain dismantle + 4 gold chain-armor, metgear 批 条 214 + B-43 :84), registered " + added);
         }
         ETIM.LOGGER.info("[TestLog] gear recipes registered: " + added
                 + " batch rows ok (runtime REGISTRY delta; etim-domain total " + etimRecipeCount()
@@ -341,6 +348,11 @@ public final class ETIMGear {
         GameRegistry.addShapedRecipe(new ResourceLocation(ETIM.MOD_ID, "knife_flint"), null,
                 new ItemStack(knifeFlint), "Xs", "# ",
                 'X', Items.FLINT, '#', Items.STICK, 's', ETIMItems.sinew);
+        // B-43 census A :84 — R196 RecipesWeapons:16-26/:89:
+        // cudgel = 1 plank over stick; club = 2 planks over stick (the generic
+        // melee table's "?","?","/" row with planks as the material).
+        addShaped("cudgel_wood", Blocks.PLANKS, "X", "/");
+        addShaped("club_wood", Blocks.PLANKS, "X", "X", "/");
     }
 
     private static Item ingotToNugget(ETIMMetals metal) {

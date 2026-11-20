@@ -381,7 +381,9 @@ public final class ETIMDigging {
      */
     public static boolean isHoldingItemThatPreventsDigging(EntityLiving digger) {
         ItemStack held = digger.getHeldItemMainhand();
-        return held != null && held.getItem() instanceof ItemSword;
+        return held != null && (held.getItem() instanceof ItemSword
+                || held.getItem() instanceof io.github.etim.etim.metal.ETIMItemCudgel // B-43 :84
+                || held.getItem() instanceof io.github.etim.etim.metal.ETIMItemScythe); // R196 :17-19 scythe face
     }
 
     /** R196 hasDownwardsDiggingTool (:139-141): ItemShovel → 1.12 ItemSpade. */

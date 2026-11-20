@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": { "item": "etim:club_wood" },
+    "title": { "translate": "etim.advancements.build_club" },
+    "description": { "translate": "etim.advancements.build_club.desc" },
+    "frame": "task"
+  },
+  "parent": "etim:root",
+  "criteria": {
+    "get_club": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": { "items": [ { "item": "etim:club_wood" } ] }
+    }
+  }
+}

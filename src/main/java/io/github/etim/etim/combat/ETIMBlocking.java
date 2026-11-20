@@ -3,6 +3,7 @@ package io.github.etim.etim.combat;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.metal.ETIMItemAxe;
 import io.github.etim.etim.metal.ETIMItemBattleAxe;
+import io.github.etim.etim.metal.ETIMItemClub;
 import io.github.etim.etim.metal.ETIMItemPickaxe;
 import io.github.etim.etim.metal.ETIMItemScythe;
 import io.github.etim.etim.metal.ETIMItemShovel;
@@ -75,9 +76,10 @@ public final class ETIMBlocking {
     /**
      * R196 {@code ItemTool.canBlock()} (ItemTool.java:54-56 + the override
      * family Dagger/Hatchet/Hoe/Mattock/Shears/Cudgel:20-29) as an exact-class
-     * whitelist — the 11 blocking classes of M1-1 ③, explicitly LESS the four
-     * ETIM false subclasses (dagger / flint knife / hatchet / mattock) and the
-     * hoe / shears faces. {@code instanceof} would sweep them all in.
+     * whitelist — the 12 blocking classes after B-43 :84 added the club,
+     * explicitly LESS the four ETIM false subclasses (dagger / flint knife /
+     * hatchet / mattock), the hoe / shears faces and the cudgel itself
+     * (canBlock false). {@code instanceof} would sweep them all in.
      */
     public static boolean isBlockCarrier(ItemStack stack) {
         if (stack.isEmpty()) {
@@ -96,7 +98,8 @@ public final class ETIMBlocking {
                 || c == ETIMItemBattleAxe.class
                 || c == ETIMItemWarHammer.class
                 || c == ETIMItemShovel.class
-                || c == ETIMItemScythe.class;
+                || c == ETIMItemScythe.class
+                || c == ETIMItemClub.class; // B-43 :84 — R196 ItemClub:20-22 canBlock true
     }
 
     /** The shield arm of the b+c ruling (Item.isShield — vanilla 1.12 shield face). */

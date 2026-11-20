@@ -6,6 +6,7 @@ import java.util.Map;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.ETIM;
+import io.github.etim.etim.metal.ETIMItemCudgel;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockStoneSlab;
 import net.minecraft.block.material.Material;
@@ -439,6 +440,9 @@ public final class ETIMMining {
         if (item instanceof io.github.etim.etim.metal.ETIMItemShears) {
             return 1.0F; // R196 ItemShears:37-39
         }
+        if (item instanceof ETIMItemCudgel) {
+            return 0.25F; // R196 ItemCudgel:38 (club inherits)
+        }
         if (item instanceof ItemShears) {
             return 1.0F; // R196 ItemShears:37-39 — vanilla 1.12 shears on the right-click silk face
         }
@@ -486,6 +490,9 @@ public final class ETIMMining {
         }
         if (item instanceof io.github.etim.etim.metal.ETIMItemShears) {
             return 2.0F; // R196 ItemShears:42-44
+        }
+        if (item instanceof ETIMItemCudgel) {
+            return 0.25F; // R196 ItemCudgel:43 (club inherits)
         }
         if (item instanceof io.github.etim.etim.metal.ETIMItemScythe) {
             // R196 ItemScythe:31-37 — the vampiric branches are LIVE since melee1
@@ -602,6 +609,19 @@ public final class ETIMMining {
         if (held.getItem() instanceof io.github.etim.etim.metal.ETIMItemKnifeFlint) {
             int grade = ((io.github.etim.etim.metal.ETIMItemKnifeFlint) held.getItem()).etimGrade();
             boolean ok = isSwordMaterial(state) && grade >= minLevel;
+            if (!ok) {
+                logGradeDeny(held, state, grade);
+            }
+            return ok;
+        }
+        // B-43 census A :84 — R196 ItemCudgel:6 / ItemClub inherits: the
+        // cake/coral/glass/ice/pumpkin material set, wood grade 0. The dead
+        // 1.12 CORAL constant is kept for parity (see Mat 载体 note); this arm
+        // sits before the generic effective-set rebuild because the R196
+        // classes carry their own material list rather than a tool-class set.
+        if (ETIMConfig.miningReform && held.getItem() instanceof ETIMItemCudgel) {
+            int grade = ((ETIMItemCudgel) held.getItem()).etimGrade();
+            boolean ok = isCudgelMaterial(state) && grade >= minLevel;
             if (!ok) {
                 logGradeDeny(held, state, grade);
             }
@@ -740,6 +760,16 @@ public final class ETIMMining {
                 || material == net.minecraft.block.material.Material.GOURD
                 || material == net.minecraft.block.material.Material.VINE
                 || material == net.minecraft.block.material.Material.WEB;
+    }
+
+    /** R196 ItemCudgel:6 material list (club inherits); 1.12 CORAL is a dead constant, kept for parity. */
+    private static boolean isCudgelMaterial(IBlockState state) {
+        net.minecraft.block.material.Material material = state.getMaterial();
+        return material == net.minecraft.block.material.Material.CAKE
+                || material == net.minecraft.block.material.Material.CORAL
+                || material == net.minecraft.block.material.Material.GLASS
+                || material == net.minecraft.block.material.Material.ICE
+                || material == net.minecraft.block.material.Material.GOURD;
     }
 
     /** R196 ItemShears:6-7 material list + trip wire block (B3 批文 §〇). */
