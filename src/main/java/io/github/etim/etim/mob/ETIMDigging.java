@@ -472,8 +472,10 @@ public final class ETIMDigging {
             return false;
         }
         // R196 ItemTool.isEffectiveAgainstBlock :143-148 — the sandstone-model
-        // slab / axe special case (J-11): an axe is effective there.
+        // slab / axe special case (J-11): an axe is effective there. R196
+        // BlockDoubleSlab.java:5 extends Block, not BlockSlab: HALF slab only.
         if (state.getBlock() instanceof BlockStoneSlab
+                && !((BlockStoneSlab) state.getBlock()).isDouble()
                 && state.getValue(BlockStoneSlab.VARIANT) == BlockStoneSlab.EnumType.SAND
                 && held.getItem() instanceof net.minecraft.item.ItemAxe) {
             return true;

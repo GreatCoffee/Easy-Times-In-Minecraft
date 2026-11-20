@@ -1,11 +1,17 @@
 package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.mining.ETIMMining;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemShears;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumHand;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -35,6 +41,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * (the twentieth reuse): flag off = vanilla keeps its shape (sticks/bones
  * never break on a hit). Judgement row {@code [SwingLog] stickbreak
  * item=… chance=… entity=…} (the mobDebugLog gate).</p>
+ *
+ * <p>B-42 census A :85 — the R196 shears right-click silk face
+ * ({@code ItemShears.onItemRightClick :73-99}). The carrier is the ROOT
+ * {@link Item} because 1.12 {@code ItemShears} inherits
+ * {@code Item#onItemRightClick} (PASS) and the face must cover both vanilla
+ * shears and the ETIM metal shears; the {@code instanceof ItemShears} gate
+ * keeps every other item untouched. Main hand only (1.12 has no R196
+ * offhand counterpart; C, 摸底 §3 D-2). The client swings; the server
+ * drops, removes, plays {@code ENTITY_SHEEP_SHEAR}, wears the shears and
+ * logs {@code [MiningLog] shears silk item=… block=… drop=… loss=…}
+ * (摸底 §4/§5). This is a vanilla MITE parity face, not a livestock
+ * switch — no new config key; it reuses {@code miningReform} with the
+ * other mining faces.</p>
  */
 @Mixin(Item.class)
 public abstract class MixinItem {
@@ -66,5 +85,24 @@ public abstract class MixinItem {
             stack.shrink(1); // the R196 convertOneOfHeldItem(null) semantic under the 1.12 stack model (摸底 §3)
             cir.setReturnValue(true); // R196 :982 (the vanilla "the item wore" contract)
         }
+    }
+
+    @Inject(method = "onItemRightClick", at = @At("HEAD"), cancellable = true)
+    private void etim$shearsSilk(World world, EntityPlayer player, EnumHand hand,
+                                 CallbackInfoReturnable<ActionResult<ItemStack>> cir) {
+        if (!ETIMConfig.miningReform || hand != EnumHand.MAIN_HAND || !((Object) this instanceof ItemShears)) {
+            return;
+        }
+        ItemStack held = player.getHeldItem(hand);
+        if (held.isEmpty() || (Object) held.getItem() != this) {
+            return;
+        }
+        if (!ETIMMining.tryShearsSilkHarvest(player, held, world, hand)) {
+            return;
+        }
+        if (world.isRemote) {
+            player.swingArm(hand);
+        }
+        cir.setReturnValue(new ActionResult<>(EnumActionResult.SUCCESS, held));
     }
 }

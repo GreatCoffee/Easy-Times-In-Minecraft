@@ -7,6 +7,7 @@ import java.util.Map;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.ETIM;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockStoneSlab;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.enchantment.Enchantment;
@@ -15,16 +16,22 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Enchantments;
 import net.minecraft.init.MobEffects;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
 import net.minecraft.item.ItemPickaxe;
+import net.minecraft.item.ItemShears;
 import net.minecraft.item.ItemSpade;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 /**
@@ -264,6 +271,19 @@ public final class ETIMMining {
      * scales the maxDamage budget.
      */
     public static int getToolDecayFromBreakingBlock(EntityPlayer player, IBlockState state, World world, BlockPos pos) {
+        return getToolDecayFromBreakingBlock(player, state, world, pos, false);
+    }
+
+    /**
+     * The R196 shears right-click face calls the same
+     * {@code getToolDecayFromBreakingBlock(info)} with an
+     * {@code isEffectiveAgainstBlock}-approved block, so the str&gt;1 gate is
+     * already satisfied there. {@code forceEffective} exists because vanilla
+     * 1.12 shears are not ItemTool and would otherwise compute str=0; the
+     * creative/portable/hardness gates stay untouched (摸底 §3 D-5).
+     */
+    public static int getToolDecayFromBreakingBlock(EntityPlayer player, IBlockState state, World world, BlockPos pos,
+                                                    boolean forceEffective) {
         ItemStack held = player.getHeldItemMainhand();
         int loss;
         if (held.isEmpty() || !held.getItem().isDamageable()) {
@@ -274,7 +294,7 @@ public final class ETIMMining {
             float hardness = getHardness(state, world, pos);
             if (hardness <= 0.0F) {
                 loss = 0;
-            } else if (getCurrentPlayerStrVsBlock(player, state, world, pos, true) <= 1.0F) {
+            } else if (!forceEffective && getCurrentPlayerStrVsBlock(player, state, world, pos, true) <= 1.0F) {
                 loss = 0;
             } else {
                 float decay = 100.0F * getBaseDecayForBreakingBlocks(held, state);
@@ -418,6 +438,9 @@ public final class ETIMMining {
         }
         if (item instanceof io.github.etim.etim.metal.ETIMItemShears) {
             return 1.0F; // R196 ItemShears:37-39
+        }
+        if (item instanceof ItemShears) {
+            return 1.0F; // R196 ItemShears:37-39 — vanilla 1.12 shears on the right-click silk face
         }
         // scythe/knife 批 (批文 §二.6): scythe = R196 ItemScythe:26-28; the
         // flint knife = the dagger 2.0 base ÷4/÷2 (R196 ItemKnife:21-25).
@@ -584,6 +607,16 @@ public final class ETIMMining {
             }
             return ok;
         }
+        // R196 ItemTool.java:143-148 — the sandstone HALF-slab axe special
+        // case sits before the material/grade gates and admits every ItemAxe
+        // unconditionally. R196 BlockDoubleSlab.java:5 extends Block, not
+        // BlockSlab, so double slabs are outside the face; 1.12's double
+        // slab is a BlockStoneSlab subclass and is excluded by !isDouble()
+        // (摸底 §3 D-1).
+        if (ETIMConfig.miningReform && held.getItem() instanceof ItemAxe && isR196SandstoneHalfSlab(state)) {
+            logAxeSlab(held, state);
+            return true;
+        }
         // R196 effective-set rebuild (effectiveset batch, audit20 条 182-184):
         // the held tool's OWN R196 tool class decides the admitted set — never
         // the block's harvestTool requirement (the former class-gate
@@ -604,6 +637,20 @@ public final class ETIMMining {
             logGradeDeny(held, state, grade);
         }
         return ok;
+    }
+
+    /**
+     * R196 {@code ItemTool.java:143-148} carrier: a HALF stone slab whose
+     * model block is sandstone (1.12 {@code BlockStoneSlab.EnumType.SAND},
+     * metadata 1). 1.12's double slab is a {@code BlockStoneSlab} subclass
+     * while R196's {@code BlockDoubleSlab} extends Block — {@code !isDouble()}
+     * is the exact class-shape match (摸底 §3 D-1).
+     */
+    public static boolean isR196SandstoneHalfSlab(IBlockState state) {
+        Block block = state.getBlock();
+        return block instanceof BlockStoneSlab
+                && !((BlockStoneSlab) block).isDouble()
+                && state.getValue(BlockStoneSlab.VARIANT) == BlockStoneSlab.EnumType.SAND;
     }
 
     /**
@@ -704,6 +751,121 @@ public final class ETIMMining {
                 || material == net.minecraft.block.material.Material.VINE
                 || material == net.minecraft.block.material.Material.WEB
                 || state.getBlock() == net.minecraft.init.Blocks.TRIPWIRE;
+    }
+
+    /**
+     * R196 {@code ItemShears.java:73-99} success predicate: shears-effective
+     * (material set + grade) without emitting the mining deny row — the
+     * right-click face runs on both sides and must stay log-silent on the
+     * client (摸底 §3 D-3/D-5). Vanilla 1.12 shears carry grade 0 (R196 has
+     * one shears class; ETIM's metal shears is its 1.12 carrier).
+     */
+    public static boolean isShearsSilkEffective(ItemStack held, IBlockState state) {
+        if (held.isEmpty()) {
+            return false;
+        }
+        Item item = held.getItem();
+        int grade;
+        if (item instanceof io.github.etim.etim.metal.ETIMItemShears) {
+            grade = ((io.github.etim.etim.metal.ETIMItemShears) item).etimGrade();
+        } else if (item instanceof ItemShears) {
+            grade = 0;
+        } else {
+            return false;
+        }
+        return isShearsMaterial(state) && grade >= getMinHarvestLevel(state);
+    }
+
+    /**
+     * R196 {@code Block.canSilkHarvest(metadata) == canBeCarried()}
+     * (Block.java:2340-2342) mapped onto the 1.12 block-item form. The 1.12
+     * four-arg canSilkHarvest is narrower (full cube + no tile entity), so
+     * leaves/tall grass/vine would fail it; item-form is the carrying
+     * predicate. The registry-name identity rejects tripwire's
+     * {@code minecraft:string} item (Item.java:1700), which cannot carry the
+     * tripwire block itself (C, 摸底 §3 D-3).
+     */
+    public static boolean isSilkCarried(IBlockState state) {
+        Block block = state.getBlock();
+        Item item = Item.getItemFromBlock(block);
+        if (!(item instanceof net.minecraft.item.ItemBlock)) {
+            return false;
+        }
+        if (((net.minecraft.item.ItemBlock) item).getBlock() != block) {
+            return false;
+        }
+        return block.getRegistryName() != null && block.getRegistryName().equals(item.getRegistryName());
+    }
+
+    /** 1.12 {@code Block.getSilkTouchDrop} :1027-1038 replayed verbatim (protected on Block). */
+    public static ItemStack silkDrop(IBlockState state) {
+        Item item = Item.getItemFromBlock(state.getBlock());
+        int meta = item.getHasSubtypes() ? state.getBlock().getMetaFromState(state) : 0;
+        return new ItemStack(item, 1, meta);
+    }
+
+    /**
+     * R196 {@code ItemShears.java:73-99} right-click silk face. Returns true
+     * when the click is consumed; {@code MixinItem} then returns
+     * {@code EnumActionResult.SUCCESS}. The client only swings; the server
+     * owns the drop, the block removal, the sound and the wear (摸底 §3 D-6).
+     */
+    public static boolean tryShearsSilkHarvest(EntityPlayer player, ItemStack held, World world, EnumHand hand) {
+        if (held.isEmpty() || !(held.getItem() instanceof ItemShears)) {
+            return false;
+        }
+        double reach = player.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue();
+        Vec3d eye = player.getPositionEyes(1.0F);
+        Vec3d look = player.getLookVec();
+        Vec3d end = eye.add(look.x * reach, look.y * reach, look.z * reach);
+        RayTraceResult rc = world.rayTraceBlocks(eye, end, false, false, true);
+        if (rc == null || rc.typeOfHit != RayTraceResult.Type.BLOCK) {
+            return false;
+        }
+        BlockPos pos = rc.getBlockPos();
+        IBlockState state = world.getBlockState(pos);
+        if (state.getBlock().isAir(state, world, pos)) {
+            return false;
+        }
+        if (!player.canPlayerEdit(pos, rc.sideHit, held)) {
+            return false;
+        }
+        if (!isSilkCarried(state) || !isShearsSilkEffective(held, state)) {
+            return false;
+        }
+        if (world.isRemote) {
+            return true;
+        }
+        String itemName = held.getItem().getRegistryName().toString();
+        ItemStack drop = silkDrop(state);
+        int loss = getToolDecayFromBreakingBlock(player, state, world, pos, true); // before set-air: hardness reads the world
+        world.setBlockToAir(pos);
+        Block.spawnAsEntity(world, pos, drop);
+        world.playSound(null, pos, SoundEvents.ENTITY_SHEEP_SHEAR, SoundCategory.PLAYERS, 1.0F, 1.0F);
+        if (loss > 0) {
+            held.damageItem(loss, player);
+        }
+        ETIM.LOGGER.info("[MiningLog] shears silk item=" + itemName
+                + " block=" + state.getBlock().getRegistryName()
+                + " drop=" + drop.getItem().getRegistryName()
+                + " loss=" + loss + " [server]");
+        return true;
+    }
+
+    /** [MiningLog] R196 axe half-slab row, deduped per (item, block). */
+    private static final Map<String, Boolean> LAST_AXE_SLAB_SIGS = new HashMap<>();
+
+    private static void logAxeSlab(ItemStack held, IBlockState state) {
+        if (!ETIMConfig.miningDebugLog) {
+            return;
+        }
+        String item = held.getItem().getRegistryName().toString();
+        String block = state.getBlock().getRegistryName().getPath();
+        String key = item + "@" + block;
+        if (LAST_AXE_SLAB_SIGS.put(key, Boolean.TRUE) != null) {
+            return;
+        }
+        ETIM.LOGGER.info("[MiningLog] axe slab item=" + item + " block=" + block + " variant=sand [server]");
     }
 
     /** [MiningLog] grade-deny row, deduped per (item, block, grade/required) — the W2 matrix channel. */
