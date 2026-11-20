@@ -5,6 +5,7 @@ import io.github.etim.etim.mob.ETIMEntityArrow;
 import io.github.etim.etim.mob.ETIMEntityBoneLord;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
+import io.github.etim.etim.mob.ETIMEntityOoze;
 import io.github.etim.etim.mob.ETIMEntityRevenant;
 
 import net.minecraft.client.model.ModelSkeleton;
@@ -50,6 +51,8 @@ public final class ETIMMobRender {
                 manager -> new TintedSkeleton(manager, 0.75F, 0.35F, 0.15F)); // dark copper
         // Batch B (2026-10-25) — the identity arrow (D-19/D-22 shared-texture tier).
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityArrow.class, ETIMArrowRender::new);
+        // B-44 census A :90 — the mining ooze (vanilla slime model + gray tint).
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityOoze.class, OozeRender::new);
     }
 
     /** The ETIMSpiderRender.Tinted shape over the vanilla skeleton renderer stack. */

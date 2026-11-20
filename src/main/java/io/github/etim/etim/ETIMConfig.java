@@ -226,6 +226,8 @@ public final class ETIMConfig {
 
     /** Master switch of the task-2.2 mining reform (progress formula + drop gate). When on, the vanilla dig-wear guard also reads the R196 hardness table (same source as the decay chain); off = native field (hardness-0 blocks take zero tool wear). 任务 2.2 挖掘改革总开关（进度公式 + 掉落门控）。开启时原版挖掘损耗守卫同读 R196 硬度表（与衰减链同源）；关闭时读原生字段（硬度 0 方块零工具磨损）。 */
     public static boolean miningReform = true;
+    /** R196 mining-ooze spawn chance per requiresTool full-cube break (census A :90; default 1%). */
+    public static float miningOozeChance = 0.01F;
 
     // hunger (task 2.3) ----------------------------------------------
     /** Crafting output can't be taken while hungry (R196 freezes the craft timer: MITEContainerCrafting:96). */
@@ -921,6 +923,9 @@ public final class ETIMConfig {
         miningReform = config.getBoolean("miningReform", "mining", true,
                 comment("R196 mining reform (task 2.2): MITE dig-progress formula, tool-level gating and hardness table; on = the vanilla dig-wear guard reads the R196 hardness table (same source as the decay chain)",
                         "R196 挖掘改革（任务 2.2）：MITE 挖掘进度公式、工具等级门控与硬度表；开启时原版挖掘损耗守卫同读 R196 硬度表（与衰减链同源）"));
+        miningOozeChance = config.getFloat("miningOozeChance", "mining", miningOozeChance, 0.0F, 1.0F,
+                comment("R196 census A :90: chance per requiresTool opaque-full-cube break that the neighbour-stone ooze spawn rolls (default 0.01 = 1%)",
+                        "R196 census A :90: chance per requiresTool full-cube break that the neighbour-stone ooze spawn rolls (default 1%)"));
         treeFellingMaxLevel = config.getInt("treeFellingMaxLevel", "mining", treeFellingMaxLevel, 1, 20,
                 comment("Maximum level of the tree-felling enchant (each level fells one further wood log). Default 5 = the R196 getNumLevels (tree_felling has no class override; was 10 — the A-3 漂移修复, 条 275/277)",
                         "树木连根附魔的最大等级（每级向上多伐一根原木）。默认 5 = R196 类不覆写的源值（原默认 10 系 A-3 勘证的既有漂移——条 275/277 修复位）"));

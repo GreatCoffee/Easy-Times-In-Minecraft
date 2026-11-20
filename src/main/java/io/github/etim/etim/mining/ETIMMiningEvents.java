@@ -44,6 +44,9 @@ public final class ETIMMiningEvents {
      * neighbour plane (up + four horizontal).
      */
     public static void postHarvest(World world, BlockPos pos, IBlockState harvested, EntityPlayerMP player) {
+        // B-44 census A :90: R196 removeBlock's 1% ooze spawn runs at the
+        // head of the harvest chain, before drops/tree felling.
+        ETIMOozeSpawn.trySpawn(world, pos, harvested, player);
         ETIMTreeFelling.fellUpwards(player, world, pos, harvested);
         ETIMUndermine.undermineAround(world, pos, player);
     }

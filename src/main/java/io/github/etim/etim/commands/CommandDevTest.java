@@ -8,6 +8,7 @@ import io.github.etim.etim.combat.R196ArmorModel;
 import io.github.etim.etim.harness.TestDriver;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mining.ETIMEnchantments;
+import io.github.etim.etim.mining.ETIMOozeSpawn;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.playerstate.PlayerStatLimits;
 import io.github.etim.etim.quality.EnumQuality;
@@ -141,6 +142,12 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "dig":
                 executeDig(server, sender, args);
+                break;
+            case "harvest":
+                executeHarvest(server, sender, args);
+                break;
+            case "ooze":
+                executeOoze(server, sender, args);
                 break;
             case "useblock":
                 executeUseBlock(server, sender, args);
@@ -705,6 +712,27 @@ public class CommandDevTest extends CommandBase {
         BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
         TestDriver.dig(player, pos);
         respond(player, "commands.etest.drive_queued", "dig " + pos);
+    }
+
+    /** {@code /etest harvest <x> <y> <z> [player]} — B-44 direct server-side break face. */
+    private static void executeHarvest(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 4);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        TestDriver.harvest(player, pos);
+        respond(player, "commands.etest.drive_queued", "harvest " + pos);
+    }
+
+    /** {@code /etest ooze <x> <y> <z>} — B-44 forced ooze spawn for the entity window. */
+    private static void executeOoze(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        ETIMOozeSpawn.forceSpawn(sender.getEntityWorld(), pos);
+        sender.sendMessage(new TextComponentString("[etest] ooze " + pos));
     }
 
     /** {@code /etest useblock <x> <y> <z> [face] [player]} — queues one right-click on the

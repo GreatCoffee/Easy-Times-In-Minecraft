@@ -102,6 +102,17 @@ public final class TestDriver {
                 () -> feedDig(player, pos, CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, "stop"));
     }
 
+    /**
+     * {@code /etest harvest <x> <y> <z>} — B-44 server-side break face: calls
+     * the vanilla {@link net.minecraft.server.management.PlayerInteractionManager#tryHarvestBlock}
+     * on the server thread, so {@code removeBlock} / post-harvest hooks run
+     * without waiting for the client dig-completion packet (the C-9 harness gap).
+     */
+    public static void harvest(EntityPlayerMP player, BlockPos pos) {
+        boolean result = player.interactionManager.tryHarvestBlock(pos);
+        ETIM.LOGGER.info("[TestLog] step=harvest pos={} result={}", pos, result);
+    }
+
     /** {@code /etest useblock <x> <y> <z> [player]} — one right-click on the block (UP face). */
     public static void useBlock(EntityPlayerMP player, BlockPos pos) {
         useBlock(player, pos, EnumFacing.UP);

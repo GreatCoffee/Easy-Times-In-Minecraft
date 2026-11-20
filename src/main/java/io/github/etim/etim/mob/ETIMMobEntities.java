@@ -26,6 +26,9 @@ public final class ETIMMobEntities {
                 ETIMEntityLongdead.class, "etim.longdead", 8, ETIM.instance(), 64, 3, true);
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "longdead_guardian"),
                 ETIMEntityLongdeadGuardian.class, "etim.longdead_guardian", 9, ETIM.instance(), 64, 3, true);
+        // B-44 census A :90: the mining ooze (id 11; arrow keeps 10).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "ooze"),
+                ETIMEntityOoze.class, "etim.ooze", 11, ETIM.instance(), 64, 3, true);
     }
 
     /**
