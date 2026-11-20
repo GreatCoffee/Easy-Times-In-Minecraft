@@ -618,7 +618,21 @@ public final class ETIMSpawnCycle {
                                 + " at " + pos(cursor));
                     }
                 }
-                mob.setLocationAndAngles(x + 0.5D, spawnY, z + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
+                // B-50 (R196 SpawnerAnimals:234-265): wide mobs retry the four
+                // half-block offsets when the centre placement collides. The
+                // class/light gate already passed at the centre via the proto,
+                // so the offset face only needs the collision test.
+                double spawnX = x + 0.5D;
+                double spawnZ = z + 0.5D;
+                if (mob.width >= 1.0F) {
+                    double[] placed = placeWideAware(w, mob, spawnX, spawnY, spawnZ);
+                    if (placed == null) {
+                        continue;
+                    }
+                    spawnX = placed[0];
+                    spawnZ = placed[2];
+                }
+                mob.setLocationAndAngles(spawnX, spawnY, spawnZ, w.rand.nextFloat() * 360.0F, 0.0F);
                 if (mob.isNotColliding()) {
                     // A5 (audit 16): R196 :290 — finalize before entering the
                     // world; the returned data feeds the round's later spawns.
@@ -696,6 +710,39 @@ public final class ETIMSpawnCycle {
             return false;
         }
         return w.isAirBlock(pos.down());
+    }
+
+    /**
+     * B-50 (R196 {@code SpawnerAnimals:234-265}): wide mobs try the centre
+     * first, then the four half-block offsets in the fixed order -x, +x, -z,
+     * +z. The light/class gate already passed through the proto, so the offset
+     * face only needs the collision test. Returns {@code {x, y, z}} for the
+     * accepted spot, or {@code null} when all five collide.
+     */
+    public static double[] placeWideAware(WorldServer w, EntityLiving mob,
+            double x, double y, double z) {
+        final double[][] OFFSETS = {{0.0D, 0.0D}, {-0.5D, 0.0D}, {0.5D, 0.0D},
+                {0.0D, -0.5D}, {0.0D, 0.5D}};
+        float yaw = w.rand.nextFloat() * 360.0F;
+        for (int i = 0; i < OFFSETS.length; ++i) {
+            double px = x + OFFSETS[i][0];
+            double pz = z + OFFSETS[i][1];
+            mob.setLocationAndAngles(px, y, pz, yaw, 0.0F);
+            if (mob.isNotColliding()) {
+                if (i > 0 && ETIMConfig.mobDebugLog) {
+                    log(w, "wide-retry cls=" + mob.getClass().getSimpleName()
+                            + " offset=" + (OFFSETS[i][0] < 0.0D ? "-x" : OFFSETS[i][0] > 0.0D ? "+x"
+                                    : OFFSETS[i][1] < 0.0D ? "-z" : "+z")
+                            + " at " + String.format("%.2f,%.2f,%.2f", px, y, pz));
+                }
+                return new double[]{px, y, pz};
+            }
+        }
+        if (ETIMConfig.mobDebugLog) {
+            log(w, "wide-gate reject cls=" + mob.getClass().getSimpleName()
+                    + " at " + String.format("%.2f,%.2f,%.2f", x, y, z));
+        }
+        return null;
     }
 
     private static int getMaxSpawnedInChunk(WorldServer w, Biome.SpawnListEntry entry) {

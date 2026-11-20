@@ -16,6 +16,7 @@ import io.github.etim.etim.mob.ETIMAnimalWarn;
 import io.github.etim.etim.mob.ETIMLivestock;
 import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
 import io.github.etim.etim.mob.ETIMCreeperExplosionRadius;
+import io.github.etim.etim.mob.DespawnRules;
 import net.minecraft.entity.passive.EntityBat;
 import io.github.etim.etim.metal.ETIMAnvilRepair;
 import io.github.etim.etim.skill.ETIMSkill;
@@ -36,6 +37,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.EnumCreatureType;
+import net.minecraft.entity.monster.EntitySpider;
+import net.minecraft.entity.monster.EntityZombie;
+import net.minecraft.init.Items;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.player.EntityPlayer;
@@ -178,6 +182,12 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "spawnpick":
                 executeSpawnPick(server, sender, args);
+                break;
+            case "wide":
+                executeWide(server, sender, args);
+                break;
+            case "equipped":
+                executeEquipped(server, sender, args);
                 break;
             case "hangbat":
                 executeHangBat(server, sender, args);
@@ -815,8 +825,51 @@ public class CommandDevTest extends CommandBase {
         sender.sendMessage(new TextComponentString("[etest] spawnpick n=" + n + " " + counts));
     }
 
-    /** {@code /etest moon <none|blue|blood|full|new>} — B-46 test-only moon
-     * override; the product default reads the vanilla clock. */
+    /**
+     * {@code /etest wide <x> <y> <z>} — B-50 probe for the R196 four-offset
+     * wide-mob placement. Builds an unspawned spider (width 1.4) and runs the
+     * same helper the spawn pass uses; the report names the accepted spot or
+     * {@code null} when all five positions collide.
+     */
+    private static void executeWide(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntitySpider spider = new EntitySpider(w);
+        double[] placed = ETIMSpawnCycle.placeWideAware(w, spider, pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
+        ETIM.LOGGER.info("[SpawnLog] wide-probe placed={} at {} [server]", placed == null ? "null" : String.format("%.2f,%.2f,%.2f", placed[0], placed[1], placed[2]), pos);
+        sender.sendMessage(new TextComponentString("[etest] wide placed="
+                + (placed == null ? "null" : String.format("%.2f,%.2f,%.2f", placed[0], placed[1], placed[2]))));
+    }
+
+    /**
+     * {@code /etest equipped <x> <y> <z>} — B-50 probe for the equipped-mob
+     * despawn hold. Builds an unspawned zombie with a sword and reports the
+     * shared {@link DespawnRules#hasContainedItems} verdict.
+     */
+    private static void executeEquipped(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntityZombie zombie = new EntityZombie(w);
+        boolean armed = args.length < 5 || !args[4].equalsIgnoreCase("false");
+        if (armed) {
+            zombie.setItemStackToSlot(EntityEquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
+        }
+        boolean contained = DespawnRules.hasContainedItems(zombie);
+        ETIM.LOGGER.info("[AILog] equipped-probe contained={} at {} [server]", contained, pos);
+        sender.sendMessage(new TextComponentString("[etest] equipped contained=" + contained));
+    }
+
+
     /**
      * {@code /etest hangbat <x> <y> <z>} — B-47 probe for the R196 ceiling
      * hang. Builds an unspawned bat, runs the same helper the spawn pass uses,

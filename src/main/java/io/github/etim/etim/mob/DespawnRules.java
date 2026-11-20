@@ -377,7 +377,9 @@ public final class DespawnRules {
         if (ETIMConfig.mobDebugLog) {
             Long lastTrace = PASS_TRACE.get(e);
             boolean isAnimal = e instanceof EntityAnimal;
-            if (isAnimal && (lastTrace == null || System.currentTimeMillis() - lastTrace >= 2000)) {
+            boolean equippedHold = !isAnimal && distSq > KILL_DIST_SQ && hasContainedItems(e);
+            if ((isAnimal || equippedHold)
+                    && (lastTrace == null || System.currentTimeMillis() - lastTrace >= 2000)) {
                 PASS_TRACE.put(e, System.currentTimeMillis());
                 String wall = null;
                 if (isAnimal) {
@@ -393,6 +395,10 @@ public final class DespawnRules {
                     } else if (isConsideredInViewOfAnyPlayer(e, w)) {
                         wall = "los-in-view";
                     }
+                } else if (distSq > KILL_DIST_SQ && hasContainedItems(e)) {
+                    // B-50: R196 EntityLiving:776 — an equipped mob resets the
+                    // idle counter instead of walking the kill branch.
+                    wall = "equipped";
                 }
                 int cap = ((EntityLivingBaseAccessor) e).etim$getIdleTime();
                 ETIM.LOGGER.info("[AILog] mob despawn pass-state c=" + cap
@@ -401,10 +407,13 @@ public final class DespawnRules {
                         + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
             }
         }
-        if (distSq > KILL_DIST_SQ && canDespawn(e)) {
+        if (distSq > KILL_DIST_SQ && !hasContainedItems(e) && canDespawn(e)) {
             logKill(e, c, distSq);
             e.setDead();
         } else {
+            if (distSq > KILL_DIST_SQ && hasContainedItems(e)) {
+                log(e, "hold=equipped");
+            }
             int reroll = (int) (Math.random() * REROLL_RANGE) - REROLL_RANGE / 2;
             ((EntityLivingBaseAccessor) e).etim$setIdleTime(reroll);
             // [AILog] reroll row retired (run27 noise review): one row per
@@ -540,6 +549,25 @@ public final class DespawnRules {
             sb.append(" <- ").append(s);
         }
         ETIM.LOGGER.info(sb.toString());
+    }
+
+    /**
+     * B-50: R196 EntityLiving:776 {@code contained_items.isEmpty()} — any
+     * equipped item (armour, hands, or Forge's equipment iterator) holds the
+     * mob out of the kill branch. 1.12 has no generic inventory view on
+     * EntityLiving, so this is the equipment face; the difference is logged
+     * as a C-level approximation.
+     */
+    public static boolean hasContainedItems(EntityLiving e) {
+        if (!e.getHeldItemMainhand().isEmpty() || !e.getHeldItemOffhand().isEmpty()) {
+            return true;
+        }
+        for (net.minecraft.item.ItemStack stack : e.getEquipmentAndArmor()) {
+            if (!stack.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void logKill(EntityLiving e, int counter, double distSq) {
