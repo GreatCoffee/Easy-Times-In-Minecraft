@@ -244,6 +244,7 @@ item.etim.arrow_ancient_metal.name=远古金属箭
 item.etim.sinew.name=腱绳
 
 container.repair.insufficientSkill=修理该品质超出你当前的做工预算
+container.repair.missingSkill=你缺少修理该物品的技能
 container.repair.needsHarderAnvil=修理材料太硬，这砧承受不了
 commands.etest.damage_set=手持物耐久损伤 %s -> %s / %s
 commands.etest.damage_not_damageable=手持物为空或不可损伤
@@ -290,3 +291,17 @@ item.etim.manure.name=粪
 tile.etim.dead_crop.name=枯死作物
 tile.etim.dead_stem.name=枯死藤蔓
 entity.etim.ooze.name=矿史莱姆
+
+commands.etimskill.playeronly=只有玩家能使用该命令
+commands.etimskill.unknown=未知技能：%s
+commands.etimskill.capability=技能数据不可用
+commands.etimskill.disabled=本服务器未开启技能
+commands.etimskill.already=你已经学会 %s
+commands.etimskill.cost=学习该技能需要 %s 级经验
+commands.etimskill.once=每天只能学习一个技能
+commands.etimskill.failed=无法学习该技能
+commands.etimskill.nothave=你还没有学会 %s
+commands.etimskill.learned=已学会 %s，消耗 %s 级
+commands.etimskill.abandoned=已放弃 %s
+commands.etimskill.list=已学技能：%s
+commands.etimskill.list.none=尚未学习任何技能

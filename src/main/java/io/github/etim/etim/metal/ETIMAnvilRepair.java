@@ -114,7 +114,10 @@ public final class ETIMAnvilRepair {
          * (R196 :95 is_repairing=false → the null-output face, but CLAIMED —
          * the vanilla flow must not see it).
          */
-        DENIED
+        DENIED,
+        /** The R196 skillset gate (:109-115): skills enabled and the player
+         *  lacks the repair skill for this item. */
+        SKILL
     }
 
     /** The computed repair outcome for one container recompute. */
@@ -129,6 +132,8 @@ public final class ETIMAnvilRepair {
         public ItemStack output = ItemStack.EMPTY;
         /** Nuggets consumed on take (R196 stackSizeToBeUsedInRepair). */
         public int nuggetsUsed = 0;
+        /** fail-3 judgment value: the required repair-skill mask. */
+        public int requiredSkill = 0;
     }
 
     private ETIMAnvilRepair() {
@@ -282,7 +287,7 @@ public final class ETIMAnvilRepair {
 
         // --- quality gate (R196 :95-108): fail 2 keeps priority (fail 1 only
         //     lands on a clean flag, :106-108). The skillset gate (:109-115)
-        //     is a no-op — ETIM runs areSkillsEnabled()=false.
+        //     follows once the take is otherwise clean (B-45).
         if (fail == 0) {
             EnumQuality carried = ETIMQuality.get(first);
             if (carried != null && carried.ordinal() > ETIMQuality.getMaxOrdinal(
@@ -295,6 +300,20 @@ public final class ETIMAnvilRepair {
             plan.kind = Kind.FAIL;
             plan.fail = fail;
             return plan;
+        }
+
+        // B-45 / R196 ContainerRepair :109-115: with skills enabled, the
+        // item's repair skill set must intersect the player's mask. Server
+        // only: the client preview stays permissive (the tooltip sync is a
+        // later face), while the server refuses the take.
+        if (ETIMConfig.skillsEnabled && !player.world.isRemote) {
+            int required = io.github.etim.etim.skill.ETIMSkillRegistry.repairMask(first);
+            if (required != 0 && !io.github.etim.etim.skill.ETIMSkills.hasAny(player, required)) {
+                plan.kind = Kind.SKILL;
+                plan.fail = 3;
+                plan.requiredSkill = required;
+                return plan;
+            }
         }
 
         if (combo) {

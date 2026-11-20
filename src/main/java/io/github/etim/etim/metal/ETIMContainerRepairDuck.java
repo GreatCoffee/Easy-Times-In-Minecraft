@@ -19,7 +19,7 @@ public interface ETIMContainerRepairDuck {
     /** The vanilla repair faces were replaced by the ETIM takeover this recompute. */
     boolean etimIsTakeover();
 
-    /** 0 = clean, 1 = quality over budget (insufficientSkill), 2 = anvil too soft (needsHarderAnvil). */
+    /** 0 = clean, 1 = quality over budget (insufficientSkill), 2 = anvil too soft (needsHarderAnvil), 3 = missing repair skill (B-45). */
     int etimFailState();
 
     /** The R196 plan kind ordinal of the current takeover ({@link ETIMAnvilRepair.Kind}). */

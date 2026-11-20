@@ -9,6 +9,10 @@ import io.github.etim.etim.harness.TestDriver;
 import io.github.etim.etim.hunger.ETIMFoodStats;
 import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.mining.ETIMOozeSpawn;
+import io.github.etim.etim.metal.ETIMAnvilRepair;
+import io.github.etim.etim.skill.ETIMSkill;
+import io.github.etim.etim.skill.ETIMSkills;
+import io.github.etim.etim.skill.IETIMSkills;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.playerstate.PlayerStatLimits;
 import io.github.etim.etim.quality.EnumQuality;
@@ -148,6 +152,12 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "ooze":
                 executeOoze(server, sender, args);
+                break;
+            case "skills":
+                executeSkills(server, sender, args);
+                break;
+            case "anvilplan":
+                executeAnvilPlan(server, sender, args);
                 break;
             case "useblock":
                 executeUseBlock(server, sender, args);
@@ -733,6 +743,54 @@ public class CommandDevTest extends CommandBase {
         BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
         ETIMOozeSpawn.forceSpawn(sender.getEntityWorld(), pos);
         sender.sendMessage(new TextComponentString("[etest] ooze " + pos));
+    }
+
+    /** {@code /etest skills <player> [mask]} — get/set the B-45 skill mask. */
+    private static void executeSkills(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = CommandBase.getPlayer(server, sender, args[1]);
+        IETIMSkills state = ETIMSkills.get(player);
+        if (state == null) {
+            throw new CommandException("commands.etimskill.capability");
+        }
+        if (args.length >= 3) {
+            int mask = CommandBase.parseInt(args[2], 0, (1 << ETIMSkill.numSkills()) - 1);
+            state.setMask(mask);
+            ETIM.LOGGER.info("[SkillLog] set player={} mask={} [server]", player.getName(), mask);
+            respondRaw(player, "[SkillLog] set" + " player=" + player.getName() + " mask=" + mask);
+        } else {
+            ETIM.LOGGER.info("[SkillLog] get player={} mask={} [server]", player.getName(), state.getMask());
+            respondRaw(player, "[SkillLog] get" + " player=" + player.getName() + " mask=" + state.getMask());
+        }
+    }
+
+    /** {@code /etest anvilplan <player> <item> [damage]} — log one B-45 plan result. */
+    private static void executeAnvilPlan(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 3) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = CommandBase.getPlayer(server, sender, args[1]);
+        Item item = Item.getByNameOrId(args[2]);
+        if (item == null) {
+            throw new CommandException("commands.etest.hold_bad_item", args[2]);
+        }
+        ItemStack first = new ItemStack(item, 1);
+        if (first.getMaxDamage() <= 0) {
+            throw new CommandException("commands.etest.damage_not_damageable");
+        }
+        int damage = args.length >= 4
+                ? CommandBase.parseInt(args[3], 1, first.getMaxDamage() - 1)
+                : Math.max(1, first.getMaxDamage() / 2);
+        first.setItemDamage(damage);
+        ItemStack second = first.copy();
+        ETIMAnvilRepair.Plan plan = ETIMAnvilRepair.plan(player, first, second, 100.0F);
+        String line = "[CraftingLog] anvilplan player=" + player.getName()
+                + " item=" + args[2] + " kind=" + plan.kind
+                + " fail=" + plan.fail + " required=" + plan.requiredSkill + " [server]";
+        ETIM.LOGGER.info(line);
+        respondRaw(player, line);
     }
 
     /** {@code /etest useblock <x> <y> <z> [face] [player]} — queues one right-click on the

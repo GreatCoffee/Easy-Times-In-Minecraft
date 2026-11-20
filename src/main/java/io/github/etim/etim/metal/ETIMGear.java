@@ -123,6 +123,15 @@ public final class ETIMGear {
         CRAFT_ARROWS.put(ETIMMetals.ANCIENT_METAL, register("arrow_ancient_metal", new ETIMItemArrow(ETIMMetals.ANCIENT_METAL)));
 
         assertRegistered();
+        // B-45: the repair-skill map (R196 ItemTool.java:29-33). Every ETIM
+        // metal gear repairs as blacksmithing; the wooden blunt pair is
+        // carpentry and flint knife is masonry, overriding the bulk row.
+        io.github.etim.etim.skill.ETIMSkillRegistry.registerRepair(
+                io.github.etim.etim.skill.ETIMSkill.BLACKSMITHING, all());
+        io.github.etim.etim.skill.ETIMSkillRegistry.registerRepair(
+                io.github.etim.etim.skill.ETIMSkill.CARPENTRY, cudgelWood, clubWood);
+        io.github.etim.etim.skill.ETIMSkillRegistry.registerRepair(
+                io.github.etim.etim.skill.ETIMSkill.MASONRY, knifeFlint);
         registerRecipes();
         dumpInventory();
     }

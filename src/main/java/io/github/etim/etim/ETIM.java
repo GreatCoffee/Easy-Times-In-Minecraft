@@ -66,6 +66,7 @@ public final class ETIM {
         io.github.etim.etim.nutrition.NutritionNetwork.registerMessages();
         ETIMFoodStats.register();
         io.github.etim.etim.death.ETIMDeathXp.register();
+        io.github.etim.etim.skill.ETIMSkills.register();
         io.github.etim.etim.mob.ETIMLivestock.register();
         io.github.etim.etim.mob.ETIMDigging.register();
         io.github.etim.etim.mob.ETIMSpiderEntities.register();
@@ -163,6 +164,7 @@ public final class ETIM {
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new CommandState());
+        event.registerServerCommand(new io.github.etim.etim.commands.CommandEtimSkill());
         if (ETIMConfig.devTools) {
             event.registerServerCommand(new CommandDevTest());
             // 盾面削弱批（D-6/派修单要件 4）：W-16 的 /etimghost hurt 测试口。

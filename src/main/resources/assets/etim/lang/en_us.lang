@@ -245,6 +245,7 @@ item.etim.arrow_ancient_metal.name=Ancient Metal Arrow
 item.etim.sinew.name=Sinew
 
 container.repair.insufficientSkill=Repairing this quality exceeds your crafting skill for it
+container.repair.missingSkill=You lack the repair skill for this item
 container.repair.needsHarderAnvil=This repair material is too hard for this anvil
 commands.etest.damage_set=Held item damage %s -> %s / %s
 commands.etest.damage_not_damageable=The held item is empty or not damageable
@@ -291,3 +292,17 @@ item.etim.manure.name=Manure
 tile.etim.dead_crop.name=Dead Crops
 tile.etim.dead_stem.name=Dead Stem
 entity.etim.ooze.name=Ooze
+
+commands.etimskill.playeronly=Only a player can use this command
+commands.etimskill.unknown=Unknown skill: %s
+commands.etimskill.capability=Skill data unavailable
+commands.etimskill.disabled=Skills are disabled on this server
+commands.etimskill.already=You already know %s
+commands.etimskill.cost=You need %s experience levels to learn this skill
+commands.etimskill.once=You can learn only one skill per day
+commands.etimskill.failed=Could not learn this skill
+commands.etimskill.nothave=You do not know %s
+commands.etimskill.learned=Learned %s for %s levels
+commands.etimskill.abandoned=Abandoned %s
+commands.etimskill.list=Known skills: %s
+commands.etimskill.list.none=No skills learned

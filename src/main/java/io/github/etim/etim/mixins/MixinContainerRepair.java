@@ -123,14 +123,17 @@ public abstract class MixinContainerRepair implements ETIMContainerRepairDuck {
         this.etim$takeover = true;
         this.etim$failState = plan.fail;
         this.etim$lastKind = plan.kind.ordinal();
-        if (plan.kind == ETIMAnvilRepair.Kind.FAIL && !acc.etim$getWorld().isRemote
+        if ((plan.kind == ETIMAnvilRepair.Kind.FAIL || plan.kind == ETIMAnvilRepair.Kind.SKILL)
+                && !acc.etim$getWorld().isRemote
                 && plan.fail != this.etim$loggedFail) {
             this.etim$loggedFail = plan.fail;
             ETIM.LOGGER.info("[CraftingLog] " + player.getName() + " (" + player.getEntityId()
                     + ") repair fail: reason=" + (plan.fail == 2
                             ? String.format("needsHarderAnvil (material=%.1f > anvil=%.1f)",
                                     plan.failMaterial, plan.failAnvil)
-                            : "insufficientSkill (quality over budget)")
+                            : plan.fail == 3
+                                    ? "missingSkill (required=" + plan.requiredSkill + ")"
+                                    : "insufficientSkill (quality over budget)")
                     + " tool=" + first.getItem().getRegistryName() + " [server]");
         }
 

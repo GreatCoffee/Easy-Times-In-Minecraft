@@ -56,7 +56,9 @@ public abstract class MixinGuiRepair {
         }
         String key = fail == 2
                 ? "container.repair.needsHarderAnvil"
-                : "container.repair.insufficientSkill";
+                : fail == 3
+                        ? "container.repair.missingSkill"
+                        : "container.repair.insufficientSkill";
         self.drawHoveringText(TextFormatting.GOLD + I18n.format(key), mouseX, mouseY);
     }
 }
