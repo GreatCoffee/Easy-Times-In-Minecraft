@@ -46,7 +46,7 @@ import net.minecraft.world.biome.Biome;
  * <p>MITE-exclusive classes (ghoul, wight, invisibleStalker,
  * hellhound, shadow, earthElemental, jelly, blob, ooze,
  * pudding, clayGolem, vampireBat, nightwing, direWolf,
- * infernal creeper variant, guardians) have no 1.12 entity yet — their weight
+ * guardians) have no 1.12 entity yet — their weight
  * rows stay in the gap list (audit 14 §3.1/§3.2) and are filled back in when
  * each class lands. LANDED so far: the three spiders (2026-10-23, 审计补46/47)
  * and the revenant + bone lord (mob 批 2026-10-24, R196 BiomeGenBase :178
@@ -239,8 +239,8 @@ public final class ETIMSpawnTables {
      *       candidates below y≤44 / y≤32 pass; above the threshold they pass
      *       only on a blood-moon night (B-46).</li>
      * </ul>
-     * R196's infernal-creeper branch has no ETIM counterpart entity
-     * (未立项). BlackWidow has a carrier and is gated below; WoodSpider's
+     * R196's infernal-creeper replacement lands in B-47 (creeper gate below);
+     * BlackWidow has a carrier and is gated below; WoodSpider's
      * carrier exists but stays out of the spawn table per verdict G-S5.
      * 会话五裁定（裁定回执 补16）：R196 WorldServer:714-716 = BlackWidowSpider
      * 专属 50% 通过门（per-attempt 50% accept，else 续走 :614 内部 16-attempt
@@ -263,6 +263,17 @@ public final class ETIMSpawnTables {
             if (cls == EntityCreeper.class) {
                 if (w.provider.hasSkyLight() && !w.isDaytime() && w.canSeeSky(pos) && w.rand.nextInt(4) != 0) {
                     continue; // 3/4 drop on lit-outdoor nights
+                }
+                // B-47 (R196 WorldServer:624-626): the survivor branch rolls
+                // the depth/coin infernal replacement; `rand.nextInt(40) >= y`
+                // is true for every y <= 0 and most cave depths.
+                if (w.rand.nextInt(40) >= pos.getY() && w.rand.nextFloat() < 0.5F) {
+                    if (ETIMConfig.mobDebugLog) {
+                        ETIM.LOGGER.info("[SpawnLog] creeper-gate infernal y=" + pos.getY()
+                                + " at " + posToString(pos));
+                    }
+                    return new Biome.SpawnListEntry(ETIMEntityInfernalCreeper.class,
+                            picked.itemWeight, picked.minGroupCount, picked.maxGroupCount);
                 }
                 return picked;
             }

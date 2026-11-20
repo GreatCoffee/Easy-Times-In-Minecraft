@@ -11,6 +11,10 @@ import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.mining.ETIMOozeSpawn;
 import io.github.etim.etim.mob.ETIMMoonState;
 import io.github.etim.etim.mob.ETIMSpawnTables;
+import io.github.etim.etim.mob.ETIMSpawnCycle;
+import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
+import io.github.etim.etim.mob.ETIMCreeperExplosionRadius;
+import net.minecraft.entity.passive.EntityBat;
 import io.github.etim.etim.metal.ETIMAnvilRepair;
 import io.github.etim.etim.skill.ETIMSkill;
 import io.github.etim.etim.skill.ETIMSkills;
@@ -167,6 +171,15 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "spawnpick":
                 executeSpawnPick(server, sender, args);
+                break;
+            case "hangbat":
+                executeHangBat(server, sender, args);
+                break;
+            case "ghastgate":
+                executeGhastGate(server, sender, args);
+                break;
+            case "infernal":
+                executeInfernal(server, sender, args);
                 break;
             case "moon":
                 executeMoon(server, sender, args);
@@ -788,6 +801,68 @@ public class CommandDevTest extends CommandBase {
 
     /** {@code /etest moon <none|blue|blood|full|new>} — B-46 test-only moon
      * override; the product default reads the vanilla clock. */
+    /**
+     * {@code /etest hangbat <x> <y> <z>} — B-47 probe for the R196 ceiling
+     * hang. Builds an unspawned bat, runs the same helper the spawn pass uses,
+     * and reports whether a ceiling was found and the resulting Y.
+     */
+    private static void executeHangBat(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntityBat bat = new EntityBat(w);
+        double y = ETIMSpawnCycle.tryHangBatFromCeiling(w, bat, pos.getX(), pos.getY(), pos.getZ(),
+                pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
+        boolean ok = bat.getIsBatHanging();
+        ETIM.LOGGER.info("[SpawnLog] hangbat ok={} y={} at {} [server]", ok, y, pos);
+        sender.sendMessage(new TextComponentString("[etest] hangbat ok=" + ok + " y=" + y));
+    }
+
+    /**
+     * {@code /etest ghastgate <x> <y> <z>} — B-47 probe for the 48-block
+     * player veto that burns an attempt before a ghast can spawn.
+     */
+    private static void executeGhastGate(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntityPlayer player = w.getClosestPlayer(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 48.0D, false);
+        boolean veto = player != null;
+        ETIM.LOGGER.info("[SpawnLog] ghastgate player={} at {} [server]", veto, pos);
+        sender.sendMessage(new TextComponentString("[etest] ghastgate player=" + veto));
+    }
+
+    /**
+     * {@code /etest infernal <x> <y> <z>} — B-47 summons the infernal creeper
+     * and reports the carried radius, fire immunity and natural defense.
+     */
+    private static void executeInfernal(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        ETIMEntityInfernalCreeper creeper = new ETIMEntityInfernalCreeper(w);
+        creeper.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(creeper);
+        int radius = ((ETIMCreeperExplosionRadius) creeper).etim$getExplosionRadius();
+        float defense = creeper.etimNaturalDefense(net.minecraft.util.DamageSource.causeMobDamage(creeper));
+        ETIM.LOGGER.info("[SpawnLog] infernal spawn at {} radius={} fireImmune={} defense={} [server]",
+                pos, radius, creeper.isImmuneToFire(), defense);
+        sender.sendMessage(new TextComponentString("[etest] infernal radius=" + radius
+                + " fireImmune=" + creeper.isImmuneToFire() + " defense=" + defense));
+    }
+
     private static void executeMoon(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 2) {
             throw new WrongUsageException("commands.etest.usage");

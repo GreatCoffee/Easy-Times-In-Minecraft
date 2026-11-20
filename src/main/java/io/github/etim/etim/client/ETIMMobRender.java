@@ -3,7 +3,9 @@ package io.github.etim.etim.client;
 import io.github.etim.etim.mob.ETIMEntityAncientBoneLord;
 import io.github.etim.etim.mob.ETIMEntityArrow;
 import io.github.etim.etim.mob.ETIMEntityBoneLord;
+import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
+import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
 import io.github.etim.etim.mob.ETIMEntityOoze;
 import io.github.etim.etim.mob.ETIMEntityRevenant;
@@ -11,6 +13,8 @@ import io.github.etim.etim.mob.ETIMEntityRevenant;
 import net.minecraft.client.model.ModelSkeleton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderBiped;
+import net.minecraft.client.renderer.entity.RenderCreeper;
+import net.minecraft.client.renderer.entity.RenderCreeper;
 import net.minecraft.client.renderer.entity.RenderSkeleton;
 import net.minecraft.client.renderer.entity.RenderZombie;
 import net.minecraft.entity.monster.AbstractSkeleton;
@@ -53,6 +57,7 @@ public final class ETIMMobRender {
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityArrow.class, ETIMArrowRender::new);
         // B-44 census A :90 — the mining ooze (vanilla slime model + gray tint).
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityOoze.class, OozeRender::new);
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityInfernalCreeper.class, RenderCreeper::new);
     }
 
     /** The ETIMSpiderRender.Tinted shape over the vanilla skeleton renderer stack. */

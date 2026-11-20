@@ -51,6 +51,7 @@
     "MixinSidedInvWrapper",
     "MixinTileEntityHopper",
     "MixinEntity",
+    "MixinEntityCreeper",
     "MixinEntityLiving",
     "MixinEntityAnimal",
     "MixinEntityWaterMob",

@@ -13,6 +13,7 @@ import com.google.common.collect.Sets;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockHugeMushroom;
+import net.minecraft.block.BlockGlass;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
@@ -25,10 +26,12 @@ import net.minecraft.entity.monster.IMob;
 import net.minecraft.entity.monster.EntityCreeper;
 import net.minecraft.entity.monster.EntityGhast;
 import net.minecraft.entity.passive.EntityHorse;
+import net.minecraft.entity.passive.EntityBat;
 import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;import net.minecraft.world.EnumSkyBlock;import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldEntitySpawner;
@@ -441,6 +444,10 @@ public final class ETIMSpawnCycle {
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         BlockPos.MutableBlockPos probe = new BlockPos.MutableBlockPos();
         int spawnedTotal = 0;
+        // B-47 (R196 SpawnerAnimals:81/209): one ceiling-hang coin per pass.
+        // ETIM's bat rows live in AMBIENT, so the peaceful ambient pass is the
+        // effective carrier of the R196 hostile-pass coin.
+        boolean hangBats = type == EnumCreatureType.AMBIENT && w.rand.nextBoolean();
 
         for (ChunkPos chunkpos : shuffled) {
             if (spawnedTotal >= budget) {
@@ -487,7 +494,7 @@ public final class ETIMSpawnCycle {
                 continue;
             }
             probe.setPos(x, y, z);
-            spawnedTotal += spawnPack(w, cursor, probe, type);
+            spawnedTotal += spawnPack(w, cursor, probe, type, hangBats);
         }
         return spawnedTotal;
     }
@@ -504,7 +511,7 @@ public final class ETIMSpawnCycle {
      * channel out of canSpawnHere (A7) and per-round living data (A5).
      */
     private static int spawnPack(WorldServer w, BlockPos.MutableBlockPos cursor, BlockPos base,
-            EnumCreatureType type) {
+            EnumCreatureType type, boolean hangBats) {
         List<EntityLiving> landed = new ArrayList<>();
         int baseX = base.getX();
         int baseY = base.getY();
@@ -579,6 +586,16 @@ public final class ETIMSpawnCycle {
                     }
                     continue;
                 }
+                // B-47 (R196 SpawnerAnimals:197-199): a ghast candidate with a
+                // player inside 48 blocks burns one attempt and retries the
+                // walk with the same entry; after four attempts the round ends.
+                if (entry.entityClass == EntityGhast.class
+                        && w.getClosestPlayer(x + 0.5D, landing, z + 0.5D, 48.0D, false) != null) {
+                    if (ETIMConfig.mobDebugLog) {
+                        log(w, "ghast-gate retry at " + pos(cursor));
+                    }
+                    continue;
+                }
                 Class<? extends EntityLiving> cls = entry.entityClass;
                 // M6-01 (underworld 批 2026-10-25): R196 :202 — the substitute
                 // face runs per spawned mob, before the instantiation; the
@@ -592,7 +609,16 @@ public final class ETIMSpawnCycle {
                 } catch (Exception e) {
                     continue;
                 }
-                mob.setLocationAndAngles(x + 0.5D, landing, z + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
+                double spawnY = landing;
+                if (hangBats && mob instanceof EntityBat) {
+                    spawnY = tryHangBatFromCeiling(w, (EntityBat) mob, x, y, z,
+                            x + 0.5D, landing, z + 0.5D);
+                    if (ETIMConfig.mobDebugLog) {
+                        log(w, "bat-hang " + (((EntityBat) mob).getIsBatHanging() ? "ok" : "none")
+                                + " at " + pos(cursor));
+                    }
+                }
+                mob.setLocationAndAngles(x + 0.5D, spawnY, z + 0.5D, w.rand.nextFloat() * 360.0F, 0.0F);
                 if (mob.isNotColliding()) {
                     // A5 (audit 16): R196 :290 — finalize before entering the
                     // world; the returned data feeds the round's later spawns.
@@ -629,6 +655,49 @@ public final class ETIMSpawnCycle {
      * (EntityGhast:202), horse 6 (EntityHorse:605), wolf 8 (EntityWolf:485),
      * creeper 2 (EntityCreeper:191; vanilla 1.12 has no override), everything
      * else 4 (the vanilla default). 表数据 A 级直引不配键（F-5-31 先例）. */
+    /**
+     * B-47: R196 {@code SpawnerAnimals.tryHangBatFromCeiling} (:81-100).
+     *
+     * <p>Scans up to 15 blocks above the candidate's feet; the first non-air
+     * block is the ceiling. If it can carry a hanging bat, the bat is placed
+     * directly below it and its hanging flag is set. Returns the new Y
+     * (unchanged when no ceiling is usable).</p>
+     */
+    public static double tryHangBatFromCeiling(WorldServer w, EntityBat bat, int x, int y, int z,
+            double posX, double posY, double posZ) {
+        for (int dy = 1; dy < 16; ++dy) {
+            BlockPos ceiling = new BlockPos(x, y + dy, z);
+            if (!w.isAirBlock(ceiling)) {
+                if (canBatHangFrom(w, ceiling)) {
+                    double hangY = y + dy - bat.height - 0.01D;
+                    bat.setLocationAndAngles(posX, hangY, posZ, 0.0F, 0.0F);
+                    bat.setIsBatHanging(true);
+                    return hangY;
+                }
+                break;
+            }
+        }
+        // 1.12's EntityBat constructor starts hanging=true; the R196 helper
+        // only flips it on success, so a failed probe must clear it.
+        bat.setIsBatHanging(false);
+        return posY;
+    }
+
+    /** R196 {@code EntityBat.canHangFromBlock} nearest 1.12 carrier. */
+    private static boolean canBatHangFrom(WorldServer w, BlockPos pos) {
+        IBlockState state = w.getBlockState(pos);
+        Block block = state.getBlock();
+        if (block instanceof BlockGlass) {
+            return false;
+        }
+        // R196 accepts a full standard cube OR a bottom-solid face (slabs,
+        // stairs); 1.12's per-face solidity is the exact-enough carrier.
+        if (!state.isSideSolid(w, pos, EnumFacing.DOWN)) {
+            return false;
+        }
+        return w.isAirBlock(pos.down());
+    }
+
     private static int getMaxSpawnedInChunk(WorldServer w, Biome.SpawnListEntry entry) {
         Class<?> cls = entry.entityClass;
         if (cls == EntityGhast.class) {
@@ -647,7 +716,7 @@ public final class ETIMSpawnCycle {
         if (cls == EntityWolf.class) {
             return 8;
         }
-        if (cls == EntityCreeper.class) {
+        if (cls == EntityCreeper.class || cls == ETIMEntityInfernalCreeper.class) {
             return 2;
         }
         return 4;

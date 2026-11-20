@@ -29,6 +29,12 @@ public final class ETIMMobEntities {
         // B-44 census A :90: the mining ooze (id 11; arrow keeps 10).
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "ooze"),
                 ETIMEntityOoze.class, "etim.ooze", 11, ETIM.instance(), 64, 3, true);
+        // B-47 D :274 infernal creeper (id 12; follows the ooze block).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "infernal_creeper"),
+                ETIMEntityInfernalCreeper.class, "etim.infernal_creeper", 12, ETIM.instance(), 64, 3, true);
+        // B-47: infernal creeper variant (id 12).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "infernal_creeper"),
+                ETIMEntityInfernalCreeper.class, "etim.infernal_creeper", 12, ETIM.instance(), 64, 3, true);
     }
 
     /**
