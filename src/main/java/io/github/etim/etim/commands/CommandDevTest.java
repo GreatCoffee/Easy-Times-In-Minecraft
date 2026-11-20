@@ -12,6 +12,8 @@ import io.github.etim.etim.mining.ETIMOozeSpawn;
 import io.github.etim.etim.mob.ETIMMoonState;
 import io.github.etim.etim.mob.ETIMSpawnTables;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
+import io.github.etim.etim.mob.ETIMAnimalWarn;
+import io.github.etim.etim.mob.ETIMLivestock;
 import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
 import io.github.etim.etim.mob.ETIMCreeperExplosionRadius;
 import net.minecraft.entity.passive.EntityBat;
@@ -32,7 +34,10 @@ import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.EnumCreatureType;
+import net.minecraft.entity.passive.EntityAnimal;
+import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntitySnowball;
@@ -56,7 +61,9 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -183,6 +190,9 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "wolf":
                 executeWolf(server, sender, args);
+                break;
+            case "warnpeers":
+                executeWarnPeers(server, sender, args);
                 break;
             case "moon":
                 executeMoon(server, sender, args);
@@ -1531,6 +1541,48 @@ for (EntityLiving e : hits) {
         respond(player, "commands.etest.devok");
     }
 
+    /**
+     * {@code /etest warnpeers <x> <y> <z>} — B-49 (census D :318) probe:
+     * summons three cows in a row, hits the first with a player-source damage
+     * and reports each cow's revenge target and the panic flee flag. The two
+     * peers should carry the attacker as revenge; the panic task turns that
+     * into {@code hasDecidedToFlee} on its next canUse pass.
+     */
+    private static void executeWarnPeers(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntityPlayerMP player = server.getPlayerList().getPlayers().isEmpty()
+                ? null : server.getPlayerList().getPlayers().get(0);
+        List<EntityCow> cows = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            EntityCow cow = new EntityCow(w);
+            cow.setLocationAndAngles(pos.getX() + 0.5D + i, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+            w.spawnEntity(cow);
+            cows.add(cow);
+        }
+        DamageSource source = player == null
+                ? DamageSource.GENERIC : DamageSource.causePlayerDamage(player);
+        boolean hurt = cows.get(0).attackEntityFrom(source, 1.0F);
+        for (EntityCow cow : cows) {
+            EntityLivingBase revenge = cow.getRevengeTarget();
+            ETIMLivestock.IState state = ETIMLivestock.get(cow);
+            ETIM.LOGGER.info("[AILog] warnpeers probe id=" + cow.getEntityId()
+                    + " revenge=" + (revenge == null ? 0 : revenge.getEntityId())
+                    + " flee=" + (state != null && state.getHasDecidedToFlee())
+                    + " dist=" + String.format("%.2f", cow.getDistance(cows.get(0)))
+                    + " hurt=" + hurt + " [server]");
+        }
+        if (player != null) {
+            respond(player, "commands.etest.devok");
+        } else {
+            sender.sendMessage(new TextComponentString("[etest] warnpeers"));
+        }
+    }
     /**
      * {@code /etest chestio <op> ...} — the chest-window 工装 bezel. Ops:
      * {@code peek} | {@code add <slot> <item> [count=1]} | {@code clear} |

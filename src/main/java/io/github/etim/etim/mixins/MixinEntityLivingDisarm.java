@@ -54,7 +54,11 @@ public abstract class MixinEntityLivingDisarm {
 
     @Inject(method = "canPickUpLoot()Z", at = @At("HEAD"), cancellable = true, remap = true)
     private void etim$disarmPickupGate(CallbackInfoReturnable<Boolean> cir) {
-        if (ETIMMelee.getDisarmTicks((EntityLiving) (Object) this) > 0) {
+        EntityLiving self = (EntityLiving) (Object) this;
+        // R196 EntityLiving.canPickUpLoot :1451 also requires a live owner; 1.12
+        // only checks the field, so the death/health arm is restored here.
+        if (self.isDead || self.getHealth() <= 0.0F
+                || ETIMMelee.getDisarmTicks(self) > 0) {
             cir.setReturnValue(false);
         }
     }

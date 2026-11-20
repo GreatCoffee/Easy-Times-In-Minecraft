@@ -2,12 +2,14 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
+import io.github.etim.etim.mob.ETIMAnimalWarn;
 import io.github.etim.etim.mob.ETIMEntityAIAvoidPotentialPredators;
 import io.github.etim.etim.mob.ETIMEntityAIAvoidFire;
 import io.github.etim.etim.mob.ETIMEntityAIPanic;
 import io.github.etim.etim.mob.ETIMEntityAIGetOutOfWater;
 import io.github.etim.etim.mob.ETIMLivestockEvents;
 import io.github.etim.etim.mob.ETIMMoonState;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntityChicken;
@@ -15,6 +17,7 @@ import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.entity.passive.EntitySheep;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -255,5 +258,21 @@ public abstract class MixinEntityAnimal {
         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getLight(Lnet/minecraft/util/math/BlockPos;)I"))
     private int etim$blueAnimalLightGate(World world, BlockPos pos) {
         return ETIMMoonState.animalLightBypass() ? 16 : world.getLight(pos);
+    }
+
+    /**
+     * B-49 (census D :318) — R196 {@code EntityAnimal.attackEntityFrom} :158
+     * calls {@code warnPeersOfAttacker} after a successful hit. The 1.12
+     * carrier is this same override; the helper copies the attacker onto
+     * nearby same-species animals as the revenge target (the panic task's
+     * flee trigger) and skips tamed / already-targeting peers.
+     */
+    @Inject(method = "attackEntityFrom", at = @At("TAIL"), remap = true)
+    private void etim$warnPeers(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        if (!Boolean.TRUE.equals(cir.getReturnValue())) {
+            return;
+        }
+        Entity attacker = source == null ? null : source.getTrueSource();
+        ETIMAnimalWarn.warnPeers((EntityAnimal) (Object) this, attacker);
     }
 }
