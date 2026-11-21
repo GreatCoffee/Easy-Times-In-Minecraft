@@ -101,7 +101,8 @@ public final class ETIMMobStats {
         Entity e = event.getEntity();
         // B-48 (census D :121) — R196 EntityWolf:48-50 is tame-sensitive, so the
         // wolf rides its own dynamic row instead of the static table.
-        if (e instanceof net.minecraft.entity.passive.EntityWolf) {
+        if (e instanceof net.minecraft.entity.passive.EntityWolf
+                && !e.getClass().getName().startsWith("io.github.etim.etim.")) {
             applyWolf((net.minecraft.entity.passive.EntityWolf) e);
             return;
         }

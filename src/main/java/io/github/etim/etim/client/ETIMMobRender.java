@@ -11,6 +11,8 @@ import io.github.etim.etim.mob.ETIMEntityGiantVampireBat;
 import io.github.etim.etim.mob.ETIMEntityBlob;
 import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
 import io.github.etim.etim.mob.ETIMEntityInvisibleStalker;
+import io.github.etim.etim.mob.ETIMEntityDireWolf;
+import io.github.etim.etim.mob.ETIMEntityHellhound;
 import io.github.etim.etim.mob.ETIMEntityJelly;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
@@ -89,6 +91,10 @@ public final class ETIMMobRender {
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityInvisibleStalker.class,
                 manager -> new ETIMUndeadRender<ETIMEntityInvisibleStalker>(manager,
                         new ResourceLocation("etim:textures/entity/wight.png"), 0.05F));
+        // B-61 D :86/:115/:116 -- R196 RenderDireWolf (1.1x, four textures) and
+        // RenderHellhound (single texture); both ride the vanilla wolf model.
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityDireWolf.class, ETIMDireWolfRender::new);
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityHellhound.class, ETIMHellhoundRender::new);
         // B-55 (R196 RenderBat:3-30): the family reuses the vanilla bat model
         // and renderer stack; only the texture differs, and the giant gets the
         // 2× scale from R196 EntityBat.getScaleFactor.

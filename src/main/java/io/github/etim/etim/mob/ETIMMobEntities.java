@@ -62,6 +62,11 @@ public final class ETIMMobEntities {
         // B-60 D :245/:261 — the invisible stalker (id 23).
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "invisible_stalker"),
                 ETIMEntityInvisibleStalker.class, "etim.invisible_stalker", 23, ETIM.instance(), 64, 3, true);
+        // B-61 D :69/:86/:115/:116 -- the wolf beasts (ids 24/25).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "dire_wolf"),
+                ETIMEntityDireWolf.class, "etim.dire_wolf", 24, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "hellhound"),
+                ETIMEntityHellhound.class, "etim.hellhound", 25, ETIM.instance(), 64, 3, true);
     }
 
     /**

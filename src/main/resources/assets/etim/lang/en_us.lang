@@ -317,3 +317,5 @@ entity.etim.ghoul.name=Ghoul
 entity.etim.wight.name=Wight
 entity.etim.shadow.name=Shadow
 entity.etim.invisible_stalker.name=Invisible Stalker
+entity.etim.dire_wolf.name=Dire Wolf
+entity.etim.hellhound.name=Hellhound

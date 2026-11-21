@@ -770,7 +770,9 @@ public final class ETIMSpawnCycle {
         if (cls == EntityHorse.class) {
             return 6;
         }
-        if (cls == EntityWolf.class) {
+        if (cls == EntityWolf.class
+                || cls == io.github.etim.etim.mob.ETIMEntityDireWolf.class
+                || cls == io.github.etim.etim.mob.ETIMEntityHellhound.class) {
             return 8;
         }
         if (cls == EntityCreeper.class || cls == ETIMEntityInfernalCreeper.class) {

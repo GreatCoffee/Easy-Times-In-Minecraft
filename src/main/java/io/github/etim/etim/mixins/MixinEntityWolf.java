@@ -205,6 +205,19 @@ public abstract class MixinEntityWolf implements ETIMWolfHostilityDuck {
         if (wolf.world.isRemote || !ETIMConfig.mobStatsR196) {
             return;
         }
+        if (wolf instanceof io.github.etim.etim.mob.ETIMEntityDireWolf) {
+            // B-61 D :115 — R196 EntityDireWolf:10-15: 24/16 hp, attack 5,
+            // follow 32/16; the plain-wolf 12/8 row below must not win.
+            double direMax = tamed ? 24.0 : 16.0;
+            wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.4);
+            wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MAX_HEALTH).setBaseValue(direMax);
+            wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(5.0);
+            wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(tamed ? 32.0 : 16.0);
+            if (wolf.getHealth() > direMax) {
+                wolf.setHealth((float) direMax);
+            }
+            return;
+        }
         float healthBefore = wolf.getHealth();
         double maxHealth = tamed ? 12.0 : 8.0;
         wolf.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.4);

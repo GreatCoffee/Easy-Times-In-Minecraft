@@ -120,6 +120,9 @@ public final class ETIMSpawnTables {
         monster.add(entry(ETIMEntityShadow.class, 10, 1, 1));
         // B-60 (R196 BiomeGenBase:173): invisible stalker 10 (1,1), all biomes.
         monster.add(entry(ETIMEntityInvisibleStalker.class, 10, 1, 1));
+        // B-61 D :116 -- R196 BiomeGenBase:174: hellhound 10 (1,1) in the base
+        // monster table; the depth gate (WorldServer:683-686) trims it to y<=32.
+        monster.add(entry(ETIMEntityHellhound.class, 10, 1, 1));
         BASE.put(EnumCreatureType.MONSTER, monster);
 
         List<Biome.SpawnListEntry> water = new ArrayList<>();
@@ -190,10 +193,12 @@ public final class ETIMSpawnTables {
             override(b, EnumCreatureType.CREATURE, entry(EntityWolf.class, 10, 1, 3));
         }
         for (Biome b : TAIGA) {
-            override(b, EnumCreatureType.CREATURE, entry(EntityWolf.class, 10, 1, 3));
+            override(b, EnumCreatureType.CREATURE, entry(EntityWolf.class, 10, 1, 3),
+                    entry(ETIMEntityDireWolf.class, 5, 1, 3)); // R196 BiomeGenTaiga:9
         }
         for (Biome b : SNOWY) {
-            override(b, EnumCreatureType.CREATURE, entry(EntityWolf.class, 4, 1, 3));
+            override(b, EnumCreatureType.CREATURE, entry(EntityWolf.class, 4, 1, 3),
+                    entry(ETIMEntityDireWolf.class, 1, 1, 3)); // R196 BiomeGenSnow:9
         }
         override(Biomes.PLAINS, EnumCreatureType.CREATURE, entry(EntityHorse.class, 5, 1, 2));
         override(Biomes.JUNGLE, EnumCreatureType.CREATURE, entry(EntityOcelot.class, 10, 1, 1),
@@ -655,12 +660,34 @@ public final class ETIMSpawnTables {
             allowed = pos.getY() <= 32 || (blood && desert);
         } else if (cls == ETIMEntityInvisibleStalker.class) {
             allowed = pos.getY() <= 40; // R196 WorldServer.java:654-657: depth only
+        } else if (cls == ETIMEntityHellhound.class) {
+            allowed = pos.getY() <= 32; // R196 WorldServer.java:683-686: depth only
         } else {
             allowed = true;
         }
         return new UndeadGate(allowed, blood, freezing, desert);
     }
 
+    /** B-61 W6: the effective CREATURE row of the current biome for a class. */
+    public static String probeBiomeRow(WorldServer w, BlockPos pos, Class<?> cls) {
+        Biome biome = w.getBiome(pos);
+        String biomeName = String.valueOf(biome.getRegistryName());
+        Map<EnumCreatureType, List<Biome.SpawnListEntry>> byType = OVERRIDES.get(biome);
+        if (byType == null) {
+            return "biome=" + biomeName + " source=base cls=absent";
+        }
+        List<Biome.SpawnListEntry> list = byType.get(EnumCreatureType.CREATURE);
+        if (list == null) {
+            return "biome=" + biomeName + " source=override cls=absent";
+        }
+        for (Biome.SpawnListEntry e : list) {
+            if (e.entityClass == cls) {
+                return "biome=" + biomeName + " source=override weight=" + e.itemWeight
+                        + " min=" + e.minGroupCount + " max=" + e.maxGroupCount;
+            }
+        }
+        return "biome=" + biomeName + " source=override cls=absent";
+    }
     private static Biome.SpawnListEntry pickWeighted(WorldServer w, EnumCreatureType type, BlockPos pos) {
         Biome biome = w.getBiome(pos);
         Map<EnumCreatureType, List<Biome.SpawnListEntry>> byType = OVERRIDES.get(biome);

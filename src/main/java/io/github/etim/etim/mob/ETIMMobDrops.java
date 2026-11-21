@@ -243,7 +243,8 @@ public final class ETIMMobDrops {
             if (recentlyHit && !hasMassiveFall(e) && rand.nextInt(baseChanceOfRareDrop(e)) < 5 + looting * 2) {
                 baseDrop(e, "pigzombie", Items.GOLD_INGOT, 1, recentlyHit, looting);
             }
-        } else if (e instanceof net.minecraft.entity.passive.EntityWolf) {
+        } else if (e instanceof net.minecraft.entity.passive.EntityWolf
+                && !(e instanceof io.github.etim.etim.mob.ETIMEntityHellhound)) {
             baseDrop(e, "wolf", Items.LEATHER, 1, recentlyHit, looting);
         } else if (e instanceof net.minecraft.entity.passive.EntityChicken) {
             ETIMLivestock.IState state = ETIMLivestock.get(e);

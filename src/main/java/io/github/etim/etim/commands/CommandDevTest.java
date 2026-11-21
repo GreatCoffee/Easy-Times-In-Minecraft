@@ -22,6 +22,8 @@ import io.github.etim.etim.mob.ETIMEntityGhoul;
 import io.github.etim.etim.mob.ETIMEntityWight;
 import io.github.etim.etim.mob.ETIMEntityShadow;
 import io.github.etim.etim.mob.ETIMEntityInvisibleStalker;
+import io.github.etim.etim.mob.ETIMEntityDireWolf;
+import io.github.etim.etim.mob.ETIMEntityHellhound;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
 import io.github.etim.etim.mob.ETIMWorldGenSpawning;
 import io.github.etim.etim.mob.ETIMAnimalsSpawnedDuck;
@@ -273,6 +275,21 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "stalker":
                 executeStalker(server, sender, args);
+                break;
+            case "beast":
+                executeBeast(server, sender, args);
+                break;
+            case "beasttame":
+                executeBeastTame(server, sender, args);
+                break;
+            case "beastgate":
+                executeBeastGate(server, sender, args);
+                break;
+            case "beastbite":
+                executeBeastBite(server, sender, args);
+                break;
+            case "beasthit":
+                executeBeastHit(server, sender, args);
                 break;
             case "batclear":
                 executeBatClear(server, sender, args);
@@ -2633,6 +2650,171 @@ for (EntityLiving e : hits) {
         stalker.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
         w.spawnEntity(stalker);
         logUndeadProbe("stalker", stalker, player, sender);
+    }
+
+    /** B-61 W1: spawns one wolf beast and logs the R196 attribute row. */
+    private static void executeBeast(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 2, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        net.minecraft.entity.passive.EntityWolf beast;
+        if ("dire".equals(kind)) {
+            beast = new ETIMEntityDireWolf(w);
+        } else if ("hell".equals(kind)) {
+            beast = new ETIMEntityHellhound(w);
+        } else {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        beast.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(beast);
+        logBeastProbe(kind, beast);
+    }
+
+    private static void logBeastProbe(String kind, net.minecraft.entity.passive.EntityWolf beast) {
+        int xp = beast instanceof ETIMEntityDireWolf
+                ? ((ETIMEntityDireWolf) beast).etimXp()
+                : ((ETIMEntityHellhound) beast).etimXp();
+        ETIM.LOGGER.info("[BeastLog] probe kind=" + kind
+                + " hp=" + String.format(java.util.Locale.ROOT, "%.1f", beast.getHealth())
+                + " max=" + String.format(java.util.Locale.ROOT, "%.1f", beast.getMaxHealth())
+                + " attack=" + String.format(java.util.Locale.ROOT, "%.1f",
+                        beast.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).getAttributeValue())
+                + " speed=" + String.format(java.util.Locale.ROOT, "%.2f",
+                        beast.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MOVEMENT_SPEED).getAttributeValue())
+                + " follow=" + String.format(java.util.Locale.ROOT, "%.1f",
+                        beast.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.FOLLOW_RANGE).getAttributeValue())
+                + " tamed=" + beast.isTamed()
+                + " xp=" + xp
+                + " entity=" + beast.getEntityId() + " [server]");
+    }
+
+    /** B-61 W2: rolls the R196 taming table N times without touching the world. */
+    private static void executeBeastTame(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        int count = args.length > 1 ? Integer.parseInt(args[1]) : 5;
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        ETIMEntityDireWolf probe = new ETIMEntityDireWolf(w);
+        int aggro = 0;
+        int fail = 0;
+        int ok = 0;
+        for (int i = 0; i < count; i++) {
+            int outcome = probe.etimTestTameOutcome(player);
+            if (outcome < 0) {
+                ++aggro;
+            } else if (outcome == 0) {
+                ++fail;
+            } else {
+                ++ok;
+            }
+        }
+        ETIMEntityDireWolf tamedProbe = new ETIMEntityDireWolf(w);
+        tamedProbe.setTamed(true);
+        ETIM.LOGGER.info("[BeastLog] tamedrow kind=direwolf hp=" + String.format(java.util.Locale.ROOT, "%.1f", tamedProbe.getHealth())
+                + " max=" + String.format(java.util.Locale.ROOT, "%.1f", tamedProbe.getMaxHealth())
+                + " attack=" + String.format(java.util.Locale.ROOT, "%.1f",
+                        tamedProbe.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).getAttributeValue())
+                + " follow=" + String.format(java.util.Locale.ROOT, "%.1f",
+                        tamedProbe.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.FOLLOW_RANGE).getAttributeValue())
+                + " [server]");        ETIM.LOGGER.info("[BeastLog] tamesum rolls=" + count + " aggro=" + aggro + " fail=" + fail
+                + " success=" + ok + " level=" + player.experienceLevel + " [server]");
+        sender.sendMessage(new TextComponentString("[etest] beasttame rolls=" + count + " aggro=" + aggro
+                + " fail=" + fail + " success=" + ok));
+    }
+
+    /** B-61 W5/W6: the hellhound depth gate and the dire wolf biome row. */
+    private static void executeBeastGate(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 2, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        if ("hell".equals(kind)) {
+            ETIMSpawnTables.probeUndeadGate(w, pos, ETIMEntityHellhound.class);
+        } else if ("dire".equals(kind)) {
+            ETIM.LOGGER.info("[BeastLog] biomerow kind=dire " + ETIMSpawnTables.probeBiomeRow(w, pos, ETIMEntityDireWolf.class)
+                    + " at " + pos + " [server]");
+        } else {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+    }
+
+    /** B-61 W3: drives N bites so the 40% burning row can be sampled. */
+    private static void executeBeastBite(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        String kind = args.length > 1 ? args[1].toLowerCase(java.util.Locale.ROOT) : "hell";
+        int count = args.length > 2 ? Integer.parseInt(args[2]) : 12;
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        WorldServer w = (WorldServer) player.world;
+        Class<? extends net.minecraft.entity.passive.EntityWolf> cls = "dire".equals(kind)
+                ? ETIMEntityDireWolf.class : ETIMEntityHellhound.class;
+        java.util.List<? extends net.minecraft.entity.passive.EntityWolf> list =
+                w.getEntitiesWithinAABB(cls, player.getEntityBoundingBox().grow(16.0D));
+        int bites = 0;
+        for (net.minecraft.entity.passive.EntityWolf beast : list) {
+            for (int i = 0; i < count; i++) {
+                if (beast.attackEntityAsMob(player)) {
+                    ++bites;
+                }
+            }
+        }
+        ETIM.LOGGER.info("[BeastLog] bitebind kind=" + kind + " beasts=" + list.size() + " bites=" + bites
+                + " player=" + player.getName() + " [server]");
+        sender.sendMessage(new TextComponentString("[etest] beastbite " + kind + " beasts=" + list.size()
+                + " bites=" + bites));
+    }
+
+    /** B-61 W4: fire/lava damage must bounce off the hellhound. */
+    private static void executeBeastHit(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        String kind = args.length > 1 ? args[1].toLowerCase(java.util.Locale.ROOT) : "hell";
+        String aspect = args.length > 2 ? args[2].toLowerCase(java.util.Locale.ROOT) : "fire";
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        net.minecraft.util.DamageSource source;
+        if ("fire".equals(aspect)) {
+            source = net.minecraft.util.DamageSource.IN_FIRE;
+        } else if ("lava".equals(aspect)) {
+            source = net.minecraft.util.DamageSource.LAVA;
+        } else {
+            aspect = "player";
+            source = net.minecraft.util.DamageSource.causePlayerDamage(player);
+        }
+        WorldServer w = (WorldServer) player.world;
+        java.util.List<net.minecraft.entity.passive.EntityWolf> list = w.getEntitiesWithinAABB(
+                "dire".equals(kind) ? ETIMEntityDireWolf.class : ETIMEntityHellhound.class,
+                player.getEntityBoundingBox().grow(16.0D));
+        int applied = 0;
+        for (net.minecraft.entity.passive.EntityWolf beast : list) {
+            if (beast.attackEntityFrom(source, 4.0F)) {
+                ++applied;
+            }
+        }
+        ETIM.LOGGER.info("[BeastLog] hit kind=" + kind + " source=" + aspect + " found=" + list.size()
+                + " applied=" + applied + " [server]");
+        sender.sendMessage(new TextComponentString("[etest] beasthit " + kind + " " + aspect
+                + " found=" + list.size() + " applied=" + applied));
     }
 
     private static void executeWightKill(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
