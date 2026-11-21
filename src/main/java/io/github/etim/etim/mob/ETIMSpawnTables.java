@@ -118,6 +118,8 @@ public final class ETIMSpawnTables {
         monster.add(entry(ETIMEntityGhoul.class, 10, 1, 1));
         monster.add(entry(ETIMEntityWight.class, 10, 1, 1));
         monster.add(entry(ETIMEntityShadow.class, 10, 1, 1));
+        // B-60 (R196 BiomeGenBase:173): invisible stalker 10 (1,1), all biomes.
+        monster.add(entry(ETIMEntityInvisibleStalker.class, 10, 1, 1));
         BASE.put(EnumCreatureType.MONSTER, monster);
 
         List<Biome.SpawnListEntry> water = new ArrayList<>();
@@ -436,7 +438,7 @@ public final class ETIMSpawnTables {
             // / :687-690): cfg switch + ghoul y<=56, wight y<=48 or
             // (blood && freezing), shadow y<=32 or (blood && desert);
             // non-overworld keeps the depth bypass like the rows above.
-            if (cls == ETIMEntityGhoul.class || cls == ETIMEntityWight.class || cls == ETIMEntityShadow.class) {
+            if (cls == ETIMEntityGhoul.class || cls == ETIMEntityWight.class || cls == ETIMEntityShadow.class || cls == ETIMEntityInvisibleStalker.class) {
                 if (!ETIMConfig.mobUndeadSurfaceR196) {
                     continue;
                 }
@@ -649,8 +651,12 @@ public final class ETIMSpawnTables {
             allowed = pos.getY() <= 56 || blood;
         } else if (cls == ETIMEntityWight.class) {
             allowed = pos.getY() <= 48 || (blood && freezing);
-        } else {
+        } else if (cls == ETIMEntityShadow.class) {
             allowed = pos.getY() <= 32 || (blood && desert);
+        } else if (cls == ETIMEntityInvisibleStalker.class) {
+            allowed = pos.getY() <= 40; // R196 WorldServer.java:654-657: depth only
+        } else {
+            allowed = true;
         }
         return new UndeadGate(allowed, blood, freezing, desert);
     }

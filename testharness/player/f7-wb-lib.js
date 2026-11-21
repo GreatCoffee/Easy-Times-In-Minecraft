@@ -32,7 +32,7 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b59-build4', releaseSize: 1354794, releaseSha: 'DD1CEB8495D0B9CB7CC2E4800BAD644D64D43BD341790CA64911D2A6008E069F', devSha: '84D4CECBBE8A3CD08B0BEE7E6A869FDB90A17DBC82EF34A7D31CE4F569F4A32A', sourcesSha: '21F3F4F6ED6A22B8303AC5F525ED8AC925B333DBEC7BF505232389D956B3B039' }; // b59-build4 = B-59 undead trio; ghoul melee no longer starved by the standalone dig task (release 1,354,794 B)
+const PIN = { build: 'b60-build2', releaseSize: 1358755, releaseSha: '8D1AE54F4945F9566F0D7A7603C456C7CC4AA0EC3A18D54D2DA2D4CA94C39DBA', devSha: '8CC58943B8B1C4610820C15CAE5117E322E3E98F05B3E98F90A59E9F8452A490', sourcesSha: '9FBE623DA10F10F7AD9B5AB67C737B8DE01E72881E863F65152DFE7E3200BD80' }; // b60-build2 = B-60 invisible stalker; +invisible= field on the spawn row (release 1,358,755 B)
 const MK_PIN = { classes: 104, entries: 263, dual: 526, mixins: 105, client: 10 }; // b59-build2: +1 refmap entry (EntityLivingBaseAccessor.recentlyHit) over b58-build5.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);

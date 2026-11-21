@@ -21,6 +21,7 @@ import io.github.etim.etim.mob.ETIMEntityOoze;
 import io.github.etim.etim.mob.ETIMEntityGhoul;
 import io.github.etim.etim.mob.ETIMEntityWight;
 import io.github.etim.etim.mob.ETIMEntityShadow;
+import io.github.etim.etim.mob.ETIMEntityInvisibleStalker;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
 import io.github.etim.etim.mob.ETIMWorldGenSpawning;
 import io.github.etim.etim.mob.ETIMAnimalsSpawnedDuck;
@@ -269,6 +270,9 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "undeadkill":
                 executeUndeadKill(server, sender, args);
+                break;
+            case "stalker":
+                executeStalker(server, sender, args);
                 break;
             case "batclear":
                 executeBatClear(server, sender, args);
@@ -2531,7 +2535,9 @@ for (EntityLiving e : hits) {
                 ? ((ETIMEntityGhoul) mob).etimExperienceProbe(player)
                 : mob instanceof ETIMEntityWight
                         ? ((ETIMEntityWight) mob).etimExperienceProbe(player)
-                        : ((ETIMEntityShadow) mob).etimExperienceProbe(player);
+                        : mob instanceof ETIMEntityShadow
+                                ? ((ETIMEntityShadow) mob).etimExperienceProbe(player)
+                                : ((ETIMEntityInvisibleStalker) mob).etimExperienceProbe(player);
         boolean undead = mob.getCreatureAttribute() == net.minecraft.entity.EnumCreatureAttribute.UNDEAD;
         ETIM.LOGGER.info("[UndeadLog] probe kind={} hp={} max={} follow={} attack={} speed={} xp={} undead={} at {} [server]",
                 kind, mob.getHealth(), mob.getMaxHealth(), follow, attack, speed, xp, undead, mob.getPosition());
@@ -2560,6 +2566,8 @@ for (EntityLiving e : hits) {
             cls = ETIMEntityWight.class;
         } else if ("shadow".equals(kind)) {
             cls = ETIMEntityShadow.class;
+        } else if ("stalker".equals(kind)) {
+            cls = ETIMEntityInvisibleStalker.class;
         } else {
             throw new WrongUsageException("commands.etest.usage");
         }
@@ -2607,6 +2615,24 @@ for (EntityLiving e : hits) {
         }
         ETIM.LOGGER.info("[UndeadLog] undeadkill source=" + kind + " found=" + found + " killed=" + killed + " [server]");
         sender.sendMessage(new TextComponentString("[etest] undeadkill " + kind + " found=" + found + " killed=" + killed));
+    }
+
+    /** B-60 W1: spawns one invisible stalker at the given block and logs the probe row. */
+    private static void executeStalker(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : w.getClosestPlayer(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 64.0D, false);
+        net.minecraft.entity.monster.EntityMob stalker = new ETIMEntityInvisibleStalker(w);
+        stalker.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(stalker);
+        logUndeadProbe("stalker", stalker, player, sender);
     }
 
     private static void executeWightKill(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {

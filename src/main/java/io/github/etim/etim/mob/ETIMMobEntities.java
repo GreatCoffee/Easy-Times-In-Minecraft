@@ -59,13 +59,9 @@ public final class ETIMMobEntities {
                 ETIMEntityWight.class, "etim.wight", 21, ETIM.instance(), 64, 3, true);
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "shadow"),
                 ETIMEntityShadow.class, "etim.shadow", 22, ETIM.instance(), 64, 3, true);
-        // B-59 D :110-112/:236-238 — the surface undead trio (ids 20/21/22).
-        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "ghoul"),
-                ETIMEntityGhoul.class, "etim.ghoul", 20, ETIM.instance(), 64, 3, true);
-        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "wight"),
-                ETIMEntityWight.class, "etim.wight", 21, ETIM.instance(), 64, 3, true);
-        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "shadow"),
-                ETIMEntityShadow.class, "etim.shadow", 22, ETIM.instance(), 64, 3, true);
+        // B-60 D :245/:261 — the invisible stalker (id 23).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "invisible_stalker"),
+                ETIMEntityInvisibleStalker.class, "etim.invisible_stalker", 23, ETIM.instance(), 64, 3, true);
     }
 
     /**

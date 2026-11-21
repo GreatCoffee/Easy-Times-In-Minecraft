@@ -58,6 +58,11 @@ public final class ETIMLightSourceSuppression {
     }
 
     public static boolean tryDisableNearbyLightSource(EntityLivingBase entity) {
+        return tryDisableNearbyLightSource(entity, "shadow");
+    }
+
+    /** B-60: same R196 routine, tagging the row for the calling species. */
+    public static boolean tryDisableNearbyLightSource(EntityLivingBase entity, String label) {
         World world = entity.world;
         if (world.isRemote || ((io.github.etim.etim.mixins.EntityLivingBaseAccessor) entity).etim$getRecentlyHit() != 0) {
             return false;
@@ -78,8 +83,8 @@ public final class ETIMLightSourceSuppression {
                         dropItem(world, pos, new ItemStack(state.getBlock()));
                         popSound(world, entity);
                         if (ETIMConfig.mobDebugLog) {
-                            ETIM.LOGGER.info("[UndeadLog] shadow snuff pos={} kind={} entity={}",
-                                    pos, state.getBlock().getRegistryName(), entity);
+                            ETIM.LOGGER.info("[UndeadLog] {} snuff pos={} kind={} entity={}",
+                                    label, pos, state.getBlock().getRegistryName(), entity);
                         }
                         return true;
                     }
@@ -92,7 +97,7 @@ public final class ETIMLightSourceSuppression {
                         world.spawnEntity(torch);
                         popSound(world, entity);
                         if (ETIMConfig.mobDebugLog) {
-                            ETIM.LOGGER.info("[UndeadLog] shadow snuff pos={} kind=lit_pumpkin entity={}", pos, entity);
+                            ETIM.LOGGER.info("[UndeadLog] {} snuff pos={} kind=lit_pumpkin entity={}", label, pos, entity);
                         }
                         return true;
                     }

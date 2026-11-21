@@ -1,5 +1,8 @@
 package io.github.etim.etim.mob;
 
+import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIMConfig;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -77,6 +80,11 @@ public class ETIMEntityAISeekLitTorch extends EntityAIBase {
             PathPoint end = path.getFinalPathPoint();
             if (end != null && ETIMLightSourceSuppression.isNearLitTorch(
                     this.owner.world, new BlockPos(end.x, end.y, end.z), height)) {
+                if (ETIMConfig.mobDebugLog) {
+                    ETIM.LOGGER.info("[StalkerLog] seek cls={} torch={} dist={} entity={}",
+                            this.owner.getClass().getSimpleName(), candidate,
+                            (int) Math.sqrt(candidate.distanceSq(base)), this.owner.getEntityId());
+                }
                 return true;
             }
         }
