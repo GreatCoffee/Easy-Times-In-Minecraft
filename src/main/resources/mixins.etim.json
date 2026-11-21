@@ -83,6 +83,7 @@
     "MixinBlockCrops",
     "MixinEntityAIAttackMelee",
     "MixinEntitySnowball",
+    "MixinBlockSilverfish",
     "MixinBlockStaticLiquid",
     "MixinEntitySpiderJockey",
     "MixinItemBow",

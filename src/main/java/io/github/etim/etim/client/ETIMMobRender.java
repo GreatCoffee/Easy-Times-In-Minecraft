@@ -16,6 +16,10 @@ import io.github.etim.etim.mob.ETIMEntityHellhound;
 import io.github.etim.etim.mob.ETIMEntityEarthElemental;
 import io.github.etim.etim.mob.ETIMEntityFireElemental;
 import io.github.etim.etim.mob.ETIMEntityClayGolem;
+import io.github.etim.etim.mob.ETIMEntityCopperspine;
+import io.github.etim.etim.mob.ETIMEntityHoarySilverfish;
+import io.github.etim.etim.mob.ETIMEntityNetherspawn;
+import net.minecraft.client.renderer.entity.RenderSilverfish;
 import io.github.etim.etim.mob.ETIMEntityJelly;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
@@ -103,6 +107,10 @@ public final class ETIMMobRender {
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityEarthElemental.class, ETIMEarthElementalRender::new);
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityFireElemental.class, ETIMFireElementalRender::new);
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityClayGolem.class, ETIMEarthElementalRender::new);
+        // B-63 D :248/:249 -- silverfish family, vanilla silverfish model.
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityCopperspine.class, RenderSilverfish::new);
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityHoarySilverfish.class, RenderSilverfish::new);
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityNetherspawn.class, RenderSilverfish::new);
         // B-55 (R196 RenderBat:3-30): the family reuses the vanilla bat model
         // and renderer stack; only the texture differs, and the giant gets the
         // 2× scale from R196 EntityBat.getScaleFactor.

@@ -74,6 +74,13 @@ public final class ETIMMobEntities {
                 ETIMEntityFireElemental.class, "etim.fire_elemental", 27, ETIM.instance(), 64, 3, true);
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "clay_golem"),
                 ETIMEntityClayGolem.class, "etim.clay_golem", 28, ETIM.instance(), 64, 3, true);
+        // B-63 D :248/:249 -- the silverfish family (ids 29/30/31).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "copperspine"),
+                ETIMEntityCopperspine.class, "etim.copperspine", 29, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "hoary_silverfish"),
+                ETIMEntityHoarySilverfish.class, "etim.hoary_silverfish", 30, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "netherspawn"),
+                ETIMEntityNetherspawn.class, "etim.netherspawn", 31, ETIM.instance(), 64, 3, true);
     }
 
     /**

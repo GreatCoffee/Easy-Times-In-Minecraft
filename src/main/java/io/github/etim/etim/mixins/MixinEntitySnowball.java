@@ -4,6 +4,7 @@ import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMEntityEarthElemental;
 import io.github.etim.etim.mob.ETIMEntityFireElemental;
+import io.github.etim.etim.mob.ETIMEntityNetherspawn;
 import io.github.etim.etim.mob.ETIMSnowballDuck;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.projectile.EntitySnowball;
@@ -14,10 +15,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
- * B-62 D-6 �� R196 {@code EntitySnowball.java:17-45}: a snowball hitting the
- * fire elemental deals 3 damage (and quenches the wet state), a snowball
- * hitting a magma-type earth elemental knocks it back to its normal type.
- * Vanilla 1.12 only special-cases blazes, so the damage site is redirected.
+ * B-62 D-6 / B-63 D-6 — R196 {@code EntitySnowball.java:17-45}: a snowball hitting the
+ * fire elemental deals 3 damage (and quenches the wet state), a snowball hitting a
+ * magma-type earth elemental knocks it back to its normal type, and a snowball hitting
+ * a netherspawn deals 2 damage and quenches it. Vanilla 1.12 only special-cases blazes,
+ * so the damage site is redirected.
  *
  * <p>{@link ETIMSnowballDuck#etim$injectImpact(Entity)} exists only for the dev
  * harness: 1.12 {@code EntityThrowable} latches the first entity it sees during
@@ -56,6 +58,15 @@ public abstract class MixinEntitySnowball implements ETIMSnowballDuck {
                         target.getEntityId());
             }
             return true;
+        }
+        if (target instanceof ETIMEntityNetherspawn && ETIMConfig.mobSilverfishR196) { // R196 :31-33
+            target.extinguish();
+            boolean hit = target.attackEntityFrom(source, 2.0F);
+            if (ETIMConfig.mobDebugLog) {
+                ETIM.LOGGER.info("[SilverLog] snowball kind=netherspawn dealt=2.000 hit={} entity={} [server]",
+                        hit, target.getEntityId());
+            }
+            return hit;
         }
         if (ETIMConfig.mobDebugLog) {
             ETIM.LOGGER.info("[ElementalLog] snowball other cls=" + target.getClass().getSimpleName()

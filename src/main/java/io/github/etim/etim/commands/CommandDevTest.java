@@ -27,6 +27,11 @@ import io.github.etim.etim.mob.ETIMEntityHellhound;
 import io.github.etim.etim.mob.ETIMEntityEarthElemental;
 import io.github.etim.etim.mob.ETIMEntityFireElemental;
 import io.github.etim.etim.mob.ETIMEntityClayGolem;
+import io.github.etim.etim.mob.ETIMEntitySilverfish;
+import io.github.etim.etim.mob.ETIMEntityCopperspine;
+import io.github.etim.etim.mob.ETIMEntityHoarySilverfish;
+import io.github.etim.etim.mob.ETIMEntityNetherspawn;
+import io.github.etim.etim.mob.ETIMSnowballDuck;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
 import io.github.etim.etim.mob.ETIMWorldGenSpawning;
 import io.github.etim.etim.mob.ETIMAnimalsSpawnedDuck;
@@ -81,6 +86,7 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.util.text.Style;
@@ -311,6 +317,24 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "elementalkill":
                 executeElementalKill(server, sender);
+                break;
+            case "silver":
+                executeSilver(server, sender, args);
+                break;
+            case "silverhit":
+                executeSilverHit(server, sender, args);
+                break;
+            case "silversnow":
+                executeSilverSnow(server, sender, args);
+                break;
+            case "silverblock":
+                executeSilverBlock(server, sender, args);
+                break;
+            case "silverinfo":
+                executeSilverInfo(server, sender);
+                break;
+            case "silverbite":
+                executeSilverBite(server, sender, args);
                 break;
             case "elementalsnowball":
                 executeElementalSnowball(server, sender, args);
@@ -2678,6 +2702,152 @@ for (EntityLiving e : hits) {
 
     /** B-61 W1: spawns one wolf beast and logs the R196 attribute row. */
     /** B-62 W1: spawns one elemental and logs the R196 stat block. */
+    private static void executeSilverBite(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        World w = server.getWorld(0);
+        EntityPlayer player = sender instanceof EntityPlayer ? (EntityPlayer) sender
+                : (sender.getCommandSenderEntity() instanceof EntityPlayer ? (EntityPlayer) sender.getCommandSenderEntity() : null);
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        ETIMEntitySilverfish fish = player == null ? null : findSilverfish(w, player, kind);
+        if (fish != null) {
+            fish.etimProbeBite(player);
+        }
+        net.minecraft.potion.PotionEffect poison = player == null ? null : player.getActivePotionEffect(net.minecraft.init.MobEffects.POISON);
+        net.minecraft.potion.PotionEffect slow = player == null ? null : player.getActivePotionEffect(net.minecraft.init.MobEffects.SLOWNESS);
+        ETIM.LOGGER.info("[SilverLog] biteprobe kind={} found={} poison={} poisonDur={} slow={} slowDur={} slowAmp={} [server]",
+                kind, fish != null, poison != null, poison == null ? -1 : poison.getDuration(),
+                slow != null, slow == null ? -1 : slow.getDuration(), slow == null ? -1 : slow.getAmplifier());
+    }
+
+    private static void executeSilver(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        World w = server.getWorld(0);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 2, false);
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        net.minecraft.entity.monster.EntityMob mob = newSilverfish(kind, w);
+        mob.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(mob);
+        logSilverProbe(kind, mob);
+    }
+
+    private static net.minecraft.entity.monster.EntityMob newSilverfish(String kind, World w) throws CommandException {
+        if ("copperspine".equals(kind)) {
+            return new ETIMEntityCopperspine(w);
+        }
+        if ("hoary".equals(kind) || "hoary_silverfish".equals(kind)) {
+            return new ETIMEntityHoarySilverfish(w);
+        }
+        if ("netherspawn".equals(kind)) {
+            return new ETIMEntityNetherspawn(w);
+        }
+        throw new WrongUsageException("commands.etest.usage");
+    }
+
+    private static void logSilverProbe(String kind, net.minecraft.entity.monster.EntityMob mob) {
+        ETIMEntitySilverfish fish = (ETIMEntitySilverfish) mob;
+        ETIM.LOGGER.info("[SilverLog] probe kind={} hp={} max={} attack={} speed={} xp={} clade={} at {},{},{} [server]",
+                kind,
+                String.format(java.util.Locale.ROOT, "%.3f", fish.getHealth()),
+                String.format(java.util.Locale.ROOT, "%.3f", fish.getMaxHealth()),
+                String.format(java.util.Locale.ROOT, "%.3f", fish.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).getAttributeValue()),
+                String.format(java.util.Locale.ROOT, "%.3f", fish.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MOVEMENT_SPEED).getAttributeValue()),
+                fish.etimExperienceProbe(null),
+                fish.getCreatureAttribute(),
+                String.format(java.util.Locale.ROOT, "%.1f", fish.posX),
+                String.format(java.util.Locale.ROOT, "%.1f", fish.posY),
+                String.format(java.util.Locale.ROOT, "%.1f", fish.posZ));
+    }
+
+    private static ETIMEntitySilverfish findSilverfish(World w, EntityPlayer player, String kind) {
+        java.util.List<ETIMEntitySilverfish> list = w.getEntitiesWithinAABB(ETIMEntitySilverfish.class, player.getEntityBoundingBox().grow(32.0D));
+        ETIMEntitySilverfish best = null;
+        double bestSq = Double.MAX_VALUE;
+        for (ETIMEntitySilverfish fish : list) {
+            if (!fish.etimKind().equals(kind)) {
+                continue;
+            }
+            double d = fish.getDistanceSq(player);
+            if (d < bestSq) {
+                bestSq = d;
+                best = fish;
+            }
+        }
+        return best;
+    }
+
+    private static void executeSilverHit(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        World w = server.getWorld(0);
+        EntityPlayer player = sender instanceof EntityPlayer ? (EntityPlayer) sender
+                : (sender.getCommandSenderEntity() instanceof EntityPlayer ? (EntityPlayer) sender.getCommandSenderEntity() : null);
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        String src = args.length > 2 ? args[2].toLowerCase(java.util.Locale.ROOT) : "player";
+        ETIMEntitySilverfish fish = player == null ? null : findSilverfish(w, player, kind);
+        boolean applied = false;
+        if (fish != null) {
+            net.minecraft.util.DamageSource source;
+            if ("fire".equals(src)) {
+                source = net.minecraft.util.DamageSource.IN_FIRE;
+            } else if ("water".equals(src)) {
+                source = net.minecraft.util.DamageSource.DROWN;
+            } else if ("magic".equals(src)) {
+                source = net.minecraft.util.DamageSource.MAGIC;
+            } else {
+                source = net.minecraft.util.DamageSource.causePlayerDamage(player);
+            }
+            applied = fish.attackEntityFrom(source, 5.0F);
+        }
+        ETIM.LOGGER.info("[SilverLog] hit kind={} source={} found={} applied={} dead={} [server]",
+                kind, src, fish != null, applied, fish != null && fish.isDead);
+    }
+
+    private static void executeSilverSnow(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        World w = server.getWorld(0);
+        EntityPlayer player = sender instanceof EntityPlayer ? (EntityPlayer) sender
+                : (sender.getCommandSenderEntity() instanceof EntityPlayer ? (EntityPlayer) sender.getCommandSenderEntity() : null);
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        ETIMEntitySilverfish fish = player == null ? null : findSilverfish(w, player, kind);
+        if (fish == null) {
+            ETIM.LOGGER.info("[SilverLog] snowball kind={} found=0 [server]", kind);
+            return;
+        }
+        EntitySnowball ball = new EntitySnowball(w, player);
+        ball.setPosition(fish.posX, fish.posY + 0.6D, fish.posZ + 3.0D);
+        w.spawnEntity(ball);
+        ((ETIMSnowballDuck) ball).etim$injectImpact(fish);
+        ETIM.LOGGER.info("[SilverLog] snowimpact kind={} target={} [server]", kind, fish.getEntityId());
+    }
+
+    private static void executeSilverBlock(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        World w = server.getWorld(0);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 2, false);
+        int meta = Integer.parseInt(args[1]);
+        net.minecraft.block.state.IBlockState state = net.minecraft.init.Blocks.MONSTER_EGG.getStateFromMeta(meta);
+        w.setBlockToAir(pos);
+        net.minecraft.init.Blocks.MONSTER_EGG.dropBlockAsItemWithChance(w, pos, state, 1.0F, 0);
+        ETIM.LOGGER.info("[SilverLog] block meta={} at {},{},{} [server]", meta, pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    private static void executeSilverInfo(MinecraftServer server, ICommandSender sender) throws CommandException {
+        World w = server.getWorld(0);
+        EntityPlayer player = sender instanceof EntityPlayer ? (EntityPlayer) sender
+                : (sender.getCommandSenderEntity() instanceof EntityPlayer ? (EntityPlayer) sender.getCommandSenderEntity() : null);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        java.util.List<ETIMEntitySilverfish> list = w.getEntitiesWithinAABB(ETIMEntitySilverfish.class, player.getEntityBoundingBox().grow(32.0D));
+        int copper = 0, hoary = 0, nether = 0;
+        for (ETIMEntitySilverfish fish : list) {
+            String k = fish.etimKind();
+            if ("copperspine".equals(k)) {
+                copper++;
+            } else if ("hoary".equals(k)) {
+                hoary++;
+            } else if ("netherspawn".equals(k)) {
+                nether++;
+            }
+        }
+        ETIM.LOGGER.info("[SilverLog] info total copperspine={} hoary={} netherspawn={} player={} [server]",
+                copper, hoary, nether, player.getName());
+    }
+
     private static void executeElemental(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 5) {
             throw new WrongUsageException("commands.etest.usage");

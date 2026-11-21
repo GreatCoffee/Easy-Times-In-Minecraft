@@ -32,8 +32,8 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b62-build10', releaseSize: 1427049, releaseSha: '345C0CEE464F7733FF14AECE0451E9920E722F3BEED6D02ADD1AE2C7317E7ADB', devSha: 'A19606A54DE92EE1777A59C56204FE3EDED9BD60A0E617B549DAD634BFB9FC6E', sourcesSha: '7467E575308F57424A19A773DDF02C74CE74443677CC1DEDD9D0294BE6CD7937' }; // b62-build10 = B-62 elementals (snowball duck moved out of mixin pkg)
-const MK_PIN = { classes: 107, entries: 267, dual: 534, mixins: 108, client: 10 }; // b62-build10: +EntitySnowballInvoker registered accessor
+const PIN = { build: 'b63-build4', releaseSize: 1439550, releaseSha: 'FBF440944EE83BC7FA12EDFB41CCEDECA4B95C133F667C90530CE26FD62C7F2C', devSha: '5942E986558E25995CC01A050C513EA96E6B51BD9197E07B8F7E5CBDF8283AB8', sourcesSha: 'C09B414E3986FBE5683ECCD0E64678225B6801C8B19D39D6F759B26BC58D401C' };
+const MK_PIN = { classes: 108, entries: 268, dual: 536, mixins: 109, client: 10 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);
 const log = (t, ...a) => console.log(`[${stamp()}] [${t}]`, ...a);
