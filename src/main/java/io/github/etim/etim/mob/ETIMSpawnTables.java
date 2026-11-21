@@ -86,6 +86,9 @@ public final class ETIMSpawnTables {
         monster.add(entry(EntitySkeleton.class, 100, 1, 4));
         monster.add(entry(EntityCreeper.class, 100, 1, 2));
         monster.add(entry(EntitySlime.class, 100, 1, 4));
+        // B-52 (census D :282; R196 WorldServer:666-669): the ooze is a cave
+        // spawn, weight 20 in the R196 cave table, gated below in pickSpawn.
+        monster.add(entry(ETIMEntityOoze.class, 20, 1, 1));
         monster.add(entry(EntityEnderman.class, 10, 1, 4));
         // Three-spider round (审计补46/47): R196 BiomeGenBase :174 DemonSpider
         // 10(1,1) and :186 PhaseSpider 5(1,4) sit in the base ctor = every
@@ -317,6 +320,25 @@ public final class ETIMSpawnTables {
                     ETIM.LOGGER.info("[SpawnLog] slime-gate reject stoneAbove at " + posToString(pos));
                 }
                 continue;
+            }
+            // B-52 (census D :282; R196 WorldServer:666-669): the ooze keeps
+            // the B-46 slime no-stone-above rule and adds y<=32 on the
+            // overworld plus a stone floor. Non-overworld keeps the depth
+            // bypass (checkDepth false) but still needs the stone sandwich.
+            if (cls == ETIMEntityOoze.class) {
+                boolean depthOk = !io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w)
+                        || pos.getY() <= 32;
+                boolean stoneFloor = w.getBlockState(pos.down()).getBlock() == Blocks.STONE;
+                boolean stoneCeiling = stoneAbove(w, pos);
+                if (!depthOk || !stoneFloor || !stoneCeiling) {
+                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
+                        --gateLogBudget;
+                        ETIM.LOGGER.info("[SpawnLog] ooze-gate reject depth=" + depthOk
+                                + " floor=" + stoneFloor + " stoneAbove=" + stoneCeiling
+                                + " y=" + pos.getY() + " at " + posToString(pos));
+                    }
+                    continue;
+                }
             }
             // B-46（R196 WorldServer:650-653 / :674-677 一手）：亡魂 y≤44、
             // 骨王 y≤32；主世界超过阈值时只放行血月夜（isBloodMoon(true)）。

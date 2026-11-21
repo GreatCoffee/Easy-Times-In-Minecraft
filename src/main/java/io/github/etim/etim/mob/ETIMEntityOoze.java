@@ -9,6 +9,8 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.EnumDifficulty;
+import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraft.world.storage.loot.LootTableList;
 
@@ -38,6 +40,43 @@ public class ETIMEntityOoze extends EntitySlime {
         super(world);
         this.setSlimeSize(1, true);
         this.experienceValue = 4;
+    }
+
+    /**
+     * B-52b A-level fix (W-B52b): do NOT call {@code super.getCanSpawnHere()}.
+     * EntitySlime's body rejects every non-slime-chunk column through its
+     * {@code rand.nextInt(10) == 0 && chunk seed == 0} coin, so the old body
+     * made natural ooze spawns impossible. Copy EntityMob's chain explicitly:
+     * peaceful gate, its light test, then EntityLiving's
+     * {@code below.canEntitySpawn(this)} body. Collision/liquid are checked by
+     * the spawner's {@code isNotColliding()} right after this call.
+     */
+    @Override
+    public boolean getCanSpawnHere() {
+        if (this.world.getDifficulty() == EnumDifficulty.PEACEFUL) {
+            return false;
+        }
+        if (!this.isValidOozeLightLevel()) {
+            return false;
+        }
+        BlockPos below = new BlockPos(this).down();
+        return this.world.getBlockState(below).canEntitySpawn(this);
+    }
+
+    /** EntityMob.isValidLightLevel body, copied because EntitySlime is not an EntityMob. */
+    private boolean isValidOozeLightLevel() {
+        BlockPos pos = new BlockPos(this.posX, this.getEntityBoundingBox().minY, this.posZ);
+        if (this.world.getLightFor(EnumSkyBlock.SKY, pos) > this.rand.nextInt(32)) {
+            return false;
+        }
+        int light = this.world.getLightFromNeighbors(pos);
+        if (this.world.isThundering()) {
+            int previous = this.world.getSkylightSubtracted();
+            this.world.setSkylightSubtracted(10);
+            light = this.world.getLightFromNeighbors(pos);
+            this.world.setSkylightSubtracted(previous);
+        }
+        return light <= this.rand.nextInt(8);
     }
 
     /** R196 setSize(size &lt; 2 ? size : 2); also keeps the size-1 XP row. */
