@@ -10,14 +10,25 @@ import io.github.etim.etim.quality.ETIMQuality;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.monster.AbstractSkeleton;
+import net.minecraft.entity.monster.EntityCreeper;
+import net.minecraft.entity.monster.EntityEnderman;
+import net.minecraft.entity.monster.EntityGhast;
+import net.minecraft.entity.monster.EntityPigZombie;
 import net.minecraft.entity.monster.EntitySkeleton;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.entity.monster.EntityZombieVillager;
 import net.minecraft.entity.monster.EntityWitherSkeleton;
+import net.minecraft.entity.passive.EntityChicken;
+import net.minecraft.entity.passive.EntityOcelot;
+import net.minecraft.entity.passive.EntitySquid;
+import net.minecraft.entity.passive.EntityWolf;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.projectile.EntityFireball;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.DamageSource;
 
 import java.util.Random;
 
@@ -178,6 +189,108 @@ public final class ETIMMobDrops {
      * R196 EntityZombie :11-12 rare arrays. C-level: the R196 iron-nugget and
      * onion entries have no 1.12 carrier and are omitted (§3-C3).
      */
+    public static boolean hasBaseTable(EntityLiving e) {
+        return e instanceof net.minecraft.entity.monster.EntityCreeper
+                || e instanceof net.minecraft.entity.monster.EntityEnderman
+                || e instanceof net.minecraft.entity.monster.EntityGhast
+                || e instanceof net.minecraft.entity.monster.EntityPigZombie
+                || e instanceof net.minecraft.entity.passive.EntityWolf
+                || e instanceof net.minecraft.entity.passive.EntityChicken
+                || e instanceof net.minecraft.entity.passive.EntitySquid
+                || e instanceof net.minecraft.entity.passive.EntityOcelot;
+    }
+
+    /** R196 EntityLiving :252-275 base formula plus the per-class overrides. */
+    public static void baseTable(EntityLiving e, boolean recentlyHit, int looting,
+                                 net.minecraft.util.DamageSource source) {
+        Random rand = e.getRNG();
+        if (e instanceof net.minecraft.entity.monster.EntityCreeper) {
+            int numDrops = rand.nextInt(3);
+            if (looting > 0) {
+                numDrops += rand.nextInt(looting + 1);
+            }
+            numDrops = notRecentlyHitReduction(numDrops, recentlyHit, rand);
+            for (int i = 0; i < numDrops; i++) {
+                if (recentlyHit || rand.nextInt(3) == 0) {
+                    baseDrop(e, "creeper", Items.GUNPOWDER, 1, recentlyHit, looting);
+                }
+            }
+        } else if (e instanceof net.minecraft.entity.monster.EntityEnderman) {
+            int numDrops = rand.nextInt(2 + looting);
+            for (int i = 0; i < numDrops; i++) {
+                baseDrop(e, "enderman", Items.ENDER_PEARL, 1, recentlyHit, looting);
+            }
+        } else if (e instanceof net.minecraft.entity.monster.EntityGhast) {
+            int tears = rand.nextInt(2);
+            if (isPlayerFireball(source) && tears < 1) {
+                tears = 1;
+            }
+            for (int i = 0; i < tears; i++) {
+                baseDrop(e, "ghast", Items.GHAST_TEAR, 1, recentlyHit, looting);
+            }
+            int powder = rand.nextInt(3);
+            for (int i = 0; i < powder; i++) {
+                baseDrop(e, "ghast", Items.GUNPOWDER, 1, recentlyHit, looting);
+            }
+        } else if (e instanceof net.minecraft.entity.monster.EntityPigZombie) {
+            if (rand.nextFloat() < (recentlyHit ? 0.5F : 0.25F)) {
+                baseDrop(e, "pigzombie", Items.ROTTEN_FLESH, 1, recentlyHit, looting);
+            }
+            int nuggets = rand.nextInt(2 + looting);
+            for (int i = 0; i < nuggets; i++) {
+                baseDrop(e, "pigzombie", Items.GOLD_NUGGET, 1, recentlyHit, looting);
+            }
+            if (recentlyHit && !hasMassiveFall(e) && rand.nextInt(baseChanceOfRareDrop(e)) < 5 + looting * 2) {
+                baseDrop(e, "pigzombie", Items.GOLD_INGOT, 1, recentlyHit, looting);
+            }
+        } else if (e instanceof net.minecraft.entity.passive.EntityWolf) {
+            baseDrop(e, "wolf", Items.LEATHER, 1, recentlyHit, looting);
+        } else if (e instanceof net.minecraft.entity.passive.EntityChicken) {
+            ETIMLivestock.IState state = ETIMLivestock.get(e);
+            boolean well = io.github.etim.etim.combat.ETIMButchering.isWell(e);
+            if (e.isBurning()) {
+                if (well) {
+                    baseDrop(e, "chicken", Items.COOKED_CHICKEN, 1, recentlyHit, looting);
+                }
+            } else {
+                int feathers = state == null ? 0 : state.getNumFeathers();
+                for (int i = 0; i < feathers; i++) {
+                    baseDrop(e, "chicken", Items.FEATHER, 1, recentlyHit, looting);
+                }
+                if (well) {
+                    baseDrop(e, "chicken", Items.CHICKEN, 1, recentlyHit, looting);
+                }
+            }
+        } else if (e instanceof net.minecraft.entity.passive.EntitySquid) {
+            if (recentlyHit) {
+                baseDrop(e, "squid", Items.DYE, 1, recentlyHit, looting);
+            }
+        }
+        // EntityOcelot: R196 dropFewItems is empty — nothing to drop.
+    }
+
+    private static void baseDrop(EntityLiving e, String family, Item item, int count,
+                                 boolean recentlyHit, int looting) {
+        dropItem(e, item, count);
+        if (ETIMConfig.mobDebugLog) {
+            ETIM.LOGGER.info("[DropLog] base class=" + family + " item=" + item.getRegistryName()
+                    + " count=" + count + " recently=" + recentlyHit + " looting=" + looting
+                    + " entity=" + simple(e));
+        }
+    }
+
+    private static boolean isPlayerFireball(net.minecraft.util.DamageSource source) {
+        if (source == null) {
+            return false;
+        }
+        if (source.getImmediateSource() instanceof net.minecraft.entity.projectile.EntityFireball) {
+            net.minecraft.entity.projectile.EntityFireball fireball =
+                    (net.minecraft.entity.projectile.EntityFireball) source.getImmediateSource();
+            return fireball.shootingEntity instanceof net.minecraft.entity.player.EntityPlayer;
+        }
+        return false;
+    }
+
     private static final Item[] STANDARD_RARE_DROPS = {
             ETIMItems.nuggetCopper, ETIMItems.nuggetSilver, Items.GOLD_NUGGET
     };

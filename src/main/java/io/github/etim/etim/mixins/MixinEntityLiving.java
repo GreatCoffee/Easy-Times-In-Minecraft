@@ -235,6 +235,18 @@ public abstract class MixinEntityLiving implements ETIMFireCountdownDuck, ETIMRe
             io.github.etim.etim.mob.ETIMMobDrops.skeletonTable(skeleton, wasRecentlyHit, lootingModifier);
             io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(skeleton, wasRecentlyHit, lootingModifier);
             ci.cancel();
+        } else if (self instanceof net.minecraft.entity.monster.EntityPigZombie) {
+            // B-51: EntityPigZombie extends EntityZombie, so this arm must
+            // precede the zombie arm or the pigman would eat the zombie table.
+            net.minecraft.entity.monster.EntityPigZombie pig =
+                    (net.minecraft.entity.monster.EntityPigZombie) self;
+            if (pig.world.isRemote) {
+                ci.cancel();
+                return;
+            }
+            io.github.etim.etim.mob.ETIMMobDrops.baseTable(pig, wasRecentlyHit, lootingModifier, source);
+            io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(pig, wasRecentlyHit, lootingModifier);
+            ci.cancel();
         } else if (self instanceof net.minecraft.entity.monster.EntityZombie) {
             net.minecraft.entity.monster.EntityZombie zombie =
                     (net.minecraft.entity.monster.EntityZombie) self;
@@ -249,6 +261,14 @@ public abstract class MixinEntityLiving implements ETIMFireCountdownDuck, ETIMRe
             }
             io.github.etim.etim.mob.ETIMMobDrops.zombieTable(zombie, wasRecentlyHit, lootingModifier);
             io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(zombie, wasRecentlyHit, lootingModifier);
+            ci.cancel();
+        } else if (io.github.etim.etim.mob.ETIMMobDrops.hasBaseTable(self)) {
+            if (self.world.isRemote) {
+                ci.cancel();
+                return;
+            }
+            io.github.etim.etim.mob.ETIMMobDrops.baseTable(self, wasRecentlyHit, lootingModifier, source);
+            io.github.etim.etim.mob.ETIMMobDrops.dropEquipmentRules(self, wasRecentlyHit, lootingModifier);
             ci.cancel();
         }
     }

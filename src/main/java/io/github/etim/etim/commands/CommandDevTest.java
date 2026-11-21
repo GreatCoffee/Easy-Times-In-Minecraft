@@ -225,6 +225,9 @@ public class CommandDevTest extends CommandBase {
             case "damage":
                 executeDamage(server, sender, args);
                 break;
+            case "hit":
+                executeHit(server, sender, args);
+                break;
             case "quality":
                 executeQuality(server, sender, args);
                 break;
@@ -1157,6 +1160,23 @@ public class CommandDevTest extends CommandBase {
         int before = held.getItemDamage();
         held.setItemDamage(Math.min(before + amount, held.getMaxDamage()));
         respond(player, "commands.etest.damage_set", before, held.getItemDamage(), held.getMaxDamage());
+    }
+
+    /**
+     * {@code /etest hit <target> [amount] [player]} — a player-source kill
+     * probe for the B-51 drop tables ({@code recentlyHit=true}).
+     */
+    private static void executeHit(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        Entity target = CommandBase.getEntity(server, sender, args[1]);
+        EntityPlayerMP player = targetOrSender(server, sender, args, 3);
+        float amount = args.length > 2 ? (float) CommandBase.parseDouble(args[2], 1.0D, 1000.0D) : 1000.0F;
+        ETIM.LOGGER.info("[TestLog] hit player={} target={}#{} amount={} [server]",
+                player.getName(), target.getClass().getSimpleName(), target.getEntityId(), amount);
+        target.attackEntityFrom(DamageSource.causePlayerDamage(player), amount);
+        respond(player, "commands.etest.drive_queued", "hit " + target.getEntityId());
     }
 
     private static void executeQuality(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
