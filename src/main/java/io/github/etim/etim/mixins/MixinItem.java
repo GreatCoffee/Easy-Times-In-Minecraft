@@ -15,6 +15,7 @@ import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -84,6 +85,26 @@ public abstract class MixinItem {
             player.renderBrokenItemStack(stack); // the R196 causeBreakingItemEffect carrier (rfg :1257, public)
             stack.shrink(1); // the R196 convertOneOfHeldItem(null) semantic under the 1.12 stack model (摸底 §3)
             cir.setReturnValue(true); // R196 :982 (the vanilla "the item wore" contract)
+        }
+    }
+
+    /**
+     * B-64 census F :142 — R196 {@code Item.java:791} starts at 16, 1.12 at 64.
+     * Moving the default at the root ctor covers every item that never asks
+     * for an explicit size (stone, dirt, most resources), while items that do
+     * call {@code setMaxStackSize} in their own ctor run afterwards and win —
+     * paper stays 64, buckets stay 1, tools stay 1 (R196 :841-843 forces 1 for
+     * damageable items, 1.12 does the same in {@code Item.setMaxDamage}).
+     * The per-item R196 table is re-applied by {@code ETIMItemStacks}.
+     */
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void etim$defaultStack16(CallbackInfo ci) {
+        if (!ETIMConfig.itemsStack16R196) {
+            return;
+        }
+        Item self = (Item) (Object) this;
+        if (self.getItemStackLimit() == 64) {
+            self.setMaxStackSize(16);
         }
     }
 

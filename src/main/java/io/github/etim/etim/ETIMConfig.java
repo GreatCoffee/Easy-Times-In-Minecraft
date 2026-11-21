@@ -658,6 +658,12 @@ public final class ETIMConfig {
     public static boolean mobElementalR196 = true;
     /** Master switch of the R196 silverfish family (B-63, census D :248/:249): copperspine / hoary silverfish / netherspawn, their silverfish-block sources (meta 3 -> netherspawn, meta 4 -> copperspine, underworld -> hoary), the 8 HP / 0.6 speed / 3 attack stats, animal+villager prey, poison/slowness bites and the netherspawn quench + self-destruct. Off = vanilla silverfish only. R196 银鱼族总开关（B-63）：铜刺/霜蠹/下界炎灵、银鱼块来源、属性、猎物、毒/缓慢咬击、湿身淬火与死亡自爆。关 = 只有原版银鱼。 */
     public static boolean mobSilverfishR196 = true;
+    /** Master switch of the R196 item stack table (B-64, census F :142/:143): every item starts at 16 instead of 1.12's 64, then the R196 per-item overrides ride on top (stick 32, flint/reeds/quartz 16, paper 64, cake 8, cauldron 4, pumpkin pie 8, enchanted book 1) and ETIM's own non-damageable metal content is pinned to 16. Off = vanilla 1.12 stack sizes. R196 物品堆叠表总开关（B-64）：所有物品默认 16（1.12 为 64），再叠 R196 逐物品覆写，ETIM 非耐久的金属件钉 16。关闭则回到原版 1.12 堆叠。 */
+    public static boolean itemsStack16R196 = true;
+    /** R196 snow/ice melting (B-64, census F :149, Item.java:1919-1921): chance per item per tick = (t - 1.0) * 1.0E-4, t = biome temperature at the item, or 20.0 when the carrier player is burning; snowball/snow/snow layer/ice/packed ice/ice variants only, rolled per single item. Off = no melting. R196 冰雪融化（B-64）：每件每 tick 概率 = (t−1)×1e−4，t=物品所在群系温度，玩家着火时取 20；仅雪球/雪块/雪层/冰/浮冰等，逐件掷。关 = 不融化。 */
+    public static boolean itemsMeltR196 = true;
+    /** R196 single-face vine placement (B-64, census F :150, Item.java:1820-1893): right-clicking a single-face vine with a block places the block INTO the vine's cell using the vine's attachment face as the placement side (support must exist), instead of vanilla's clicked-face rule. Off = vanilla. R196 单面藤蔓放置（B-64）：手持方块右键单面藤蔓时，以藤蔓附着面作为放置面、放进藤蔓格（须有支撑），而非原版按点击面。关 = 原版。 */
+    public static boolean itemsVinePlaceR196 = true;
     /** R196 monster spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 50; vanilla 1.12 = 70). 敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）。 */
     public static int spawnCapMonster = 50;
     /** R196 animal spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 10). 动物生成上限（区块换算前）（审计 14：10）。 */
@@ -1481,6 +1487,15 @@ public final class ETIMConfig {
         mobSilverfishR196 = config.getBoolean("mobSilverfishR196", "mobs", true,
                 comment("R196 silverfish family (B-63, census D :248/:249): copperspine/hairy-silverfish/netherspawn from monster eggs (meta 3 netherrack -> netherspawn, meta 4 -> copperspine, underworld -> hoary), 8 HP / 0.6 speed / 3 attack, animal+villager prey, poison 480t and slowness 50t bites, netherspawn water quench and non-water self-destruct that spares netherrack/quartz/gold ore",
                         "R196 银鱼族（B-63）：银鱼块来源（meta 3 下界岩 -> 下界炎灵，meta 4 -> 铜刺，深渊 -> 霜蠹），8 血 / 0.6 速 / 攻 3，追动物与村民，中毒 480t / 缓慢 50t，下界炎灵湿身淬火与死时自爆（不炸下界岩/石英矿/金矿）"));
+        itemsStack16R196 = config.getBoolean("itemsStack16R196", "items", true,
+                comment("R196 item stack table (B-64, census F :142/:143): default 16, then stick 32, flint/reeds/quartz 16, paper 64, cake 8, cauldron 4, pumpkin pie 8, enchanted book 1, and ETIM's non-damageable metal content pinned to 16",
+                        "R196 物品堆叠表（B-64）：默认 16，再叠木棍 32、燧石/甘蔗/石英 16、纸 64、蛋糕 8、炼药锅 4、南瓜派 8、附魔书 1，ETIM 非耐久金属件钉 16"));
+        itemsMeltR196 = config.getBoolean("itemsMeltR196", "items", true,
+                comment("R196 snow/ice melting (B-64, census F :149): per-item per-tick chance (t-1.0)*1e-4 at the item's biome temperature, 20.0 when the carrier player is burning; snowball/snow/snow layer/ice/packed ice only",
+                        "R196 冰雪融化（B-64）：每件每 tick 概率 (t−1)×1e−4，t=物品所在群系温度，玩家着火取 20；仅雪球/雪块/雪层/冰/浮冰"));
+        itemsVinePlaceR196 = config.getBoolean("itemsVinePlaceR196", "items", true,
+                comment("R196 single-face vine placement (B-64, census F :150): a block right-clicked against a single-face vine goes into the vine cell using the vine's attachment face as the placement side",
+                        "R196 单面藤蔓放置（B-64）：手持方块右键单面藤蔓时以藤蔓附着面作为放置面、放进藤蔓格"));
         mobPickupR196 = config.getBoolean("mobPickupR196", "mobs", true,                comment("R196 ground pickup loop (B-53, EntityLiving :635-690): canPickUpLoot mobs scan the 1.0/0.25/1.0 box for food/repair/valuable items, eat (50% heal, undead excluded), repair (50% heal) or store the item id in contained_items (NBT + death drop); cooldowns 400/40 ticks. Also forces skeleton/zombie canPickUpLoot=true (R196 :239/:277). Off = vanilla 1.12 equipment-only lane",
                         "R196 地面拾取循环（B-53，EntityLiving :635-690）：canPickUpLoot 怪扫描 1.0/0.25/1.0 拾取盒内的食物/修理/贵重物品，分别吃（回 50% 血，亡灵除外）、修理（回 50% 血）或把物品 id 存入 contained_items（NBT＋死亡掉落）；冷却 400/40 tick。同时强制骷髅/僵尸 canPickUpLoot=true（R196 :239/:277）。关闭则回到原版 1.12 仅装备拾取道"));
         mobBatHangingR196 = config.getBoolean("mobBatHangingR196", "mobs", true,

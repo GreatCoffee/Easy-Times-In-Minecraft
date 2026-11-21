@@ -31,4 +31,14 @@ public abstract class MixinEntityItem {
             self.motionZ = 0.0D;
         }
     }
+
+    /**
+     * B-64 census F :149 — R196 {@code EntityItem.java:119-133} rolls the
+     * snow/ice melt chance every server tick on the dropped stack. TAIL is
+     * after 1.12's own age/despawn handling for this tick.
+     */
+    @Inject(method = "onUpdate", at = @At("TAIL"))
+    private void etim$meltTick(CallbackInfo ci) {
+        io.github.etim.etim.item.ETIMItemMelt.tickDropped((EntityItem) (Object) this);
+    }
 }

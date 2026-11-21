@@ -108,7 +108,14 @@ public final class ETIM {
         // HarvestDropsEvent trio + the arrow-recovery pair (zero extra mixin).
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.fishing.ETIMFishingEvents.class);
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.fishing.ETIMArrowRecovery.class);
+        // Batch B-64 (F-1): snow/ice melting (item + inventory arms) and the
+        // single-face vine placement face.
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.item.ETIMItemMelt.class);
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.item.ETIMVinePlace.class);
         ETIMConfig.init(event);
+        // B-64 census F :142/:143 — re-apply the R196 per-item stack table on
+        // top of the mixin's default 16 (config gate is live only after init).
+        io.github.etim.etim.item.ETIMItemStacks.apply();
         // Batch B arrow identity (D-19/D-20/D-26): the etim:metal_arrow entity
         // rides AFTER ETIMConfig.init so the [ArrowLog] gate is live at
         // registration (ETIMMobEntities.register() @:72 runs before it); the

@@ -318,6 +318,15 @@ public class CommandDevTest extends CommandBase {
             case "elementalkill":
                 executeElementalKill(server, sender);
                 break;
+            case "itemstack":
+                executeItemStack(server, sender);
+                break;
+            case "melt":
+                executeMelt(server, sender, args);
+                break;
+            case "vineplace":
+                executeVinePlace(server, sender, args);
+                break;
             case "silver":
                 executeSilver(server, sender, args);
                 break;
@@ -2846,6 +2855,75 @@ for (EntityLiving e : hits) {
         }
         ETIM.LOGGER.info("[SilverLog] info total copperspine={} hoary={} netherspawn={} player={} [server]",
                 copper, hoary, nether, player.getName());
+    }
+
+    private static void executeItemStack(MinecraftServer server, ICommandSender sender) {
+        net.minecraft.item.Item dirt = net.minecraft.item.Item.getItemFromBlock(net.minecraft.init.Blocks.DIRT);
+        int etim16 = 0;
+        for (net.minecraft.item.Item item : net.minecraftforge.fml.common.registry.ForgeRegistries.ITEMS) {
+            net.minecraft.util.ResourceLocation id = item.getRegistryName();
+            if (id != null && io.github.etim.etim.ETIM.MOD_ID.equals(id.getNamespace())
+                    && item.getMaxDamage() == 0 && item.getItemStackLimit() == 16) {
+                etim16++;
+            }
+        }
+        ETIM.LOGGER.info("[ItemLog] stack stick={} flint={} reeds={} paper={} quartz={} cake={} cauldron={} pie={} book={} bucket={} dirt={} sword={} etim16={} player={} [server]",
+                net.minecraft.init.Items.STICK.getItemStackLimit(),
+                net.minecraft.init.Items.FLINT.getItemStackLimit(),
+                net.minecraft.init.Items.REEDS.getItemStackLimit(),
+                net.minecraft.init.Items.PAPER.getItemStackLimit(),
+                net.minecraft.init.Items.QUARTZ.getItemStackLimit(),
+                net.minecraft.init.Items.CAKE.getItemStackLimit(),
+                net.minecraft.init.Items.CAULDRON.getItemStackLimit(),
+                net.minecraft.init.Items.PUMPKIN_PIE.getItemStackLimit(),
+                net.minecraft.init.Items.ENCHANTED_BOOK.getItemStackLimit(),
+                net.minecraft.init.Items.BUCKET.getItemStackLimit(),
+                dirt.getItemStackLimit(),
+                net.minecraft.init.Items.DIAMOND_SWORD.getItemStackLimit(),
+                etim16, sender.getName());
+    }
+
+    private static void executeMelt(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        int count = args.length > 1 ? Integer.parseInt(args[1]) : 64;
+        int ticks = args.length > 2 ? Integer.parseInt(args[2]) : 200;
+        float temp = args.length > 3 ? Float.parseFloat(args[3]) : 20.0F;
+        net.minecraft.item.ItemStack snow = new net.minecraft.item.ItemStack(net.minecraft.init.Items.SNOWBALL, count);
+        int lost = io.github.etim.etim.item.ETIMItemMelt.rollTicks(snow, temp, ticks);
+        ETIM.LOGGER.info("[ItemLog] meltdev kind=snowball count={} ticks={} temp={} chance={} lost={} left={} player={} [server]",
+                count, ticks, io.github.etim.etim.item.ETIMItemMelt.fmt(temp),
+                io.github.etim.etim.item.ETIMItemMelt.fmt(io.github.etim.etim.item.ETIMItemMelt.chance(temp)),
+                lost, snow.getCount(), sender.getName());
+        net.minecraft.item.ItemStack ice = new net.minecraft.item.ItemStack(net.minecraft.init.Blocks.ICE, count);
+        int lostIce = io.github.etim.etim.item.ETIMItemMelt.rollTicks(ice, temp, ticks);
+        ETIM.LOGGER.info("[ItemLog] meltdev kind=ice count={} ticks={} temp={} lost={} left={} [server]",
+                count, ticks, io.github.etim.etim.item.ETIMItemMelt.fmt(temp), lostIce, ice.getCount());
+    }
+
+    private static void executeVinePlace(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayer player = sender instanceof EntityPlayer ? (EntityPlayer) sender
+                : (sender.getCommandSenderEntity() instanceof EntityPlayer ? (EntityPlayer) sender.getCommandSenderEntity() : null);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        net.minecraft.util.EnumFacing face = net.minecraft.util.EnumFacing.valueOf(
+                (args.length > 1 ? args[1] : "north").toUpperCase(java.util.Locale.ROOT));
+        World w = server.getWorld(0);
+        BlockPos pos = new BlockPos(player.posX + 2.0D, player.posY, player.posZ);
+        int meta;
+        switch (face) {
+            case EAST: meta = 2; break;
+            case SOUTH: meta = 4; break;
+            case WEST: meta = 8; break;
+            default: meta = 1; break;
+        }
+        w.setBlockState(pos.offset(face), net.minecraft.init.Blocks.STONE.getDefaultState(), 3);
+        w.setBlockState(pos, net.minecraft.init.Blocks.VINE.getStateFromMeta(meta), 3);
+        net.minecraft.item.ItemStack held = new net.minecraft.item.ItemStack(net.minecraft.init.Blocks.STONE);
+        net.minecraft.block.state.IBlockState placed = io.github.etim.etim.item.ETIMVinePlace.placeInto(
+                w, pos, face, player, held, 0.5F, 0.5F, 0.5F, false);
+        ETIM.LOGGER.info("[ItemLog] vineplacecmd face={} placed={} at {}, {}, {} player={} [server]",
+                face, placed == null ? "null" : placed.getBlock().getRegistryName(),
+                pos.getX(), pos.getY(), pos.getZ(), player.getName());
     }
 
     private static void executeElemental(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
