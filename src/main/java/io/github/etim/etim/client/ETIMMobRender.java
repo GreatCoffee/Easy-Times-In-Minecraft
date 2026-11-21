@@ -4,6 +4,9 @@ import io.github.etim.etim.mob.ETIMEntityAncientBoneLord;
 import io.github.etim.etim.mob.ETIMEntityArrow;
 import io.github.etim.etim.mob.ETIMEntityBoneLord;
 import io.github.etim.etim.mob.ETIMEntityGelatinousSphere;
+import io.github.etim.etim.mob.ETIMEntityGhoul;
+import io.github.etim.etim.mob.ETIMEntityWight;
+import io.github.etim.etim.mob.ETIMEntityShadow;
 import io.github.etim.etim.mob.ETIMEntityGiantVampireBat;
 import io.github.etim.etim.mob.ETIMEntityBlob;
 import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
@@ -76,6 +79,11 @@ public final class ETIMMobRender {
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityGelatinousSphere.class,
                 ETIMGelSphereRender::new);
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityInfernalCreeper.class, RenderCreeper::new);
+        // B-59 D :110-112 — the surface undead trio on the R196 stalker shell
+        // (RenderGhoul/RenderWight/RenderShadow → RenderBiped + ModelInvisibleStalker).
+        registerUndead(ETIMEntityGhoul.class, "ghoul");
+        registerUndead(ETIMEntityWight.class, "wight");
+        registerUndead(ETIMEntityShadow.class, "shadow");
         // B-55 (R196 RenderBat:3-30): the family reuses the vanilla bat model
         // and renderer stack; only the texture differs, and the giant gets the
         // 2× scale from R196 EntityBat.getScaleFactor.
@@ -85,6 +93,12 @@ public final class ETIMMobRender {
                 manager -> new BatRender(manager, new ResourceLocation("etim:textures/entity/bat/nightwing.png"), 1.0F));
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityGiantVampireBat.class,
                 manager -> new BatRender(manager, new ResourceLocation("etim:textures/entity/bat/vampire.png"), 2.0F));
+    }
+
+    /** B-59: one renderer, one 64×32 texture per species. */
+    private static <T extends net.minecraft.entity.EntityLiving> void registerUndead(Class<T> cls, String name) {
+        RenderingRegistry.registerEntityRenderingHandler(cls,
+                manager -> new ETIMUndeadRender<T>(manager, new ResourceLocation("etim:textures/entity/" + name + ".png")));
     }
 
     /** R196 RenderBat: vanilla model/scale, family texture, 2× for the giant. */

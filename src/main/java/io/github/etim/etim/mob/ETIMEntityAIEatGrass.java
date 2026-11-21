@@ -131,6 +131,9 @@ public class ETIMEntityAIEatGrass extends net.minecraft.entity.ai.EntityAIBase {
         if (candidate instanceof net.minecraft.entity.monster.EntityZombie) {
             return true; // R196 EntityZombie :395 — preys the animal family
         }
+        if (candidate instanceof ETIMEntityGhoul) {
+            return true; // B-59 R196 EntityGhoul:114-116 — preysUpon(EntityAnimal)
+        }
         if (candidate instanceof net.minecraft.entity.passive.EntityWolf) {
             net.minecraft.entity.passive.EntityWolf wolf = (net.minecraft.entity.passive.EntityWolf) candidate;
             return !wolf.isChild() && !wolf.isTamed(); // R196 EntityWolf :587

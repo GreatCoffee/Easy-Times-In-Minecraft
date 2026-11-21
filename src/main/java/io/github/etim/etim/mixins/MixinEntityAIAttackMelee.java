@@ -2,6 +2,8 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMDigging;
+import io.github.etim.etim.mob.ETIMEntityGhoul;
+import net.minecraft.entity.EntityCreature;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.ai.EntityAIAttackMelee;
@@ -21,13 +23,13 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * reachable ⇒ the vanilla body runs unchanged; unreachable ⇒ the R196 dig
  * gate (both y with the +0.5 floor, {@code setBlockToDig(target, below)}
  * then {@code attackTick = 20} unconditionally — R196 :162-163 ignores the
- * write-in return). Skeletons and other melee mobs carry no dig capability,
- * so the gates zero them back to vanilla.
+ * write-in return). Hosts without the dig capability (skeletons, animals)
+ * zero back to vanilla; B-59 adds the ghoul host (D-1 A).
  */
 @Mixin(EntityAIAttackMelee.class)
 public abstract class MixinEntityAIAttackMelee {
 
-    @Shadow protected net.minecraft.entity.EntityCreature attacker;
+    @Shadow protected EntityCreature attacker;
 
     @Shadow protected int attackTick;
 
@@ -44,15 +46,18 @@ public abstract class MixinEntityAIAttackMelee {
         // virtual call (virtual invoke ⇒ handler must carry the receiver as its
         // first parameter — f5f2563 window A1: its absence is a compile-green /
         // apply-FATAL refmap face). self ≡ this.
-        ETIMDigging.IState dig = ETIMConfig.zombieDigAI && this.attacker != null
+        boolean hostGate = this.attacker instanceof EntityZombie
+                ? ETIMConfig.zombieDigAI
+                : this.attacker instanceof ETIMEntityGhoul && ETIMConfig.mobUndeadSurfaceR196;
+        ETIMDigging.IState dig = hostGate && this.attacker != null
                 ? ETIMDigging.get(this.attacker) : null;
-        if (dig != null // dig capability = zombie host (裁 3)
-                && ETIMDigging.isDiggingEnabled((EntityZombie) this.attacker) // C-9a fourth consumer face
+        if (dig != null // dig capability = zombie host (裁 3) + B-59 ghoul host
+                && ETIMDigging.isDiggingEnabled((EntityLiving) this.attacker) // C-9a fourth consumer face
                 && distToEnemySqr > this.getAttackReachSqr(enemy)) { // v1 unreachable single gate (补裁 B 级精度替代)
             int attackerY = MathHelper.floor(this.attacker.posY + 0.5D); // R196 :156
             int targetY = MathHelper.floor(enemy.posY + 0.5D); // R196 :158
             if (targetY > attackerY) { // R196 :159
-                ETIMDigging.setBlockToDig((EntityZombie) this.attacker, dig,
+                ETIMDigging.setBlockToDig((EntityLiving) this.attacker, dig,
                         MathHelper.floor(enemy.posX), targetY - 1, MathHelper.floor(enemy.posZ), true); // R196 :162
                 this.attackTick = 20; // R196 :163 — unconditional
             }

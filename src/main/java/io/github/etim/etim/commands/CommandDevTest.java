@@ -18,6 +18,9 @@ import io.github.etim.etim.mob.ETIMEntityJelly;
 import io.github.etim.etim.mob.ETIMEntityBlob;
 import io.github.etim.etim.mob.ETIMEntityPudding;
 import io.github.etim.etim.mob.ETIMEntityOoze;
+import io.github.etim.etim.mob.ETIMEntityGhoul;
+import io.github.etim.etim.mob.ETIMEntityWight;
+import io.github.etim.etim.mob.ETIMEntityShadow;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
 import io.github.etim.etim.mob.ETIMWorldGenSpawning;
 import io.github.etim.etim.mob.ETIMAnimalsSpawnedDuck;
@@ -251,6 +254,21 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "gelhold":
                 executeGelHold(sender);
+                break;
+            case "undead":
+                executeUndead(server, sender, args);
+                break;
+            case "undeadgate":
+                executeUndeadGate(server, sender, args);
+                break;
+            case "wightkill":
+                executeWightKill(server, sender, args);
+                break;
+            case "undeadinfo":
+                executeUndeadInfo(server, sender, args);
+                break;
+            case "undeadkill":
+                executeUndeadKill(server, sender, args);
                 break;
             case "batclear":
                 executeBatClear(server, sender, args);
@@ -2474,4 +2492,189 @@ for (EntityLiving e : hits) {
         }
         throw new WrongUsageException("commands.etest.usage");
     }
+    /**
+     * {@code /etest undead <x> <y> <z>} — B-59 W1: summons the three surface
+     * undead at the given spot and logs the R196 attribute row for each.
+     */
+    private static void executeUndead(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : w.getClosestPlayer(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 64.0D, false);
+        net.minecraft.entity.monster.EntityMob ghoul = new ETIMEntityGhoul(w);
+        ghoul.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(ghoul);
+        net.minecraft.entity.monster.EntityMob wight = new ETIMEntityWight(w);
+        wight.setLocationAndAngles(pos.getX() + 1.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(wight);
+        net.minecraft.entity.monster.EntityMob shadow = new ETIMEntityShadow(w);
+        shadow.setLocationAndAngles(pos.getX() + 2.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(shadow);
+        logUndeadProbe("ghoul", ghoul, player, sender);
+        logUndeadProbe("wight", wight, player, sender);
+        logUndeadProbe("shadow", shadow, player, sender);
+    }
+
+    /** B-59: one attribute row per species for W1. */
+    private static void logUndeadProbe(String kind, net.minecraft.entity.monster.EntityMob mob,
+            EntityPlayer player, ICommandSender sender) {
+        double follow = mob.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.FOLLOW_RANGE).getAttributeValue();
+        double attack = mob.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).getAttributeValue();
+        double speed = mob.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MOVEMENT_SPEED).getAttributeValue();
+        int xp = mob instanceof ETIMEntityGhoul
+                ? ((ETIMEntityGhoul) mob).etimExperienceProbe(player)
+                : mob instanceof ETIMEntityWight
+                        ? ((ETIMEntityWight) mob).etimExperienceProbe(player)
+                        : ((ETIMEntityShadow) mob).etimExperienceProbe(player);
+        boolean undead = mob.getCreatureAttribute() == net.minecraft.entity.EnumCreatureAttribute.UNDEAD;
+        ETIM.LOGGER.info("[UndeadLog] probe kind={} hp={} max={} follow={} attack={} speed={} xp={} undead={} at {} [server]",
+                kind, mob.getHealth(), mob.getMaxHealth(), follow, attack, speed, xp, undead, mob.getPosition());
+        sender.sendMessage(new TextComponentString("[etest] " + kind + " hp=" + mob.getMaxHealth()
+                + " follow=" + follow + " attack=" + attack + " xp=" + xp + " undead=" + undead));
+    }
+
+    /**
+     * {@code /etest undeadgate <x> <y> <z> <ghoul|wight|shadow>} — B-59 W8:
+     * forces the {@code ETIMSpawnTables} depth/bloodmoon gate and logs the
+     * decision row.
+     */
+    private static void executeUndeadGate(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        String kind = args[4].toLowerCase(java.util.Locale.ROOT);
+        Class<?> cls;
+        if ("ghoul".equals(kind)) {
+            cls = ETIMEntityGhoul.class;
+        } else if ("wight".equals(kind)) {
+            cls = ETIMEntityWight.class;
+        } else if ("shadow".equals(kind)) {
+            cls = ETIMEntityShadow.class;
+        } else {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        boolean allowed = ETIMSpawnTables.probeUndeadGate(w, pos, cls);
+        sender.sendMessage(new TextComponentString("[etest] undeadgate " + kind + " allowed=" + allowed));
+    }
+
+    /**
+     * {@code /etest wightkill} — B-59 W6: kills every wight within 16 blocks
+     * with player damage so {@code recentlyHit} is set and the R196 drop row
+     * actually rolls.
+     */
+    /**
+     * {@code /etest undeadkill [player|magic|fire]} — B-59 cleanup: /kill writes
+     * {@code outOfWorld}, which the wight/shadow R196 immunity rows refuse, so the
+     * harness scratches them through an accepted aspect (magic for both).
+     */
+    private static void executeUndeadKill(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            return;
+        }
+        String kind = args.length > 1 ? args[1].toLowerCase(java.util.Locale.ROOT) : "magic";
+        net.minecraft.util.DamageSource source;
+        if ("fire".equals(kind)) {
+            source = net.minecraft.util.DamageSource.IN_FIRE;
+        } else if ("player".equals(kind)) {
+            source = net.minecraft.util.DamageSource.causePlayerDamage(player);
+        } else {
+            kind = "magic";
+            source = net.minecraft.util.DamageSource.MAGIC;
+        }
+        WorldServer w = (WorldServer) player.world;
+        java.util.List<net.minecraft.entity.monster.EntityMob> list = w.getEntitiesWithinAABB(
+                net.minecraft.entity.monster.EntityMob.class, player.getEntityBoundingBox().grow(64.0D),
+                e -> e instanceof ETIMEntityGhoul || e instanceof ETIMEntityWight || e instanceof ETIMEntityShadow);
+        int found = list.size();
+        int killed = 0;
+        for (net.minecraft.entity.monster.EntityMob mob : list) {
+            if (mob.attackEntityFrom(source, 1000.0F)) {
+                ++killed;
+            }
+        }
+        ETIM.LOGGER.info("[UndeadLog] undeadkill source=" + kind + " found=" + found + " killed=" + killed + " [server]");
+        sender.sendMessage(new TextComponentString("[etest] undeadkill " + kind + " found=" + found + " killed=" + killed));
+    }
+
+    private static void executeWightKill(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args.length > 1 ? args[1].toLowerCase(java.util.Locale.ROOT) : "player";
+        net.minecraft.util.DamageSource source;
+        if ("magic".equals(kind)) {
+            source = net.minecraft.util.DamageSource.MAGIC;
+        } else if ("fire".equals(kind)) {
+            source = net.minecraft.util.DamageSource.IN_FIRE;
+        } else {
+            kind = "player";
+            source = net.minecraft.util.DamageSource.causePlayerDamage(player);
+        }
+        WorldServer w = (WorldServer) player.world;
+        java.util.List<ETIMEntityWight> list = w.getEntitiesWithinAABB(ETIMEntityWight.class,
+                player.getEntityBoundingBox().grow(16.0D));
+        int killed = 0;
+        for (ETIMEntityWight wight : list) {
+            if (wight.attackEntityFrom(source, 1000.0F)) {
+                ++killed;
+            }
+        }
+        ETIM.LOGGER.info("[UndeadLog] wightkill player={} source={} found={} killed={} [server]",
+                player.getName(), kind, list.size(), killed);
+        sender.sendMessage(new TextComponentString("[etest] wightkill source=" + kind
+                + " found=" + list.size() + " killed=" + killed));
+    }
+
+    /** {@code /etest undeadinfo} - B-59: alive rows for the three surface species near the caller. */
+    private static void executeUndeadInfo(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        WorldServer w = (WorldServer) player.world;
+        int ghouls = 0;
+        int wights = 0;
+        int shadows = 0;
+        for (net.minecraft.entity.EntityLivingBase e : w.getEntitiesWithinAABB(
+                net.minecraft.entity.EntityLivingBase.class, player.getEntityBoundingBox().grow(32.0D))) {
+            String kind = e instanceof ETIMEntityGhoul ? "ghoul"
+                    : e instanceof ETIMEntityWight ? "wight"
+                            : e instanceof ETIMEntityShadow ? "shadow" : null;
+            if (kind == null) {
+                continue;
+            }
+            if (e instanceof ETIMEntityGhoul) {
+                ++ghouls;
+            } else if (e instanceof ETIMEntityWight) {
+                ++wights;
+            } else {
+                ++shadows;
+            }
+            boolean sun = e instanceof ETIMEntityShadow && ((ETIMEntityShadow) e).isInSunlight();
+            ETIM.LOGGER.info("[UndeadLog] info kind={} alive={} hp={} max={} sun={} entity={} [server]",
+                    kind, !e.isDead && e.getHealth() > 0.0F, e.getHealth(), e.getMaxHealth(), sun, e);
+        }
+        ETIM.LOGGER.info("[UndeadLog] info total ghoul={} wight={} shadow={} player={} [server]",
+                ghouls, wights, shadows, player.getName());
+    }
+
 }

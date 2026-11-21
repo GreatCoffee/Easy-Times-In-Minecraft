@@ -109,7 +109,7 @@ public final class ETIMDigging {
     }
 
     @Nullable
-    public static IState get(EntityLivingBase e) {
+    public static IState get(Entity e) {
         return CAPABILITY != null && e.hasCapability(CAPABILITY, null)
                 ? e.getCapability(CAPABILITY, null) : null;
     }
@@ -302,11 +302,14 @@ public final class ETIMDigging {
      * (blood-moon) or smart (revenant) zombie digs bare-handed; 平日 requires
      * a held ItemTool.
      */
-    public static boolean isDiggingEnabled(EntityZombie digger) {
+    public static boolean isDiggingEnabled(EntityLiving digger) {
         if (isHoldingItemThatPreventsDigging(digger)) { // R196 EntityZombie:404-411 最外项（狂化+持剑不可挖）
             return false;
         }
-        if (isFrenzied(digger) || isSmart(digger)) {
+        if (digger instanceof ETIMEntityGhoul) { // R196 EntityAnimalWatcher:22-24 — no tool gate
+            return true;
+        }
+        if (isFrenzied(digger) || (digger instanceof EntityZombie && isSmart((EntityZombie) digger))) {
             return true;
         }
         ItemStack held = digger.getHeldItemMainhand();
@@ -387,7 +390,7 @@ public final class ETIMDigging {
     }
 
     /** R196 hasDownwardsDiggingTool (:139-141): ItemShovel → 1.12 ItemSpade. */
-    private static boolean hasDownwardsDiggingTool(EntityZombie digger) {
+    private static boolean hasDownwardsDiggingTool(EntityLiving digger) {
         ItemStack held = digger.getHeldItemMainhand();
         return held != null && held.getItem() instanceof net.minecraft.item.ItemSpade;
     }
@@ -419,7 +422,7 @@ public final class ETIMDigging {
      * keeps the invulnerable/undead caveat verbatim (:220 De Morgan) — an
      * undead digger chews cacti.
      */
-    public static boolean canDestroyBlock(EntityZombie digger, IState s,
+    public static boolean canDestroyBlock(EntityLiving digger, IState s,
             int x, int y, int z, boolean checkClipping) {
         if (isHoldingItemThatPreventsDigging(digger)) { // :161-162
             return false;
@@ -551,7 +554,7 @@ public final class ETIMDigging {
      * class (R196 has one leaves block; v1 pinned Blocks.LEAVES only and
      * missed LEAVES2).
      */
-    private static boolean isAlwaysChewable(Block block, EntityZombie digger) {
+    private static boolean isAlwaysChewable(Block block, EntityLiving digger) {
         return block == Blocks.SAND || block == Blocks.DIRT || block == Blocks.GRASS
                 || block == Blocks.GRAVEL || block == Blocks.SNOW_LAYER || block == Blocks.FARMLAND
                 || block == Blocks.CLAY || block instanceof BlockLeaves || block == Blocks.WOOL
@@ -606,17 +609,15 @@ public final class ETIMDigging {
      * within ±4 already destroying the same block (the ETIM family = zombies,
      * 裁 3).
      */
-    private static boolean isBlockClaimedByAnother(EntityZombie digger, int x, int y, int z) {
+    private static boolean isBlockClaimedByAnother(EntityLiving digger, int x, int y, int z) {
         AxisAlignedBB bb = new AxisAlignedBB(
                 digger.posX - 4.0D, digger.posY - 4.0D, digger.posZ - 4.0D,
                 digger.posX + 4.0D, digger.posY + 4.0D, digger.posZ + 4.0D);
         for (Entity entity : digger.world.getEntitiesWithinAABBExcludingEntity(digger, bb)) {
-            if (entity instanceof EntityZombie) {
-                IState other = get((EntityZombie) entity);
-                if (other != null && other.isDestroyingBlock()
-                        && other.getDestroyBlockX() == x && other.getDestroyBlockY() == y && other.getDestroyBlockZ() == z) {
-                    return true; // :151-153
-                }
+            IState other = get(entity);
+            if (other != null && other.isDestroyingBlock()
+                    && other.getDestroyBlockX() == x && other.getDestroyBlockY() == y && other.getDestroyBlockZ() == z) {
+                return true; // :151-153
             }
         }
         return false;
@@ -626,7 +627,7 @@ public final class ETIMDigging {
      * R196 setBlockToDig (:231-250) — the state write-in face both the dig
      * AI and the attack-melee dig branch read.
      */
-    public static boolean setBlockToDig(EntityZombie digger, IState s,
+    public static boolean setBlockToDig(EntityLiving digger, IState s,
             int x, int y, int z, boolean checkClipping) {
         if (!canDestroyBlock(digger, s, x, y, z, checkClipping)) { // :232-234
             return false;
@@ -648,7 +649,7 @@ public final class ETIMDigging {
     }
 
     /** R196 cancelBlockDestruction (:252-259). */
-    public static void cancelBlockDestruction(EntityZombie digger, IState s) {
+    public static void cancelBlockDestruction(EntityLiving digger, IState s) {
         if (s.isDestroyingBlock()) {
             digger.world.sendBlockBreakProgress(digger.getEntityId(),
                     new BlockPos(s.getDestroyBlockX(), s.getDestroyBlockY(), s.getDestroyBlockZ()), -1); // :254 → destroy-stage clear
@@ -664,7 +665,7 @@ public final class ETIMDigging {
      * {@code 1 + strVsBlock * 0.5} (:288-298); an air block keeps the 40
      * default. Shared by the dig task.
      */
-    public static int sharedCooloffForBlock(EntityZombie digger, IState s) {
+    public static int sharedCooloffForBlock(EntityLiving digger, IState s) {
         BlockPos pos = new BlockPos(s.getDestroyBlockX(), s.getDestroyBlockY(), s.getDestroyBlockZ());
         IBlockState state = digger.world.getBlockState(pos);
         Block block = state.getBlock();
@@ -674,6 +675,11 @@ public final class ETIMDigging {
         int cooloff = (int) (300.0F * r196BlockHardness(state, digger.world, pos)); // :267 — the R196 hardness funnel (slab faces + the ETIMMining table)
         if (isFrenzied(digger)) {
             cooloff /= 2; // :268-270
+        }
+        // R196 EntityGhoul :122-124 — getCooloffForBlock() = super / 2, riding
+        // on top of the frenzy rule exactly like the R196 override does.
+        if (digger instanceof ETIMEntityGhoul) {
+            cooloff /= ((ETIMEntityGhoul) digger).getCooloffDivisor();
         }
         ItemStack held = digger.getHeldItemMainhand();
         if (held != null && held.getItem() instanceof ItemTool) {
@@ -696,7 +702,7 @@ public final class ETIMDigging {
      * 裁 4), and the {@code BlockUnderminable.tryToFall} ride-along (the
      * 1.12 falling chain covers the face, 补裁注册).
      */
-    public static void partiallyDestroyBlock(EntityZombie digger, IState s) {
+    public static void partiallyDestroyBlock(EntityLiving digger, IState s) {
         int x = s.getDestroyBlockX();
         int y = s.getDestroyBlockY();
         int z = s.getDestroyBlockZ();
@@ -779,7 +785,7 @@ public final class ETIMDigging {
      * leg face; blocked when a ray hits anything but the target block
      * (rayTraceBlocks 变体, C 级).
      */
-    private static boolean reachRayBlocked(World world, EntityZombie digger, int x, int y, int z) {
+    private static boolean reachRayBlocked(World world, EntityLiving digger, int x, int y, int z) {
         Vec3d center = new Vec3d(x + 0.5F, y + 0.5F, z + 0.5F);
         Vec3d eye = new Vec3d(digger.posX, digger.posY + digger.height * 0.75F, digger.posZ); // getEyePosForBlockDestroying → getPrimaryPointOfAttack（非玩家 0.75）
         Vec3d leg = new Vec3d(digger.posX, digger.posY + digger.height * 0.25F, digger.posZ); // getAttackerLegPosForBlockDestroying
@@ -805,11 +811,9 @@ public final class ETIMDigging {
                 bed.getX() - 8.0D, bed.getY() - 5.0D, bed.getZ() - 8.0D,
                 bed.getX() + 8.0D, bed.getY() + 5.0D, bed.getZ() + 8.0D); // :1387-1390
         for (EntityLiving entity : world.getEntitiesWithinAABB(EntityLiving.class, aabb)) {
-            if (entity instanceof EntityZombie) {
-                IState s = get(entity);
-                if (s != null && s.isDestroyingBlock()) { // :1396-1399
-                    return true;
-                }
+            IState s = get(entity);
+            if (s != null && s.isDestroyingBlock()) { // :1396-1399
+                return true;
             }
         }
         return false;
@@ -820,8 +824,15 @@ public final class ETIMDigging {
      * facing the block and re-admit the destruction while digging; reset the
      * dormant markers otherwise.
      */
-    public static void tickDigger(EntityZombie digger) {
-        if (digger.world.isRemote || !io.github.etim.etim.ETIMConfig.zombieDigAI) {
+    public static void tickDigger(EntityLiving digger) {
+        if (digger.world.isRemote) {
+            return;
+        }
+        if (digger instanceof ETIMEntityGhoul) {
+            if (!io.github.etim.etim.ETIMConfig.mobUndeadSurfaceR196) { // B-59 D-3 gate
+                return;
+            }
+        } else if (!io.github.etim.etim.ETIMConfig.zombieDigAI) {
             return;
         }
         IState s = get(digger);
@@ -844,7 +855,7 @@ public final class ETIMDigging {
     }
 
     /** R196 onDeath face (:348-351) — wired by ETIMDiggingEvents. */
-    public static void onDiggerDeath(EntityZombie digger) {
+    public static void onDiggerDeath(EntityLiving digger) {
         IState s = get(digger);
         if (s != null) {
             cancelBlockDestruction(digger, s);

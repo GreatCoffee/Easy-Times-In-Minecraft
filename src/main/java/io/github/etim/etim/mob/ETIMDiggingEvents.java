@@ -24,7 +24,8 @@ public final class ETIMDiggingEvents {
 
     @SubscribeEvent
     public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
-        if (event.getObject() instanceof EntityZombie) {
+        if (event.getObject() instanceof EntityZombie
+                || event.getObject() instanceof ETIMEntityGhoul) { // B-59 D-1 — the dig system opens to the ghoul
             event.addCapability(ETIMDigging.CAPABILITY_KEY, new ETIMDigging.Provider());
         }
     }
@@ -39,18 +40,22 @@ public final class ETIMDiggingEvents {
         if (event.getEntityLiving() instanceof net.minecraft.entity.monster.EntitySkeleton) {
             ETIMDigging.tickFrenzy((net.minecraft.entity.monster.EntitySkeleton) event.getEntityLiving());
         }
-        if (!io.github.etim.etim.ETIMConfig.zombieDigAI) {
+        boolean ghoul = event.getEntityLiving() instanceof ETIMEntityGhoul;
+        boolean gateOn = ghoul ? io.github.etim.etim.ETIMConfig.mobUndeadSurfaceR196
+                : io.github.etim.etim.ETIMConfig.zombieDigAI;
+        if (!gateOn) {
             return;
         }
-        if (event.getEntityLiving() instanceof EntityZombie) {
-            ETIMDigging.tickDigger((EntityZombie) event.getEntityLiving());
+        if (event.getEntityLiving() instanceof EntityZombie || ghoul) {
+            ETIMDigging.tickDigger((net.minecraft.entity.EntityLiving) event.getEntityLiving());
         }
     }
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
-        if (event.getEntityLiving() instanceof EntityZombie) {
-            ETIMDigging.onDiggerDeath((EntityZombie) event.getEntityLiving());
+        if (event.getEntityLiving() instanceof EntityZombie
+                || event.getEntityLiving() instanceof ETIMEntityGhoul) {
+            ETIMDigging.onDiggerDeath((net.minecraft.entity.EntityLiving) event.getEntityLiving());
         }
     }
 }

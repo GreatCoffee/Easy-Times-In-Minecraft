@@ -39,6 +39,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.World;
+import io.github.etim.etim.world.ETIMUnderworldSpawns;
 import net.minecraft.world.biome.Biome;
 
 /**
@@ -110,6 +112,12 @@ public final class ETIMSpawnTables {
         // updated accordingly.
         monster.add(entry(ETIMEntityRevenant.class, 10, 1, 1));
         monster.add(entry(ETIMEntityBoneLord.class, 5, 1, 1));
+        // B-59 (census D :110-112; R196 BiomeGenBase:172-173/:177): the
+        // surface undead trio rows 10(1,1) — base ctor = every biome, the
+        // depth / freezing / desert gates live in pickSpawn.
+        monster.add(entry(ETIMEntityGhoul.class, 10, 1, 1));
+        monster.add(entry(ETIMEntityWight.class, 10, 1, 1));
+        monster.add(entry(ETIMEntityShadow.class, 10, 1, 1));
         BASE.put(EnumCreatureType.MONSTER, monster);
 
         List<Biome.SpawnListEntry> water = new ArrayList<>();
@@ -424,6 +432,18 @@ public final class ETIMSpawnTables {
                     continue;
                 }
             }
+            // B-59 (census D :76/:110-112; R196 WorldServer:634-637 / :642-645
+            // / :687-690): cfg switch + ghoul y<=56, wight y<=48 or
+            // (blood && freezing), shadow y<=32 or (blood && desert);
+            // non-overworld keeps the depth bypass like the rows above.
+            if (cls == ETIMEntityGhoul.class || cls == ETIMEntityWight.class || cls == ETIMEntityShadow.class) {
+                if (!ETIMConfig.mobUndeadSurfaceR196) {
+                    continue;
+                }
+                if (undeadGateReject(w, pos, cls)) {
+                    continue;
+                }
+            }
             // B-57 (census D :276/:281/:283/:284): the gel family switch.
             if (!ETIMConfig.mobGelatinousR196
                     && (cls == ETIMEntityJelly.class || cls == ETIMEntityBlob.class
@@ -557,6 +577,82 @@ public final class ETIMSpawnTables {
      * total-world-time night window (ETIMDigging:284 precedent). */
     private static boolean bloodMoonNight(WorldServer w) {
         return ETIMMoonState.phase(w) == ETIMMoonState.Phase.BLOOD && ETIMMoonState.isNight(w);
+    }
+
+    /** B-59: R196 {@code BiomeGenBase.isFreezing()} (:351-353) — temperature <= 0.15F. */
+    private static boolean isFreezingBiome(World w, BlockPos pos) {
+        return w.getBiome(pos).getTemperature(pos) <= 0.15F;
+    }
+
+    /** B-59: R196 {@code BiomeGenBase.isDesertBiome()} (:359-361) — desert family (1.12 has no desert river). */
+    private static boolean isDesertBiome(World w, BlockPos pos) {
+        Biome biome = w.getBiome(pos);
+        return biome == Biomes.DESERT || biome == Biomes.DESERT_HILLS || biome == Biomes.MUTATED_DESERT;
+    }
+
+    /**
+     * B-59 gate (R196 {@code WorldServer.java:604-612} flags / :634-637 /
+     * :642-645 / :687-690): returns true when the surface undead candidate is
+     * refused at {@code pos} and logs the {@code [SpawnLog] undead-gate} row.
+     */
+    private static boolean undeadGateReject(WorldServer w, BlockPos pos, Class<?> cls) {
+        if (!ETIMUnderworldSpawns.checkDepth(w)) {
+            return false; // non-overworld bypasses the depth rows (check_depth=false)
+        }
+        UndeadGate gate = undeadGate(w, pos, cls);
+        if (gate.allowed) {
+            return false;
+        }
+        if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
+            --gateLogBudget;
+            ETIM.LOGGER.info("[SpawnLog] undead-gate reject cls=" + cls.getSimpleName()
+                    + " y=" + pos.getY() + " blood=" + gate.blood
+                    + " freezing=" + gate.freezing + " desert=" + gate.desert
+                    + " at " + posToString(pos));
+        }
+        return true;
+    }
+
+    /** B-59: {@code /etest undeadgate} probe — same decision, always logged. */
+    public static boolean probeUndeadGate(WorldServer w, BlockPos pos, Class<?> cls) {
+        boolean depth = ETIMUnderworldSpawns.checkDepth(w);
+        UndeadGate gate = undeadGate(w, pos, cls);
+        ETIM.LOGGER.info("[SpawnLog] undeadgate cls=" + cls.getSimpleName()
+                + " allowed=" + (gate.allowed || !depth) + " depth=" + depth
+                + " y=" + pos.getY() + " blood=" + gate.blood
+                + " freezing=" + gate.freezing + " desert=" + gate.desert
+                + " cfg=" + ETIMConfig.mobUndeadSurfaceR196
+                + " at " + posToString(pos) + " [server]");
+        return gate.allowed || !depth;
+    }
+
+    private static final class UndeadGate {
+        final boolean allowed;
+        final boolean blood;
+        final boolean freezing;
+        final boolean desert;
+
+        UndeadGate(boolean allowed, boolean blood, boolean freezing, boolean desert) {
+            this.allowed = allowed;
+            this.blood = blood;
+            this.freezing = freezing;
+            this.desert = desert;
+        }
+    }
+
+    private static UndeadGate undeadGate(WorldServer w, BlockPos pos, Class<?> cls) {
+        boolean blood = bloodMoonNight(w);
+        boolean freezing = isFreezingBiome(w, pos);
+        boolean desert = isDesertBiome(w, pos);
+        boolean allowed;
+        if (cls == ETIMEntityGhoul.class) {
+            allowed = pos.getY() <= 56 || blood;
+        } else if (cls == ETIMEntityWight.class) {
+            allowed = pos.getY() <= 48 || (blood && freezing);
+        } else {
+            allowed = pos.getY() <= 32 || (blood && desert);
+        }
+        return new UndeadGate(allowed, blood, freezing, desert);
     }
 
     private static Biome.SpawnListEntry pickWeighted(WorldServer w, EnumCreatureType type, BlockPos pos) {

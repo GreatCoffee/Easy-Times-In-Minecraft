@@ -129,6 +129,7 @@ public class ETIMEntityAIAvoidPotentialPredators extends net.minecraft.entity.ai
      *  per-predator face pass, married to both R196 preysUpon carriers. */
     private boolean preysUpon(EntityLivingBase predator_candidate) { // R196 :395/:587 candidates
         return predator_candidate instanceof EntityZombie            // R196 EntityZombie :395 — preys EntityAnimal
+                || predator_candidate instanceof ETIMEntityGhoul     // B-59 R196 EntityGhoul:114-116 — preysUpon(EntityAnimal)
                 || predator_candidate instanceof EntityWolf;         // R196 EntityWolf :587 — preys EntityAnimal (wild, adult)
     }
 

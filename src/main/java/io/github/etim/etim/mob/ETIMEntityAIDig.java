@@ -43,10 +43,10 @@ import net.minecraft.util.math.Vec3d;
  */
 public class ETIMEntityAIDig extends EntityAIBase {
 
-    private final EntityZombie digger;
+    private final net.minecraft.entity.EntityCreature digger;
     private EntityLivingBase etim$lastSentinelTarget; // C15 target 沿哨兵
 
-    public ETIMEntityAIDig(EntityZombie digger) {
+    public ETIMEntityAIDig(net.minecraft.entity.EntityCreature digger) {
         this.digger = digger;
         this.setMutexBits(3); // R196 :9
     }
@@ -54,7 +54,10 @@ public class ETIMEntityAIDig extends EntityAIBase {
     /** R196 shouldExecute (:13-139). */
     @Override
     public boolean shouldExecute() {
-        if (!ETIMConfig.zombieDigAI) { // the config gate rides the task (the vanilla-zombie off face)
+        boolean gateOn = this.digger instanceof ETIMEntityGhoul
+                ? ETIMConfig.mobUndeadSurfaceR196 // B-59 D-3
+                : ETIMConfig.zombieDigAI;
+        if (!gateOn) { // the config gate rides the task (the vanilla-zombie off face)
             return this.gateFail("cfg", "");
         }
         ETIMDigging.IState s = ETIMDigging.get(this.digger);
@@ -312,7 +315,7 @@ public class ETIMEntityAIDig extends EntityAIBase {
      * R196 isTargetWithinStrikingDistance (EntityLiving.java:1683) → the
      * vanilla AI reach face (width-based, 补裁 B 级精度替代同族).
      */
-    private static boolean withinStrikingDistance(EntityZombie digger, EntityLivingBase target) {
+    private static boolean withinStrikingDistance(net.minecraft.entity.EntityCreature digger, EntityLivingBase target) {
         double reachSq = digger.width * 2.0F * digger.width * 2.0F + target.width;
         return digger.getDistanceSq(target.posX, target.getEntityBoundingBox().minY, target.posZ) <= reachSq;
     }
@@ -323,12 +326,12 @@ public class ETIMEntityAIDig extends EntityAIBase {
     }
 
     /** R196 getEyePosForBlockDestroying → getPrimaryPointOfAttack (non-player face, 06a :126/:138). */
-    private static Vec3d eyePos(EntityZombie digger) {
+    private static Vec3d eyePos(net.minecraft.entity.EntityCreature digger) {
         return new Vec3d(digger.posX, digger.posY + digger.height * 0.75F, digger.posZ);
     }
 
     /** R196 getAttackerLegPosForBlockDestroying (06a :130-131). */
-    private static Vec3d legPos(EntityZombie digger) {
+    private static Vec3d legPos(net.minecraft.entity.EntityCreature digger) {
         return new Vec3d(digger.posX, digger.posY + digger.height * 0.25F, digger.posZ);
     }
 
@@ -337,13 +340,13 @@ public class ETIMEntityAIDig extends EntityAIBase {
      * ray, or null when the ray is clear (rayTraceBlocks 变体, C 级).
      */
     @Nullable
-    private static BlockPos reachRay(World world, EntityZombie digger, Vec3d to) {
+    private static BlockPos reachRay(World world, net.minecraft.entity.EntityCreature digger, Vec3d to) {
         return rayBlockHit(world, eyePos(digger), to);
     }
 
     /** R196 :123 leg-face variant. */
     @Nullable
-    private static BlockPos reachRayLeg(World world, EntityZombie digger, Vec3d to) {
+    private static BlockPos reachRayLeg(World world, net.minecraft.entity.EntityCreature digger, Vec3d to) {
         return rayBlockHit(world, legPos(digger), to);
     }
 
@@ -366,7 +369,7 @@ public class ETIMEntityAIDig extends EntityAIBase {
      * (fence) block blocks the dig unless the digger holds an effective
      * tool or the target is a player.
      */
-    private static boolean exemptFromRestriction(EntityZombie digger, BlockPos hit) {
+    private static boolean exemptFromRestriction(net.minecraft.entity.EntityCreature digger, BlockPos hit) {
         IBlockState state = digger.world.getBlockState(hit);
         if (!(state.getBlock() instanceof net.minecraft.block.BlockFence)) { // isRestrictedBlock :141-142
             return true;

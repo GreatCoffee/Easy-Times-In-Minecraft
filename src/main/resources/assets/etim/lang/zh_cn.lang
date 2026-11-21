@@ -312,3 +312,6 @@ item.etim.gelatinous_sphere.crimson.name=绯红凝胶团
 item.etim.gelatinous_sphere.gray.name=灰色软泥
 item.etim.gelatinous_sphere.black.name=黑色布丁
 item.etim.tooltip.missileDamage=+%d 投掷伤害
+entity.etim.ghoul.name=食尸鬼
+entity.etim.wight.name=尸妖
+entity.etim.shadow.name=暗影

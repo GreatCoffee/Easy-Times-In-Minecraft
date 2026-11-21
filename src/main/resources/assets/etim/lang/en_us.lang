@@ -313,3 +313,6 @@ item.etim.gelatinous_sphere.crimson.name=Crimson Blob
 item.etim.gelatinous_sphere.gray.name=Gray Ooze
 item.etim.gelatinous_sphere.black.name=Black Pudding
 item.etim.tooltip.missileDamage=+%d Missile Damage
+entity.etim.ghoul.name=Ghoul
+entity.etim.wight.name=Wight
+entity.etim.shadow.name=Shadow

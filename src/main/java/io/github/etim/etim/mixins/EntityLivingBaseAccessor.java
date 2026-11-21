@@ -15,6 +15,10 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(EntityLivingBase.class)
 public interface EntityLivingBaseAccessor {
 
+    /** B-59: R196 EntityLiving:1400 recentlyHit == 0 gate. */
+    @Accessor("recentlyHit")
+    int etim$getRecentlyHit();
+
     @Accessor("idleTime")
     int etim$getIdleTime();
 

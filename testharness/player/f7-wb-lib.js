@@ -32,9 +32,8 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b58-build5', releaseSize: 1327451, releaseSha: '0D137C67A16F70D289DC724301F96355C3F77142FB9148461AD87A3625EB258F', devSha: '093F6245248DAAE6AAFB3984AE9ECE97A53EE658AC25B8E0DACC9CE099EA930F', sourcesSha: '626F050101F90D85564A907F7980AA0B4668F1ED816AD8FCF8E89848709E2765' }; // b58-build5 = B-58 gelatinous sphere (5 colours) + throwable + pepsin/acid contact + subtype drops (+[GelLog] drop row) + /etest gelsphere|gelhit|gelkill|gelinv|gelhold (release 1,327,451 B)
-const MK_PIN = { classes: 104, entries: 262, dual: 524, mixins: 105, client: 10 }; // b55-build1: +3 inject entries over b54-build7 (EntityBat.collideWithNearbyEntities + MixinEntityPlayer writeEntityToNBT/readEntityFromNBT) and +overlay/network; MixinEntityPlayer unique members add no mappings.
-
+const PIN = { build: 'b59-build4', releaseSize: 1354794, releaseSha: 'DD1CEB8495D0B9CB7CC2E4800BAD644D64D43BD341790CA64911D2A6008E069F', devSha: '84D4CECBBE8A3CD08B0BEE7E6A869FDB90A17DBC82EF34A7D31CE4F569F4A32A', sourcesSha: '21F3F4F6ED6A22B8303AC5F525ED8AC925B333DBEC7BF505232389D956B3B039' }; // b59-build4 = B-59 undead trio; ghoul melee no longer starved by the standalone dig task (release 1,354,794 B)
+const MK_PIN = { classes: 104, entries: 263, dual: 526, mixins: 105, client: 10 }; // b59-build2: +1 refmap entry (EntityLivingBaseAccessor.recentlyHit) over b58-build5.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);
 const log = (t, ...a) => console.log(`[${stamp()}] [${t}]`, ...a);
