@@ -32,9 +32,9 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b54-build7', releaseSize: 1247625, releaseSha: 'F3B37B70A51A5E05CE944D2CB0B596E6D4E00766D36901672417C63EDB744E43', devSha: '132B3DBFBC50D8C4EB2C2B7D5FFB542BED3E0DE6981358307E0A3D9DF5F348C9', sourcesSha: '5E8C9306780CD9D3FAC18EDF0005B6EAEBC13D24C361DFE0148235EE11B97996' }; // b54-build7 = batch line carries cg/ag split (probe only; release 1,247,625 B; MK 104/259/518/105/10) // b54-build6 = probe seed decorrelation (SplitMix64 mixSeed) + verbose up to repeat<=5 (release 1,247,469 B; MK 104/259/518/105/10) // b54-build5 = batch probe (repeat + Stats aggregate, aquaticSeeds) (release 1,247,348 B; MK 104/259/518/105/10) // b54-build4 = hook log uses Biome.getRegistryName (getBiomeName does not exist at runtime) (release 1,245,515 B; MK 104/259/518/105/10)
+const PIN = { build: 'b55-build10', releaseSize: 1277221, releaseSha: '5CC824877F4AC029AC1D88A894F6CAF24724511035DCD559DAF781C1DC0BCF7F', devSha: 'B14D8DEAAF788FBEA2705D9D64B034E1A3C9CC3E0B7973B475970933D9DFE27B', sourcesSha: 'ED5938FA1840BA053934C21383054D76A4C7617B091302A6930CBD34067F0DEE' }; // b55-build7 = prey-scan self/players diagnostics (release 1,276,657 B)
 // B-49 (census D :207) -> 101/242/484, mixins 101; the trailing B-41 note is historical.
-const MK_PIN = { classes: 104, entries: 259, dual: 518, mixins: 105, client: 10 }; // b54-build1/2: +3 mixin classes (MixinWorldEntitySpawner, MixinChunk, MixinAnvilChunkLoader) and +3 inject entries (performWorldGenSpawning HEAD, writeChunkToNBT TAIL, readChunkFromNBT RETURN) over b53-build8 102/256/512/102/10; MixinChunk contributes no refmap mappings (unique field only), so refmap classes 102->104.
+const MK_PIN = { classes: 104, entries: 262, dual: 524, mixins: 105, client: 10 }; // b55-build1: +3 inject entries over b54-build7 (EntityBat.collideWithNearbyEntities + MixinEntityPlayer writeEntityToNBT/readEntityFromNBT) and +overlay/network; MixinEntityPlayer unique members add no mappings.
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);

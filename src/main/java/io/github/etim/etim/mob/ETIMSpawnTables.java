@@ -109,6 +109,10 @@ public final class ETIMSpawnTables {
 
         List<Biome.SpawnListEntry> cave = new ArrayList<>();
         cave.add(entry(EntityBat.class, 100, 8, 8));
+        // B-55 (R196 BiomeGenBase.java:169-171): the cave creature list is a
+        // vanilla-bat pack plus the two MITE bats, weighted 100/20/4.
+        cave.add(entry(ETIMEntityVampireBat.class, 20, 8, 8));
+        cave.add(entry(ETIMEntityNightwing.class, 4, 1, 4));
         BASE.put(EnumCreatureType.AMBIENT, cave);
     }
 
@@ -369,6 +373,28 @@ public final class ETIMSpawnTables {
                         ETIM.LOGGER.info("[SpawnLog] deep-gate reject cls=" + cls.getSimpleName()
                                 + " y=" + pos.getY() + " threshold=" + threshold
                                 + " blood=" + blood + " at " + posToString(pos));
+                    }
+                    continue;
+                }
+            }
+            // B-55 (census D :82/:236; R196 WorldServer:646-649 / :670-673):
+            // the vampire bat is live down to y<=48 and the nightwing to y<=32,
+            // both also open on blood-moon nights; non-overworld keeps the
+            // depth bypass, mirroring the revenant/bone-lord gate above.
+            if (!ETIMConfig.mobBatFamilyR196
+                    && (cls == ETIMEntityVampireBat.class || cls == ETIMEntityNightwing.class)) {
+                continue;
+            }
+            if (cls == ETIMEntityVampireBat.class || cls == ETIMEntityNightwing.class) {
+                int batThreshold = cls == ETIMEntityVampireBat.class ? 48 : 32;
+                boolean batBlood = bloodMoonNight(w);
+                if (io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w)
+                        && pos.getY() > batThreshold && !batBlood) {
+                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
+                        --gateLogBudget;
+                        ETIM.LOGGER.info("[SpawnLog] bat-gate reject cls=" + cls.getSimpleName()
+                                + " y=" + pos.getY() + " threshold=" + batThreshold
+                                + " blood=" + batBlood + " at " + posToString(pos));
                     }
                     continue;
                 }

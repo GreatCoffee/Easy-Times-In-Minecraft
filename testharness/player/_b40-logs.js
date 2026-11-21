@@ -1,0 +1,12 @@
+const fs = require('fs');
+const t = fs.readFileSync('build-logs/w-b40v-b1.out', 'utf8').split(/\r?\n/);
+const strip2 = (s) => s.replace(/^\d+: \[[^\]]*\] \[[^\]]*\] \[[^\]]*\]: /, '');
+const numbered = (l, i) => (i + 1) + ': ' + l;
+const food = t.map(numbered).filter((l) => /FoodLog/.test(l));
+console.log('FoodLog rows=' + food.length);
+for (const r of food.slice(0, 12)) console.log(strip2(r).slice(0, 240));
+const hoe = t.map(numbered).filter((l) => /HoeLog/.test(l));
+console.log('HoeLog rows=' + hoe.length);
+for (const r of hoe) console.log(r.split(':')[0] + ': ' + strip2(r).slice(0, 200));
+const b2 = fs.readFileSync('build-logs/w-b40v2-b1.out', 'utf8');
+console.log('b2 HoeLog=' + (b2.match(/HoeLog/g) || []).length + ' b2 FarmLog=' + (b2.match(/FarmLog/g) || []).length);

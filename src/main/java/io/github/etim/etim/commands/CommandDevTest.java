@@ -200,6 +200,21 @@ public class CommandDevTest extends CommandBase {
             case "wgbiome":
                 executeWgBiome(server, sender, args);
                 break;
+            case "bat":
+                executeBat(server, sender, args);
+                break;
+            case "dim":
+                executeDim(server, sender, args);
+                break;
+            case "dimhold":
+                executeDimHold(server, sender, args);
+                break;
+            case "batpick":
+                executeBatPick(server, sender, args);
+                break;
+            case "batclear":
+                executeBatClear(server, sender, args);
+                break;
             case "wide":
                 executeWide(server, sender, args);
                 break;
@@ -975,6 +990,139 @@ public class CommandDevTest extends CommandBase {
                 x, z, biome.getRegistryName(), creature, aquatic);
         sender.sendMessage(new TextComponentString("[etest] wgbiome " + biome.getRegistryName()
                 + " creature=" + creature + " aquatic=" + aquatic));
+    }
+
+    /**
+     * {@code /etest bat <vampire|nightwing|giant> <x> <y> <z>} — B-55 probe:
+     * summons a family member with its initial-spawn data and logs the judged
+     * attributes, so the verdict window can drive bites, the immunity row and
+     * the sunlight arm without hunting natural spawns.
+     */
+    private static void executeBat(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        int x = CommandBase.parseInt(args[2]);
+        int y = CommandBase.parseInt(args[3]);
+        int z = CommandBase.parseInt(args[4]);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        net.minecraft.entity.EntityLiving mob;
+        if ("vampire".equals(kind)) {
+            mob = new io.github.etim.etim.mob.ETIMEntityVampireBat(w);
+        } else if ("nightwing".equals(kind)) {
+            mob = new io.github.etim.etim.mob.ETIMEntityNightwing(w);
+        } else if ("giant".equals(kind)) {
+            mob = new io.github.etim.etim.mob.ETIMEntityGiantVampireBat(w);
+        } else {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        mob.setLocationAndAngles(x + 0.5D, y, z + 0.5D, 0.0F, 0.0F);
+        mob.onInitialSpawn(w.getDifficultyForLocation(new BlockPos(x, y, z)), null);
+        w.spawnEntity(mob);
+        ETIM.LOGGER.info("[BatMobLog] summon kind={} pos=({},{},{}) health={} max={} damage={} xp={} cls={} [server]",
+                kind, x, y, z, mob.getHealth(), mob.getMaxHealth(),
+                mob.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE) != null
+                        ? mob.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).getAttributeValue()
+                        : -1.0D,
+                ((io.github.etim.etim.mob.ETIMBatFamily) mob).etimExperienceValue(), mob.getClass().getSimpleName());
+        sender.sendMessage(new TextComponentString("[etest] bat " + kind + " at " + x + "," + y + "," + z));
+    }
+
+    /**
+     * {@code /etest dim [value] [player]} — B-55 probe: sets the target's R196
+     * {@code vision_dimming} (0 clears), mirroring it to the client overlay.
+     * The trailing player lets RCON drive the arm.
+     */
+    private static void executeDim(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player;
+        if (args.length >= 3) {
+            player = CommandBase.getPlayer(server, sender, args[2]);
+        } else if (sender instanceof EntityPlayerMP) {
+            player = (EntityPlayerMP) sender;
+        } else {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        if (args.length < 2 || "read".equalsIgnoreCase(args[1])) {
+            float current = ((io.github.etim.etim.mob.ETIMVisionDimmingDuck) player).etim$getVisionDimming();
+            ETIM.LOGGER.info("[BatMobLog] dim read value={} player={} [server]", current, player.getName());
+            sender.sendMessage(new TextComponentString("[etest] dim " + current));
+            return;
+        }
+        float value = (float) CommandBase.parseDouble(args[1]);
+        io.github.etim.etim.mob.ETIMVisionDimming.set(player, value);
+        ETIM.LOGGER.info("[BatMobLog] dim probe value={} player={} [server]", value, player.getName());
+        sender.sendMessage(new TextComponentString("[etest] dim " + value));
+    }
+
+
+    /** {@code /etest dimhold <value> [player]} — B-55 probe: freeze the decay. */
+    private static void executeDimHold(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player;
+        if (args.length >= 3) {
+            player = CommandBase.getPlayer(server, sender, args[2]);
+        } else if (sender instanceof EntityPlayerMP) {
+            player = (EntityPlayerMP) sender;
+        } else {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        float value = (float) CommandBase.parseDouble(args[1]);
+        io.github.etim.etim.mob.ETIMVisionDimming.setHeld(player, value);
+        ETIM.LOGGER.info("[BatMobLog] dim hold value={} player={} [server]", value, player.getName());
+        sender.sendMessage(new TextComponentString("[etest] dimhold " + value));
+    }
+
+    /**
+     * {@code /etest batclear} --- B-55 probe: the nightwing immunity also voids
+     * {@code /kill} (outOfWorld carries no aspect, same as R196), so the harness
+     * needs a dev-side cleanup that removes the family directly.
+     */
+    private static void executeBatClear(MinecraftServer server, ICommandSender sender, String[] args) {
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        int removed = 0;
+        for (net.minecraft.entity.Entity entity : new java.util.ArrayList<>(w.loadedEntityList)) {
+            if (entity instanceof io.github.etim.etim.mob.ETIMBatFamily) {
+                entity.setDead();
+                ++removed;
+            }
+        }
+        ETIM.LOGGER.info("[BatMobLog] batclear removed={} [server]", removed);
+        sender.sendMessage(new TextComponentString("[etest] batclear " + removed));
+    }
+
+    /**
+     * {@code /etest batpick <x> <y> <z> <n>} --- B-55 probe: runs the AMBIENT
+     * table {@code n} times at one spot so the depth gate (vampire y<=48,
+     * nightwing y<=32, blood-moon bypass) can be judged without waiting for a
+     * peaceful pass.
+     */
+    private static void executeBatPick(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        int n = CommandBase.parseInt(args[4], 1, 20000);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        java.util.Map<String, Integer> counts = new java.util.TreeMap<String, Integer>();
+        ETIMSpawnTables.resetGateLogBudget();
+        for (int i = 0; i < n; i++) {
+            net.minecraft.world.biome.Biome.SpawnListEntry entry =
+                    ETIMSpawnTables.pickSpawn(w, net.minecraft.entity.EnumCreatureType.AMBIENT, pos);
+            String key = entry == null ? "null" : entry.entityClass.getSimpleName();
+            Integer old = counts.get(key);
+            counts.put(key, old == null ? 1 : old + 1);
+        }
+        ETIM.LOGGER.info("[SpawnLog] batpick n={} at {} counts={} [server]", n, pos, counts);
+        sender.sendMessage(new TextComponentString("[etest] batpick " + counts));
     }
 
     /**

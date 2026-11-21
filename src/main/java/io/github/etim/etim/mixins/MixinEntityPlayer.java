@@ -45,7 +45,38 @@ import java.util.List;
  * </ul></p>
  */
 @Mixin(EntityPlayer.class)
-public abstract class MixinEntityPlayer {
+public abstract class MixinEntityPlayer implements io.github.etim.etim.mob.ETIMVisionDimmingDuck {
+
+    // ==================== B-55 — R196 vision_dimming (EntityPlayer.java:45) ====================
+
+    private float etim$visionDimming;
+
+    @Override
+    public float etim$getVisionDimming() {
+        return this.etim$visionDimming;
+    }
+
+    @Override
+    public void etim$setVisionDimming(float value) {
+        this.etim$visionDimming = value;
+    }
+
+    /** R196 EntityPlayer.java:658-663 — decay/clamp once per tick. */
+    @Inject(method = "onUpdate", at = @At("TAIL"))
+    private void etim$visionDimmingTick(CallbackInfo ci) {
+        io.github.etim.etim.mob.ETIMVisionDimming.tick((EntityPlayer) (Object) this);
+    }
+
+    /** R196 EntityPlayer.java:1007/:1027 — NBT {@code vision_dimming}. */
+    @Inject(method = "writeEntityToNBT", at = @At("TAIL"))
+    private void etim$writeVisionDimming(net.minecraft.nbt.NBTTagCompound compound, CallbackInfo ci) {
+        compound.setFloat("vision_dimming", this.etim$visionDimming);
+    }
+
+    @Inject(method = "readEntityFromNBT", at = @At("TAIL"))
+    private void etim$readVisionDimming(net.minecraft.nbt.NBTTagCompound compound, CallbackInfo ci) {
+        this.etim$visionDimming = compound.getFloat("vision_dimming");
+    }
 
     @ModifyVariable(method = "addExperienceLevel", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private int etim$clampLevelGain(int levels) {

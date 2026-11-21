@@ -32,9 +32,13 @@ public final class ETIMMobEntities {
         // B-47 D :274 infernal creeper (id 12; follows the ooze block).
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "infernal_creeper"),
                 ETIMEntityInfernalCreeper.class, "etim.infernal_creeper", 12, ETIM.instance(), 64, 3, true);
-        // B-47: infernal creeper variant (id 12).
-        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "infernal_creeper"),
-                ETIMEntityInfernalCreeper.class, "etim.infernal_creeper", 12, ETIM.instance(), 64, 3, true);
+        // B-55 D :60/:66/:236/:237 — the R196 bat family (ids 13/14/15).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "vampire_bat"),
+                ETIMEntityVampireBat.class, "etim.vampire_bat", 13, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "nightwing"),
+                ETIMEntityNightwing.class, "etim.nightwing", 14, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "giant_vampire_bat"),
+                ETIMEntityGiantVampireBat.class, "etim.giant_vampire_bat", 15, ETIM.instance(), 64, 3, true);
     }
 
     /**

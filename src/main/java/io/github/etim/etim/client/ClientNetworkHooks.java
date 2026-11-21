@@ -60,6 +60,25 @@ public final class ClientNetworkHooks {
                 ETIMSkillNetwork.PacketSkillSync.class,
                 ETIMSkillNetwork.PACKET_SYNC,
                 Side.CLIENT);
+        io.github.etim.etim.mob.ETIMVisionDimmingNetwork.CHANNEL.registerMessage(
+                VisionDimSyncHandler.class,
+                io.github.etim.etim.mob.ETIMVisionDimmingNetwork.PacketVisionDim.class,
+                io.github.etim.etim.mob.ETIMVisionDimmingNetwork.PACKET_VISION_DIM,
+                Side.CLIENT);
+    }
+
+    /** B-55 — R196 vision_dimming mirror (GuiIngame black overlay). */
+    public static final class VisionDimSyncHandler
+            implements IMessageHandler<io.github.etim.etim.mob.ETIMVisionDimmingNetwork.PacketVisionDim, IMessage> {
+        @Override
+        public IMessage onMessage(io.github.etim.etim.mob.ETIMVisionDimmingNetwork.PacketVisionDim message,
+                MessageContext ctx) {
+            if (ctx.side != Side.CLIENT) {
+                return null;
+            }
+            VisionDimOverlay.accept(message.value);
+            return null;
+        }
     }
 
     /** CLIENT-side handler for the food-model HUD mirror (see FoodDebugNetwork). */

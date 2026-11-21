@@ -579,6 +579,16 @@ public final class ETIMSpawnCycle {
                             log(w, "phase-max-attempts 64 at " + pos(cursor));
                         }
                     }
+                    // B-55 (census D :237; R196 SpawnerAnimals:377-379): a
+                    // vampire-bat pick rolls 1/4 for the widened pack
+                    // (max_num_spawned = 4 + rand(5)); the check is on the
+                    // picked class, before the underworld substitution below.
+                    if (entry.entityClass == ETIMEntityVampireBat.class && w.rand.nextInt(4) == 0) {
+                        maxSpawnAttempts = 4 + w.rand.nextInt(5);
+                        if (ETIMConfig.mobDebugLog) {
+                            log(w, "vampire-group max=" + maxSpawnAttempts + " at " + pos(cursor));
+                        }
+                    }
                 }
                 if (!canSpawnHere(w, entry, cursor, type, abandonChunk)) {
                     if (abandonChunk[0]) {

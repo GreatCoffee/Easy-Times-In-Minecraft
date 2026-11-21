@@ -16,9 +16,11 @@ import net.minecraft.world.WorldServer;
 
 import io.github.etim.etim.mob.ETIMEntityAncientBoneLord;
 import io.github.etim.etim.mob.ETIMEntityBoneLord;
+import io.github.etim.etim.mob.ETIMEntityGiantVampireBat;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
 import io.github.etim.etim.mob.ETIMEntityRevenant;
+import io.github.etim.etim.mob.ETIMEntityVampireBat;
 import io.github.etim.etim.mob.ETIMSpawnTables;
 
 /**
@@ -93,6 +95,14 @@ public final class ETIMUnderworldSpawns {
             Class<? extends EntityLiving> suitableClass) {
         // R196 :74-75 — VampireBat ∧ underworld ∧ 1/6 → GiantVampireBat
         // (kept as the dead face: ETIM has no VampireBat class, C-5).
+        // B-55: the vampire-bat half is live now that ETIMEntityGiantVampireBat
+        // exists (R196 SpawnerAnimals.java:74-75, 1/6 in the underworld).
+        if (suitableClass == ETIMEntityVampireBat.class && w.rand.nextInt(6) == 0) {
+            if (ETIMConfig.mobDebugLog) {
+                ETIM.LOGGER.info("[SpawnLog] substitute VampireBat->GiantVampireBat [server]");
+            }
+            return ETIMEntityGiantVampireBat.class;
+        }
         if (suitableClass == ETIMEntityLongdead.class && w.rand.nextInt(6) == 0) { // :77
             if (ETIMConfig.mobDebugLog) {
                 ETIM.LOGGER.info("[SpawnLog] substitute Longdead->Guardian [server]");

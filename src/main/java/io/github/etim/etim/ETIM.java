@@ -62,6 +62,7 @@ public final class ETIM {
         NutritionSystem.register();
         io.github.etim.etim.ingest.ETIMIngestNetwork.registerMessages();
         FoodDebugNetwork.registerMessages();
+        io.github.etim.etim.mob.ETIMVisionDimmingNetwork.registerMessages();
         io.github.etim.etim.crafting.CraftingProgressNetwork.registerServerShard();
         io.github.etim.etim.nutrition.NutritionNetwork.registerMessages();
         ETIMFoodStats.register();

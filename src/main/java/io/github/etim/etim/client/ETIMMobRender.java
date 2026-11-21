@@ -3,21 +3,24 @@ package io.github.etim.etim.client;
 import io.github.etim.etim.mob.ETIMEntityAncientBoneLord;
 import io.github.etim.etim.mob.ETIMEntityArrow;
 import io.github.etim.etim.mob.ETIMEntityBoneLord;
+import io.github.etim.etim.mob.ETIMEntityGiantVampireBat;
 import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
-import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
+import io.github.etim.etim.mob.ETIMEntityNightwing;
 import io.github.etim.etim.mob.ETIMEntityOoze;
 import io.github.etim.etim.mob.ETIMEntityRevenant;
+import io.github.etim.etim.mob.ETIMEntityVampireBat;
 
 import net.minecraft.client.model.ModelSkeleton;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.entity.RenderBat;
 import net.minecraft.client.renderer.entity.RenderBiped;
-import net.minecraft.client.renderer.entity.RenderCreeper;
 import net.minecraft.client.renderer.entity.RenderCreeper;
 import net.minecraft.client.renderer.entity.RenderSkeleton;
 import net.minecraft.client.renderer.entity.RenderZombie;
 import net.minecraft.entity.monster.AbstractSkeleton;
+import net.minecraft.entity.passive.EntityBat;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.relauncher.Side;
@@ -58,6 +61,41 @@ public final class ETIMMobRender {
         // B-44 census A :90 — the mining ooze (vanilla slime model + gray tint).
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityOoze.class, OozeRender::new);
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityInfernalCreeper.class, RenderCreeper::new);
+        // B-55 (R196 RenderBat:3-30): the family reuses the vanilla bat model
+        // and renderer stack; only the texture differs, and the giant gets the
+        // 2× scale from R196 EntityBat.getScaleFactor.
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityVampireBat.class,
+                manager -> new BatRender(manager, new ResourceLocation("etim:textures/entity/bat/vampire.png"), 1.0F));
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityNightwing.class,
+                manager -> new BatRender(manager, new ResourceLocation("etim:textures/entity/bat/nightwing.png"), 1.0F));
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityGiantVampireBat.class,
+                manager -> new BatRender(manager, new ResourceLocation("etim:textures/entity/bat/vampire.png"), 2.0F));
+    }
+
+    /** R196 RenderBat: vanilla model/scale, family texture, 2× for the giant. */
+    private static final class BatRender extends RenderBat {
+
+        private final ResourceLocation texture;
+        private final float scale;
+
+        BatRender(net.minecraft.client.renderer.entity.RenderManager manager, ResourceLocation texture, float scale) {
+            super(manager);
+            this.texture = texture;
+            this.scale = scale;
+        }
+
+        @Override
+        protected ResourceLocation getEntityTexture(EntityBat entity) {
+            return this.texture;
+        }
+
+        @Override
+        protected void preRenderCallback(EntityBat entity, float partialTicks) {
+            super.preRenderCallback(entity, partialTicks);
+            if (this.scale != 1.0F) {
+                GlStateManager.scale(this.scale, this.scale, this.scale);
+            }
+        }
     }
 
     /** The ETIMSpiderRender.Tinted shape over the vanilla skeleton renderer stack. */
