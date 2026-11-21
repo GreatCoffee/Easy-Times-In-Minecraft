@@ -65,6 +65,7 @@
     "MixinEntityAIVillagerMate",
     "MixinEntityEgg",
     "MixinEntityLivingBase",
+    "MixinEntityBat",
     "MixinEntitySheep",
     "EntityAccessor",
     "EntityItemAgeAccessor",

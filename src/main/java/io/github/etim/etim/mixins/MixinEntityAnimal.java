@@ -1,5 +1,7 @@
 package io.github.etim.etim.mixins;
 
+import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
 import io.github.etim.etim.mob.ETIMAnimalWarn;
@@ -274,5 +276,31 @@ public abstract class MixinEntityAnimal {
         }
         Entity attacker = source == null ? null : source.getTrueSource();
         ETIMAnimalWarn.warnPeers((EntityAnimal) (Object) this, attacker);
+    }
+
+    /**
+     * B-53 census D :384-386 — R196 EntityLivestock.getExperienceValue
+     * returns 0 for cow/pig/sheep/chicken; 1.12 EntityAnimal returns
+     * 1 + rand(3). The four livestock classes inherit this method; the
+     * chicken overrides it and carries its own handler.
+     */
+    @Inject(method = "getExperiencePoints(Lnet/minecraft/entity/player/EntityPlayer;)I",
+            at = @At("HEAD"), cancellable = true)
+    private void etim$livestockXp(EntityPlayer player, CallbackInfoReturnable<Integer> cir) {
+        if (!ETIMConfig.livestockXpR196) {
+            return;
+        }
+        EntityAnimal self = (EntityAnimal) (Object) this;
+        if (self instanceof EntityCow || self instanceof EntityPig
+                || self instanceof EntitySheep || self instanceof EntityChicken) {
+            cir.setReturnValue(0); // R196 EntityLivestock :384-386
+            if (ETIMConfig.mobDebugLog) {
+                String kind = self instanceof EntityCow ? "cow"
+                        : self instanceof EntityPig ? "pig"
+                        : self instanceof EntitySheep ? "sheep" : "chicken";
+                ETIM.LOGGER.info("[FarmLog] xp kind=" + kind + " value=0 entity="
+                        + self.getClass().getSimpleName() + "#" + self.getEntityId());
+            }
+        }
     }
 }

@@ -203,4 +203,24 @@ public abstract class MixinEntityZombie implements ETIMSmartDuck {
             this.etim$isSmartValue = compound.getBoolean("is_smart"); // R196 :239
         }
     }
+
+    /**
+     * B-53 census D :141 — R196 arms canPickUpLoot on every zombie in
+     * {@code onSpawnWithEgg} (EntityZombie.java:277). 1.12 rolls
+     * {@code rand < 0.55F * difficulty} instead (EntityZombie.java:493-497),
+     * so the TAIL forces it true for the R196 pickup lane. Pigmen inherit
+     * this seat, matching R196 (the pigman never re-rolls).
+     */
+    @Inject(method = "onInitialSpawn(Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/entity/IEntityLivingData;)Lnet/minecraft/entity/IEntityLivingData;",
+            at = @At("TAIL"))
+    private void etim$forcePickUpLoot(DifficultyInstance difficulty, net.minecraft.entity.IEntityLivingData livingdata,
+                                      CallbackInfoReturnable<net.minecraft.entity.IEntityLivingData> cir) {
+        if (!ETIMConfig.mobPickupR196) {
+            return;
+        }
+        EntityZombie zombie = (EntityZombie) (Object) this;
+        if (!zombie.world.isRemote) {
+            zombie.setCanPickUpLoot(true);
+        }
+    }
 }

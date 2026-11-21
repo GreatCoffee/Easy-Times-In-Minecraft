@@ -3,12 +3,14 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMMobEquip;
 import io.github.etim.etim.mob.ETIMEntityAISeekFiringPosition;
+import net.minecraft.entity.IEntityLivingData;
 import net.minecraft.entity.monster.AbstractSkeleton;
 import net.minecraft.world.DifficultyInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * B3 批文 §〇-获取机制面: the R196 skeleton random-equipment chain
@@ -57,6 +59,25 @@ public abstract class MixinAbstractSkeletonEquip {
         if (held != null && held.getItem() instanceof net.minecraft.item.ItemBow) { // R196 EntitySkeleton :255
             skeleton.tasks.addTask(3,
                     new ETIMEntityAISeekFiringPosition(skeleton, 1.0F, true)); // R196 :257
+        }
+    }
+
+    /**
+     * B-53 census D :141 — R196 arms canPickUpLoot on every skeleton in
+     * {@code onSpawnWithEgg} (EntitySkeleton.java:239). 1.12 rolls
+     * {@code rand < 0.55F * difficulty} instead (AbstractSkeleton.java:199-206),
+     * so the TAIL forces it true for the R196 repair lane (bone).
+     */
+    @Inject(method = "onInitialSpawn(Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/entity/IEntityLivingData;)Lnet/minecraft/entity/IEntityLivingData;",
+            at = @At("TAIL"))
+    private void etim$forcePickUpLoot(DifficultyInstance difficulty, IEntityLivingData livingdata,
+                                      CallbackInfoReturnable<IEntityLivingData> cir) {
+        if (!ETIMConfig.mobPickupR196) {
+            return;
+        }
+        AbstractSkeleton skeleton = (AbstractSkeleton) (Object) this;
+        if (!skeleton.world.isRemote) {
+            skeleton.setCanPickUpLoot(true);
         }
     }
 }

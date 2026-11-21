@@ -1,10 +1,16 @@
 package io.github.etim.etim.mixins;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.mob.ETIMContainedItemsDuck;
 import io.github.etim.etim.mob.ETIMLivestockEvents;
 import io.github.etim.etim.mob.ETIMMassiveFallDuck;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.passive.EntityChicken;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -12,6 +18,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * B-10 batch 2 (audit20 条 303) — F-3, the jump feather face (R196
@@ -24,7 +33,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * vanilla body stands untouched.
  */
 @Mixin(EntityLivingBase.class)
-public abstract class MixinEntityLivingBase implements ETIMMassiveFallDuck {
+public abstract class MixinEntityLivingBase implements ETIMMassiveFallDuck, ETIMContainedItemsDuck {
 
     @Inject(method = "jump", at = @At("TAIL"))
     private void etim$chickenJumpFeather(CallbackInfo ci) {
@@ -68,5 +77,89 @@ public abstract class MixinEntityLivingBase implements ETIMMassiveFallDuck {
             this.etim$hasTakenMassiveFallDamageValue = true;
         }
         return self.attackEntityFrom(source, amount);
+    }
+
+    // ---- B-53 census D :141 — R196 contained_items carrier ----
+
+    @Unique
+    private final List<Integer> etim$containedItemsValue = new ArrayList<Integer>();
+
+    @Override
+    public List<Integer> etim$getContainedItems() {
+        return this.etim$containedItemsValue;
+    }
+
+    @Override
+    public void etim$addContainedItem(int itemId) {
+        this.etim$containedItemsValue.add(itemId);
+    }
+
+    @Override
+    public void etim$dropContainedItems() {
+        EntityLivingBase self = (EntityLivingBase) (Object) this;
+        if (this.etim$containedItemsValue.isEmpty()) {
+            return;
+        }
+        for (Integer id : new ArrayList<Integer>(this.etim$containedItemsValue)) {
+            Item item = Item.getItemById(id);
+            if (item != null) {
+                self.entityDropItem(new ItemStack(item), 0.0F);
+                if (ETIMConfig.mobDebugLog) {
+                    ETIM.LOGGER.info("[DropLog] contained item=" + String.valueOf(item.getRegistryName())
+                            + " entity=" + self.getClass().getSimpleName() + "#" + self.getEntityId());
+                }
+            }
+        }
+        this.etim$containedItemsValue.clear();
+    }
+
+    @Inject(method = "writeEntityToNBT", at = @At("TAIL"))
+    private void etim$writeContainedItems(NBTTagCompound compound, CallbackInfo ci) {
+        if (this.etim$containedItemsValue.isEmpty()) {
+            return;
+        }
+        StringBuilder builder = new StringBuilder(); // R196 :412 |id|id
+        for (Integer id : this.etim$containedItemsValue) {
+            builder.append('|').append(id);
+        }
+        compound.setString("ETIMContainedItems", builder.toString());
+    }
+
+    @Inject(method = "readEntityFromNBT", at = @At("TAIL"))
+    private void etim$readContainedItems(NBTTagCompound compound, CallbackInfo ci) {
+        this.etim$containedItemsValue.clear();
+        String raw = compound.getString("ETIMContainedItems"); // R196 :455
+        if (raw.isEmpty()) {
+            return;
+        }
+        for (String part : raw.split("\\|")) {
+            if (part.isEmpty()) {
+                continue;
+            }
+            try {
+                this.etim$containedItemsValue.add(Integer.parseInt(part));
+            } catch (NumberFormatException ignored) {
+                // malformed NBT entry: drop it, same as R196's parser tolerance
+            }
+        }
+    }
+
+    /**
+     * R196 :914 drops one item per contained id inside onDeath, gated by
+     * child/loot and the massive-fall 10% roll. The 1.12 onDeath TAIL runs
+     * after dropLoot (few/equipment), so only the ordering differs (C).
+     */
+    @Inject(method = "onDeath", at = @At("TAIL"))
+    private void etim$dropContainedItemsOnDeath(DamageSource cause, CallbackInfo ci) {
+        EntityLivingBase self = (EntityLivingBase) (Object) this;
+        if (self.world.isRemote || self.isChild()
+                || !self.world.getGameRules().getBoolean("doMobLoot")) {
+            return;
+        }
+        if (((ETIMMassiveFallDuck) self).etim$hasTakenMassiveFallDamage()
+                && self.getRNG().nextFloat() >= 0.1F) {
+            return;
+        }
+        this.etim$dropContainedItems();
     }
 }

@@ -1,8 +1,10 @@
 package io.github.etim.etim.mixins;
 
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
 import net.minecraft.entity.passive.EntityChicken;
+import net.minecraft.entity.player.EntityPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -43,6 +45,25 @@ public abstract class MixinEntityChicken {
     private void etim$vanillaEggLaneFreeze(CallbackInfo ci) {
         if (ETIMConfig.livestockProductionR196) {
             this.timeUntilNextEgg = Math.max(this.timeUntilNextEgg, 10000);
+        }
+    }
+
+    /**
+     * B-53 census D :384-386 — R196 {@code EntityLivestock.getExperienceValue}
+     * is 0, while 1.12's chicken override pays 10 for a chicken jockey and
+     * {@code 1+rand(3)} otherwise. R196 has no jockey exception, so the HEAD
+     * cancel returns 0 for both arms.
+     */
+    @Inject(method = "getExperiencePoints(Lnet/minecraft/entity/player/EntityPlayer;)I",
+            at = @At("HEAD"), cancellable = true)
+    private void etim$livestockXp(EntityPlayer player, CallbackInfoReturnable<Integer> cir) {
+        if (ETIMConfig.livestockXpR196) {
+            cir.setReturnValue(0);
+            if (ETIMConfig.mobDebugLog) {
+                EntityChicken self = (EntityChicken) (Object) this;
+                ETIM.LOGGER.info("[FarmLog] xp kind=chicken value=0 entity="
+                        + self.getClass().getSimpleName() + "#" + self.getEntityId());
+            }
         }
     }
 }

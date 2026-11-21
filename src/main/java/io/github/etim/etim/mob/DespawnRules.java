@@ -552,13 +552,17 @@ public final class DespawnRules {
     }
 
     /**
-     * B-50: R196 EntityLiving:776 {@code contained_items.isEmpty()} — any
-     * equipped item (armour, hands, or Forge's equipment iterator) holds the
-     * mob out of the kill branch. 1.12 has no generic inventory view on
-     * EntityLiving, so this is the equipment face; the difference is logged
-     * as a C-level approximation.
+     * B-50 + B-53: R196 EntityLiving:776 {@code contained_items.isEmpty()} —
+     * a picked-up valuable holds the mob out of the kill branch. 1.12 has no
+     * generic inventory view, so B-50 approximated it with equipment; B-53
+     * adds the real R196 list through {@link ETIMContainedItemsDuck}. Both
+     * arms stay because R196 also treats equipped gear as held value.
      */
     public static boolean hasContainedItems(EntityLiving e) {
+        if (e instanceof ETIMContainedItemsDuck
+                && !((ETIMContainedItemsDuck) e).etim$getContainedItems().isEmpty()) {
+            return true; // B-53: R196 contained_items list first
+        }
         if (!e.getHeldItemMainhand().isEmpty() || !e.getHeldItemOffhand().isEmpty()) {
             return true;
         }

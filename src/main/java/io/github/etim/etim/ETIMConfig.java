@@ -631,6 +631,12 @@ public final class ETIMConfig {
     public static boolean mobDebugLog = false;
     /** Master switch of the R196 production slice (audit20 条 299/300, B-10): the 100-tick production counter arm + produceGoods — cow milk meter (full at 100, one bucket of milk takes the whole meter), chicken feather meter (1..2) + egg gate (counter 200, 1-in-20 per pass), sheep/pig produce nothing (counter reset). Also silences the vanilla 6000-tick egg lane. Off = vanilla carries everything (infinite milk + vanilla eggs). R196 产出口总开关（条件 299/300，B-10）：100 tick 产出口增长臂＋produceGoods——牛奶表（满 100，一桶奶扣整表）、鸡羽表（1..2）+ 蛋门（计数 200、每 pass 1/20）、羊/猪不产（归零）。开启时同时静默原版 6000 tick 蛋道。关闭则回到原版（无穷奶 + 原版蛋）。 */
     public static boolean livestockProductionR196 = true;
+    /** Master switch of the R196 ground-pickup loop (B-53, census D :141): food / repair / valuable branches, the 400-tick (40 for valuables) cooldown, stack decrement + age reset, and the contained-items carrier with its NBT and death drop. Off = vanilla 1.12 equipment-only pickup. R196 地面拾取循环总开关（B-53，census D :141）：食物/修理/贵重三分支、400 tick（贵重 40）冷却、扣栈与 age 重置，以及 contained_items 载体（NBT + 死亡掉落）。关闭则回到原版 1.12 仅装备拾取。 */
+    public static boolean mobPickupR196 = true;
+    /** Master switch of the R196 livestock XP row (B-53, census D :385): cow/pig/sheep/chicken award 0 XP on death (EntityLivestock:384-386); non-livestock animals keep the 1.12 1-3 roll. Off = vanilla 1-3 for every animal. R196 家畜经验总开关（B-53，census D :385）：牛/猪/羊/鸡死亡掉 0 经验（R196 EntityLivestock:384-386）；非家畜动物保持 1.12 的 1-3。关闭则所有动物回到原版 1-3。 */
+    public static boolean livestockXpR196 = true;
+    /** Master switch of the R196 bat hanging state machine (B-53, census D :294): block-hanging Y carrier, glass/bottom-face admission, hurt release, prevent-hang countdown and the 1-in-10/1-in-1000 rolls. Off = vanilla 1.12 bat hanging. R196 蝙蝠倒挂状态机总开关（B-53，census D :294）：悬挂方块 Y 载体、玻璃/底面准入、受伤放下、防重挂倒计时与 1/10、1/1000 掷骰。关闭则回到原版 1.12 倒挂。 */
+    public static boolean mobBatHangingR196 = true;
     /** R196 livestock manure periods (ticks): cow = base 24000 (EntityLivestock.java:29), pig x2 = 48000 (:30), sheep x2 = 48000 (:45), chicken x8x2 = 384000 (:24). Drop = 1 manure at countdown 0, then reroll period/2 + rand(period). 家畜掉粪周期（tick）：牛 24000（基类默认）、猪 ×2=48000、羊 ×2=48000、鸡 ×8×2=384000；倒数到 0 掉粪 1 个，再掷 period/2+随机(period)。 */
     public static int livestockManurePeriodCow = 24000;
     public static int livestockManurePeriodPig = 48000;
@@ -1440,6 +1446,15 @@ public final class ETIMConfig {
         mobSpawnR196 = config.getBoolean("mobSpawnR196", "mobs", true,
                 comment("R196 spawn cycle (audit 11 §4 + audit 14): creature caps 50/10/5/5 over /256 chunks with the deep doubling, hostile dual probability rings 0.10 (under y60) / 0.17 (surface) times the modifier events (decreased x0.5 / increased x2 / no-spawn windows, blood-moon and thunder restore only reduced mods), the %-400 peaceful windows with blue-moon animal gating, night moon rejection rates and the dual-light close branch. Off = vanilla 1.12 spawning",
                         "R196 生成周期（审计 11 §4 + 审计 14）：物种上限 50/10/5/5 ×区块数/256（深处加倍）、敌怪双概率环（y60 下 0.10/地表 0.17）×调制事件（缩减×0.5/翻倍×2/停发窗口，血月与雷雨只还原缩减类）、%-400 温驯窗口（动物加蓝月门）、夜间月亮拒率与双光照近距离准入。关闭则回到原版 1.12 生成"));
+        mobPickupR196 = config.getBoolean("mobPickupR196", "mobs", true,
+                comment("R196 ground pickup loop (B-53, EntityLiving :635-690): canPickUpLoot mobs scan the 1.0/0.25/1.0 box for food/repair/valuable items, eat (50% heal, undead excluded), repair (50% heal) or store the item id in contained_items (NBT + death drop); cooldowns 400/40 ticks. Also forces skeleton/zombie canPickUpLoot=true (R196 :239/:277). Off = vanilla 1.12 equipment-only lane",
+                        "R196 地面拾取循环（B-53，EntityLiving :635-690）：canPickUpLoot 怪扫描 1.0/0.25/1.0 拾取盒内的食物/修理/贵重物品，分别吃（回 50% 血，亡灵除外）、修理（回 50% 血）或把物品 id 存入 contained_items（NBT＋死亡掉落）；冷却 400/40 tick。同时强制骷髅/僵尸 canPickUpLoot=true（R196 :239/:277）。关闭则回到原版 1.12 仅装备拾取道"));
+        mobBatHangingR196 = config.getBoolean("mobBatHangingR196", "mobs", true,
+                comment("R196 bat hanging state machine (B-53, EntityBat :130-230): server-side block-Y pin (0.00625 offset), hurt release with sound 1015, 60-tick prevent-hang countdown on every unhang, glass/underside exclusion and the first-attempt 1-in-1 then 1-in-10 rehang roll. Off = vanilla 1.12 bat hanging",
+                        "R196 蝙蝠倒挂状态机（B-53，EntityBat :130-230）：服务端方块 Y 钉位（0.00625 偏移）、受伤放下并播放 1015 音、每次放下写入 60 tick 禁挂倒数、玻璃/底面排除，以及首次 1/1、之后 1/10 的重挂掷骰。关闭则回到原版 1.12 蝙蝠倒挂"));
+        livestockXpR196 = config.getBoolean("livestockXpR196", "mobs", true,
+                comment("R196 livestock XP (B-53, EntityLivestock :384-386): cow/pig/sheep/chicken drop 0 XP, chicken jockey included. Off = vanilla 1-3 (jockey 10)",
+                        "R196 家畜经验（B-53，EntityLivestock :384-386）：牛/猪/羊/鸡掉 0 经验，鸡骑士同样为 0。关闭则回到原版 1-3（鸡骑士 10）"));
         spawnCapMonster = config.getInt("spawnCapMonster", "mobs", spawnCapMonster, 0, 500,
                 comment("R196 monster spawn cap before the chunk conversion (audit 14: 50; vanilla 1.12 = 70)",
                         "敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）"));

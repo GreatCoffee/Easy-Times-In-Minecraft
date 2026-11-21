@@ -3,6 +3,7 @@ package io.github.etim.etim.mixins;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.DespawnRules;
 import io.github.etim.etim.mob.ETIMFireCountdownDuck;
+import io.github.etim.etim.mob.ETIMMobPickup;
 import io.github.etim.etim.mob.ETIMRepairCooldownDuck;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
@@ -94,18 +95,35 @@ public abstract class MixinEntityLiving implements ETIMFireCountdownDuck, ETIMRe
      */
     @Inject(method = "onUpdate", at = @At("TAIL"))
     private void etim$fireCountdownTick(CallbackInfo ci) {
-        if (!ETIMConfig.livestockNeedsR196) {
-            return; // flag off: vanilla 1.12 has no countdown at all
-        }
-        if (((EntityLiving) (Object) this).world.isRemote) {
+        EntityLiving self = (EntityLiving) (Object) this;
+        if (self.world.isRemote) {
             return; // R196 :208 — the server guard the decrement lives inside
         }
-        if (this.etim$increasedChanceOfSpreadingFireCountdown > 0) {
+        if (ETIMConfig.livestockNeedsR196 && this.etim$increasedChanceOfSpreadingFireCountdown > 0) {
             this.etim$increasedChanceOfSpreadingFireCountdown--;
         }
-        if (this.etim$repairPickupCooldown > 0) { // B-35 — R196 :646-647
+        // B-53: the shared repair cooldown must keep ticking even when the
+        // livestock-needs lane is off but the global pickup lane is on.
+        if ((ETIMConfig.livestockNeedsR196 || ETIMConfig.mobPickupR196)
+                && this.etim$repairPickupCooldown > 0) { // B-35 — R196 :646-647
             this.etim$repairPickupCooldown--;
         }
+    }
+
+    /**
+     * B-53 census D :141 — the R196 ground pickup loop
+     * ({@code EntityLiving.java:635-690}) rides the head of the 1.12
+     * {@code onLivingUpdate}. HEAD is load-bearing: the vanilla equipment
+     * loop (:649, {@code updateEquipmentIfNeeded}) would otherwise put a
+     * food/repair stack into the mob's main hand and kill the item entity
+     * before this lane ever sees it.
+     */
+    @Inject(method = "onLivingUpdate", at = @At("HEAD"))
+    private void etim$mobPickupTick(CallbackInfo ci) {
+        if (!ETIMConfig.mobPickupR196) {
+            return;
+        }
+        ETIMMobPickup.tick((EntityLiving) (Object) this);
     }
 
     @Inject(method = "despawnEntity", at = @At("HEAD"), cancellable = true)
