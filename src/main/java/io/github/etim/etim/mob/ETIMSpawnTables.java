@@ -200,6 +200,23 @@ public final class ETIMSpawnTables {
     }
 
     /**
+     * B-54 — the world-gen (chunk populate) list for a biome: the R196
+     * {@code biome.getSpawnableList(type)} face, resolved against the ETIM
+     * override + BASE pair. Ungated on purpose: R196's world-gen pass
+     * (SpawnerAnimals.java:580-684) browses the raw table, not the
+     * WorldServer admission chain. The returned list is shared — do not
+     * mutate it.
+     */
+    public static List<Biome.SpawnListEntry> worldGenList(Biome biome, EnumCreatureType type) {
+        Map<EnumCreatureType, List<Biome.SpawnListEntry>> byType = OVERRIDES.get(biome);
+        List<Biome.SpawnListEntry> list = byType == null ? null : byType.get(type);
+        if (list == null) {
+            list = baseOf(type);
+        }
+        return list == null ? java.util.Collections.emptyList() : list;
+    }
+
+    /**
      * M3-02/03 — underworld 批 (2026-10-25): the underworld biome's
      * authoritative table = the R196 BiomeGenUnderworld face (remove
      * Skeleton/Zombie/Revenant/BoneLord — Ghoul has no carrier, C-11 — plus

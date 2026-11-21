@@ -12,6 +12,8 @@ import io.github.etim.etim.mining.ETIMOozeSpawn;
 import io.github.etim.etim.mob.ETIMMoonState;
 import io.github.etim.etim.mob.ETIMSpawnTables;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
+import io.github.etim.etim.mob.ETIMWorldGenSpawning;
+import io.github.etim.etim.mob.ETIMAnimalsSpawnedDuck;
 import io.github.etim.etim.mob.ETIMAnimalWarn;
 import io.github.etim.etim.mob.ETIMLivestock;
 import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
@@ -42,6 +44,7 @@ import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.init.Items;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntityCow;
+import net.minecraft.entity.passive.EntitySheep;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntitySnowball;
@@ -60,6 +63,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -69,6 +73,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 
 /**
@@ -182,6 +187,18 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "spawnpick":
                 executeSpawnPick(server, sender, args);
+                break;
+            case "wgspawn":
+                executeWgSpawn(server, sender, args);
+                break;
+            case "wgstate":
+                executeWgState(server, sender, args);
+                break;
+            case "wghead":
+                executeWgHead(server, sender, args);
+                break;
+            case "wgbiome":
+                executeWgBiome(server, sender, args);
                 break;
             case "wide":
                 executeWide(server, sender, args);
@@ -826,6 +843,138 @@ public class CommandDevTest extends CommandBase {
         }
         ETIM.LOGGER.info("[SpawnLog] spawnpick n={} at {} counts={}", n, pos, counts);
         sender.sendMessage(new TextComponentString("[etest] spawnpick n=" + n + " " + counts));
+    }
+
+    /**
+     * {@code /etest wgspawn <x> <z> [seed]} — B-54 probe: runs the real
+     * R196 world-gen pass once with the biome at (x, 64, z) and a seeded
+     * random, so the verdict window can summon groups on demand instead of
+     * walking new chunks. Every row still goes through
+     * {@code ETIMWorldGenSpawning} (landing, cap, headroom, egg order).
+     */
+    private static void executeWgSpawn(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 3) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        int x = CommandBase.parseInt(args[1]);
+        int z = CommandBase.parseInt(args[2]);
+        long seed = args.length > 3 ? CommandBase.parseLong(args[3]) : 0L;
+        int repeat = args.length > 4 ? CommandBase.parseInt(args[4], 1, 5000) : 1;
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        Biome biome = w.getBiome(new BlockPos(x, 64, z));
+        if (!ETIMConfig.mobWorldGenSpawnR196) {
+            ETIM.LOGGER.info("[WorldGenSpawnLog] probe at ({},{}) skipped flag=false", x, z);
+            sender.sendMessage(new TextComponentString("[etest] wgspawn skipped flag=false"));
+            return;
+        }
+        ETIM.LOGGER.info("[WorldGenSpawnLog] probe at ({},{}) biome={} seed={} repeat={}", x, z,
+                biome.getRegistryName(), seed, repeat);
+        ETIMWorldGenSpawning.Stats total = new ETIMWorldGenSpawning.Stats();
+        for (int i = 0; i < repeat; i++) {
+            total.add(ETIMWorldGenSpawning.perform(w, biome, x, z, 16, 16, new Random(mixSeed(seed, i)), repeat <= 5));
+        }
+        ETIM.LOGGER.info("[WorldGenSpawnLog] batch at ({},{}) biome={} repeat={} creature={} aquatic={} groups={}"
+                        + " horsePick={} horseReject={} wolfPick={} wolfReject={} landReject={} capReject={} headroom={} aquaticSeeds={} cg={} ag={}",
+                x, z, biome.getRegistryName(), repeat, total.creatureSpawned, total.aquaticSpawned, total.groups,
+                total.horsePicks, total.horseRejects, total.wolfPicks, total.wolfRejects, total.landRejects,
+                total.capRejects, total.headroomPrevented, total.aquaticSeeds, total.creatureGroups, total.aquaticGroups);
+        sender.sendMessage(new TextComponentString("[etest] wgspawn " + x + "," + z + " seed=" + seed
+                + " repeat=" + repeat + " creature=" + total.creatureSpawned + " aquatic=" + total.aquaticSpawned));
+    }
+
+    /**
+     * {@code /etest wgstate <x> <z> [n]} — B-54 probe for the R196
+     * {@code Chunk.animals_spawned} counter: reads it, or writes n when
+     * given. The write path is what the NBT round-trip arm stages before a
+     * save/restart.
+     */
+    /**
+     * Consecutive {@code new Random(seed + i)} draws are LCG-correlated: the
+     * first float of nearby seeds lands on a lattice, which makes a 0.1 chance
+     * loop measure anywhere between 0 and 0.2 depending on how many seeds run
+     * in a row. SplitMix64-style finalisation decorrelates the arms.
+     */
+    private static long mixSeed(long seed, int i) {
+        long s = seed + (long) i * 0x9E3779B97F4A7C15L;
+        s = (s ^ (s >>> 30)) * 0xBF58476D1CE4E5B9L;
+        s = (s ^ (s >>> 27)) * 0x94D049BB133111EBL;
+        return s ^ (s >>> 31);
+    }
+    private static void executeWgState(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 3) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        int x = CommandBase.parseInt(args[1]);
+        int z = CommandBase.parseInt(args[2]);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        Chunk chunk = w.getChunk(x >> 4, z >> 4);
+        ETIMAnimalsSpawnedDuck duck = (ETIMAnimalsSpawnedDuck) chunk;
+        if (args.length > 3) {
+            duck.etim$setAnimalsSpawned(CommandBase.parseInt(args[3], 0, 64));
+        }
+        ETIM.LOGGER.info("[WorldGenSpawnLog] state chunk=({},{}) animals={}", x >> 4, z >> 4,
+                duck.etim$getAnimalsSpawned());
+        sender.sendMessage(new TextComponentString("[etest] wgstate chunk=" + (x >> 4) + "," + (z >> 4)
+                + " animals=" + duck.etim$getAnimalsSpawned()));
+    }
+
+    /**
+     * {@code /etest wghead <x> <y> <z>} — B-54 probe for the R196 headroom
+     * pass ({@code (int)height + 1} cells above the candidate). Headroom is
+     * almost unreachable in the full world-gen path (the top scan already
+     * puts the candidate above the topmost solid cube), so the arm checks
+     * the predicate directly at a staged position.
+     */
+    private static void executeWgHead(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        EntitySheep probe = new EntitySheep(w);
+        int blocksHigh = (int) probe.height + 1;
+        boolean prevented = false;
+        StringBuilder detail = new StringBuilder();
+        for (int dy = 1; dy < blocksHigh; dy++) {
+            boolean solid = w.getBlockState(pos.up(dy)).isBlockNormalCube();
+            if (solid) {
+                prevented = true;
+            }
+            detail.append(" dy=").append(dy).append(':').append(solid);
+        }
+        ETIM.LOGGER.info("[WorldGenSpawnLog] headroom at {} blocksHigh={} prevented={}{}", pos, blocksHigh,
+                prevented, detail);
+        sender.sendMessage(new TextComponentString("[etest] wghead prevented=" + prevented));
+    }
+
+    /**
+     * {@code /etest wgbiome <x> <z>} — B-54 probe: names the biome at (x, 64,
+     * z) and the sizes of its R196 world-gen lists, so the verdict window can
+     * aim the {@code wgspawn} probes at plains (horse dice) or water (aquatic
+     * seed) without blind coordinate hunting.
+     */
+    private static void executeWgBiome(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 3) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        int x = CommandBase.parseInt(args[1]);
+        int z = CommandBase.parseInt(args[2]);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        Biome biome = w.getBiome(new BlockPos(x, 64, z));
+        int creature = ETIMSpawnTables.worldGenList(biome, EnumCreatureType.CREATURE).size();
+        int aquatic = ETIMSpawnTables.worldGenList(biome, EnumCreatureType.WATER_CREATURE).size();
+        ETIM.LOGGER.info("[WorldGenSpawnLog] biome at ({},{}) = {} creature={} aquatic={}",
+                x, z, biome.getRegistryName(), creature, aquatic);
+        sender.sendMessage(new TextComponentString("[etest] wgbiome " + biome.getRegistryName()
+                + " creature=" + creature + " aquatic=" + aquatic));
     }
 
     /**
