@@ -39,6 +39,13 @@ public final class ETIMMobEntities {
                 ETIMEntityNightwing.class, "etim.nightwing", 14, ETIM.instance(), 64, 3, true);
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "giant_vampire_bat"),
                 ETIMEntityGiantVampireBat.class, "etim.giant_vampire_bat", 15, ETIM.instance(), 64, 3, true);
+        // B-57 D :276/:281/:283/:284 — the R196 gel family (ids 16/17/18).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "jelly"),
+                ETIMEntityJelly.class, "etim.jelly", 16, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "blob"),
+                ETIMEntityBlob.class, "etim.blob", 17, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "pudding"),
+                ETIMEntityPudding.class, "etim.pudding", 18, ETIM.instance(), 64, 3, true);
     }
 
     /**

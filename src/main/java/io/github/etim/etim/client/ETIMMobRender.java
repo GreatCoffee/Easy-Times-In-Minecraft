@@ -4,11 +4,14 @@ import io.github.etim.etim.mob.ETIMEntityAncientBoneLord;
 import io.github.etim.etim.mob.ETIMEntityArrow;
 import io.github.etim.etim.mob.ETIMEntityBoneLord;
 import io.github.etim.etim.mob.ETIMEntityGiantVampireBat;
+import io.github.etim.etim.mob.ETIMEntityBlob;
 import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
+import io.github.etim.etim.mob.ETIMEntityJelly;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
 import io.github.etim.etim.mob.ETIMEntityNightwing;
 import io.github.etim.etim.mob.ETIMEntityOoze;
+import io.github.etim.etim.mob.ETIMEntityPudding;
 import io.github.etim.etim.mob.ETIMEntityRevenant;
 import io.github.etim.etim.mob.ETIMEntityVampireBat;
 
@@ -58,8 +61,15 @@ public final class ETIMMobRender {
                 manager -> new TintedSkeleton(manager, 0.75F, 0.35F, 0.15F)); // dark copper
         // Batch B (2026-10-25) — the identity arrow (D-19/D-22 shared-texture tier).
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityArrow.class, ETIMArrowRender::new);
-        // B-44 census A :90 — the mining ooze (vanilla slime model + gray tint).
-        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityOoze.class, OozeRender::new);
+        // B-57 D :276/:281/:283/:284 — the gel family on the R196 cube shell.
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityOoze.class,
+                manager -> new CubicRender(manager, new ResourceLocation("etim:textures/entity/slime/ooze.png")));
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityJelly.class,
+                manager -> new CubicRender(manager, new ResourceLocation("etim:textures/entity/slime/jelly.png")));
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityBlob.class,
+                manager -> new CubicRender(manager, new ResourceLocation("etim:textures/entity/slime/blob.png")));
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityPudding.class,
+                manager -> new CubicRender(manager, new ResourceLocation("etim:textures/entity/slime/pudding.png")));
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityInfernalCreeper.class, RenderCreeper::new);
         // B-55 (R196 RenderBat:3-30): the family reuses the vanilla bat model
         // and renderer stack; only the texture differs, and the giant gets the

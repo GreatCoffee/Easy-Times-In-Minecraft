@@ -11,6 +11,11 @@ import io.github.etim.etim.mining.ETIMEnchantments;
 import io.github.etim.etim.mining.ETIMOozeSpawn;
 import io.github.etim.etim.mob.ETIMMoonState;
 import io.github.etim.etim.mob.ETIMSpawnTables;
+import io.github.etim.etim.mob.ETIMEntityGelatinousCube;
+import io.github.etim.etim.mob.ETIMEntityJelly;
+import io.github.etim.etim.mob.ETIMEntityBlob;
+import io.github.etim.etim.mob.ETIMEntityPudding;
+import io.github.etim.etim.mob.ETIMEntityOoze;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
 import io.github.etim.etim.mob.ETIMWorldGenSpawning;
 import io.github.etim.etim.mob.ETIMAnimalsSpawnedDuck;
@@ -217,6 +222,15 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "blockcube":
                 executeBlockCube(server, sender, args);
+                break;
+            case "gel":
+                executeGel(server, sender, args);
+                break;
+            case "gelstate":
+                executeGelState(server, sender, args);
+                break;
+            case "gelpick":
+                executeGelPick(server, sender, args);
                 break;
             case "batclear":
                 executeBatClear(server, sender, args);
@@ -1179,6 +1193,83 @@ public class CommandDevTest extends CommandBase {
      * same helper the spawn pass uses; the report names the accepted spot or
      * {@code null} when all five positions collide.
      */
+
+    private static void executeGel(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 6) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase();
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 2, false);
+        int size = CommandBase.parseInt(args[5], 1, 4);
+        WorldServer w = sender instanceof EntityPlayerMP ? (WorldServer) sender.getEntityWorld() : server.getWorld(0);
+        ETIMEntityGelatinousCube gel;
+        if ("jelly".equals(kind)) {
+            gel = new ETIMEntityJelly(w);
+        } else if ("blob".equals(kind)) {
+            gel = new ETIMEntityBlob(w);
+        } else if ("pudding".equals(kind)) {
+            gel = new ETIMEntityPudding(w);
+        } else {
+            gel = new ETIMEntityOoze(w);
+        }
+        gel.setCubicSize(size);
+        gel.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        // Test-only: park the gel so the harness can measure dissolution deterministically.
+        gel.setNoAI(true);
+        if (args.length > 6) {
+            gel.setCustomNameTag(args[6]);
+        }
+        gel.onInitialSpawn(w.getDifficultyForLocation(pos), null);
+        w.spawnEntity(gel);
+        ETIM.LOGGER.info("[GelLog] summon kind={} size={} hp={}/{} dmg={} xp={} pos={} entity={} [server]",
+                kind, gel.getCubicSize(), gel.getHealth(), gel.getMaxHealth(),
+                gel.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).getAttributeValue(),
+                gel.etimExperienceValue(), String.format("(%d,%d,%d)", pos.getX(), pos.getY(), pos.getZ()), gel.getEntityId());
+        sender.sendMessage(new TextComponentString("[etest] gel " + kind + " size=" + gel.getCubicSize() + " at " + pos));
+    }
+
+    private static void executeGelState(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP ? (WorldServer) sender.getEntityWorld() : server.getWorld(0);
+        java.util.List<EntityLiving> near = w.getEntitiesWithinAABB(EntityLiving.class,
+                new net.minecraft.util.math.AxisAlignedBB(pos).grow(16.0D),
+                e -> e instanceof ETIMEntityGelatinousCube);
+        if (near.isEmpty()) {
+            ETIM.LOGGER.info("[GelLog] state none at {} [server]", pos);
+            sender.sendMessage(new TextComponentString("[etest] gelstate none"));
+            return;
+        }
+        near.sort(java.util.Comparator.comparingDouble(e -> e.getDistanceSq(pos)));
+        near = near.subList(0, 1);
+        for (EntityLiving e : near) {
+            ETIMEntityGelatinousCube gel = (ETIMEntityGelatinousCube) e;
+            ETIM.LOGGER.info("[GelLog] state cls={} size={} entries={} progress={}/{} blockCd={} itemCd={} feeding={} entity={} [server]",
+                    gel.getClass().getSimpleName(), gel.getCubicSize(), gel.etimDissolvingEntryCount(),
+                    gel.etimDissolveSlotProgress(), gel.etimDissolveSlotPeriod(),
+                    gel.etimBlockFeedCounter(), gel.etimItemFeedCounter(), gel.isFeeding(), gel.getEntityId());
+        }
+        sender.sendMessage(new TextComponentString("[etest] gelstate n=" + near.size()));
+    }
+
+    private static void executeGelPick(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        int n = CommandBase.parseInt(args[4], 1, 20000);
+        WorldServer w = sender instanceof EntityPlayerMP ? (WorldServer) sender.getEntityWorld() : server.getWorld(0);
+        ETIMSpawnTables.resetGateLogBudget();
+        java.util.TreeMap<String, Integer> counts = new java.util.TreeMap<String, Integer>();
+        for (int i = 0; i < n; ++i) {
+            Biome.SpawnListEntry entry = ETIMSpawnTables.pickSpawn(w, net.minecraft.entity.EnumCreatureType.MONSTER, pos);
+            String key = entry == null ? "none" : entry.entityClass.getSimpleName();
+            Integer old = counts.get(key);
+            counts.put(key, old == null ? 1 : old + 1);
+        }
+        ETIM.LOGGER.info("[SpawnLog] gelpick n={} flag={} at {} counts={} [server]", n, ETIMConfig.mobGelatinousR196, pos, counts);
+        sender.sendMessage(new TextComponentString("[etest] gelpick " + counts));
+    }
+
     private static void executeWide(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 4) {
             throw new WrongUsageException("commands.etest.usage");

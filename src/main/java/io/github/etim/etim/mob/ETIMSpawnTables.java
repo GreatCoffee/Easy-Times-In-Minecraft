@@ -88,9 +88,12 @@ public final class ETIMSpawnTables {
         monster.add(entry(EntitySkeleton.class, 100, 1, 4));
         monster.add(entry(EntityCreeper.class, 100, 1, 2));
         monster.add(entry(EntitySlime.class, 100, 1, 4));
-        // B-52 (census D :282; R196 WorldServer:666-669): the ooze is a cave
-        // spawn, weight 20 in the R196 cave table, gated below in pickSpawn.
-        monster.add(entry(ETIMEntityOoze.class, 20, 1, 1));
+        // B-52/B-57 (census D :282; R196 BiomeGenBase:183 + WorldServer:666-669):
+        // the gel family is a cave spawn, group 1..4, gated below in pickSpawn.
+        monster.add(entry(ETIMEntityOoze.class, 20, 1, 4));
+        monster.add(entry(ETIMEntityJelly.class, 30, 1, 4));
+        monster.add(entry(ETIMEntityBlob.class, 30, 1, 4));
+        monster.add(entry(ETIMEntityPudding.class, 30, 1, 4));
         monster.add(entry(EntityEnderman.class, 10, 1, 4));
         // Three-spider round (审计补46/47): R196 BiomeGenBase :174 DemonSpider
         // 10(1,1) and :186 PhaseSpider 5(1,4) sit in the base ctor = every
@@ -372,6 +375,39 @@ public final class ETIMSpawnTables {
                     continue;
                 }
             }
+            // B-57（R196 WorldServer:634-681 一手）：凝胶三族各自的深度/石顶门。
+            // Jelly 只要求上方有石；Blob 加 y≤40；Pudding 加 y≤24 且脚下是石。
+            if (cls == ETIMEntityJelly.class) {
+                boolean stoneCeiling = stoneAbove(w, pos);
+                if (!stoneCeiling) {
+                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
+                        --gateLogBudget;
+                        ETIM.LOGGER.info("[SpawnLog] jelly-gate reject stoneAbove=false y=" + pos.getY()
+                                + " at " + posToString(pos));
+                    }
+                    continue;
+                }
+            }
+            if (cls == ETIMEntityBlob.class || cls == ETIMEntityPudding.class) {
+                boolean isPudding = cls == ETIMEntityPudding.class;
+                int threshold = isPudding ? 24 : 40;
+                boolean depthOk = !io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w)
+                        || pos.getY() <= threshold;
+                boolean stoneFloor = !isPudding
+                        || w.getBlockState(pos.down()).getBlock() == Blocks.STONE;
+                boolean stoneCeiling = stoneAbove(w, pos);
+                if (!depthOk || !stoneFloor || !stoneCeiling) {
+                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
+                        --gateLogBudget;
+                        ETIM.LOGGER.info("[SpawnLog] gel-gate reject cls="
+                                + (isPudding ? "pudding" : "blob")
+                                + " depth=" + depthOk + " floor=" + stoneFloor
+                                + " stoneAbove=" + stoneCeiling + " y=" + pos.getY()
+                                + " at " + posToString(pos));
+                    }
+                    continue;
+                }
+            }
             // B-46（R196 WorldServer:650-653 / :674-677 一手）：亡魂 y≤44、
             // 骨王 y≤32；主世界超过阈值时只放行血月夜（isBloodMoon(true)）。
             if (cls == ETIMEntityRevenant.class || cls == ETIMEntityBoneLord.class) {
@@ -387,6 +423,12 @@ public final class ETIMSpawnTables {
                     }
                     continue;
                 }
+            }
+            // B-57 (census D :276/:281/:283/:284): the gel family switch.
+            if (!ETIMConfig.mobGelatinousR196
+                    && (cls == ETIMEntityJelly.class || cls == ETIMEntityBlob.class
+                    || cls == ETIMEntityPudding.class || cls == ETIMEntityOoze.class)) {
+                continue;
             }
             // B-55 (census D :82/:236; R196 WorldServer:646-649 / :670-673):
             // the vampire bat is live down to y<=48 and the nightwing to y<=32,

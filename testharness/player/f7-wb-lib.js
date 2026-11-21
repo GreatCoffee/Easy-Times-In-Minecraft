@@ -32,7 +32,7 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b56-build2', releaseSize: 1278877, releaseSha: 'C14A54D45A3AF80EF38EAF27E4CD114695B9B7B7EF3FE23A6CB22887D7833850', devSha: '53A1956840951422516D2A4280BD01F9AAA073D6BBC0451594E0DCE55B512156', sourcesSha: '1FB3511259EFD2FB50ED330EDEA319E602B52D7853DCF2546E333E120BE564FA' }; // b56-build2 = glass/stained-glass whitelist behind the R196 solid-standard-form headroom predicate (release 1,278,877 B)
+const PIN = { build: 'b57-build14', releaseSize: 1308033, releaseSha: '627101A61FFEDC53536B4DF5EB67A24CEEAEE3F733FBDBF1319F671DDB266D6B', devSha: '52FFA70BDC348B8748B6B1E49482446E8835111DF522813BF0DE7379B1AFC69B', sourcesSha: '98CB7B55936EC49E38BB9B17B1D192BA1481C70CF8798DD622CD3B519E46C7F9' }; // b57-build3 = render-bounds occupancy for acid contact (torches) + occupancy probe (release 1,306,829 B) // b57-build2 = B-57 gel family (ETIMEntityCubic + ETIMEntityGelatinousCube + jelly/blob/ooze/pudding, 20-tick dissolve table, acid contact, item feeding) on the 1.12 EntityMob chassis (release 1,306,696 B)
 const MK_PIN = { classes: 104, entries: 262, dual: 524, mixins: 105, client: 10 }; // b55-build1: +3 inject entries over b54-build7 (EntityBat.collideWithNearbyEntities + MixinEntityPlayer writeEntityToNBT/readEntityFromNBT) and +overlay/network; MixinEntityPlayer unique members add no mappings.
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
