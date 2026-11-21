@@ -67,6 +67,13 @@ public final class ETIMMobEntities {
                 ETIMEntityDireWolf.class, "etim.dire_wolf", 24, ETIM.instance(), 64, 3, true);
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "hellhound"),
                 ETIMEntityHellhound.class, "etim.hellhound", 25, ETIM.instance(), 64, 3, true);
+        // B-62 D :63/:91/:93/:117/:118/:120 -- the elemental family (ids 26/27/28).
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "earth_elemental"),
+                ETIMEntityEarthElemental.class, "etim.earth_elemental", 26, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "fire_elemental"),
+                ETIMEntityFireElemental.class, "etim.fire_elemental", 27, ETIM.instance(), 64, 3, true);
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "clay_golem"),
+                ETIMEntityClayGolem.class, "etim.clay_golem", 28, ETIM.instance(), 64, 3, true);
     }
 
     /**

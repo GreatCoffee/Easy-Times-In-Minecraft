@@ -32,8 +32,8 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b61-build3', releaseSize: 1386685, releaseSha: '9C04F98EEFEF04DC1421FF303F1F09286C74A4407269CF8CA45FE360EECD33BE', devSha: '572E6205F5F52276E720F485DFD1175A4418E7D663E5D3D827F30F717B34FAD5', sourcesSha: '71B7E64E43E6B92B700EE2EDF17736FC13C177F6110A0532C3DF15F846FA107F' }; // b61-build3 = B-61 dire wolf + hellhound (hellhound follow 16) + tamedrow probe (release 1,386,685 B; MK unchanged)
-const MK_PIN = { classes: 104, entries: 263, dual: 526, mixins: 105, client: 10 }; // b59-build2: +1 refmap entry (EntityLivingBaseAccessor.recentlyHit) over b58-build5.
+const PIN = { build: 'b62-build10', releaseSize: 1427049, releaseSha: '345C0CEE464F7733FF14AECE0451E9920E722F3BEED6D02ADD1AE2C7317E7ADB', devSha: 'A19606A54DE92EE1777A59C56204FE3EDED9BD60A0E617B549DAD634BFB9FC6E', sourcesSha: '7467E575308F57424A19A773DDF02C74CE74443677CC1DEDD9D0294BE6CD7937' }; // b62-build10 = B-62 elementals (snowball duck moved out of mixin pkg)
+const MK_PIN = { classes: 107, entries: 267, dual: 534, mixins: 108, client: 10 }; // b62-build10: +EntitySnowballInvoker registered accessor
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);
 const log = (t, ...a) => console.log(`[${stamp()}] [${t}]`, ...a);

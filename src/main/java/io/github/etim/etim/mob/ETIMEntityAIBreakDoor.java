@@ -271,7 +271,15 @@ public class ETIMEntityAIBreakDoor extends EntityAIBase {
     /** R196 getTicksToBreakPortal :93-107 — door 1920 / else 480, frenzy halves. */
     private int getTicksToBreakPortal() {
         int ticks = this.targetDoor instanceof BlockDoor ? 1920 : 480;
-        return ETIMDigging.isFrenzied(this.entity) ? ticks / 2 : ticks; // R196 :106
+        if (ETIMDigging.isFrenzied(this.entity)) {
+            ticks /= 2; // R196 :106
+        }
+        // R196 EntityAIBreakDoor:95-103 — earth elemental material divisor.
+        if (this.entity instanceof ETIMEntityEarthElemental) {
+            ETIMEntityEarthElemental elemental = (ETIMEntityEarthElemental) this.entity;
+            ticks /= elemental.isNormalClay() ? 4 : elemental.isHardenedClay() ? 6 : 8;
+        }
+        return ticks;
     }
 
     /** R196 getStrVsTargetBlock :109-122 — held-tool speed, floor 1.0. */

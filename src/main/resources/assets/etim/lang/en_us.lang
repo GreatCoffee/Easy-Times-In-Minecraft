@@ -319,3 +319,6 @@ entity.etim.shadow.name=Shadow
 entity.etim.invisible_stalker.name=Invisible Stalker
 entity.etim.dire_wolf.name=Dire Wolf
 entity.etim.hellhound.name=Hellhound
+entity.etim.earth_elemental.name=Earth Elemental
+entity.etim.fire_elemental.name=Fire Elemental
+entity.etim.clay_golem.name=Clay Golem

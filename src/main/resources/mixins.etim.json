@@ -82,6 +82,8 @@
     "MixinAbstractSkeletonEquip",
     "MixinBlockCrops",
     "MixinEntityAIAttackMelee",
+    "MixinEntitySnowball",
+    "MixinBlockStaticLiquid",
     "MixinEntitySpiderJockey",
     "MixinItemBow",
     "MixinEntityPlayerMelee",
@@ -110,6 +112,7 @@
     "MixinEntityWolf",
     "MixinEntityWitch",
     "ETIMEntityLivingDropsAccessor",
+    "EntitySnowballInvoker",
     "PathNavigateAccessor"
   ],
   "client": [

@@ -309,6 +309,9 @@ public final class ETIMDigging {
         if (digger instanceof ETIMEntityGhoul) { // R196 EntityAnimalWatcher:22-24 — no tool gate
             return true;
         }
+        if (digger instanceof ETIMEntityEarthElemental) { // B-62 D-4 — material-level exemption, no tool gate
+            return true;
+        }
         if (isFrenzied(digger) || (digger instanceof EntityZombie && isSmart((EntityZombie) digger))) {
             return true;
         }
@@ -451,6 +454,12 @@ public final class ETIMDigging {
         if (block == Blocks.AIR || state.getMaterial().isLiquid()) { // :189-196
             return false;
         }
+        if (digger instanceof ETIMEntityEarthElemental) { // R196 EntityAnimalWatcher:199-204
+            ETIMEntityEarthElemental elemental = (ETIMEntityEarthElemental) digger;
+            if (minHarvestLevelOf(state) <= elemental.etimBlockHarvestLevel()) {
+                return true;
+            }
+        }
         // ❗F-15-F1 — R196 :206-228 verbatim: the dig is denied only when the
         // FULL deny-conjunct holds (:227-228 ternary). An effective tool
         // (:206-207 — the vanilla isToolEffective transpose) SATISFIES the
@@ -514,6 +523,10 @@ public final class ETIMDigging {
      * delegates (BlockDoubleSlab :112-115). The R196 obsidian-slab row has
      * no 1.12 slab carrier — obsidian's face rides the block table row (3).
      */
+    public static int minHarvestLevelOf(IBlockState state) {
+        return getMinHarvestLevelFace(state);
+    }
+
     private static int getMinHarvestLevelFace(IBlockState state) {
         Block block = state.getBlock();
         if (block instanceof BlockStoneSlab) {
@@ -681,6 +694,11 @@ public final class ETIMDigging {
         if (digger instanceof ETIMEntityGhoul) {
             cooloff /= ((ETIMEntityGhoul) digger).getCooloffDivisor();
         }
+        // R196 EntityAnimalWatcher:272-273 — earth elemental material divisor.
+        if (digger instanceof ETIMEntityEarthElemental) {
+            ETIMEntityEarthElemental elemental = (ETIMEntityEarthElemental) digger;
+            cooloff /= elemental.isNormalClay() ? 4 : elemental.isHardenedClay() ? 6 : 8;
+        }
         ItemStack held = digger.getHeldItemMainhand();
         if (held != null && held.getItem() instanceof ItemTool) {
             float str = heldToolEffective(held, state) ? ((ItemTool) held.getItem()).getDestroySpeed(held, state) : 0.0F;
@@ -830,6 +848,10 @@ public final class ETIMDigging {
         }
         if (digger instanceof ETIMEntityGhoul) {
             if (!io.github.etim.etim.ETIMConfig.mobUndeadSurfaceR196) { // B-59 D-3 gate
+                return;
+            }
+        } else if (digger instanceof ETIMEntityEarthElemental) {
+            if (!io.github.etim.etim.ETIMConfig.mobElementalR196) { // B-62 D-5 gate
                 return;
             }
         } else if (!io.github.etim.etim.ETIMConfig.zombieDigAI) {

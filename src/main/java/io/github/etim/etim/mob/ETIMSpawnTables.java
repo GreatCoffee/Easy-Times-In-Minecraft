@@ -123,6 +123,11 @@ public final class ETIMSpawnTables {
         // B-61 D :116 -- R196 BiomeGenBase:174: hellhound 10 (1,1) in the base
         // monster table; the depth gate (WorldServer:683-686) trims it to y<=32.
         monster.add(entry(ETIMEntityHellhound.class, 10, 1, 1));
+        // B-62 (R196 BiomeGenBase:179/:184): earth elemental 10(1,1) and clay
+        // golem 50(1,1) are base-ctor rows = every biome; the y<=40 depth gate
+        // (WorldServer:658-661) lives in undeadGate.
+        monster.add(entry(ETIMEntityEarthElemental.class, 10, 1, 1));
+        monster.add(entry(ETIMEntityClayGolem.class, 50, 1, 1));
         BASE.put(EnumCreatureType.MONSTER, monster);
 
         List<Biome.SpawnListEntry> water = new ArrayList<>();
@@ -209,9 +214,11 @@ public final class ETIMSpawnTables {
         override(Biomes.SWAMPLAND, EnumCreatureType.MONSTER, entry(EntitySlime.class, 10, 1, 1));
         // Hell: all clear + ghast 50(1,2) / pigZombie 100(1,4) / magma 10(4,4).
         overrideAll(Biomes.HELL, entry(EntityGhast.class, 50, 1, 2), entry(EntityPigZombie.class, 100, 1, 4),
-                entry(EntityMagmaCube.class, 10, 4, 4));
-        // End: all clear + enderman 100(4,4).
-        overrideAll(Biomes.SKY, entry(EntityEnderman.class, 100, 4, 4));
+                entry(EntityMagmaCube.class, 10, 4, 4),
+                entry(ETIMEntityEarthElemental.class, 40, 1, 1)); // R196 BiomeGenHell:13
+        // End: all clear + enderman 100(4,4) + earth elemental 20(1,4).
+        overrideAll(Biomes.SKY, entry(EntityEnderman.class, 100, 4, 4),
+                entry(ETIMEntityEarthElemental.class, 20, 1, 4)); // R196 BiomeGenEnd:11
     }
 
     private static String posToString(BlockPos p) {
@@ -662,6 +669,8 @@ public final class ETIMSpawnTables {
             allowed = pos.getY() <= 40; // R196 WorldServer.java:654-657: depth only
         } else if (cls == ETIMEntityHellhound.class) {
             allowed = pos.getY() <= 32; // R196 WorldServer.java:683-686: depth only
+        } else if (cls == ETIMEntityEarthElemental.class || cls == ETIMEntityClayGolem.class) {
+            allowed = pos.getY() <= 40; // R196 WorldServer.java:658-661: depth only
         } else {
             allowed = true;
         }
@@ -670,23 +679,29 @@ public final class ETIMSpawnTables {
 
     /** B-61 W6: the effective CREATURE row of the current biome for a class. */
     public static String probeBiomeRow(WorldServer w, BlockPos pos, Class<?> cls) {
+        return probeBiomeRow(w, pos, cls, EnumCreatureType.CREATURE);
+    }
+
+    public static String probeBiomeRow(WorldServer w, BlockPos pos, Class<?> cls, EnumCreatureType type) {
         Biome biome = w.getBiome(pos);
         String biomeName = String.valueOf(biome.getRegistryName());
         Map<EnumCreatureType, List<Biome.SpawnListEntry>> byType = OVERRIDES.get(biome);
-        if (byType == null) {
-            return "biome=" + biomeName + " source=base cls=absent";
-        }
-        List<Biome.SpawnListEntry> list = byType.get(EnumCreatureType.CREATURE);
+        List<Biome.SpawnListEntry> list = byType == null ? null : byType.get(type);
+        String source = "override";
         if (list == null) {
-            return "biome=" + biomeName + " source=override cls=absent";
+            list = baseOf(type);
+            source = "base";
+        }
+        if (list == null) {
+            return "biome=" + biomeName + " source=" + source + " cls=absent";
         }
         for (Biome.SpawnListEntry e : list) {
             if (e.entityClass == cls) {
-                return "biome=" + biomeName + " source=override weight=" + e.itemWeight
+                return "biome=" + biomeName + " source=" + source + " weight=" + e.itemWeight
                         + " min=" + e.minGroupCount + " max=" + e.maxGroupCount;
             }
         }
-        return "biome=" + biomeName + " source=override cls=absent";
+        return "biome=" + biomeName + " source=" + source + " cls=absent";
     }
     private static Biome.SpawnListEntry pickWeighted(WorldServer w, EnumCreatureType type, BlockPos pos) {
         Biome biome = w.getBiome(pos);

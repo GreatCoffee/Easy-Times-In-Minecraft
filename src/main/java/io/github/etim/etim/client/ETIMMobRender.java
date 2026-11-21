@@ -13,6 +13,9 @@ import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
 import io.github.etim.etim.mob.ETIMEntityInvisibleStalker;
 import io.github.etim.etim.mob.ETIMEntityDireWolf;
 import io.github.etim.etim.mob.ETIMEntityHellhound;
+import io.github.etim.etim.mob.ETIMEntityEarthElemental;
+import io.github.etim.etim.mob.ETIMEntityFireElemental;
+import io.github.etim.etim.mob.ETIMEntityClayGolem;
 import io.github.etim.etim.mob.ETIMEntityJelly;
 import io.github.etim.etim.mob.ETIMEntityLongdead;
 import io.github.etim.etim.mob.ETIMEntityLongdeadGuardian;
@@ -95,6 +98,11 @@ public final class ETIMMobRender {
         // RenderHellhound (single texture); both ride the vanilla wolf model.
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityDireWolf.class, ETIMDireWolfRender::new);
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityHellhound.class, ETIMHellhoundRender::new);
+        // B-62 D :63/:117/:243 -- R196 RenderEarthElemental (ten textures) and
+        // RenderFireElemental (single texture, opacity 0).
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityEarthElemental.class, ETIMEarthElementalRender::new);
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityFireElemental.class, ETIMFireElementalRender::new);
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityClayGolem.class, ETIMEarthElementalRender::new);
         // B-55 (R196 RenderBat:3-30): the family reuses the vanilla bat model
         // and renderer stack; only the texture differs, and the giant gets the
         // 2× scale from R196 EntityBat.getScaleFactor.

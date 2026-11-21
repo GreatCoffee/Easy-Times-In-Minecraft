@@ -2,6 +2,7 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mob.ETIMDigging;
+import io.github.etim.etim.mob.ETIMEntityEarthElemental;
 import io.github.etim.etim.mob.ETIMEntityGhoul;
 import net.minecraft.entity.EntityCreature;
 import net.minecraft.entity.EntityLiving;
@@ -48,7 +49,9 @@ public abstract class MixinEntityAIAttackMelee {
         // apply-FATAL refmap face). self ≡ this.
         boolean hostGate = this.attacker instanceof EntityZombie
                 ? ETIMConfig.zombieDigAI
-                : this.attacker instanceof ETIMEntityGhoul && ETIMConfig.mobUndeadSurfaceR196;
+                : this.attacker instanceof ETIMEntityGhoul
+                        ? ETIMConfig.mobUndeadSurfaceR196
+                        : this.attacker instanceof ETIMEntityEarthElemental && ETIMConfig.mobElementalR196; // B-62 D-4
         ETIMDigging.IState dig = hostGate && this.attacker != null
                 ? ETIMDigging.get(this.attacker) : null;
         if (dig != null // dig capability = zombie host (裁 3) + B-59 ghoul host

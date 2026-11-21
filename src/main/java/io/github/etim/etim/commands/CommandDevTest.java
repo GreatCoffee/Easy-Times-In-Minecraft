@@ -24,6 +24,9 @@ import io.github.etim.etim.mob.ETIMEntityShadow;
 import io.github.etim.etim.mob.ETIMEntityInvisibleStalker;
 import io.github.etim.etim.mob.ETIMEntityDireWolf;
 import io.github.etim.etim.mob.ETIMEntityHellhound;
+import io.github.etim.etim.mob.ETIMEntityEarthElemental;
+import io.github.etim.etim.mob.ETIMEntityFireElemental;
+import io.github.etim.etim.mob.ETIMEntityClayGolem;
 import io.github.etim.etim.mob.ETIMSpawnCycle;
 import io.github.etim.etim.mob.ETIMWorldGenSpawning;
 import io.github.etim.etim.mob.ETIMAnimalsSpawnedDuck;
@@ -290,6 +293,27 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "beasthit":
                 executeBeastHit(server, sender, args);
+                break;
+            case "elemental":
+                executeElemental(server, sender, args);
+                break;
+            case "elementalmagma":
+                executeElementalMagma(server, sender, args);
+                break;
+            case "elementalhit":
+                executeElementalHit(server, sender, args);
+                break;
+            case "elementalgate":
+                executeElementalGate(server, sender, args);
+                break;
+            case "elementalsnowimpact":
+                executeElementalSnowImpact(server, sender, args);
+                break;
+            case "elementalkill":
+                executeElementalKill(server, sender);
+                break;
+            case "elementalsnowball":
+                executeElementalSnowball(server, sender, args);
                 break;
             case "batclear":
                 executeBatClear(server, sender, args);
@@ -2653,6 +2677,259 @@ for (EntityLiving e : hits) {
     }
 
     /** B-61 W1: spawns one wolf beast and logs the R196 attribute row. */
+    /** B-62 W1: spawns one elemental and logs the R196 stat block. */
+    private static void executeElemental(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 2, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        net.minecraft.entity.monster.EntityMob mob;
+        if ("earth".equals(kind)) {
+            mob = new ETIMEntityEarthElemental(w);
+        } else if ("fire".equals(kind)) {
+            mob = new ETIMEntityFireElemental(w);
+        } else if ("clay".equals(kind)) {
+            mob = new ETIMEntityClayGolem(w);
+        } else {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        mob.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(mob);
+        logElementalProbe(kind, mob);
+    }
+
+    private static int etimElementalXp(net.minecraft.entity.monster.EntityMob mob) {
+        if (mob instanceof ETIMEntityEarthElemental) {
+            return ((ETIMEntityEarthElemental) mob).etimExperienceProbe(null);
+        }
+        if (mob instanceof ETIMEntityFireElemental) {
+            return ((ETIMEntityFireElemental) mob).etimExperienceProbe(null);
+        }
+        return -1;
+    }
+
+    private static void logElementalProbe(String kind, net.minecraft.entity.monster.EntityMob mob) {
+        int type = mob instanceof ETIMEntityEarthElemental ? ((ETIMEntityEarthElemental) mob).getType() : -1;
+        boolean magma = mob instanceof ETIMEntityEarthElemental && ((ETIMEntityEarthElemental) mob).isMagma();
+        float defense = mob instanceof io.github.etim.etim.combat.ETIMNaturalDefense
+                ? ((io.github.etim.etim.combat.ETIMNaturalDefense) mob).etimNaturalDefense(net.minecraft.util.DamageSource.CACTUS)
+                : -1.0F;
+        ETIM.LOGGER.info("[ElementalLog] probe kind=" + kind
+                + " hp=" + String.format(java.util.Locale.ROOT, "%.1f", mob.getHealth())
+                + " max=" + String.format(java.util.Locale.ROOT, "%.1f", mob.getMaxHealth())
+                + " attack=" + String.format(java.util.Locale.ROOT, "%.1f",
+                        mob.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.ATTACK_DAMAGE).getAttributeValue())
+                + " speed=" + String.format(java.util.Locale.ROOT, "%.2f",
+                        mob.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.MOVEMENT_SPEED).getAttributeValue())
+                + " follow=" + String.format(java.util.Locale.ROOT, "%.1f",
+                        mob.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.FOLLOW_RANGE).getAttributeValue())
+                + " xp=" + etimElementalXp(mob)
+                + " type=" + type
+                + " magma=" + magma
+                + " defense=" + String.format(java.util.Locale.ROOT, "%.1f", defense)
+                + " entity=" + mob.getEntityId() + " [server]");
+    }
+
+    /** B-62 W2: forces the magma state and logs type/heat/defense. */
+    private static void executeElementalMagma(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 2, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        ETIMEntityEarthElemental earth = "clay".equals(kind)
+                ? new ETIMEntityClayGolem(w)
+                : "earth".equals(kind) ? new ETIMEntityEarthElemental(w) : null;
+        if (earth == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        earth.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        w.spawnEntity(earth);
+        earth.convertToMagma();
+        ETIM.LOGGER.info("[ElementalLog] magma kind=" + kind
+                + " type=" + earth.getType()
+                + " heat=" + earth.etimHeat()
+                + " magma=" + earth.isMagma()
+                + " hardened=" + earth.isHardenedClay()
+                + " defense=" + String.format(java.util.Locale.ROOT, "%.1f",
+                        earth.etimNaturalDefense(net.minecraft.util.DamageSource.CACTUS))
+                + " entity=" + earth.getEntityId() + " [server]");
+    }
+
+    /** B-62 W4: applies one aspect damage so the immunity table can be sampled. */
+    private static void executeElementalHit(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 3) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        String sourceName = args.length > 2 ? args[2].toLowerCase(java.util.Locale.ROOT) : "player";
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        net.minecraft.util.DamageSource source;
+        switch (sourceName) {
+            case "fire":
+                source = net.minecraft.util.DamageSource.IN_FIRE;
+                break;
+            case "lava":
+                source = net.minecraft.util.DamageSource.LAVA;
+                break;
+            case "magic":
+                source = net.minecraft.util.DamageSource.MAGIC;
+                break;
+            case "water":
+                source = net.minecraft.util.DamageSource.DROWN;
+                break;
+            case "fall":
+                source = net.minecraft.util.DamageSource.FALL;
+                break;
+            case "explosion":
+                source = net.minecraft.util.DamageSource.CACTUS;
+                break;
+            default:
+                source = net.minecraft.util.DamageSource.causePlayerDamage(player);
+                break;
+        }
+        Class<? extends net.minecraft.entity.Entity> cls = "fire".equals(kind) ? ETIMEntityFireElemental.class
+                : "clay".equals(kind) ? ETIMEntityClayGolem.class : ETIMEntityEarthElemental.class;
+        java.util.List<net.minecraft.entity.Entity> found = player.world.getEntitiesWithinAABB(cls,
+                player.getEntityBoundingBox().grow(32.0D));
+        int applied = 0;
+        net.minecraft.entity.Entity nearest = null;
+        double bestSq = Double.MAX_VALUE;
+        for (net.minecraft.entity.Entity cand : found) {
+            if (cand instanceof ETIMEntityClayGolem && !((ETIMEntityClayGolem) cand).isNormalClay()) {
+                continue;
+            }
+            double dsq = cand.getDistanceSq(player);
+            if (dsq < bestSq) {
+                bestSq = dsq;
+                nearest = cand;
+            }
+        }
+        if (nearest != null) {
+            net.minecraft.entity.Entity target = nearest;
+            if (target.attackEntityFrom(source, 3.0F)) {
+                ++applied;
+            }
+        }
+        ETIM.LOGGER.info("[ElementalLog] hit kind=" + kind + " source=" + sourceName
+                + " found=" + found.size() + " applied=" + applied + " [server]");
+    }
+
+    /** B-62 W5: the y<=40 earth gate plus the base/override row probe. */
+    private static void executeElementalGate(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 2, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        Class<?> cls = "clay".equals(kind) ? ETIMEntityClayGolem.class : ETIMEntityEarthElemental.class;
+        ETIMSpawnTables.probeUndeadGate(w, pos, cls);
+        ETIM.LOGGER.info("[ElementalLog] row kind=" + kind + " "
+                + ETIMSpawnTables.probeBiomeRow(w, pos, cls, net.minecraft.entity.EnumCreatureType.MONSTER)
+                + " at " + pos + " [server]");
+    }
+
+    /** B-62 W3: drops a real snowball straight onto the nearest elemental. */
+    private static void executeElementalSnowball(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        Class<? extends net.minecraft.entity.Entity> cls = "fire".equals(kind)
+                ? ETIMEntityFireElemental.class : ETIMEntityEarthElemental.class;
+        java.util.List<net.minecraft.entity.Entity> found = player.world.getEntitiesWithinAABB(cls,
+                player.getEntityBoundingBox().grow(32.0D));
+        found.removeIf(cand -> "earth".equals(kind) && cand instanceof ETIMEntityClayGolem);
+        found.removeIf(cand -> "fire".equals(kind) && !(cand instanceof ETIMEntityFireElemental));
+        found.removeIf(cand -> "earth".equals(kind) && !((ETIMEntityEarthElemental) cand).isMagma());
+        if (found.isEmpty()) {
+            ETIM.LOGGER.info("[ElementalLog] snowballmiss kind=" + kind + " found=0 [server]");
+            return;
+        }
+        net.minecraft.entity.Entity target = found.get(0);
+        net.minecraft.entity.projectile.EntitySnowball ball =
+                new net.minecraft.entity.projectile.EntitySnowball(player.world, player);
+        // spawn just outside the target hitbox (an AABB intercept from inside returns null in 1.12)
+        ball.setPosition(target.posX, target.posY + 0.6D, target.posZ + 3.0D);
+        ball.motionX = 0.0D;
+        ball.motionY = 0.0D;
+        ball.motionZ = -0.6D;
+        ETIM.LOGGER.info("[ElementalLog] snowballspawn kind=" + kind + " target=" + target.getEntityId()
+                + " at " + String.format(java.util.Locale.ROOT, "%.1f,%.1f,%.1f", target.posX, target.posY, target.posZ)
+                + " [server]");
+    }
+
+    private static void executeElementalSnowImpact(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String kind = args[1].toLowerCase(java.util.Locale.ROOT);
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        Class<? extends net.minecraft.entity.Entity> cls = "fire".equals(kind)
+                ? ETIMEntityFireElemental.class : ETIMEntityEarthElemental.class;
+        java.util.List<net.minecraft.entity.Entity> found = player.world.getEntitiesWithinAABB(cls,
+                player.getEntityBoundingBox().grow(32.0D));
+        found.removeIf(cand -> "earth".equals(kind) && cand instanceof ETIMEntityClayGolem);
+        found.removeIf(cand -> "fire".equals(kind) && !(cand instanceof ETIMEntityFireElemental));
+        found.removeIf(cand -> "earth".equals(kind) && !((ETIMEntityEarthElemental) cand).isMagma());
+        if (found.isEmpty()) {
+            ETIM.LOGGER.info("[ElementalLog] snowimpact kind=" + kind + " found=0 [server]");
+            return;
+        }
+        net.minecraft.entity.Entity target = found.get(0);
+        net.minecraft.entity.projectile.EntitySnowball ball =
+                new net.minecraft.entity.projectile.EntitySnowball(player.world, player);
+        ball.setPosition(target.posX, target.posY + 0.6D, target.posZ + 3.0D);
+        ((io.github.etim.etim.mob.ETIMSnowballDuck) ball).etim$injectImpact(target);
+        ETIM.LOGGER.info("[ElementalLog] snowimpact kind=" + kind + " target=" + target.getEntityId() + " [server]");
+    }
+
+    private static void executeElementalKill(MinecraftServer server, ICommandSender sender) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : server.getPlayerList().getPlayers().isEmpty() ? null : server.getPlayerList().getPlayers().get(0);
+        if (player == null) {
+            return;
+        }
+        java.util.List<net.minecraft.entity.Entity> found = player.world.getEntitiesWithinAABB(
+                net.minecraft.entity.EntityLivingBase.class, player.getEntityBoundingBox().grow(64.0D));
+        int killed = 0;
+        for (net.minecraft.entity.Entity e : found) {
+            if (e instanceof ETIMEntityFireElemental) {
+                if (e.attackEntityFrom(net.minecraft.util.DamageSource.MAGIC, 1000.0F)) { killed++; }
+            } else if (e instanceof ETIMEntityEarthElemental) {
+                if (e.attackEntityFrom(net.minecraft.util.DamageSource.causeExplosionDamage(player), 1000.0F)) { killed++; }
+            }
+        }
+        ETIM.LOGGER.info("[ElementalLog] kill found=" + found.size() + " killed=" + killed + " [server]");
+    }
+
     private static void executeBeast(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 5) {
             throw new WrongUsageException("commands.etest.usage");

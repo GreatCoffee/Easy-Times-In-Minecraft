@@ -770,6 +770,10 @@ public final class ETIMSpawnCycle {
         if (cls == EntityHorse.class) {
             return 6;
         }
+        // B-62 (R196 EntityEarthElemental getMaxSpawnedInChunk = 1; clay golem inherits).
+        if (cls == io.github.etim.etim.mob.ETIMEntityEarthElemental.class) {
+            return 1;
+        }
         if (cls == EntityWolf.class
                 || cls == io.github.etim.etim.mob.ETIMEntityDireWolf.class
                 || cls == io.github.etim.etim.mob.ETIMEntityHellhound.class) {

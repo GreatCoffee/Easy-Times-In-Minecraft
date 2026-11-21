@@ -25,7 +25,8 @@ public final class ETIMDiggingEvents {
     @SubscribeEvent
     public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
         if (event.getObject() instanceof EntityZombie
-                || event.getObject() instanceof ETIMEntityGhoul) { // B-59 D-1 — the dig system opens to the ghoul
+                || event.getObject() instanceof ETIMEntityGhoul // B-59 D-1 — the dig system opens to the ghoul
+                || event.getObject() instanceof ETIMEntityEarthElemental) { // B-62 D-4 — material-level digging
             event.addCapability(ETIMDigging.CAPABILITY_KEY, new ETIMDigging.Provider());
         }
     }
@@ -41,12 +42,14 @@ public final class ETIMDiggingEvents {
             ETIMDigging.tickFrenzy((net.minecraft.entity.monster.EntitySkeleton) event.getEntityLiving());
         }
         boolean ghoul = event.getEntityLiving() instanceof ETIMEntityGhoul;
+        boolean elemental = event.getEntityLiving() instanceof ETIMEntityEarthElemental;
         boolean gateOn = ghoul ? io.github.etim.etim.ETIMConfig.mobUndeadSurfaceR196
+                : elemental ? io.github.etim.etim.ETIMConfig.mobElementalR196 // B-62 D-5 gate
                 : io.github.etim.etim.ETIMConfig.zombieDigAI;
         if (!gateOn) {
             return;
         }
-        if (event.getEntityLiving() instanceof EntityZombie || ghoul) {
+        if (event.getEntityLiving() instanceof EntityZombie || ghoul || elemental) {
             ETIMDigging.tickDigger((net.minecraft.entity.EntityLiving) event.getEntityLiving());
         }
     }
@@ -54,7 +57,8 @@ public final class ETIMDiggingEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntityLiving() instanceof EntityZombie
-                || event.getEntityLiving() instanceof ETIMEntityGhoul) {
+                || event.getEntityLiving() instanceof ETIMEntityGhoul
+                || event.getEntityLiving() instanceof ETIMEntityEarthElemental) {
             ETIMDigging.onDiggerDeath((net.minecraft.entity.EntityLiving) event.getEntityLiving());
         }
     }

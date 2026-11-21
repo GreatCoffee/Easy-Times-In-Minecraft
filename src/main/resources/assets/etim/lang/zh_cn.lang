@@ -318,3 +318,6 @@ entity.etim.shadow.name=暗影
 entity.etim.invisible_stalker.name=隐形追猎者
 entity.etim.dire_wolf.name=恐狼
 entity.etim.hellhound.name=地狱犬
+entity.etim.earth_elemental.name=土元素
+entity.etim.fire_elemental.name=火元素
+entity.etim.clay_golem.name=黏土傀儡
