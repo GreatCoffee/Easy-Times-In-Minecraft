@@ -212,6 +212,12 @@ public class CommandDevTest extends CommandBase {
             case "batpick":
                 executeBatPick(server, sender, args);
                 break;
+            case "wspick":
+                executeWsPick(server, sender, args);
+                break;
+            case "blockcube":
+                executeBlockCube(server, sender, args);
+                break;
             case "batclear":
                 executeBatClear(server, sender, args);
                 break;
@@ -1123,6 +1129,48 @@ public class CommandDevTest extends CommandBase {
         }
         ETIM.LOGGER.info("[SpawnLog] batpick n={} at {} counts={} [server]", n, pos, counts);
         sender.sendMessage(new TextComponentString("[etest] batpick " + counts));
+    }
+
+    /** {@code /etest wspick <x> <y> <z> <n>} — B-56: MONSTER-table census for
+     * the wood-spider structure gate (reject rows carry the five gate flags). */
+    private static void executeWsPick(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        int n = CommandBase.parseInt(args[4], 1, 20000);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        java.util.Map<String, Integer> counts = new java.util.TreeMap<String, Integer>();
+        ETIMSpawnTables.resetGateLogBudget();
+        for (int i = 0; i < n; i++) {
+            net.minecraft.world.biome.Biome.SpawnListEntry entry =
+                    ETIMSpawnTables.pickSpawn(w, net.minecraft.entity.EnumCreatureType.MONSTER, pos);
+            String key = entry == null ? "null" : entry.entityClass.getSimpleName();
+            Integer old = counts.get(key);
+            counts.put(key, old == null ? 1 : old + 1);
+        }
+        ETIM.LOGGER.info("[SpawnLog] wspick n={} at {} counts={} [server]", n, pos, counts);
+        sender.sendMessage(new TextComponentString("[etest] wspick " + counts));
+    }
+
+    /** {@code /etest blockcube <x> <y> <z>} — B-56: the R196
+     * {@code isBlockSolidStandardFormCube} carrier used by the headroom check. */
+    private static void executeBlockCube(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 4) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = CommandBase.parseBlockPos(sender, args, 1, false);
+        WorldServer w = sender instanceof EntityPlayerMP
+                ? (WorldServer) sender.getEntityWorld()
+                : server.getWorld(0);
+        net.minecraft.block.state.IBlockState state = w.getBlockState(pos);
+        boolean result = ETIMWorldGenSpawning.isSolidStandardFormCube(state);
+        ETIM.LOGGER.info("[BlockLog] solidcube at {} block={} fullCube={} moves={} result={} [server]",
+                pos, state.getBlock().getRegistryName(), state.isFullCube(),
+                state.getMaterial().blocksMovement(), result);
+        sender.sendMessage(new TextComponentString("[etest] blockcube " + result));
     }
 
     /**

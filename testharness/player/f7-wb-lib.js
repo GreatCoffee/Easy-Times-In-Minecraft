@@ -32,8 +32,7 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b55-build10', releaseSize: 1277221, releaseSha: '5CC824877F4AC029AC1D88A894F6CAF24724511035DCD559DAF781C1DC0BCF7F', devSha: 'B14D8DEAAF788FBEA2705D9D64B034E1A3C9CC3E0B7973B475970933D9DFE27B', sourcesSha: 'ED5938FA1840BA053934C21383054D76A4C7617B091302A6930CBD34067F0DEE' }; // b55-build7 = prey-scan self/players diagnostics (release 1,276,657 B)
-// B-49 (census D :207) -> 101/242/484, mixins 101; the trailing B-41 note is historical.
+const PIN = { build: 'b56-build2', releaseSize: 1278877, releaseSha: 'C14A54D45A3AF80EF38EAF27E4CD114695B9B7B7EF3FE23A6CB22887D7833850', devSha: '53A1956840951422516D2A4280BD01F9AAA073D6BBC0451594E0DCE55B512156', sourcesSha: '1FB3511259EFD2FB50ED330EDEA319E602B52D7853DCF2546E333E120BE564FA' }; // b56-build2 = glass/stained-glass whitelist behind the R196 solid-standard-form headroom predicate (release 1,278,877 B)
 const MK_PIN = { classes: 104, entries: 262, dual: 524, mixins: 105, client: 10 }; // b55-build1: +3 inject entries over b54-build7 (EntityBat.collideWithNearbyEntities + MixinEntityPlayer writeEntityToNBT/readEntityFromNBT) and +overlay/network; MixinEntityPlayer unique members add no mappings.
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

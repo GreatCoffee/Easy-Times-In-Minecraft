@@ -3,8 +3,10 @@ package io.github.etim.etim.mob;
 import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.mixins.EntityLivingBaseAccessor;
+import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.entity.IEntityLivingData;
@@ -204,7 +206,7 @@ public final class ETIMWorldGenSpawning {
                         boolean prevented = false;
                         int blocksHigh = (int) mob.height + 1;
                         for (int dy = 1; dy < blocksHigh; dy++) {
-                            if (w.getBlockState(new BlockPos(x, y + dy, z)).isBlockNormalCube()) {
+                            if (isSolidStandardFormCube(w.getBlockState(new BlockPos(x, y + dy, z)))) {
                                 prevented = true;
                                 ++stats.headroomPrevented;
                                 log(verbose, "prevent headroom type={} cls={} pos=({},{},{}) dy={}", type, cls, x, y, z, dy);
@@ -273,6 +275,31 @@ public final class ETIMWorldGenSpawning {
             }
         }
         return -1;
+    }
+
+    /**
+     * B-56 (census C-B54-3): exact carrier for R196
+     * {@code World.isBlockSolidStandardFormCube} (World.java:3266-3271 →
+     * {@code Block.java:1780}: always-solid standard cube, else
+     * {@code isSolid(metadata) && isStandardFormCube(metadata)}).
+     * <p>1.12's {@code isFullCube} already excludes slabs, stairs, snow layers,
+     * farmland, cactus, chests and other overridden blocks (R196 overrides the
+     * same set to non-standard). The one remaining gap is the glass block: 1.12
+     * reports {@code isFullCube()==false} while R196 keeps the default standard
+     * cube, so the two full glass blocks are named explicitly. Panes, beacons
+     * and every other {@code Material.GLASS} block stay non-standard, matching
+     * R196's {@code isStandardFormCube} overrides.
+     */
+    public static boolean isSolidStandardFormCube(IBlockState state) {
+        Material mat = state.getMaterial();
+        if (!mat.blocksMovement()) {
+            return false;
+        }
+        if (state.isFullCube()) {
+            return true;
+        }
+        Block block = state.getBlock();
+        return block == Blocks.GLASS || block == Blocks.STAINED_GLASS;
     }
 
     private static void log(boolean verbose, String format, Object... args) {

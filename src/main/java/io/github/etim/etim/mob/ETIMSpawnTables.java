@@ -31,6 +31,8 @@ import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.entity.passive.EntitySheep;
 import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.entity.passive.EntitySquid;
+import net.minecraft.block.BlockLeaves;
+import net.minecraft.block.BlockLog;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.WeightedRandom;
 import net.minecraft.util.math.BlockPos;
@@ -92,9 +94,13 @@ public final class ETIMSpawnTables {
         monster.add(entry(EntityEnderman.class, 10, 1, 4));
         // Three-spider round (审计补46/47): R196 BiomeGenBase :174 DemonSpider
         // 10(1,1) and :186 PhaseSpider 5(1,4) sit in the base ctor = every
-        // biome (WoodSpider :176 20(1,1) stays OUT — carrier-only per verdict).
+        // biome (WoodSpider :176 20(1,1) was carrier-only per verdict G-S5;
+        // B-56 restores the row and gates it with the R196 structure check).
         monster.add(entry(ETIMEntityDemonSpider.class, 10, 1, 1));
         monster.add(entry(ETIMEntityPhaseSpider.class, 5, 1, 4));
+        // B-56: R196 BiomeGenBase:176 WoodSpider 20(1,1) restored — the
+        // structure gate lives in pickSpawn (was carrier-only per G-S5).
+        monster.add(entry(ETIMEntityWoodSpider.class, 20, 1, 1));
         // mob 批 (2026-10-24): the revenant/bone-lord gap rows filled —
         // R196 BiomeGenBase :178 Revenant 10(1,1) / :185 BoneLord 5(1,1),
         // base-ctor rows = every biome. The gap-list javadoc above is
@@ -264,8 +270,8 @@ public final class ETIMSpawnTables {
      *       only on a blood-moon night (B-46).</li>
      * </ul>
      * R196's infernal-creeper replacement lands in B-47 (creeper gate below);
-     * BlackWidow has a carrier and is gated below; WoodSpider's
-     * carrier exists but stays out of the spawn table per verdict G-S5.
+     * BlackWidow has a carrier and is gated below; WoodSpider is back in the
+     * table since B-56 and gated by the R196 structure rule (:690-700).
      * 会话五裁定（裁定回执 补16）：R196 WorldServer:714-716 = BlackWidowSpider
      * 专属 50% 通过门（per-attempt 50% accept，else 续走 :614 内部 16-attempt
      * 循环重掷——null 仅在 16 连败后，p≈2⁻¹⁶；调用方 SpawnerAnimals 对 null
@@ -331,6 +337,11 @@ public final class ETIMSpawnTables {
                     ETIM.LOGGER.info("[SpawnLog] depth-gate reject cls=" + cls.getSimpleName()
                             + " y=" + pos.getY() + " at " + posToString(pos));
                 }
+                continue;
+            }
+            // B-56（R196 WorldServer:690-700 一手）：木蜘蛛结构门——
+            // (露天 || 上方是树叶 || 上方是原木) && 5×2 内有原木 && (x,y+5,z) 5×5 内有树叶。
+            if (cls == ETIMEntityWoodSpider.class && !woodspiderGate(w, pos)) {
                 continue;
             }
             // B-46（R196 WorldServer:630-633 一手）：slime 只在「上方没有石头」
@@ -428,6 +439,63 @@ public final class ETIMSpawnTables {
      * The scan stops at the first non-air block (a non-stone roof means the
      * slime is allowed), mirroring {@code id > 0 → false} in the one-hand.
      */
+    /**
+     * B-56 (R196 {@code WorldServer.java:690-700} verbatim):
+     * {@code (canBlockSeeTheSky || blockTypeIsAbove(leaves) ||
+     * blockTypeIsAbove(wood)) && blockTypeIsNearTo(wood, x,y,z, 5,2) &&
+     * blockTypeIsNearTo(leaves, x,y+5,z, 5,5)}.
+     */
+    private static boolean woodspiderGate(WorldServer w, BlockPos pos) {
+        boolean sky = w.canSeeSky(pos);
+        boolean leafAbove = blockTypeIsAbove(w, pos, true);
+        boolean logAbove = blockTypeIsAbove(w, pos, false);
+        boolean woodNear = blockTypeIsNearTo(w, pos, 5, 2, false);
+        boolean leafNear = blockTypeIsNearTo(w, pos.up(5), 5, 5, true);
+        boolean ok = (sky || leafAbove || logAbove) && woodNear && leafNear;
+        if (!ok && ETIMConfig.mobDebugLog && gateLogBudget > 0) {
+            --gateLogBudget;
+            ETIM.LOGGER.info("[SpawnLog] woodspider-gate reject sky=" + sky + " leafAbove=" + leafAbove
+                    + " logAbove=" + logAbove + " woodNear=" + woodNear + " leafNear=" + leafNear
+                    + " at " + posToString(pos));
+        }
+        return ok;
+    }
+
+    /** R196 {@code World.blockTypeIsAbove}: the first non-air block above the
+     * candidate must be the target wood type (leaves when {@code leaves}). */
+    private static boolean blockTypeIsAbove(WorldServer w, BlockPos pos, boolean leaves) {
+        int maxY = w.getActualHeight() - 1;
+        for (int y = pos.getY() + 1; y <= maxY; y++) {
+            BlockPos at = new BlockPos(pos.getX(), y, pos.getZ());
+            IBlockState state = w.getBlockState(at);
+            if (isWoodType(state, leaves)) {
+                return true;
+            }
+            if (!state.getBlock().isAir(state, w, at)) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /** R196 {@code World.blockTypeIsNearTo}: the whole ±h/±v integer box. */
+    private static boolean blockTypeIsNearTo(WorldServer w, BlockPos pos, int h, int v, boolean leaves) {
+        for (int dx = -h; dx <= h; dx++) {
+            for (int dz = -h; dz <= h; dz++) {
+                for (int dy = -v; dy <= v; dy++) {
+                    if (isWoodType(w.getBlockState(pos.add(dx, dy, dz)), leaves)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isWoodType(IBlockState state, boolean leaves) {
+        return leaves ? state.getBlock() instanceof BlockLeaves : state.getBlock() instanceof BlockLog;
+    }
+
     private static boolean stoneAbove(WorldServer w, BlockPos pos) {
         int top = w.getHeight(new BlockPos(pos.getX(), 0, pos.getZ())).getY();
         for (int y = pos.getY() + 1; y <= top; y++) {
