@@ -70,6 +70,27 @@ public final class ETIMItemModels {
             if (name == null || !ETIM.MOD_ID.equals(name.getNamespace())) {
                 continue;
             }
+            // B-58 D :250 — the five-colour sphere is the only ETIM item with
+            // meta subtypes: one mesh definition keyed by metadata + 5 static
+            // (item, meta) rows (B-57's meta-blind loop would render all five
+            // as the meta-0 model).
+            if (item == io.github.etim.etim.mob.ETIMItemGelatinousSphere.ITEM) {
+                final Item it = item;
+                ModelLoader.setCustomMeshDefinition(it, stack -> new ModelResourceLocation(
+                        new ResourceLocation(ETIM.MOD_ID, "gelatinous_sphere_" + io.github.etim.etim.mob
+                                .ETIMItemGelatinousSphere.NAMES[io.github.etim.etim.mob
+                                .ETIMItemGelatinousSphere.clampSubtype(stack.getMetadata())]),
+                        "inventory"));
+                for (int s = io.github.etim.etim.mob.ETIMItemGelatinousSphere.GREEN;
+                     s <= io.github.etim.etim.mob.ETIMItemGelatinousSphere.BLACK; ++s) {
+                    ModelLoader.setCustomModelResourceLocation(it, s, new ModelResourceLocation(
+                            new ResourceLocation(ETIM.MOD_ID, "gelatinous_sphere_"
+                                    + io.github.etim.etim.mob.ETIMItemGelatinousSphere.NAMES[s]),
+                            "inventory"));
+                }
+                registered++;
+                continue;
+            }
             // dual write: the mesh-definition face (a stack->model FUNCTION, the
             // first block consumed in ModelLoader.onRegisterItems) + the static
             // (item, meta) table. The 20:43 round proved the static face alone

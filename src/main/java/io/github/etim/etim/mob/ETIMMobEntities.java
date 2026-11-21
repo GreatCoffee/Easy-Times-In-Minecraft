@@ -46,6 +46,12 @@ public final class ETIMMobEntities {
                 ETIMEntityBlob.class, "etim.blob", 17, ETIM.instance(), 64, 3, true);
         EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "pudding"),
                 ETIMEntityPudding.class, "etim.pudding", 18, ETIM.instance(), 64, 3, true);
+        // B-58 D :250 — the thrown gelatinous sphere (id 19). 20-tick updates and
+        // velocity sync: a fast projectile must not stutter on the client; the
+        // register row cannot print here (this runs before ETIMConfig.init),
+        // same as the mob block above — the [GelLog] rows come from throw/impact.
+        EntityRegistry.registerModEntity(new ResourceLocation(ETIM.MOD_ID, "gelatinous_sphere"),
+                ETIMEntityGelatinousSphere.class, "etim.gelatinous_sphere", 19, ETIM.instance(), 64, 20, true);
     }
 
     /**

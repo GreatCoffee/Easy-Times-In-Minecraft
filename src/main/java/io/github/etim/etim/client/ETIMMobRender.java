@@ -3,6 +3,7 @@ package io.github.etim.etim.client;
 import io.github.etim.etim.mob.ETIMEntityAncientBoneLord;
 import io.github.etim.etim.mob.ETIMEntityArrow;
 import io.github.etim.etim.mob.ETIMEntityBoneLord;
+import io.github.etim.etim.mob.ETIMEntityGelatinousSphere;
 import io.github.etim.etim.mob.ETIMEntityGiantVampireBat;
 import io.github.etim.etim.mob.ETIMEntityBlob;
 import io.github.etim.etim.mob.ETIMEntityInfernalCreeper;
@@ -70,6 +71,10 @@ public final class ETIMMobRender {
                 manager -> new CubicRender(manager, new ResourceLocation("etim:textures/entity/slime/blob.png")));
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityPudding.class,
                 manager -> new CubicRender(manager, new ResourceLocation("etim:textures/entity/slime/pudding.png")));
+        // B-58 D :250 — the thrown sphere on the vanilla snowball chassis
+        // (R196 RenderManager.java:96 RenderSnowball row).
+        RenderingRegistry.registerEntityRenderingHandler(ETIMEntityGelatinousSphere.class,
+                ETIMGelSphereRender::new);
         RenderingRegistry.registerEntityRenderingHandler(ETIMEntityInfernalCreeper.class, RenderCreeper::new);
         // B-55 (R196 RenderBat:3-30): the family reuses the vanilla bat model
         // and renderer stack; only the texture differs, and the giant gets the

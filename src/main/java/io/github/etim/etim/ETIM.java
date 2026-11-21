@@ -73,6 +73,8 @@ public final class ETIM {
         io.github.etim.etim.mob.ETIMDigging.register();
         io.github.etim.etim.mob.ETIMSpiderEntities.register();
         io.github.etim.etim.mob.ETIMMobEntities.register();
+        // B-58 D :250 — the five-colour sphere item (D-1: one identity, meta 0..4).
+        io.github.etim.etim.mob.ETIMItemGelatinousSphere.register();
         // Batch B1 metal content: items first (XP rows), blocks + recipes second.
         io.github.etim.etim.metal.ETIMItems.register();
         io.github.etim.etim.metal.ETIMBlocks.register();        // Batch B2 metal gear: 50 tools + 40 armor + 5 chains, recipes + [EquipLog] dump.

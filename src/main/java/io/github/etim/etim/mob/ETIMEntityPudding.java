@@ -41,6 +41,11 @@ public class ETIMEntityPudding extends ETIMEntityGelatinousCube {
         return EnumParticleTypes.SLIME;
     }
 
+    @Override
+    protected int getDropSphereSubtype() {
+        return ETIMItemGelatinousSphere.BLACK; // R196 EntityPudding.java:19 → 4
+    }
+
     /** R196 isImmuneTo: fire, lava, magic and snowballs pass; the rest bounce. */
     @Override
     protected boolean isImmuneToSource(DamageSource source) {

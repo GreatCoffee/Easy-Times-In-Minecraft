@@ -64,6 +64,11 @@ public final class CraftingDifficulty {
         BY_ITEM.put(item, difficulty);
     }
 
+    /** Component registration seam for batch-owned items (B-58 sphere = 100). */
+    public static void register(Item item, float difficulty) {
+        put(item, difficulty);
+    }
+
     /**
      * R196 {@code getCraftingDifficultyAsComponent} for one stack: per-item
      * registration, otherwise the generic one-family value. Diamond (gem-as-rock)

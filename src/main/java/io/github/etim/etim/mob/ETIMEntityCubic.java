@@ -1,5 +1,8 @@
 package io.github.etim.etim.mob;
 
+import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIMConfig;
+
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.EntityAIAttackMelee;
@@ -12,8 +15,8 @@ import net.minecraft.entity.ai.EntityAIWatchClosest;
 import net.minecraft.entity.ai.EntityMoveHelper;
 import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
 import net.minecraft.init.SoundEvents;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
@@ -161,10 +164,25 @@ public abstract class ETIMEntityCubic extends EntityMob {
 
     @Override
     protected void dropFewItems(boolean wasRecentlyHit, int lootingModifier) {
-        // R196 getDropItemId(): only the size-1 cube carries a slimeball.
-        if (this.getCubicSize() == 1) {
-            this.dropItem(Items.SLIME_BALL, 1);
+        // R196 getDropItemId(): only the size-1 cube carries a slimeball; B-58
+        // carries the family as the sphere metadata (jelly 1 / blob 2 / ooze 3 /
+        // pudding 4 — R196 EntityJelly:19 / EntityBlob:19 / EntityOoze:31 /
+        // EntityPudding:19 getDropItemSubtype). D-2: vanilla slimes keep the
+        // vanilla ball; this row is the ETIM gel family only.
+        if (this.getCubicSize() == 1 && ETIMItemGelatinousSphere.ITEM != null) {
+            int meta = ETIMItemGelatinousSphere.clampSubtype(this.getDropSphereSubtype());
+            this.entityDropItem(new ItemStack(ETIMItemGelatinousSphere.ITEM, 1, meta), 0.0F);
+            if (ETIMConfig.mobDebugLog) {
+                ETIM.LOGGER.info("[GelLog] drop cls={} size={} wasRecentlyHit={} meta={} at ({},{},{}) entity={} [server]",
+                        this.getClass().getSimpleName(), this.getCubicSize(), wasRecentlyHit, meta,
+                        this.posX, this.posY, this.posZ, this.getEntityId());
+            }
         }
+    }
+
+    /** R196 {@code getDropItemSubtype} default 0 (EntityCubic.java:417) — green. */
+    protected int getDropSphereSubtype() {
+        return ETIMItemGelatinousSphere.GREEN;
     }
 
     /** R196 {@code getSoundVolume = 0.2 * size} (inherited shape). */

@@ -45,6 +45,11 @@ public class ETIMEntityBlob extends ETIMEntityGelatinousCube {
     }
 
     @Override
+    protected int getDropSphereSubtype() {
+        return ETIMItemGelatinousSphere.CRIMSON; // R196 EntityBlob.java:19 → 2
+    }
+
+    @Override
     protected boolean slowsPlayerOnContact() {
         return true;
     }

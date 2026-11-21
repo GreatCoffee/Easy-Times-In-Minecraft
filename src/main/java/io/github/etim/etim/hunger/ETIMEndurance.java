@@ -217,6 +217,12 @@ public final class ETIMEndurance {
         }
     }
 
+    /** R196 ItemGelatinousSphere:62-65 — a survival sphere throw charges
+     *  0.25 × the endurance modifier into the hunger pool (D-3). */
+    public static void chargeSphereThrow(EntityPlayer player) {
+        charge(player, ETIMConfig.sphereThrowHunger, getEnduranceModifier(player), "sphereThrowDrain");
+    }
+
     /**
      * Shared charge funnel: R196 FoodStats.addHunger (:122-134) guards +
      * cap, with the foodModel master switch. The [FoodLog] row carries the

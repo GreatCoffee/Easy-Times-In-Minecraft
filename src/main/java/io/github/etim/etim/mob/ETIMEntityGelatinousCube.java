@@ -446,7 +446,11 @@ public abstract class ETIMEntityGelatinousCube extends ETIMEntityCubic {
 
     @Override
     protected net.minecraft.util.ResourceLocation getLootTable() {
-        return net.minecraft.world.storage.loot.LootTableList.EMPTY;
+        // B-58 (W4): 1.12 skips dropFewItems entirely when a loot table is set
+        // (EntityLivingBase.dropLoot). R196 EntityGelatinousCube.java:452-455 drops
+        // the sphere from dropFewItems, so null is the faithful face here — same
+        // precedent as ETIMEntityLongdead.java:134-136 (B-13).
+        return null;
     }
 
     @Override

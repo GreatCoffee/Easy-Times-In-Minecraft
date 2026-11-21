@@ -60,6 +60,11 @@ public class ETIMEntityOoze extends ETIMEntityGelatinousCube {
         return EnumParticleTypes.SLIME;
     }
 
+    @Override
+    protected int getDropSphereSubtype() {
+        return ETIMItemGelatinousSphere.GRAY; // R196 EntityOoze.java:31 → 3
+    }
+
     /** R196 isImmuneTo: only lava, magic and snowballs get through. */
     @Override
     protected boolean isImmuneToSource(DamageSource source) {

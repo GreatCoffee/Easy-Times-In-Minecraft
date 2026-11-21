@@ -12,6 +12,8 @@ import io.github.etim.etim.mining.ETIMOozeSpawn;
 import io.github.etim.etim.mob.ETIMMoonState;
 import io.github.etim.etim.mob.ETIMSpawnTables;
 import io.github.etim.etim.mob.ETIMEntityGelatinousCube;
+import io.github.etim.etim.mob.ETIMEntityGelatinousSphere;
+import io.github.etim.etim.mob.ETIMItemGelatinousSphere;
 import io.github.etim.etim.mob.ETIMEntityJelly;
 import io.github.etim.etim.mob.ETIMEntityBlob;
 import io.github.etim.etim.mob.ETIMEntityPudding;
@@ -63,8 +65,11 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketSetExperience;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;import net.minecraft.util.EnumHand;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.FoodStats;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
@@ -231,6 +236,21 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "gelpick":
                 executeGelPick(server, sender, args);
+                break;
+            case "gelsphere":
+                executeGelSphere(sender, args);
+                break;
+            case "gelhit":
+                executeGelHit(server, sender, args);
+                break;
+            case "gelkill":
+                executeGelKill(server, sender, args);
+                break;
+            case "gelinv":
+                executeGelInv(sender);
+                break;
+            case "gelhold":
+                executeGelHold(sender);
                 break;
             case "batclear":
                 executeBatClear(server, sender, args);
@@ -1268,6 +1288,163 @@ public class CommandDevTest extends CommandBase {
         }
         ETIM.LOGGER.info("[SpawnLog] gelpick n={} flag={} at {} counts={} [server]", n, ETIMConfig.mobGelatinousR196, pos, counts);
         sender.sendMessage(new TextComponentString("[etest] gelpick " + counts));
+    }
+
+    /** B-58 — {@code /etest gelsphere <subtype> [count]}: hand the caller the
+     *  five-colour sphere so the harness can right-click it. */
+    private static void executeGelSphere(ICommandSender sender, String[] args) throws CommandException {
+        Entity senderEntity = sender.getCommandSenderEntity();
+        if (!(senderEntity instanceof EntityPlayerMP) || args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        int subtype = CommandBase.parseInt(args[1], ETIMItemGelatinousSphere.GREEN,
+                ETIMItemGelatinousSphere.BLACK);
+        int count = args.length > 2 ? CommandBase.parseInt(args[2], 1, 64) : 1;
+        EntityPlayerMP player = (EntityPlayerMP) senderEntity;
+        ItemStack stack = new ItemStack(ETIMItemGelatinousSphere.ITEM, count, subtype);
+        if (!player.inventory.addItemStackToInventory(stack)) {
+            player.dropItem(stack, false);
+        }
+        ETIM.LOGGER.info("[GelLog] give subtype={} count={} dmg={} kind={} player={} [server]",
+                subtype, count, (int) ETIMItemGelatinousSphere.attackDamage(subtype),
+                ETIMItemGelatinousSphere.kind(subtype).name().toLowerCase(java.util.Locale.ROOT),
+                player.getName());
+        sender.sendMessage(new TextComponentString("[etest] gelsphere " + subtype + " x" + count));
+    }
+
+    /**
+     * B-58 — {@code /etest gelhit block <subtype> <x> <y> <z> [face]} or
+     * {@code /etest gelhit entity <subtype>}: runs the real R196 impact body
+     * against a synthetic ray, so the [GelLog] impact rows are judgeable
+     * without relying on a client-aimed throw.
+     */
+    private static void executeGelHit(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 3) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        String mode = args[1].toLowerCase(java.util.Locale.ROOT);
+        int subtype = CommandBase.parseInt(args[2], ETIMItemGelatinousSphere.GREEN,
+                ETIMItemGelatinousSphere.BLACK);
+        Entity senderEntity = sender.getCommandSenderEntity();
+        WorldServer w = senderEntity != null
+                ? (WorldServer) senderEntity.getEntityWorld() : server.getWorld(0);
+        Vec3d at = senderEntity != null ? senderEntity.getPositionVector() : sender.getPositionVector();
+        ETIMEntityGelatinousSphere sphere = new ETIMEntityGelatinousSphere(w,
+                at.x, at.y, at.z, subtype);
+        RayTraceResult hit;
+        if ("block".equals(mode)) {
+            if (args.length < 6) {
+                throw new WrongUsageException("commands.etest.usage");
+            }
+            BlockPos pos = CommandBase.parseBlockPos(sender, args, 3, false);
+            EnumFacing face = args.length > 6 ? EnumFacing.byName(args[6]) : EnumFacing.UP;
+            if (face == null) {
+                face = EnumFacing.UP;
+            }
+            hit = new RayTraceResult(new Vec3d(pos.getX() + 0.5D, pos.getY() + 0.5D,
+                    pos.getZ() + 0.5D), face, pos);
+        } else if ("entity".equals(mode)) {
+            EntityLivingBase target = null;
+            net.minecraft.util.math.AxisAlignedBB box = new net.minecraft.util.math.AxisAlignedBB(
+                    at.x - 16.0D, at.y - 16.0D, at.z - 16.0D,
+                    at.x + 16.0D, at.y + 16.0D, at.z + 16.0D);
+            for (Entity e : w.getEntitiesWithinAABB(EntityLivingBase.class, box)) {
+                if (e == senderEntity || !e.isEntityAlive()) {
+                    continue;
+                }
+                if (target == null || e.getDistanceSq(at.x, at.y, at.z) < target.getDistanceSq(at.x, at.y, at.z)) {
+                    target = (EntityLivingBase) e;
+                }
+            }
+            if (target == null) {
+                throw new CommandException("commands.etest.noentity");
+            }
+            hit = new RayTraceResult(target);
+        } else {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        sphere.etimImpactForTest(hit);
+        sender.sendMessage(new TextComponentString("[etest] gelhit " + mode + " " + subtype));
+    }
+
+    /**
+     * B-58 — {@code /etest gelkill <selector> [player]}: kills with a
+     * player-attributed source so {@code recentlyHit} is set (R196
+     * EntityLivingBase.java:435 gates the drop on it), unlike vanilla
+     * {@code /kill} which leaves recentlyHit = 0 and drops nothing.
+     */
+    private static void executeGelKill(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 2) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 2);
+        Entity target = net.minecraft.command.EntitySelector.matchOneEntity(player, args[1],
+                net.minecraft.entity.EntityLivingBase.class);
+        if (target == null) {
+            throw new CommandException("commands.etest.noentity");
+        }
+        boolean hit = target.attackEntityFrom(DamageSource.causePlayerDamage(player), 1000.0F);
+        DamageSource used = DamageSource.causePlayerDamage(player);
+        if (!hit) {
+            // Ooze / pudding are immune to player damage by design (R196 EntityCubic
+            // isHarmedBy* surface); the drop face only needs any lethal source.
+            used = DamageSource.MAGIC;
+            hit = target.attackEntityFrom(used, 1000.0F);
+        }
+        ETIM.LOGGER.info("[GelLog] kill selector={} cls={} source={} hit={} [server]", args[1],
+                target.getClass().getSimpleName(), used.getDamageType(), hit);
+        player.sendMessage(new TextComponentString("[etest] gelkill " + args[1] + " hit=" + hit));
+    }
+
+    /**
+     * B-58 — {@code /etest gelinv}: logs the caller's sphere stacks by metadata.
+     * 1.12 modded items are opaque to mineflayer's inventory model, so the
+     * drop/consume faces are judged from this server-side row instead.
+     */
+    private static void executeGelInv(ICommandSender sender) throws CommandException {
+        Entity senderEntity = sender.getCommandSenderEntity();
+        if (!(senderEntity instanceof EntityPlayerMP)) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = (EntityPlayerMP) senderEntity;
+        StringBuilder counts = new StringBuilder();
+        for (int meta = ETIMItemGelatinousSphere.GREEN; meta <= ETIMItemGelatinousSphere.BLACK; ++meta) {
+            int total = 0;
+            for (ItemStack stack : player.inventory.mainInventory) {
+                if (!stack.isEmpty() && stack.getItem() == ETIMItemGelatinousSphere.ITEM
+                        && stack.getMetadata() == meta) {
+                    total += stack.getCount();
+                }
+            }
+            if (counts.length() > 0) {
+                counts.append(' ');
+            }
+            counts.append(meta).append('=').append(total);
+        }
+        ETIM.LOGGER.info("[GelLog] inv {} player={} [server]", counts, player.getName());
+        sender.sendMessage(new TextComponentString("[etest] gelinv " + counts));
+    }
+
+    /** B-58 — {@code /etest gelhold}: puts a sphere into the selected hotbar slot
+     *  so the harness bot can fire a real use-item packet at it. */
+    private static void executeGelHold(ICommandSender sender) throws CommandException {
+        Entity senderEntity = sender.getCommandSenderEntity();
+        if (!(senderEntity instanceof EntityPlayerMP)) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = (EntityPlayerMP) senderEntity;
+        for (int slot = 0; slot < 9; ++slot) {
+            ItemStack stack = player.inventory.getStackInSlot(slot);
+            if (!stack.isEmpty() && stack.getItem() == ETIMItemGelatinousSphere.ITEM) {
+                player.inventory.currentItem = slot;
+                player.inventoryContainer.detectAndSendChanges();
+                ETIM.LOGGER.info("[GelLog] hold slot={} meta={} count={} player={} [server]",
+                        slot, stack.getMetadata(), stack.getCount(), player.getName());
+                sender.sendMessage(new TextComponentString("[etest] gelhold slot=" + slot));
+                return;
+            }
+        }
+        throw new CommandException("commands.etest.noentity");
     }
 
     private static void executeWide(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {

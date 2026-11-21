@@ -35,7 +35,44 @@ public final class ETIMDamageAspects {
     public static final DamageSource SUNLIGHT =
             new DamageSource("etim.sunlight").setDamageBypassesArmor();
 
+    /** R196 DamageSource.java:24-25 — the two dissolve aspects (plain sources,
+     *  no flags; the sphere carries them through {@code Damage}). 1.12 has no
+     *  {@code Damage} wrapper, so the caller passes the kind explicitly and the
+     *  hit itself is a plain {@code thrown} projectile source. */
+    public static final DamageSource PEPSIN = new DamageSource("etim.pepsin");
+    public static final DamageSource ACID = new DamageSource("etim.acid");
+
     private ETIMDamageAspects() {
+    }
+
+    /** R196 {@code DamageSource.causeThrownDamage(sphere, thrower)} — the sphere
+     *  is the immediate source, the thrower the true source (kill credit / aggro). */
+    public static DamageSource thrown(Entity source, Entity thrower) {
+        return new net.minecraft.util.EntityDamageSourceIndirect("thrown", source, thrower)
+                .setProjectile();
+    }
+
+    /**
+     * R196 immunity matrix (Entity.java:1684-1700 + :1374/:1378, EntityLivingBase
+     * :2607, EntityZombie :419, EntityCubic :546/:551):
+     * <ul>
+     *   <li>pepsin — every living non-undead is harmed; zombies are the explicit
+     *       R196 exemption (harmed); gel cubes and all non-living are immune.</li>
+     *   <li>acid — default harmed; only pudding (R196 {@code isPudding}) and the
+     *       magma cube are immune; ooze is acid-family but still harmed.</li>
+     * </ul>
+     */
+    public static boolean isHarmedBy(Entity target, ETIMBlockDissolve.Kind kind) {
+        if (kind == ETIMBlockDissolve.Kind.ACID) {
+            return !(target instanceof ETIMEntityPudding || target instanceof net.minecraft.entity.monster.EntityMagmaCube);
+        }
+        if (target instanceof ETIMEntityGelatinousCube) {
+            return false;
+        }
+        if (target instanceof net.minecraft.entity.monster.EntityZombie) {
+            return true;
+        }
+        return target instanceof EntityLivingBase && !((EntityLivingBase) target).isEntityUndead();
     }
 
     public static boolean hasSilver(DamageSource source) {

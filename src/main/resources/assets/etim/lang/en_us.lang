@@ -306,3 +306,10 @@ commands.etimskill.learned=Learned %s for %s levels
 commands.etimskill.abandoned=Abandoned %s
 commands.etimskill.list=Known skills: %s
 commands.etimskill.list.none=No skills learned
+
+item.etim.gelatinous_sphere.green.name=Green Slime
+item.etim.gelatinous_sphere.ochre.name=Ochre Jelly
+item.etim.gelatinous_sphere.crimson.name=Crimson Blob
+item.etim.gelatinous_sphere.gray.name=Gray Ooze
+item.etim.gelatinous_sphere.black.name=Black Pudding
+item.etim.tooltip.missileDamage=+%d Missile Damage

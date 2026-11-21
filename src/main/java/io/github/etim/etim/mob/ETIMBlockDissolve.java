@@ -39,6 +39,7 @@ import net.minecraft.block.BlockWallSign;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -164,9 +165,24 @@ public final class ETIMBlockDissolve {
      * acid family. Returns true when the block changed.
      */
     public static boolean onContactWithAcid(World world, BlockPos pos) {
+        return onContactWithAcid(world, pos, null);
+    }
+
+    /**
+     * B-58 face-aware form (R196 Block.java:3181-3200): grass / mycelium only
+     * turn to dirt when the contact face is the top (or absent); a side / bottom
+     * hit is refused. Every other block ignores the face.
+     */
+    public static boolean onContactWithAcid(World world, BlockPos pos, EnumFacing face) {
+        if (world.isRemote) {
+            return false;
+        }
         IBlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
         if (block == Blocks.GRASS || block == Blocks.MYCELIUM) {
+            if (face != null && face != EnumFacing.UP) {
+                return false;
+            }
             world.setBlockState(pos, Blocks.DIRT.getDefaultState(), 2);
             steam(world, pos, true);
             return true;
@@ -180,6 +196,34 @@ public final class ETIMBlockDissolve {
         if (period > INSTANT) {
             steam(world, pos, false);
         }
+        return false;
+    }
+
+    /**
+     * R196 {@code Block.onContactWithPepsin} (Block.java:3161-3179) — the jelly
+     * / blob branch. Only {@link #SLOW}/{@link #INSTANT} blocks react; instant
+     * ones go to air with the weak steam FX, gradual ones only steam.
+     */
+    public static boolean onContactWithPepsin(World world, BlockPos pos) {
+        return onContactWithPepsin(world, pos, null);
+    }
+
+    /** B-58 face-aware pepsin form; the face is unused by R196's pepsin body. */
+    public static boolean onContactWithPepsin(World world, BlockPos pos, EnumFacing face) {
+        if (world.isRemote) {
+            return false;
+        }
+        IBlockState state = world.getBlockState(pos);
+        int period = period(state, Kind.PEPSIN);
+        if (period < 0) {
+            return false;
+        }
+        if (period == INSTANT) {
+            steam(world, pos, false);
+            world.setBlockToAir(pos);
+            return true;
+        }
+        steam(world, pos, false);
         return false;
     }
 

@@ -37,4 +37,9 @@ public class ETIMEntityJelly extends ETIMEntityGelatinousCube {
     protected EnumParticleTypes getSquishParticle() {
         return EnumParticleTypes.SLIME;
     }
+
+    @Override
+    protected int getDropSphereSubtype() {
+        return ETIMItemGelatinousSphere.OCHRE; // R196 EntityJelly.java:19 → 1
+    }
 }

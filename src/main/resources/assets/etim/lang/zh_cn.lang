@@ -305,3 +305,10 @@ commands.etimskill.learned=已学会 %s，消耗 %s 级
 commands.etimskill.abandoned=已放弃 %s
 commands.etimskill.list=已学技能：%s
 commands.etimskill.list.none=尚未学习任何技能
+
+item.etim.gelatinous_sphere.green.name=绿色黏液球
+item.etim.gelatinous_sphere.ochre.name=赭色凝胶
+item.etim.gelatinous_sphere.crimson.name=绯红凝胶团
+item.etim.gelatinous_sphere.gray.name=灰色软泥
+item.etim.gelatinous_sphere.black.name=黑色布丁
+item.etim.tooltip.missileDamage=+%d 投掷伤害
