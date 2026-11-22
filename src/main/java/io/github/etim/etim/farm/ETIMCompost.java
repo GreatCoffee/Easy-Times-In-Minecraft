@@ -102,6 +102,9 @@ public final class ETIMCompost {
             return 0.0F;
         }
         Item item = stack.getItem();
+        if (item instanceof io.github.etim.etim.item.ETIMItemBowl) {
+            return ((io.github.etim.etim.item.ETIMItemBowl) item).etimCompostingValue(); // B-65 :156
+        }
         float value = specialValue(item, stack);
         if (value >= 0.0F) {
             return value; // a special row (may be 0.0F) — override resolved
@@ -131,6 +134,9 @@ public final class ETIMCompost {
         }
         if (item == Items.MUSHROOM_STEW) {
             return Items.BOWL; // ItemBowl.java:205 getEmptyVessel face
+        }
+        if (item instanceof io.github.etim.etim.item.ETIMItemBowl) {
+            return ((io.github.etim.etim.item.ETIMItemBowl) item).getEmptyVessel(); // B-65 :156 — 残留空碗
         }
         return null; // Item.java:2036-2038 default null
     }

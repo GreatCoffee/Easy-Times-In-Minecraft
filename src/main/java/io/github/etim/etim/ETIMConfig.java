@@ -147,6 +147,14 @@ public final class ETIMConfig {
     public static boolean foodTestMode = false;
     /** Server-log every pool mutation/eat/starve strike as [FoodLog] lines (dev channel). 每次池变动/进食/饿伤判定都写一行 [FoodLog] 服务端日志（开发通道）。 */
     public static boolean foodDebugLog = false;
+    /**
+     * B-65 D-7 — master switch for the F-2 extra faces: bowl family (15 contents),
+     * coin family (6 metals), enchanted-apple R196 effects/conversion, fire-cooks-raw-food,
+     * and vessel quenching. Off = none of the new items/behaviours fire.
+     * B-65 D-7 — F-2 附加面总开关：碗族（15 种内容物）、货币族（六金属）、附魔苹果 R196 效果与转化、
+     * 火焰换熟食、容器灭火。关闭后本批新物品与新行为全部不生效。
+     */
+    public static boolean foodR196Extra = true;
 
     /** Task 2.4 (ingestion): use duration for all R196-ingestible items (R196 §四: every
      *  eating/drinking family runs 32 ticks — ItemFood/ItemBowl/ItemPotion/ItemBucketMilk). 任务 2.4（可食化）：全部 R196 可食物件的食用时长（R196 §四：每个吃/喝家族固定跑 32 tick）。 */
@@ -785,6 +793,9 @@ public final class ETIMConfig {
         foodModel = config.getBoolean("foodModel", "food", true,
                 comment("R196 dual-pool food model (task 1.5): satiation+nutrition pools, wetness hunger, starve/heal rules. Off = vanilla hunger bar",
                         "R196 双池食物模型（任务 1.5）：饱食+营养双池、湿冷饥饿、饿伤/回血规则。关闭则回到原版饥饿条"));
+        foodR196Extra = config.getBoolean("foodR196Extra", "food", true,
+                comment("B-65 master switch: bowls (15 contents), coins (6 metals), enchanted-apple R196 effects, fire-cooks-raw-food, vessel quenching",
+                        "B-65 总开关：碗族（15 种内容物）、货币（六金属）、附魔苹果 R196 效果、火焰换熟食、容器灭火"));
         hungerGainPerTick = config.getFloat("hungerGainPerTick", "food", hungerGainPerTick, 0.0F, 1.0F,
                 comment("Hunger pool accrual per tick (R196: 0.002; multiplied by the wetness factor)",
                         "每tick饥饿池积攒量（R196 为 0.002；再乘湿冷系数）"));

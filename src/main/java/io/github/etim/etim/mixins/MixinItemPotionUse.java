@@ -60,6 +60,16 @@ public abstract class MixinItemPotionUse {
             return;
         }
         BlockPos hit = trace.getBlockPos();
+        if (world.getBlockState(hit).getBlock() == Blocks.FIRE) {
+            // B-65 census F :163 — R196 ItemPotion arm: a water bottle puts out a fire block
+            world.setBlockToAir(hit);
+            world.playSound(null, hit, net.minecraft.init.SoundEvents.BLOCK_FIRE_EXTINGUISH,
+                    net.minecraft.util.SoundCategory.BLOCKS, 0.5F, 2.6F + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.8F);
+            ETIMFarm.row("potion douse fire pos=" + hit.getX() + "," + hit.getY() + "," + hit.getZ());
+            cir.setReturnValue(new ActionResult<ItemStack>(EnumActionResult.SUCCESS,
+                    player.capabilities.isCreativeMode ? stack : new ItemStack(Items.GLASS_BOTTLE)));
+            return;
+        }
         if (world.getBlockState(hit).getBlock() != Blocks.FARMLAND || trace.sideHit != EnumFacing.UP) {
             return;
         }

@@ -84,6 +84,8 @@ public final class ETIM {
         // recipes (needs the metal nuggets above; the two event faces register
         // with the farm/butchering trio below).
         io.github.etim.etim.fishing.ETIMFishingItems.register();
+        // B-65 (F-2): bowls (15 contents, empty = vanilla bowl) + coins (6 metals).
+        io.github.etim.etim.item.ETIMFoodItems.register();
         // Batch B1: ETIM's first GuiHandler (批文项2) + the dungeon-chest loot hook (B-2(a)).
         net.minecraftforge.fml.common.network.NetworkRegistry.INSTANCE.registerGuiHandler(
                 ETIM.instance(), new io.github.etim.etim.fml.ETIMGuiHandler());
@@ -112,6 +114,8 @@ public final class ETIM {
         // single-face vine placement face.
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.item.ETIMItemMelt.class);
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.item.ETIMVinePlace.class);
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.item.ETIMVesselEvents.class);
+        MinecraftForge.EVENT_BUS.register(io.github.etim.etim.item.ETIMAppleGoldEvents.class);
         ETIMConfig.init(event);
         // B-64 census F :142/:143 — re-apply the R196 per-item stack table on
         // top of the mixin's default 16 (config gate is live only after init).

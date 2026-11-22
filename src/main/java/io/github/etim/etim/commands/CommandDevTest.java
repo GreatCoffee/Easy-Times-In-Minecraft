@@ -327,6 +327,21 @@ public class CommandDevTest extends CommandBase {
             case "vineplace":
                 executeVinePlace(server, sender, args);
                 break;
+            case "bowl":
+                executeBowl(server, sender, args);
+                break;
+            case "coin":
+                executeCoin(server, sender, args);
+                break;
+            case "applegold":
+                executeAppleGold(server, sender, args);
+                break;
+            case "firecook":
+                executeFireCook(server, sender, args);
+                break;
+            case "vesseldouse":
+                executeVesselDouse(server, sender, args);
+                break;
             case "silver":
                 executeSilver(server, sender, args);
                 break;
@@ -3374,6 +3389,127 @@ for (EntityLiving e : hits) {
                 + " found=" + list.size() + " killed=" + killed));
     }
 
+    /** {@code /etest bowl <contents>} - B-65: hand the caller one bowl of the named content. */
+    private static void executeBowl(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null || args.length < 2) {
+            return;
+        }
+        io.github.etim.etim.item.ETIMBowlContents contents;
+        try {
+            contents = io.github.etim.etim.item.ETIMBowlContents.valueOf(args[1].toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return;
+        }
+        net.minecraft.item.ItemStack stack = io.github.etim.etim.item.ETIMFoodItems.bowlFor(contents);
+        if (stack.isEmpty()) {
+            return;
+        }
+        player.inventory.addItemStackToInventory(stack.copy());
+        ETIM.LOGGER.info("[FoodR196Log] bowlgive contents={} item={} sat={} nut={} player={} [server]",
+                contents.name(), stack.getItem().getRegistryName(), contents.satiation,
+                contents.nutrition, player.getName());
+    }
+
+    /** {@code /etest coin <metal> <count>} - B-65: give coins and report the XP swing. */
+    private static void executeCoin(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null || args.length < 2) {
+            return;
+        }
+        int count = args.length >= 3 ? Math.max(1, Integer.parseInt(args[2])) : 1;
+        net.minecraft.item.Item coin = "copper".equalsIgnoreCase(args[1]) ? io.github.etim.etim.item.ETIMFoodItems.coinCopper
+                : "silver".equalsIgnoreCase(args[1]) ? io.github.etim.etim.item.ETIMFoodItems.coinSilver
+                        : "gold".equalsIgnoreCase(args[1]) ? io.github.etim.etim.item.ETIMFoodItems.coinGold
+                                : "ancient_metal".equalsIgnoreCase(args[1]) ? io.github.etim.etim.item.ETIMFoodItems.coinAncient
+                                        : "mithril".equalsIgnoreCase(args[1]) ? io.github.etim.etim.item.ETIMFoodItems.coinMithril
+                                                : "adamantium".equalsIgnoreCase(args[1]) ? io.github.etim.etim.item.ETIMFoodItems.coinAdamantium
+                                                        : null;
+        if (coin == null) {
+            return;
+        }
+        int before = player.experienceTotal;
+        net.minecraft.item.ItemStack stack = new net.minecraft.item.ItemStack(coin, count);
+        coin.onCreated(stack, player.world, player);
+        int after = player.experienceTotal;
+        player.inventory.addItemStackToInventory(stack);
+        ETIM.LOGGER.info("[FoodR196Log] coin metal={} count={} xp_before={} xp_after={} player={} [server]",
+                args[1], count, before, after, player.getName());
+    }
+
+    /** {@code /etest applegold} - B-65: spawn a weak villager-zombie and run the cure body. */
+    private static void executeAppleGold(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        int meta = args.length >= 2 ? Integer.parseInt(args[1]) : 1;
+        net.minecraft.entity.monster.EntityZombieVillager zombie = new net.minecraft.entity.monster.EntityZombieVillager(player.world);
+        zombie.setPosition(player.posX + 1.5D, player.posY, player.posZ);
+        zombie.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.init.MobEffects.WEAKNESS, 600, 0));
+        player.world.spawnEntity(zombie);
+        net.minecraft.item.ItemStack held = new net.minecraft.item.ItemStack(
+                net.minecraft.init.Items.GOLDEN_APPLE, 1, meta);
+        boolean cured = io.github.etim.etim.item.ETIMAppleGoldEvents.tryCure(player, held, zombie, "cmd");
+        ETIM.LOGGER.info("[FoodR196Log] applegold meta={} cured={} converting={} zombie={} [server]",
+                meta, cured, zombie.isConverting(), zombie.getEntityId());
+    }
+
+    /** {@code /etest firecook} - B-65: drop raw beef, burn it, report the swap. */
+    private static void executeFireCook(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        net.minecraft.entity.item.EntityItem drop = player.dropItem(
+                new net.minecraft.item.ItemStack(net.minecraft.init.Items.BEEF, 3), false);
+        if (drop == null) {
+            return;
+        }
+        net.minecraft.item.ItemStack before = drop.getItem().copy();
+        drop.attackEntityFrom(net.minecraft.util.DamageSource.IN_FIRE, 1.0F);
+        net.minecraft.item.ItemStack after = drop.getItem();
+        ETIM.LOGGER.info("[FoodR196Log] firecook before={} after={} count={} alive={} [server]",
+                before.getItem().getRegistryName(), after.getItem().getRegistryName(),
+                after.getCount(), !drop.isDead);
+    }
+
+    /** {@code /etest vesseldouse} - B-65: run the water-vessel arm against a fire elemental. */
+    private static void executeVesselDouse(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        io.github.etim.etim.mob.ETIMEntityFireElemental fire =
+                new io.github.etim.etim.mob.ETIMEntityFireElemental(player.world);
+        fire.setPosition(player.posX + 1.5D, player.posY, player.posZ);
+        player.world.spawnEntity(fire);
+        net.minecraft.item.ItemStack bowl = io.github.etim.etim.item.ETIMFoodItems.bowlFor(
+                io.github.etim.etim.item.ETIMBowlContents.WATER);
+        player.setHeldItem(net.minecraft.util.EnumHand.MAIN_HAND, bowl);
+        boolean hit = bowl.isEmpty() ? false
+                : ((io.github.etim.etim.item.ETIMItemVessel) bowl.getItem())
+                        .etimTryEntityInteraction(fire, player, bowl,
+                                net.minecraft.util.EnumHand.MAIN_HAND, "cmd");
+        ETIM.LOGGER.info("[FoodR196Log] vesseldouse hit={} fire_hp={} held={} [server]",
+                hit, fire.getHealth(), player.getHeldItemMainhand().getItem().getRegistryName());
+    }
+
     /** {@code /etest undeadinfo} - B-59: alive rows for the three surface species near the caller. */
     private static void executeUndeadInfo(MinecraftServer server, ICommandSender sender, String[] args) {
         EntityPlayer player = sender instanceof EntityPlayerMP
@@ -3411,3 +3547,5 @@ for (EntityLiving e : hits) {
     }
 
 }
+
+

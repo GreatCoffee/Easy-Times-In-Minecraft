@@ -41,4 +41,54 @@ public abstract class MixinEntityItem {
     private void etim$meltTick(CallbackInfo ci) {
         io.github.etim.etim.item.ETIMItemMelt.tickDropped((EntityItem) (Object) this);
     }
+
+    /**
+     * B-65 census F :151/:154 — the R196 dropped-item destruction faces
+     * ({@code ItemFood.getItemProducedWhenDestroyed} and
+     * {@code ItemVessel.getItemProducedWhenDestroyed}).
+     *
+     * <p>Fire damage on a cookable raw food swaps the dropped stack for its
+     * furnace result (R196 {@code cooked_item}); a wooden vessel is consumed
+     * by fire (R196 returns null for harmed materials), while any other
+     * destroy source leaves the EMPTY vessel behind. The face runs at
+     * {@code attackEntityFrom} HEAD and cancels, so the vanilla "poof" never
+     * fires when the R196 replacement is produced.</p>
+     */
+    @Inject(method = "attackEntityFrom", at = @At("HEAD"), cancellable = true)
+    private void etim$destroyedRemainder(net.minecraft.util.DamageSource source, float amount,
+                                         org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+        if (!io.github.etim.etim.ETIMConfig.foodR196Extra) {
+            return;
+        }
+        EntityItem self = (EntityItem) (Object) this;
+        net.minecraft.item.ItemStack stack = self.getItem();
+        if (stack.isEmpty()) {
+            return;
+        }
+        if (source.isFireDamage()) {
+            net.minecraft.item.ItemStack cooked = net.minecraft.item.crafting.FurnaceRecipes.instance()
+                    .getSmeltingResult(stack);
+            if (!cooked.isEmpty() && cooked.getItem() != stack.getItem()) {
+                net.minecraft.item.ItemStack out = cooked.copy();
+                out.setCount(stack.getCount());
+                self.setItem(out);
+                io.github.etim.etim.item.ETIMVesselEvents.row("firecook raw="
+                        + stack.getItem().getRegistryName() + " cooked="
+                        + cooked.getItem().getRegistryName() + " count=" + stack.getCount());
+                cir.setReturnValue(false);
+            }
+            return;
+        }
+        if (stack.getItem() instanceof io.github.etim.etim.item.ETIMItemVessel) {
+            io.github.etim.etim.item.ETIMItemVessel vessel =
+                    (io.github.etim.etim.item.ETIMItemVessel) stack.getItem();
+            net.minecraft.item.Item empty = vessel.getEmptyVessel();
+            if (empty != null) {
+                self.setItem(new net.minecraft.item.ItemStack(empty, stack.getCount()));
+                io.github.etim.etim.item.ETIMVesselEvents.row("vesselremain item="
+                        + stack.getItem().getRegistryName() + " left=" + empty.getRegistryName());
+                cir.setReturnValue(false);
+            }
+        }
+    }
 }

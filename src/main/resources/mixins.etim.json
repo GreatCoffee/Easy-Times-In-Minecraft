@@ -85,6 +85,8 @@
     "MixinEntitySnowball",
     "MixinBlockSilverfish",
     "MixinBlockStaticLiquid",
+    "MixinItemAppleGold",
+    "MixinEntityZombieVillager",
     "MixinEntitySpiderJockey",
     "MixinItemBow",
     "MixinEntityPlayerMelee",

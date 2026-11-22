@@ -108,6 +108,57 @@ public abstract class MixinItem {
         }
     }
 
+    /**
+     * B-65 census F :155 — the R196 empty-bowl water fill
+     * ({@code ItemBowl.java:37-52}): right-clicking a water source with an
+     * empty bowl swaps it for a bowl of water. 1.12 has no bowl-of-water
+     * item, so the port keeps the vanilla bowl as the empty vessel and hands
+     * back {@code etim:bowl_water}. Server-side only; creative keeps the bowl.
+     */
+    @Inject(method = "onItemRightClick", at = @At("HEAD"), cancellable = true)
+    private void etim$bowlFill(World world, EntityPlayer player, EnumHand hand,
+                               CallbackInfoReturnable<ActionResult<ItemStack>> cir) {
+        if (!ETIMConfig.foodR196Extra || world.isRemote || hand != EnumHand.MAIN_HAND) {
+            return;
+        }
+        if ((Object) this != Items.BOWL) {
+            return;
+        }
+        ItemStack held = player.getHeldItem(hand);
+        if (held.isEmpty() || (Object) held.getItem() != this) {
+            return;
+        }
+        net.minecraft.util.math.RayTraceResult hit = player.rayTrace(5.0D, 1.0F);
+        if (hit == null || hit.typeOfHit != net.minecraft.util.math.RayTraceResult.Type.BLOCK) {
+            return;
+        }
+        net.minecraft.block.state.IBlockState state = world.getBlockState(hit.getBlockPos());
+        if (state.getMaterial() != net.minecraft.block.material.Material.WATER
+                && state.getBlock() != net.minecraft.init.Blocks.WATER
+                && state.getBlock() != net.minecraft.init.Blocks.FLOWING_WATER) {
+            return;
+        }
+        net.minecraft.item.Item filled = io.github.etim.etim.item.ETIMFoodItems.bowlWater;
+        if (filled == null) {
+            return;
+        }
+        if (!player.capabilities.isCreativeMode) {
+            held.shrink(1);
+        }
+        if (held.isEmpty()) {
+            player.setHeldItem(hand, new ItemStack(filled));
+        } else if (!player.inventory.addItemStackToInventory(new ItemStack(filled))) {
+            player.dropItem(new ItemStack(filled), false);
+        }
+        player.world.playSound(null, player.posX, player.posY, player.posZ,
+                net.minecraft.init.SoundEvents.ITEM_BUCKET_FILL,
+                net.minecraft.util.SoundCategory.PLAYERS, 1.0F, 1.0F);
+        io.github.etim.etim.item.ETIMVesselEvents.row("bowlfill source="
+                + state.getBlock().getRegistryName() + " player=" + player.getName());
+        cir.setReturnValue(new ActionResult<>(EnumActionResult.SUCCESS,
+                player.getHeldItem(hand)));
+    }
+
     @Inject(method = "onItemRightClick", at = @At("HEAD"), cancellable = true)
     private void etim$shearsSilk(World world, EntityPlayer player, EnumHand hand,
                                  CallbackInfoReturnable<ActionResult<ItemStack>> cir) {
