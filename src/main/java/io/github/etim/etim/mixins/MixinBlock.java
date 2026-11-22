@@ -76,6 +76,54 @@ public abstract class MixinBlock {
     }
 
     /**
+     * B-66 census F :96/:99 — R196 {@code BlockBreakInfo.java:29-51/:350-356}
+     * drops the item at a random point inside the selected bounding box
+     * scaled to 0.5, instead of the fixed vanilla [0.25, 0.75] cube offset
+     * ({@code Block.java} spawnAsEntity). Full cubes keep the vanilla spread
+     * (the two are identical there); non-full blocks (torches, slabs, plants,
+     * snow layers, ...) now drop inside their own half-sized box.
+     */
+    @Inject(method = "spawnAsEntity", at = @At("HEAD"), cancellable = true)
+    private static void etim$r196DropSpread(World worldIn, BlockPos pos,
+            net.minecraft.item.ItemStack stack, CallbackInfo ci) {
+        if (!ETIMConfig.blockR196Face || worldIn.isRemote || stack.isEmpty()) {
+            return;
+        }
+        if (!worldIn.getGameRules().getBoolean("doTileDrops") || worldIn.restoringBlockSnapshots) {
+            return;
+        }
+        IBlockState state = worldIn.getBlockState(pos);
+        if (state.isFullCube()) {
+            return;
+        }
+        net.minecraft.util.math.AxisAlignedBB box = state.getBoundingBox(worldIn, pos);
+        double cx = (box.minX + box.maxX) * 0.5D;
+        double cy = (box.minY + box.maxY) * 0.5D;
+        double cz = (box.minZ + box.maxZ) * 0.5D;
+        double minX = cx + (box.minX - cx) * 0.5D;
+        double maxX = cx + (box.maxX - cx) * 0.5D;
+        double minY = cy + (box.minY - cy) * 0.5D;
+        double maxY = cy + (box.maxY - cy) * 0.5D;
+        double minZ = cz + (box.minZ - cz) * 0.5D;
+        double maxZ = cz + (box.maxZ - cz) * 0.5D;
+        double x = pos.getX() + worldIn.rand.nextDouble() * (maxX - minX) + minX;
+        double y = pos.getY() + worldIn.rand.nextDouble() * (maxY - minY) + minY;
+        double z = pos.getZ() + worldIn.rand.nextDouble() * (maxZ - minZ) + minZ;
+        net.minecraft.entity.item.EntityItem drop =
+                new net.minecraft.entity.item.EntityItem(worldIn, x, y, z, stack.copy());
+        drop.setDefaultPickupDelay();
+        worldIn.spawnEntity(drop);
+        if (ETIMConfig.mobDebugLog) {
+            io.github.etim.etim.item.ETIMItemMaterialEvents.row("dropbox block="
+                    + state.getBlock().getRegistryName() + " at=" + pos.getX() + "," + pos.getY()
+                    + "," + pos.getZ() + " drop=" + io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(x)
+                    + "," + io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(y) + ","
+                    + io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(z));
+        }
+        ci.cancel();
+    }
+
+    /**
      * Task 2.4 diagnosis workbench: raw probe on cake placement (the vanilla
      * funnel every placement path ends in). Both sides run it, so a placement
      * executed locally (prediction) still shows up as its own [client] line.

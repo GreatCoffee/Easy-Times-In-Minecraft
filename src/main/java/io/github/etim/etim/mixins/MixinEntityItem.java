@@ -40,6 +40,7 @@ public abstract class MixinEntityItem {
     @Inject(method = "onUpdate", at = @At("TAIL"))
     private void etim$meltTick(CallbackInfo ci) {
         io.github.etim.etim.item.ETIMItemMelt.tickDropped((EntityItem) (Object) this);
+        io.github.etim.etim.item.ETIMItemMaterialEvents.tickDropped((EntityItem) (Object) this);
     }
 
     /**

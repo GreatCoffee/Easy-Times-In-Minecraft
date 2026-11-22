@@ -79,6 +79,25 @@ public abstract class MixinEntityLivingBase implements ETIMMassiveFallDuck, ETIM
         return self.attackEntityFrom(source, amount);
     }
 
+    /**
+     * B-66 census F :85 — R196 fall formula
+     * ({@code EntityLivingBase.java:1010-1109}): 2.5-block safe height,
+     * doubled damage, then the resting block's cushioning. The vanilla body is
+     * cancelled so only one damage packet is produced.
+     */
+    @Inject(method = "fall(FF)V", at = @At("HEAD"), cancellable = true)
+    private void etim$r196Fall(float distance, float damageMultiplier, CallbackInfo ci) {
+        if (!ETIMConfig.blockR196Face) {
+            return;
+        }
+        EntityLivingBase self = (EntityLivingBase) (Object) this;
+        if (self.world.isRemote) {
+            return;
+        }
+        io.github.etim.etim.world.ETIMFall.apply(self, distance, damageMultiplier, this);
+        ci.cancel();
+    }
+
     // ---- B-53 census D :141 — R196 contained_items carrier ----
 
     @Unique

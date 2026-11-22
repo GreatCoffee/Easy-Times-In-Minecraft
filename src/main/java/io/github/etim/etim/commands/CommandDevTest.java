@@ -342,6 +342,21 @@ public class CommandDevTest extends CommandBase {
             case "vesseldouse":
                 executeVesselDouse(server, sender, args);
                 break;
+            case "blockstack":
+                executeBlockStack(server, sender, args);
+                break;
+            case "cushion":
+                executeCushion(server, sender, args);
+                break;
+            case "fall":
+                executeFall(server, sender, args);
+                break;
+            case "dropbox":
+                executeDropBox(server, sender, args);
+                break;
+            case "mattrait":
+                executeMatTrait(server, sender, args);
+                break;
             case "silver":
                 executeSilver(server, sender, args);
                 break;
@@ -3387,6 +3402,139 @@ for (EntityLiving e : hits) {
                 player.getName(), kind, list.size(), killed);
         sender.sendMessage(new TextComponentString("[etest] wightkill source=" + kind
                 + " found=" + list.size() + " killed=" + killed));
+    }
+
+    /** {@code /etest blockstack} - B-66: print the R196 block-item stack limits (4, anvil 1). */
+    private static void executeBlockStack(MinecraftServer server, ICommandSender sender, String[] args) {
+        int four = 0;
+        int one = 0;
+        for (net.minecraft.block.Block block : net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS) {
+            net.minecraft.item.Item item = net.minecraft.item.Item.getItemFromBlock(block);
+            if (item instanceof net.minecraft.item.ItemBlock) {
+                if (item.getItemStackLimit() == 4) {
+                    four++;
+                } else if (item.getItemStackLimit() == 1) {
+                    one++;
+                }
+            }
+        }
+        int stone = net.minecraft.item.Item.getItemFromBlock(net.minecraft.init.Blocks.STONE).getItemStackLimit();
+        int dirt = net.minecraft.item.Item.getItemFromBlock(net.minecraft.init.Blocks.DIRT).getItemStackLimit();
+        int anvil = net.minecraft.item.Item.getItemFromBlock(net.minecraft.init.Blocks.ANVIL).getItemStackLimit();
+        int cauldron = net.minecraft.init.Items.CAULDRON.getItemStackLimit();
+        int wool = net.minecraft.item.Item.getItemFromBlock(net.minecraft.init.Blocks.WOOL).getItemStackLimit();
+        io.github.etim.etim.ETIM.LOGGER.info(
+                "[BlockFaceLog] blockstack stone={} dirt={} anvil={} cauldron={} wool={} four={} one={} [server]",
+                stone, dirt, anvil, cauldron, wool, four, one);
+        sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] blockstack stone=" + stone
+                + " dirt=" + dirt + " anvil=" + anvil + " cauldron=" + cauldron + " wool=" + wool
+                + " four=" + four + " one=" + one));
+    }
+
+    /** {@code /etest cushion <block>} - B-66: print the R196 cushioning of a block. */
+    private static void executeCushion(MinecraftServer server, ICommandSender sender, String[] args) {
+        if (args.length < 2) {
+            return;
+        }
+        net.minecraft.block.Block block = net.minecraft.block.Block.getBlockFromName(args[1]);
+        if (block == null) {
+            sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] cushion unknown " + args[1]));
+            return;
+        }
+        float cushion = io.github.etim.etim.world.ETIMCushioning.of(block.getDefaultState());
+        io.github.etim.etim.ETIM.LOGGER.info("[BlockFaceLog] cushion block={} value={} [server]",
+                block.getRegistryName(), io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(cushion));
+        sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] cushion block="
+                + block.getRegistryName() + " value=" + cushion));
+    }
+
+    /** {@code /etest fall <distance> [block]} - B-66: print the R196 fall formula at a distance. */
+    private static void executeFall(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null || args.length < 2) {
+            return;
+        }
+        float distance;
+        try {
+            distance = Float.parseFloat(args[1]);
+        } catch (NumberFormatException e) {
+            return;
+        }
+        float raw = io.github.etim.etim.world.ETIMFall.rawDamage(player, distance);
+        float cushion = 0.0F;
+        if (args.length >= 3) {
+            net.minecraft.block.Block block = net.minecraft.block.Block.getBlockFromName(args[2]);
+            if (block != null) {
+                cushion = io.github.etim.etim.world.ETIMCushioning.of(block.getDefaultState());
+            }
+        }
+        float damage = raw < 1.0F ? 0.0F : Math.max((raw - cushion * 10.0F) * (1.0F - cushion), 0.0F);
+        io.github.etim.etim.ETIM.LOGGER.info(
+                "[BlockFaceLog] fall dist={} raw={} cushion={} damage={} max={} [server]",
+                io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(distance),
+                io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(raw),
+                io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(cushion),
+                io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(damage),
+                io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(player.getMaxHealth()));
+        sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] fall dist=" + distance
+                + " raw=" + raw + " cushion=" + cushion + " damage=" + damage));
+    }
+
+    /** {@code /etest dropbox} - B-66: force a torch drop through the R196 box-spread path. */
+    private static void executeDropBox(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(
+                player.posX + 2.0D, player.posY, player.posZ);
+        player.world.setBlockState(pos, net.minecraft.init.Blocks.TORCH.getDefaultState());
+        int before = player.world.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class,
+                new net.minecraft.util.math.AxisAlignedBB(pos).grow(2.0D)).size();
+        net.minecraft.block.Block.spawnAsEntity(player.world, pos,
+                new net.minecraft.item.ItemStack(net.minecraft.init.Items.STICK));
+        java.util.List<net.minecraft.entity.item.EntityItem> drops = player.world.getEntitiesWithinAABB(
+                net.minecraft.entity.item.EntityItem.class,
+                new net.minecraft.util.math.AxisAlignedBB(pos).grow(2.0D));
+        String last = "none";
+        for (net.minecraft.entity.item.EntityItem drop : drops) {
+            last = io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(drop.posX) + ","
+                    + io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(drop.posY) + ","
+                    + io.github.etim.etim.item.ETIMItemMaterialEvents.fmt(drop.posZ);
+        }
+        io.github.etim.etim.ETIM.LOGGER.info("[BlockFaceLog] dropbox at={},{},{} before={} after={} drop={} [server]",
+                pos.getX(), pos.getY(), pos.getZ(), before, drops.size(), last);
+        sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] dropbox before=" + before
+                + " after=" + drops.size() + " drop=" + last));
+    }
+
+    /** {@code /etest mattrait [item|block]} - B-66: print the eight material axes. */
+    private static void executeMatTrait(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        String line;
+        if (args.length >= 2) {
+            net.minecraft.block.Block block = net.minecraft.block.Block.getBlockFromName(args[1]);
+            if (block == null) {
+                return;
+            }
+            line = io.github.etim.etim.item.ETIMItemMaterialEvents.describe(block);
+        } else {
+            line = io.github.etim.etim.item.ETIMItemMaterialEvents.describe(player.getHeldItemMainhand());
+        }
+        io.github.etim.etim.ETIM.LOGGER.info("[BlockFaceLog] mattrait {} [server]", line);
+        sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] " + line));
     }
 
     /** {@code /etest bowl <contents>} - B-65: hand the caller one bowl of the named content. */

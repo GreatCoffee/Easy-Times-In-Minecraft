@@ -672,6 +672,8 @@ public final class ETIMConfig {
     public static boolean itemsMeltR196 = true;
     /** R196 single-face vine placement (B-64, census F :150, Item.java:1820-1893): right-clicking a single-face vine with a block places the block INTO the vine's cell using the vine's attachment face as the placement side (support must exist), instead of vanilla's clicked-face rule. Off = vanilla. R196 单面藤蔓放置（B-64）：手持方块右键单面藤蔓时，以藤蔓附着面作为放置面、放进藤蔓格（须有支撑），而非原版按点击面。关 = 原版。 */
     public static boolean itemsVinePlaceR196 = true;
+    /** R196 block-face pack (B-66, census F :82/:83/:85/:87/:88/:89/:90/:91/:92/:96/:97/:99): block items stack 4 (anvil 1), the R196 fall formula (2.5-block safe height, doubled damage, block cushioning), non-full-block drops inside the selected box scaled 0.5, and the material eight-axis traits (pepsin/acid/fire/douse/dissolve). Off = vanilla 1.12 faces. R196 方块面整包（B-66）：方块物品堆叠 4（砧 1）、R196 摔落公式（2.5 格安全高度、伤害翻倍、方块缓冲）、非满块掉落按选中盒×0.5 取点、材质八轴（胃蛋白酶/酸/火/灭火/溶水）。关 = 原版 1.12。 */
+    public static boolean blockR196Face = true;
     /** R196 monster spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 50; vanilla 1.12 = 70). 敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）。 */
     public static int spawnCapMonster = 50;
     /** R196 animal spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 10). 动物生成上限（区块换算前）（审计 14：10）。 */
@@ -1507,6 +1509,9 @@ public final class ETIMConfig {
         itemsVinePlaceR196 = config.getBoolean("itemsVinePlaceR196", "items", true,
                 comment("R196 single-face vine placement (B-64, census F :150): a block right-clicked against a single-face vine goes into the vine cell using the vine's attachment face as the placement side",
                         "R196 单面藤蔓放置（B-64）：手持方块右键单面藤蔓时以藤蔓附着面作为放置面、放进藤蔓格"));
+        blockR196Face = config.getBoolean("blockR196Face", "blocks", true,
+                comment("R196 block-face pack (B-66, census F :82/:83/:85/:87/:88/:89/:90/:91/:92/:96/:97/:99): block items stack 4 (anvil 1); fall = (distance-2.5-jumpBoost)*2 minus 10x block cushioning then times (1-cushioning); non-full-block drops land inside the selected box scaled 0.5; the material eight-axis table (fire/pepsin/acid/douse/dissolve/flammable/fuel/replaceable) drives dropped-item faces",
+                        "R196 方块面整包（B-66）：方块物品堆叠 4（砧 1）；摔落=(距离−2.5−跳跃加成)×2，再减 10×缓冲并乘 (1−缓冲)；非满块掉落按选中盒×0.5 取点；材质八轴表（火/胃蛋白酶/酸/灭火/溶水/可燃/燃料/可替换）驱动掉落物面"));
         mobPickupR196 = config.getBoolean("mobPickupR196", "mobs", true,                comment("R196 ground pickup loop (B-53, EntityLiving :635-690): canPickUpLoot mobs scan the 1.0/0.25/1.0 box for food/repair/valuable items, eat (50% heal, undead excluded), repair (50% heal) or store the item id in contained_items (NBT + death drop); cooldowns 400/40 ticks. Also forces skeleton/zombie canPickUpLoot=true (R196 :239/:277). Off = vanilla 1.12 equipment-only lane",
                         "R196 地面拾取循环（B-53，EntityLiving :635-690）：canPickUpLoot 怪扫描 1.0/0.25/1.0 拾取盒内的食物/修理/贵重物品，分别吃（回 50% 血，亡灵除外）、修理（回 50% 血）或把物品 id 存入 contained_items（NBT＋死亡掉落）；冷却 400/40 tick。同时强制骷髅/僵尸 canPickUpLoot=true（R196 :239/:277）。关闭则回到原版 1.12 仅装备拾取道"));
         mobBatHangingR196 = config.getBoolean("mobBatHangingR196", "mobs", true,
