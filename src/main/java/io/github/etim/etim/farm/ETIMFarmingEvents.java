@@ -101,6 +101,13 @@ public final class ETIMFarmingEvents {
             return;
         }
         net.minecraft.block.BlockCrops crops = (net.minecraft.block.BlockCrops) state.getBlock();
+        // B-68 (census F :129): the root-crop families carry R196's own drop
+        // table — rewrite before the harvesting bonus so both faces agree.
+        if (state.getBlock() == net.minecraft.init.Blocks.CARROTS
+                || state.getBlock() == net.minecraft.init.Blocks.POTATOES
+                || state.getBlock() instanceof ETIMBlockOnion) {
+            rewriteRootCropDrops(event, state);
+        }
         if (!crops.isMaxAge(state)) {
             return; // seed branch & immature breaks carry no bonus (R196 :352-353)
         }
@@ -148,6 +155,60 @@ public final class ETIMFarmingEvents {
                 + " lvl=" + level + " fraction=" + String.format("%.2f", fraction)
                 + " factor=" + String.format("%.2f", extraChance)
                 + " base=" + base + " extra=" + extra
+                + " pos=" + event.getPos().getX() + "," + event.getPos().getY()
+                + "," + event.getPos().getZ());
+    }
+
+    /**
+     * B-68 (R196 {@code BlockCrops.dropBlockAsEntityItem :328-367} +
+     * BlockCarrot/BlockPotato/BlockOnion): the root-crop drop table.
+     * <ul>
+     *   <li>potato: blight OR immature-with-growth → 1 poisonous potato
+     *       (R196 BlockPotato :42-52, checked BEFORE the base blight gate);</li>
+     *   <li>blight → 0;</li>
+     *   <li>no player harvester → 0 (R196 :329 wasHarvestedByPlayer);</li>
+     *   <li>growth 0 → 1 seed; mature → getMatureYield() (2..3);</li>
+     *   <li>immature growth &gt; 0 → 0.</li>
+     * </ul>
+     */
+    private static void rewriteRootCropDrops(BlockEvent.HarvestDropsEvent event, IBlockState state) {
+        World world = event.getWorld();
+        net.minecraft.block.Block block = state.getBlock();
+        int age = state.getValue(net.minecraft.block.BlockCrops.AGE).intValue();
+        boolean blighted = ETIMBlight.isBlighted(state);
+        net.minecraft.item.Item crop = block == net.minecraft.init.Blocks.CARROTS
+                ? net.minecraft.init.Items.CARROT
+                : block == net.minecraft.init.Blocks.POTATOES
+                ? net.minecraft.init.Items.POTATO
+                : ETIMFarmBlocks.onionItem();
+        event.getDrops().clear();
+        String branch;
+        if (block == net.minecraft.init.Blocks.POTATOES && (blighted || (age > 0 && age < 7))) {
+            event.getDrops().add(new ItemStack(net.minecraft.init.Items.POISONOUS_POTATO));
+            branch = "poison";
+        } else if (blighted) {
+            branch = "blight";
+        } else if (event.getHarvester() == null) {
+            branch = "machine";
+        } else if (age == 0) {
+            event.getDrops().add(new ItemStack(crop, 1));
+            branch = "seed";
+        } else if (age == 7) {
+            event.getDrops().add(new ItemStack(crop, ETIMFarm.matureYield(block, world.rand)));
+            branch = "mature";
+        } else {
+            branch = "immature";
+        }
+        int total = 0;
+        for (ItemStack stack : event.getDrops()) {
+            total += stack.getCount();
+        }
+        String first = event.getDrops().isEmpty() || event.getDrops().get(0).isEmpty()
+                ? "none" : event.getDrops().get(0).getItem().getRegistryName().toString();
+        ETIMFarm.row("rootcrop crop=" + state.getBlock().getRegistryName() + " age=" + age
+                + " blighted=" + (blighted ? 1 : 0)
+                + " harvester=" + (event.getHarvester() == null ? "none" : event.getHarvester().getName())
+                + " branch=" + branch + " drops=" + total + " first=" + first
                 + " pos=" + event.getPos().getX() + "," + event.getPos().getY()
                 + "," + event.getPos().getZ());
     }

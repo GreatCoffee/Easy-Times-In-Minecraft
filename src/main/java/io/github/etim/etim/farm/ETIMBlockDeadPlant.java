@@ -44,6 +44,12 @@ public class ETIMBlockDeadPlant extends BlockCrops {
     public static ETIMBlockDeadPlant DEAD_CROP;
     /** Melon/pumpkin stem dead plant (carrier-substitution adapt, D-2 乙). */
     public static ETIMBlockDeadPlant DEAD_STEM;
+    /** R196 carrotDead 236 — 3 textures. */
+    public static ETIMBlockDeadPlant DEAD_CARROT;
+    /** R196 potatoDead 237 — 3 textures. */
+    public static ETIMBlockDeadPlant DEAD_POTATO;
+    /** R196 onionsDead 238 — 4 textures. */
+    public static ETIMBlockDeadPlant DEAD_ONION;
 
     private final boolean stemModel;
 

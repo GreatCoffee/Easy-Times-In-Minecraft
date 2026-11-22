@@ -77,7 +77,9 @@ public final class ETIMBlight {
      *  carrier); beetroot self-owns its state container and R196 has no
      *  beetroot — excluded (摸底 C-13-2); Stem carries no blight face. */
     public static boolean isBlightSeat(Block block) {
-        return block == Blocks.WHEAT || block == Blocks.CARROTS || block == Blocks.POTATOES;
+        // R196 blight is the metadata bit 8 of ANY BlockCrops (BlockCrops.java
+        // :75-114); the dead carriers opt out because they no longer tick.
+        return block instanceof BlockCrops && !(block instanceof ETIMBlockDeadPlant);
     }
 
     public static boolean isBlighted(IBlockState state) {
@@ -107,10 +109,11 @@ public final class ETIMBlight {
             // :76-78 — 1/64 death dice
             if (rand.nextInt(64) == 0) {
                 int growth = age >= 7 ? 6 : age; // isMature ? getGrowth-1 : getGrowth
-                world.setBlockState(pos, ETIMBlockDeadPlant.DEAD_CROP.getDefaultState()
+                ETIMBlockDeadPlant deadBlock = ETIMFarm.deadFor(state.getBlock());
+                world.setBlockState(pos, deadBlock.getDefaultState()
                         .withProperty(BlockCrops.AGE, Integer.valueOf(growth)), 3);
                 ETIMFarm.row("blight src=dead1of64 block=" + name(state.getBlock())
-                        + " age=" + age + " ->dead age=" + growth
+                        + " age=" + age + " ->dead=" + deadBlock.getRegistryName() + " age=" + growth
                         + " pos=" + key(pos));
                 return true;
             }

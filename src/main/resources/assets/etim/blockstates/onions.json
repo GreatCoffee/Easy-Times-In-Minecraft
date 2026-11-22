@@ -1,0 +1,28 @@
+{
+    "variants": {
+        "age=0": {
+            "model": "etim:block/onions_stage0"
+        },
+        "age=1": {
+            "model": "etim:block/onions_stage1"
+        },
+        "age=2": {
+            "model": "etim:block/onions_stage1"
+        },
+        "age=3": {
+            "model": "etim:block/onions_stage2"
+        },
+        "age=4": {
+            "model": "etim:block/onions_stage2"
+        },
+        "age=5": {
+            "model": "etim:block/onions_stage3"
+        },
+        "age=6": {
+            "model": "etim:block/onions_stage3"
+        },
+        "age=7": {
+            "model": "etim:block/onions_stage4"
+        }
+    }
+}

@@ -406,11 +406,12 @@ public final class ETIMFarm {
         net.minecraft.block.BlockCrops crops = stem ? null : (net.minecraft.block.BlockCrops) state.getBlock();
         String rollTxt = String.format(java.util.Locale.ROOT, "%.3f", roll);
         if (crops != null && crops.isMaxAge(state)) {
-            // R196 :70-71 — drought-harvest: ONE mature crop item, then air
+            // R196 :70-71 — drought-harvest: getMatureYield() crop items, then air
             Item cropItem = crops.getItemDropped(state, world.rand, 0);
+            int count = matureYield(state.getBlock(), world.rand);
             net.minecraft.entity.item.EntityItem ei = new net.minecraft.entity.item.EntityItem(
                     world, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
-                    new net.minecraft.item.ItemStack(cropItem, 1));
+                    new net.minecraft.item.ItemStack(cropItem, count));
             ei.motionX = 0.0D;
             ei.motionY = 0.0D;
             ei.motionZ = 0.0D; // R196 dropItem ground-scatter face parity with manure M-1-4
@@ -418,17 +419,47 @@ public final class ETIMFarm {
             world.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
             row(head + " drought event kind=mature block=" + name(state.getBlock()) + " age=" + ageOf(state)
                     + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
-                    + " roll=" + rollTxt + " drop=" + cropItem.getRegistryName() + "#1");
+                    + " roll=" + rollTxt + " drop=" + cropItem.getRegistryName() + "#" + count);
         } else {
             int age = ageOf(state);
-            IBlockState dead = (stem ? ETIMBlockDeadPlant.DEAD_STEM : ETIMBlockDeadPlant.DEAD_CROP)
-                    .getDefaultState().withProperty(BlockCrops.AGE, Integer.valueOf(age));
+            ETIMBlockDeadPlant deadBlock = stem ? ETIMBlockDeadPlant.DEAD_STEM : deadFor(state.getBlock());
+            IBlockState dead = deadBlock.getDefaultState().withProperty(BlockCrops.AGE, Integer.valueOf(age));
             world.setBlockState(pos, dead, 3);
             row(head + " drought event kind=immature block=" + name(state.getBlock()) + " age=" + age
                     + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
                     + " roll=" + rollTxt
-                    + " dead=" + (stem ? "etim:dead_stem" : "etim:dead_crop") + " age=" + age);
+                    + " dead=" + deadBlock.getRegistryName());
         }
+    }
+
+    /**
+     * R196 {@code getMatureYield()} — carrot/potato/onion override to
+     * {@code Math.random() < 0.25 ? 3 : 2} (BlockCarrot/BlockPotato/BlockOnion);
+     * the base family (wheat/beet) stays 1 (BlockCrops :234-236).
+     */
+    public static int matureYield(net.minecraft.block.Block block, Random rand) {
+        if (block == Blocks.CARROTS || block == Blocks.POTATOES || block == ETIMFarmBlocks.ONION_CROP) {
+            return rand.nextFloat() < 0.25F ? 3 : 2;
+        }
+        return 1;
+    }
+
+    /**
+     * R196 {@code getDeadCropBlockId()} per family: carrots → carrotDead,
+     * potatoes → potatoDead, onions → onionsDead, everything else (wheat/beet)
+     * → cropsDead. B-68 user ruling D-2.
+     */
+    public static ETIMBlockDeadPlant deadFor(net.minecraft.block.Block block) {
+        if (block == Blocks.CARROTS) {
+            return ETIMBlockDeadPlant.DEAD_CARROT;
+        }
+        if (block == Blocks.POTATOES) {
+            return ETIMBlockDeadPlant.DEAD_POTATO;
+        }
+        if (block == ETIMFarmBlocks.ONION_CROP) {
+            return ETIMBlockDeadPlant.DEAD_ONION;
+        }
+        return ETIMBlockDeadPlant.DEAD_CROP;
     }
 
     /** The age value of any crop/stem host via its "age" property (public face). */

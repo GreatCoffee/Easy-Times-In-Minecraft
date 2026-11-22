@@ -289,7 +289,12 @@ enchantment.etim_butchering=屠宰
 enchantment.etim_free_action=自由行动
 item.etim.manure.name=粪
 tile.etim.dead_crop.name=枯死作物
-tile.etim.dead_stem.name=枯死藤蔓
+tile.etim.dead_stem.name=
+tile.etim.dead_carrot.name=枯死的胡萝卜
+tile.etim.dead_potato.name=枯死的马铃薯
+tile.etim.dead_onion.name=枯死的洋葱
+tile.etim.onions.name=洋葱作物
+item.etim.onion.name=洋葱枯死藤蔓
 entity.etim.ooze.name=矿史莱姆
 
 commands.etimskill.playeronly=只有玩家能使用该命令

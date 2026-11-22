@@ -56,7 +56,11 @@ public final class ETIMItemModels {
                 net.minecraft.init.Blocks.CARROTS,
                 net.minecraft.init.Blocks.POTATOES,
                 io.github.etim.etim.farm.ETIMBlockDeadPlant.DEAD_CROP,
-                io.github.etim.etim.farm.ETIMBlockDeadPlant.DEAD_STEM }) {
+                io.github.etim.etim.farm.ETIMBlockDeadPlant.DEAD_STEM,
+                io.github.etim.etim.farm.ETIMBlockDeadPlant.DEAD_CARROT,
+                io.github.etim.etim.farm.ETIMBlockDeadPlant.DEAD_POTATO,
+                io.github.etim.etim.farm.ETIMBlockDeadPlant.DEAD_ONION,
+                io.github.etim.etim.farm.ETIMFarmBlocks.ONION_CROP }) {
             if (b != null) {
                 ModelLoader.setCustomStateMapper(b, blightStripper);
                 stripped++;
