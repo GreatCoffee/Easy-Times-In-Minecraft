@@ -98,6 +98,9 @@ public final class ETIM {
         // the three zero-mixin event faces (consume/trample/harvest drops).
         // Drought-death batch (B-8): the two dead-plant carriers first.
         io.github.etim.etim.farm.ETIMFarmBlocks.register();
+        // Batch B-69 (census F :126): the R196 invisible spark carrier the
+        // flint writes before it becomes fire (Block.java:917-923; no item form).
+        io.github.etim.etim.world.ETIMSpecialBlocks.register();
         io.github.etim.etim.farm.ETIMFarm.registerTile();
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.farm.ETIMFarmingEvents.class);
         // Batch B5 (butchering — 条 262-265): the zero-mixin LivingDropsEvent face.

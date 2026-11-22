@@ -2,7 +2,9 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMHunger;
+import io.github.etim.etim.world.ETIMMountRules;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockTrapDoor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
@@ -65,6 +67,34 @@ public abstract class MixinItemBlock {
         cir.setReturnValue(EnumActionResult.FAIL);
         if (!worldIn.isRemote) {
             ETIMHunger.sendDeniedFeedback(player, "etim.hunger.placeDeny");
+        }
+    }
+
+    /**
+     * Trapdoor mounts depend on the half the door itself would take
+     * ({@code BlockTrapDoor.java:172-190}); {@code World#mayPlace} carries no
+     * state, so the half is resolved here from the click and handed to
+     * {@link ETIMMountRules#rejectsPlacement(World, BlockPos, EnumFacing, Block, Boolean)}.
+     * The geometry of the click mirrors {@code ItemBlock.onItemUse} itself
+     * ({@code ItemBlock.java:45-48} / {@code BlockTrapDoor.java:174-183}).
+     */
+    @Inject(
+            method = "onItemUse",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void etim$denyMismatchedTrapdoor(
+            EntityPlayer player, World worldIn, BlockPos pos, EnumHand hand,
+            EnumFacing facing, float hitX, float hitY, float hitZ,
+            CallbackInfoReturnable<EnumActionResult> cir) {
+        if (!ETIMConfig.mountedR196 || !(this.block instanceof BlockTrapDoor)) {
+            return;
+        }
+        BlockPos target = worldIn.getBlockState(pos).getBlock().isReplaceable(worldIn, pos)
+                ? pos : pos.offset(facing);
+        boolean lower = facing.getAxis().isHorizontal() ? hitY <= 0.5F : facing == EnumFacing.UP;
+        if (ETIMMountRules.rejectsPlacement(worldIn, target, facing, this.block, Boolean.valueOf(lower))) {
+            cir.setReturnValue(EnumActionResult.FAIL);
         }
     }
 }

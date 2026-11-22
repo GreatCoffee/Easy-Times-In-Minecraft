@@ -678,6 +678,10 @@ public final class ETIMConfig {
     public static boolean explosionR196 = true;
     /** R196 explosion drop chain (B-67, census F :100/:101/:102/:103/:104): the rewrite table (stone→cobblestone, wood→stick, cloth→string, brick→brick, cobble→gravel, lapis→dye 4x9@0.5, coal block→coal 9@0.5, hardened clay/netherrack→nothing), the material chance modifiers (snow/glass x0.4, plants/cactus/vine/cake x0), experience proportional to the drop count (lapis exempt), and the configured spawn point (selected box x0.5, pickup delay 10, outward explosion motion). Off = vanilla 1.12 drops. R196 爆炸掉落链（B-67）：改写表、材质概率修正、经验随掉落数（青金石例外）、落点（选中盒×0.5）与拾取延迟 10 + 爆炸飞散。关 = 原版 1.12 掉落。 */
     public static boolean dropR196 = true;
+    /** R196 spark carrier (B-69, census F :126, BlockSpark.java:1-54): flint-and-steel drops the invisible spark, which tries the portal and then turns into fire after 2 ticks when its six neighbours or the netherrack below feed it, air otherwise. Off = vanilla 1.12 fire. R196 火花载体（B-69，census F :126）：打火石先放隐形火花，火花尝试开门，2 tick 后若六邻居或下方下界岩可燃则成火，否则熄灭。关 = 原版 1.12 直接放火。 */
+    public static boolean sparkR196 = true;
+    /** R196 mounted-block rejection arms (B-69, census F :127, BlockMounted.java:18-40): torches, ladders, levers, buttons, wall signs, skulls, cocoa, trapdoors and tripwire hooks refuse a jukebox top, leaves/cloth/sponge/non-full-cube supports, piston fronts and furnace/dispenser fronts; tilled fields stay exempt. Off = vanilla 1.12 placement. R196 挂载禁止项（B-69，census F :127）：火把/梯子/拉杆/按钮/墙招牌/头颅/可可/活板门/绊线钩拒绝音箱顶面、树叶/羊毛/海绵/非满块支撑、活塞正面与熔炉/发射器正面；耕地面豁免。关 = 原版 1.12 放置规则。 */
+    public static boolean mountedR196 = true;
     /** R196 monster spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 50; vanilla 1.12 = 70). 敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）。 */
     public static int spawnCapMonster = 50;
     /** R196 animal spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 10). 动物生成上限（区块换算前）（审计 14：10）。 */
@@ -1522,6 +1526,12 @@ public final class ETIMConfig {
         dropR196 = config.getBoolean("dropR196", "blocks", true,
                 comment("R196 explosion drop chain (B-67, census F :100-:104): rewrite table, material chance modifiers, experience from drops, spawn point/pickup delay/explosion motion",
                         "R196 爆炸掉落链（B-67）：改写表、材质概率修正、掉落经验、落点/拾取延迟/爆炸飞散"));
+        sparkR196 = config.getBoolean("sparkR196", "blocks", true,
+                comment("R196 spark carrier (B-69, census F :126): flint-and-steel writes the invisible spark; it tries to open a portal and otherwise becomes fire after 2 ticks when a neighbour or netherrack below feeds it. Off = vanilla 1.12 fire",
+                        "R196 火花载体（B-69，census F :126）：打火石写入隐形火花，先尝试开门，2 tick 后若有燃料或下方为下界岩则变为火，否则熄灭。关闭则回到原版 1.12 直接放火"));
+        mountedR196 = config.getBoolean("mountedR196", "blocks", true,
+                comment("R196 mounted-block rejection arms (B-69, census F :127): jukebox top, leaves/cloth/sponge/non-full-cube, piston front, furnace/dispenser front refuse a mount; farmland is exempt. Off = vanilla 1.12 placement",
+                        "R196 挂载禁止项（B-69，census F :127）：音箱顶面、树叶/羊毛/海绵/非满块支撑、活塞正面、熔炉/发射器正面均拒绝挂载；耕地面豁免。关闭则回到原版 1.12 放置"));
         mobPickupR196 = config.getBoolean("mobPickupR196", "mobs", true,                comment("R196 ground pickup loop (B-53, EntityLiving :635-690): canPickUpLoot mobs scan the 1.0/0.25/1.0 box for food/repair/valuable items, eat (50% heal, undead excluded), repair (50% heal) or store the item id in contained_items (NBT + death drop); cooldowns 400/40 ticks. Also forces skeleton/zombie canPickUpLoot=true (R196 :239/:277). Off = vanilla 1.12 equipment-only lane",
                         "R196 地面拾取循环（B-53，EntityLiving :635-690）：canPickUpLoot 怪扫描 1.0/0.25/1.0 拾取盒内的食物/修理/贵重物品，分别吃（回 50% 血，亡灵除外）、修理（回 50% 血）或把物品 id 存入 contained_items（NBT＋死亡掉落）；冷却 400/40 tick。同时强制骷髅/僵尸 canPickUpLoot=true（R196 :239/:277）。关闭则回到原版 1.12 仅装备拾取道"));
         mobBatHangingR196 = config.getBoolean("mobBatHangingR196", "mobs", true,

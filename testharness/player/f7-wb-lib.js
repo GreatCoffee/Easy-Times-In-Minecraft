@@ -32,8 +32,8 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b68-build4', releaseSize: 1537803, releaseSha: '3E0A93F80DE1038989BF815021B8EC96352222D3FB441C68F03F0CA395BDC2C9', devSha: 'B142807BA13E34722651310EBDC3118B9700D1351A7400AB0B344C13D3B32866', sourcesSha: '831235477906D1E5C8FA012BF2EB6590B4BFB2BF2305E71E7A43C343231E1BB9' };
-const MK_PIN = { classes: 110, entries: 276, dual: 552, mixins: 112, client: 10 }; // b67-build1: +MixinExplosion
+const PIN = { build: 'b69-build9', releaseSize: 1556495, releaseSha: '37CE99E9AB717EA378E13F6D949C9954C94DD4F92EB7428EF1BC29C0ED209EE2', devSha: '623F339729544EFBADD65E058048218AF06792ECEA898A7C5C30746C0CF06036', sourcesSha: '79CA55A2885784647C805F0EC128029450B4C320DDD5847AF43FDDF6575DAC46' };
+const MK_PIN = { classes: 114, entries: 282, dual: 564, mixins: 115, client: 10 }; // b69-build5: +MixinItemSkull
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);
 const log = (t, ...a) => console.log(`[${stamp()}] [${t}]`, ...a);

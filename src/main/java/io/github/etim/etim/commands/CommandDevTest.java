@@ -48,6 +48,8 @@ import io.github.etim.etim.skill.IETIMSkills;
 import io.github.etim.etim.playerstate.FoodDebugNetwork;
 import io.github.etim.etim.playerstate.PlayerStatLimits;
 import io.github.etim.etim.quality.EnumQuality;
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -63,6 +65,7 @@ import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.entity.monster.EntitySpider;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.init.Items;
+import net.minecraft.init.Blocks;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.entity.passive.EntitySheep;
@@ -80,6 +83,7 @@ import net.minecraft.network.play.server.SPacketSetExperience;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.FoodStats;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -425,6 +429,9 @@ public class CommandDevTest extends CommandBase {
                 break;
             case "hold":
                 executeHold(server, sender, args);
+                break;
+            case "mayplace":
+                executeMayPlace(server, sender, args);
                 break;
             case "release":
                 executeRelease(server, sender, args);
@@ -1823,6 +1830,43 @@ public class CommandDevTest extends CommandBase {
         EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
         TestDriver.useBlock(player, pos, face);
         respond(player, "commands.etest.drive_queued", "useblock " + pos + " " + face.getName());
+    }
+
+    /**
+     * {@code /etest mayplace <x> <y> <z> <face> [block] [player]} — calls
+     * {@code World#mayPlace} directly for the final cell and the clicked
+     * support face. The B-69 mount arms need it because 1.12 furnaces and
+     * dispensers open their GUI in {@code onBlockActivated} before item use
+     * ever runs, so no player click can reach the funnel there.
+     */
+    private static void executeMayPlace(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        BlockPos pos = new BlockPos(CommandBase.parseInt(args[1]), CommandBase.parseInt(args[2]),
+                CommandBase.parseInt(args[3]));
+        net.minecraft.util.EnumFacing face = null;
+        for (net.minecraft.util.EnumFacing f : net.minecraft.util.EnumFacing.VALUES) {
+            if (f.getName2().equalsIgnoreCase(args[4])) { face = f; break; }
+        }
+        if (face == null) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        Block block = Blocks.TORCH;
+        int playerIndex = 5;
+        if (args.length >= 6 && !isNumber(args[5])) {
+            Block parsed = net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS
+                    .getValue(new ResourceLocation(args[5].contains(":") ? args[5] : "minecraft:" + args[5]));
+            if (parsed != null && parsed != Blocks.AIR) {
+                block = parsed;
+                playerIndex = 6;
+            }
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, playerIndex);
+        boolean ok = player.world.mayPlace(block, pos, false, face, player);
+        ETIM.LOGGER.info("[MountLog] mayplace block={} face={} result={} pos={},{},{} [server]",
+                block.getRegistryName(), face, ok ? "allow" : "reject",
+                pos.getX(), pos.getY(), pos.getZ());
     }
 
     /** {@code /etest useitem [player]} — queues one right-click into the air. */

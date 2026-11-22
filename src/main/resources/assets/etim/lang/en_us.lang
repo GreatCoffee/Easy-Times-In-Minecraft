@@ -352,3 +352,4 @@ item.etim.coin_ancient_metal.name=Ancient Metal Coin
 item.etim.coin_mithril.name=Mithril Coin
 item.etim.coin_adamantium.name=Adamantium Coin
 item.etim.tooltip.xp_each=+%d XP each
+tile.etim.spark.name=Spark
