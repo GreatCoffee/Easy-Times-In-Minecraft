@@ -63,3 +63,4 @@ r2 终判行（`build-logs/b64-smoke-r2.out`）：
 - census：`普查F-物品方块-盘点.md` 五面状态位更新（`:142`/`:143`/`:149`/`:150` 已落地，`:145`/`:148` 销账），镜像行同步；F 卷 99 面与总面 218 不变。
 - 账册条 407、`playground/sessions.md ## B-64`。
 - 提交：只 add 本批文件，不 push。
+- **回归补测附记（2026-11-22 14:26，会话七）**：本批 `f11-b64-smoke.js` 在 `b67-build3` 上回归失败，W1 实测 `reeds=4`、`cake=4`、`dirt=4`。其中 reeds/cake 为 A 级真缺陷（B-66 的 `ETIMBlockStacks` 覆盖了 B-64 的显式表），已于 `b67-build4` 修复（`ETIM.java` 调整顺序 + `ETIMItemStacks` 跳过方块物品）；`dirt=4` 为 B 级判据过时（B-66 后方块物品一律 4，符合 R196 `Block.java:1000`），脚本断言已同步改为 4。详见 `testharness/reports/regress-b54-b67-receipt.md` 与账册条 410 · C-B67-9。

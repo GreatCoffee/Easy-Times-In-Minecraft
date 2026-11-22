@@ -59,6 +59,10 @@ public final class ETIMItemStacks {
             if (item.getMaxDamage() > 0) {
                 continue; // damageable items are forced to 1 by the ctor
             }
+            if (item instanceof net.minecraft.item.ItemBlock
+                    || item instanceof net.minecraft.item.ItemBlockSpecial) {
+                continue; // block items keep the B-66 stack of 4
+            }
             if (item.getItemStackLimit() != 16) {
                 set(item, 16);
                 pinned++;

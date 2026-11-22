@@ -117,12 +117,14 @@ public final class ETIM {
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.item.ETIMVesselEvents.class);
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.item.ETIMAppleGoldEvents.class);
         ETIMConfig.init(event);
+        // B-66 census F :87 — R196 block items default to a stack of 4
+        // (Block.java:1000; anvil = 1 per BlockAnvil.java:19). Runs FIRST so the
+        // R196 per-item table below can override the few block items that ask
+        // for something else (reeds 16, cake 8 — Item.java:150/:197).
+        io.github.etim.etim.item.ETIMBlockStacks.apply();
         // B-64 census F :142/:143 — re-apply the R196 per-item stack table on
         // top of the mixin's default 16 (config gate is live only after init).
         io.github.etim.etim.item.ETIMItemStacks.apply();
-        // B-66 census F :87 — R196 block items default to a stack of 4
-        // (Block.java:1000; anvil = 1 per BlockAnvil.java:19).
-        io.github.etim.etim.item.ETIMBlockStacks.apply();
         // Batch B arrow identity (D-19/D-20/D-26): the etim:metal_arrow entity
         // rides AFTER ETIMConfig.init so the [ArrowLog] gate is live at
         // registration (ETIMMobEntities.register() @:72 runs before it); the

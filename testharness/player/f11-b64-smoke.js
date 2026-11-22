@@ -125,7 +125,9 @@ async function main() {
   let from = mark();
   await cmd(`execute ${A} ~ ~ ~ etest itemstack`, 700);
   const st = lastOf(await waitRow(STACK_RE, from, 6000));
-  const want = [32, 16, 16, 64, 16, 8, 4, 8, 1, 1, 16, 1];
+  // dirt is index 10: after B-66 every block item is 4 (R196 Block.java:1000),
+  // so the B-64 expectation of 16 is stale. Reeds/cake stay 16/8 (Item.java:150/:197).
+  const want = [32, 16, 16, 64, 16, 8, 4, 8, 1, 1, 4, 1];
   res.w1 = !!st && want.every((v, i) => +st[i + 1] === v) && +st[13] >= 1;
   console.log('[W1]', JSON.stringify({
     row: st ? st.slice(1, 14).map(Number) : null, want, etim16: st ? +st[13] : null, pass: res.w1,
