@@ -357,6 +357,15 @@ public class CommandDevTest extends CommandBase {
             case "mattrait":
                 executeMatTrait(server, sender, args);
                 break;
+            case "boom":
+                executeBoom(server, sender, args);
+                break;
+            case "boomdrops":
+                executeBoomDrops(server, sender, args);
+                break;
+            case "boomfire":
+                executeBoomFire(server, sender, args);
+                break;
             case "silver":
                 executeSilver(server, sender, args);
                 break;
@@ -3512,6 +3521,107 @@ for (EntityLiving e : hits) {
                 pos.getX(), pos.getY(), pos.getZ(), before, drops.size(), last);
         sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] dropbox before=" + before
                 + " after=" + drops.size() + " drop=" + last));
+    }
+
+    /** {@code /etest boom [size] [entitySize] [fire]} - B-67: run one R196 explosion at the caller's side. */
+    private static void executeBoom(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        float size = args.length >= 2 ? Float.parseFloat(args[1]) : 2.0F;
+        float entitySize = args.length >= 3 ? Float.parseFloat(args[2]) : size;
+        boolean fire = args.length >= 4 && "1".equals(args[3]);
+        net.minecraft.world.World world = player.world;
+        double x = player.posX + 3.0D;
+        double y = player.posY;
+        double z = player.posZ;
+        net.minecraft.world.Explosion explosion = new net.minecraft.world.Explosion(world, player, x, y, z, size, fire, true);
+        ((io.github.etim.etim.world.ETIMExplosionDuck) explosion).etim$setEntitySize(entitySize);
+        explosion.doExplosionA();
+        explosion.doExplosionB(true);
+        ETIM.LOGGER.info("[BoomLog] boom size={} entity={} fire={} x={} y={} z={} [server]",
+                size, entitySize, fire, x, y, z);
+    }
+
+    /** {@code /etest boomdrops} - B-67: run the R196 explosion drop chain over a fixed block row. */
+    private static void executeBoomDrops(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        net.minecraft.world.World world = player.world;
+        net.minecraft.util.math.BlockPos base = new net.minecraft.util.math.BlockPos(
+                player.posX + 2.0D, player.posY, player.posZ);
+        net.minecraft.block.Block[] blocks = new net.minecraft.block.Block[]{
+                net.minecraft.init.Blocks.STONE,
+                net.minecraft.init.Blocks.COBBLESTONE,
+                net.minecraft.init.Blocks.BRICK_BLOCK,
+                net.minecraft.init.Blocks.COAL_BLOCK,
+                net.minecraft.init.Blocks.LAPIS_BLOCK,
+                net.minecraft.init.Blocks.PLANKS,
+                net.minecraft.init.Blocks.WOOL,
+                net.minecraft.init.Blocks.NETHERRACK,
+                net.minecraft.init.Blocks.GLASS,
+                net.minecraft.init.Blocks.DIRT
+        };
+        net.minecraft.world.Explosion explosion = new net.minecraft.world.Explosion(
+                world, player, base.getX() + 0.5D, base.getY() + 0.5D, base.getZ() + 0.5D, 1.0F, false, true);
+        int placed = 0;
+        for (int i = 0; i < blocks.length; i++) {
+            net.minecraft.util.math.BlockPos pos = base.east(i);
+            net.minecraft.block.state.IBlockState state = blocks[i].getDefaultState();
+            world.setBlockState(pos, state, 2);
+            io.github.etim.etim.item.ETIMBlockDrops.explosionDrops(world, pos, state, base.getX() + 0.5D, base.getY() + 0.5D, base.getZ() + 0.5D);
+            world.setBlockToAir(pos);
+            placed++;
+        }
+        ETIM.LOGGER.info("[BoomLog] boomdrops placed={} [server]", placed);
+        sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] boomdrops placed=" + placed));
+    }
+
+    /** {@code /etest boomfire} - B-67: flaming exploder (netherspawn) ignition check. */
+    private static void executeBoomFire(MinecraftServer server, ICommandSender sender, String[] args) {
+        EntityPlayer player = sender instanceof EntityPlayerMP
+                ? (EntityPlayer) sender
+                : sender.getCommandSenderEntity() instanceof EntityPlayer
+                        ? (EntityPlayer) sender.getCommandSenderEntity() : null;
+        if (player == null) {
+            return;
+        }
+        net.minecraft.world.World world = player.world;
+        net.minecraft.util.math.BlockPos base = new net.minecraft.util.math.BlockPos(
+                player.posX + 3.0D, player.posY - 1.0D, player.posZ);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                world.setBlockState(base.add(dx, 0, dz), net.minecraft.init.Blocks.STONE.getDefaultState(), 2);
+            }
+        }
+        io.github.etim.etim.mob.ETIMEntityNetherspawn exploder = new io.github.etim.etim.mob.ETIMEntityNetherspawn(world);
+        exploder.setPosition(base.getX() + 0.5D, base.getY() + 1.0D, base.getZ() + 0.5D);
+        net.minecraft.world.Explosion explosion = new net.minecraft.world.Explosion(
+                world, exploder, base.getX() + 0.5D, base.getY() + 1.5D, base.getZ() + 0.5D, 1.0F, false, true);
+        explosion.doExplosionA();
+        explosion.doExplosionB(false);
+        int fire = 0;
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dy = 0; dy <= 2; dy++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    if (world.getBlockState(base.add(dx, dy, dz)).getBlock() == net.minecraft.init.Blocks.FIRE) {
+                        fire++;
+                    }
+                }
+            }
+        }
+        ETIM.LOGGER.info("[BoomLog] boomfire fire={} x={} y={} z={} [server]",
+                fire, base.getX(), base.getY(), base.getZ());
+        sender.sendMessage(new net.minecraft.util.text.TextComponentString("[etest] boomfire fire=" + fire));
     }
 
     /** {@code /etest mattrait [item|block]} - B-66: print the eight material axes. */

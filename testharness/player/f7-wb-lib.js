@@ -32,8 +32,8 @@ const MIXIN_JSON = path.join(ROOT, 'src', 'main', 'resources', 'mixins.etim.json
 const PORT = 25565;
 const BOT = 'ETIM_F7';
 
-const PIN = { build: 'b66-build5', releaseSize: 1510153, releaseSha: '807BE896D33634FF2E7BBBC4C3544F56D63BA0AD5C66DC8E152317C0A56C3530', devSha: 'E65400742F9F2746913A1F6BDEF07D8665FE8E6041253D918711E5CA7916D21F', sourcesSha: '05991ED375DEE82E6E64710666348A3811EBDE3298BA949A176F7CDE38ACD045' };
-const MK_PIN = { classes: 109, entries: 271, dual: 542, mixins: 111, client: 10 }; // b66-build2: +fall HEAD +spawnAsEntity HEAD
+const PIN = { build: 'b67-build3', releaseSize: 1522450, releaseSha: '1E8449FB68B9EF4BC0A29DB57194270C2ED91269B1BCC3A001E4A856E03B015F', devSha: 'AAA34C068206B680CAF41A420E5926DD44292C86805F94CD538ADA671D108CC6', sourcesSha: 'B0FBD2113AC863916D1DDC602842FBB0929D78EC4C005D3B97824C3DDB438E93' };
+const MK_PIN = { classes: 110, entries: 276, dual: 552, mixins: 112, client: 10 }; // b67-build1: +MixinExplosion
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stamp = () => new Date().toISOString().slice(11, 23);
 const log = (t, ...a) => console.log(`[${stamp()}] [${t}]`, ...a);

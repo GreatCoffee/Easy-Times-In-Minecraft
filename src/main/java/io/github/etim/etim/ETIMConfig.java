@@ -674,6 +674,10 @@ public final class ETIMConfig {
     public static boolean itemsVinePlaceR196 = true;
     /** R196 block-face pack (B-66, census F :82/:83/:85/:87/:88/:89/:90/:91/:92/:96/:97/:99): block items stack 4 (anvil 1), the R196 fall formula (2.5-block safe height, doubled damage, block cushioning), non-full-block drops inside the selected box scaled 0.5, and the material eight-axis traits (pepsin/acid/fire/douse/dissolve). Off = vanilla 1.12 faces. R196 方块面整包（B-66）：方块物品堆叠 4（砧 1）、R196 摔落公式（2.5 格安全高度、伤害翻倍、方块缓冲）、非满块掉落按选中盒×0.5 取点、材质八轴（胃蛋白酶/酸/火/灭火/溶水）。关 = 原版 1.12。 */
     public static boolean blockR196Face = true;
+    /** R196 explosion semantics (B-67, census F :108/:109/:110/:111/:112/:113): the entity radius is separated from the block radius, entity damage uses MITE's effective-radius x density formula with a 0.5 floor, livestock get the 400..800 tick spook window, and the flaming exploders (infernal creeper / netherspawn) set fire on a third of the air positions above opaque cubes. Off = vanilla 1.12 explosion. R196 爆炸面（B-67）：炸生物半径与炸方块半径分离、实体伤害按有效半径×密度且 0.5 下限、牲畜受惊 400..800 tick、火焰爆炸（下界炎灵/地狱苦力怕）对不透明块上方 1/3 概率放火。关 = 原版 1.12 爆炸。 */
+    public static boolean explosionR196 = true;
+    /** R196 explosion drop chain (B-67, census F :100/:101/:102/:103/:104): the rewrite table (stone→cobblestone, wood→stick, cloth→string, brick→brick, cobble→gravel, lapis→dye 4x9@0.5, coal block→coal 9@0.5, hardened clay/netherrack→nothing), the material chance modifiers (snow/glass x0.4, plants/cactus/vine/cake x0), experience proportional to the drop count (lapis exempt), and the configured spawn point (selected box x0.5, pickup delay 10, outward explosion motion). Off = vanilla 1.12 drops. R196 爆炸掉落链（B-67）：改写表、材质概率修正、经验随掉落数（青金石例外）、落点（选中盒×0.5）与拾取延迟 10 + 爆炸飞散。关 = 原版 1.12 掉落。 */
+    public static boolean dropR196 = true;
     /** R196 monster spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 50; vanilla 1.12 = 70). 敌怪生成上限（区块换算前）（审计 14：50；原版 1.12 为 70）。 */
     public static int spawnCapMonster = 50;
     /** R196 animal spawn cap before the chunk conversion (audit 14 §2.1/§2.2: 10). 动物生成上限（区块换算前）（审计 14：10）。 */
@@ -1512,6 +1516,12 @@ public final class ETIMConfig {
         blockR196Face = config.getBoolean("blockR196Face", "blocks", true,
                 comment("R196 block-face pack (B-66, census F :82/:83/:85/:87/:88/:89/:90/:91/:92/:96/:97/:99): block items stack 4 (anvil 1); fall = (distance-2.5-jumpBoost)*2 minus 10x block cushioning then times (1-cushioning); non-full-block drops land inside the selected box scaled 0.5; the material eight-axis table (fire/pepsin/acid/douse/dissolve/flammable/fuel/replaceable) drives dropped-item faces",
                         "R196 方块面整包（B-66）：方块物品堆叠 4（砧 1）；摔落=(距离−2.5−跳跃加成)×2，再减 10×缓冲并乘 (1−缓冲)；非满块掉落按选中盒×0.5 取点；材质八轴表（火/胃蛋白酶/酸/灭火/溶水/可燃/燃料/可替换）驱动掉落物面"));
+        explosionR196 = config.getBoolean("explosionR196", "blocks", true,
+                comment("R196 explosion semantics (B-67, census F :108-:113): separate entity radius, MITE entity-damage formula with the 0.5 floor, livestock spook window, flaming exploder ignition",
+                        "R196 爆炸面（B-67）：炸生物半径分离、MITE 实体伤害公式与 0.5 下限、牲畜受惊、火焰爆炸放火"));
+        dropR196 = config.getBoolean("dropR196", "blocks", true,
+                comment("R196 explosion drop chain (B-67, census F :100-:104): rewrite table, material chance modifiers, experience from drops, spawn point/pickup delay/explosion motion",
+                        "R196 爆炸掉落链（B-67）：改写表、材质概率修正、掉落经验、落点/拾取延迟/爆炸飞散"));
         mobPickupR196 = config.getBoolean("mobPickupR196", "mobs", true,                comment("R196 ground pickup loop (B-53, EntityLiving :635-690): canPickUpLoot mobs scan the 1.0/0.25/1.0 box for food/repair/valuable items, eat (50% heal, undead excluded), repair (50% heal) or store the item id in contained_items (NBT + death drop); cooldowns 400/40 ticks. Also forces skeleton/zombie canPickUpLoot=true (R196 :239/:277). Off = vanilla 1.12 equipment-only lane",
                         "R196 地面拾取循环（B-53，EntityLiving :635-690）：canPickUpLoot 怪扫描 1.0/0.25/1.0 拾取盒内的食物/修理/贵重物品，分别吃（回 50% 血，亡灵除外）、修理（回 50% 血）或把物品 id 存入 contained_items（NBT＋死亡掉落）；冷却 400/40 tick。同时强制骷髅/僵尸 canPickUpLoot=true（R196 :239/:277）。关闭则回到原版 1.12 仅装备拾取道"));
         mobBatHangingR196 = config.getBoolean("mobBatHangingR196", "mobs", true,

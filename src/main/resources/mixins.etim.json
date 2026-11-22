@@ -16,6 +16,7 @@
     "MixinAnvilOutputSlot",
     "MixinBlock",
     "MixinBlockFurnace",
+    "MixinExplosion",
     "MixinBiomeDecorator",
     "MixinBlockCake",
     "MixinItemBlock",
