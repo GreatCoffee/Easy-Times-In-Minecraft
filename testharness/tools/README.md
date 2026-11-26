@@ -312,3 +312,20 @@ node testharness/tools/selftest-readiness.js      # 2/2：四档分类 + stale �
 依赖面按引用文件名推断：`BIOME`（群系/装饰）、`SPAWN`（刷怪）、`GUI`（容器/界面）、`CORE`（玩家/生物/物品栈）。
 生成物 `playground/audit/census/剩余-就绪度.md` 不要手改；preflight 第 10 步用 `--check` 拦陈旧。
 `READY_BOOKS_ROOT` / `READY_REPO` / `READY_R196` 可指向别树（自检就用这个）。
+
+## 批次工单 —— plan-batches.js
+
+就绪度表回答「哪些面能开工」，工单表回答「按什么顺序、一次做几个」。它把剩余面切成
+上限 N 面的批次，并给每批标出要读的 R196 文件与前置依赖（例如 E 卷群系面要等群系装饰表）。
+
+```
+node testharness/tools/plan-batches.js                    # 重建 playground/audit/census/批次工单.md
+node testharness/tools/plan-batches.js --check            # 只比对，陈旧 exit 1
+node testharness/tools/plan-batches.js --start B-71 --max 8
+node testharness/tools/selftest-plan.js                   # 3/3：均分切块 / BIOME 阻断 / stale 检出
+```
+
+切分口径：WIRE 按载体簇、CITE 按被引文件、NEW 按卷；簇超过 `--max` 时**均分**（17 面 / 8 → 6/6/5，不留单面尾巴）。
+顺序：卷 B→C→E→F，同卷内 WIRE 优先、簇大的在前。批次号从 `--start` 起顺序编号，只作建议，实际开工时可在账册改号。
+生成物 `playground/audit/census/批次工单.md` 不要手改；preflight 第 11 步用 `--check` 拦陈旧。
+`PLAN_BOOKS_ROOT` 可指向别树（自检就用这个）。

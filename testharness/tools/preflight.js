@@ -23,6 +23,8 @@
  *   faces    census landed rows resolve to today's ETIM sources
  *   ready    census 剩余-就绪度.md freshness (regenerate with
  *            node testharness/tools/face-readiness.js)
+ *   plan     census 批次工单.md freshness (regenerate with
+ *            node testharness/tools/plan-batches.js)
  */
 'use strict';
 const { execFileSync } = require('child_process');
@@ -84,6 +86,7 @@ step('closeout', 'check-closeout.js', [], (c) => c !== 0, '[CloseoutLog]');
 // CI 只克隆 mod 仓库，缺少 playground/ 时工具自行 SKIP 并 exit 0。
 step('faces', 'check-faces.js', [], (c) => c !== 0, '[FaceLog]');
 step('ready', 'face-readiness.js', ['--check'], (c) => c !== 0, '[ReadyLog]');
+step('plan', 'plan-batches.js', ['--check'], (c) => c !== 0, '[PlanLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);
