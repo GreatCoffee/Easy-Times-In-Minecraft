@@ -142,3 +142,17 @@ node testharness/tools/check-driver.js --script f13-b70t9-smoke.js
 老脚本的 R2/R4 只计 `debt` 不计失败；R3 对所有脚本硬判。已接入 `preflight.js` 第 6 步，
 `selftest-driver.js` 用 5 个 fixture 守住检查器本身。另：`lib/harness.js` 的 `boot()` 成功后
 会自动 `stampPin()`（`h.pinStamped`），窗口不会再出现 `pin:false`。
+
+## 判窗脚本索引 —— `index-scripts.js` / `check-scripts.js`
+
+```powershell
+node testharness/tools/index-scripts.js          # 重写 testharness/player/INDEX.md
+node testharness/tools/check-scripts.js --list   # 只读巡检
+```
+
+`INDEX.md` 每个脚本一行：批次、行数、引用的 `[XxxLog]` 通道、是否已上 `lib/harness.js`、头部说明首行。
+文件末尾的 `fingerprint` 是全部脚本的指纹，`check-scripts.js` 比对不上就判 **FAIL**（exit 1），
+已接入 `preflight.js` 第 7 步——改了脚本忘了重建索引，提交会被拦。
+
+巡检项（只报不拦）：S1 无头部说明、S3 无日志通道引用、S4 文件名不含批次、`_` 前缀的临时脚本计数。
+`master` 上现存 450 份：136 份带批次、3 份上 harness、51 份是 `_` 临时脚本。

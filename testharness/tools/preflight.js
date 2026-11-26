@@ -16,6 +16,8 @@
  *   harness  scaffolding trend (report only, never fails)
  *   driver   window-driver templates: boot/PIN, mark before use, explicit
  *            player on console seeds, gamerule prerequisites
+ *   scripts  testharness/player/INDEX.md freshness (regenerate with
+ *            node testharness/tools/index-scripts.js)
  */
 'use strict';
 const { execFileSync } = require('child_process');
@@ -68,6 +70,8 @@ step('channels', 'check-channels.js', [], (c) => c !== 0, '[ChannelLog]');
 step('harness', 'check-harness.js', [], () => false, '[HarnessLog]');
 // B-70TA: the four driver defects that cost B-70T8/T9 ten B-items.
 step('driver', 'check-driver.js', [], (c) => c !== 0, '[DriverLog]');
+// B-70TB: INDEX.md is the retrieval surface for 450 windows; it must not rot.
+step('scripts', 'check-scripts.js', [], (c) => c !== 0, '[ScriptLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);
