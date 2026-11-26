@@ -3,9 +3,9 @@
 > 由 `node testharness/tools/index-scripts.js` 生成，请勿手改；`check-scripts.js` 会校验下方 fingerprint。
 > 用途：按批次 / 日志通道检索现成判据，避免重写同面窗口。
 
-scripts=450 | batches=65 | onHarness=3 | withChannel=163 | undocumented=304 | scratch=51 | pinFollow=108 | pinFrozen=3
+scripts=450 | batches=65 | onHarness=6 | withChannel=163 | undocumented=304 | scratch=51 | pinFollow=105 | pinFrozen=3
 
-fingerprint: `5BD5805EF9DB1A30FA652FFA12454C63B4F0720E90A08E11C9E4A7642A51A7D5`
+fingerprint: `B7815033AD625A6137A69629E1026BD98B320049AA0DC622432DD6FA70D936A1`
 
 ## B-70T9（1 份）
 
@@ -41,19 +41,19 @@ fingerprint: `5BD5805EF9DB1A30FA652FFA12454C63B4F0720E90A08E11C9E4A7642A51A7D5`
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b66-smoke.js` | 231 | BlockFaceLog | follow |  | B-66 smoke: R196 block faces (census F :82/:83/:85/:87/:88/:89/:90/:91/:92/:96/:97/:99). |
+| `f11-b66-smoke.js` | 142 | BlockFaceLog | none | ✔ | B-66 smoke: R196 block faces (census F :82/:83/:85/:87/:88/:89/:90/:91/:92/:96/:97/:99). |
 
 ## B-65（1 份）
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b65-smoke.js` | 227 | — | follow |  | B-65 smoke: R196 food / vessel / coin faces (census F :149-:165). |
+| `f11-b65-smoke.js` | 137 | — | none | ✔ | B-65 smoke: R196 food / vessel / coin faces (census F :149-:165). |
 
 ## B-64（1 份）
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b64-smoke.js` | 214 | ItemLog | follow |  | B-64 smoke: R196 Item.java base faces (census F :142/:143/:149/:150). |
+| `f11-b64-smoke.js` | 121 | ItemLog | none | ✔ | B-64 smoke: R196 Item.java base faces (census F :142/:143/:149/:150). |
 
 ## B-63（1 份）
 

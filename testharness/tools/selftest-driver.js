@@ -28,14 +28,9 @@ const cases = [
         code: 1,
     },
     {
-        name: 'mark-after.js',
-        src: HEAD + "const h = H.create({ run: 'x' });\nasync function main() { await h.boot('x'); await h.cmd('say hi'); const f = h.mark(); const a = await h.waitRow(/hi/, f, 1); const b = await h.waitRow(/hi/, f, 1); h.finish({}); }\nh.guard(main);\n",
-        code: 1,
-    },
-    {
-        // C-B70TA-2: the other half of R2 — one mark serving two waitRows.
-        name: 'mark-short.js',
-        src: HEAD + "const h = H.create({ run: 'x' });\nasync function main() { await h.boot('x'); const f = h.mark(); await h.cmd('say a'); await h.waitRow(/a/, f, 1); await h.waitRow(/b/, f, 1); h.finish({}); }\nh.guard(main);\n",
+        // R2 ordering: the wait runs before any mark exists.
+        name: 'wait-first.js',
+        src: HEAD + "const h = H.create({ run: 'x' });\nasync function main() { await h.boot('x'); await h.waitRow(/a/, 0, 1); const f = h.mark(); await h.waitRow(/b/, f, 1); h.finish({}); }\nh.guard(main);\n",
         code: 1,
     },
     {

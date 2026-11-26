@@ -10,8 +10,7 @@
  * Rules (hard for every script; legacy files simply show up as debt rows, and
  * because the four checks are textual they cost nothing to satisfy):
  *   R1 boot-missing      harness script never calls h.boot(...)
- *   R2 mark-after-use    fewer mark() calls than waitRow() calls, or the first
- *                        waitRow() sits before the first mark()
+ *   R2 mark-after-use    the first waitRow() sits before the first mark()
  *   R3 player-missing    /etest hungerstate|hungerpools fired without a player
  *                        token (${A}, botName or the literal bot name)
  *   R4 gamerule-missing  asserts regen/heal rows but never names
@@ -84,12 +83,11 @@ function checkFile(file) {
     }
     // R2 is a harness-shaped rule: legacy scripts bypass mark() with their own
     // log readers, so their counts are debt, not offenders.
-    const marks = count(src, 'mark(');
+    // One mark can legitimately serve several waitRow() calls (the slice start
+    // is shared), so only the ordering half is a defect.
     const waits = count(src, 'waitRow(');
     const r2 = [];
-    if (marks < waits) {
-        r2.push('mark=' + marks + ' waitRow=' + waits);
-    } else if (waits > 0) {
+    if (waits > 0) {
         const firstMark = src.indexOf('mark(');
         const firstWait = src.indexOf('waitRow(');
         if (firstMark < 0 || firstWait < firstMark) {
