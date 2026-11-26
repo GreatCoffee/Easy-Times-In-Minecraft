@@ -1,0 +1,24 @@
+#!/bin/sh
+# B-70T7: one-second gate in front of every commit.
+#
+# Runs the same five read-only checks a window opener runs:
+#   books / config / disk-cfg / channels / harness(trend)
+# A red step means the books, the cfg baseline or a judge channel is broken —
+# that is exactly the state a later window would turn into a false green.
+#
+# Install once per clone:  node testharness/tools/install-hooks.js
+# Bypass once (rare, say why in the commit body):  git commit --no-verify
+if ! command -v node >/dev/null 2>&1; then
+    echo "[pre-commit] node not on PATH — preflight skipped (install Node to enable it)" >&2
+    exit 0
+fi
+
+node testharness/tools/preflight.js
+status=$?
+if [ "$status" -ne 0 ]; then
+    echo "" >&2
+    echo "[pre-commit] preflight FAILED (exit $status) — fix the steps above, then commit again." >&2
+    echo "[pre-commit] a window left run/config/etim.cfg mutated counts as a failure: stop the window first." >&2
+    exit 1
+fi
+exit 0

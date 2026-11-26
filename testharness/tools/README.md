@@ -15,6 +15,18 @@ node testharness/tools/preflight.js
 `check-channels.js --script <当前脚本>` 自查：脚本断言了某个 `[XxxLog]` 通道却没在
 `cfg: [...]` 里打开对应的门，直接抛错，不会浪费一次 90 秒起服。
 
+## 提交前钩子 —— 每次 commit 先跑 preflight
+
+```powershell
+node testharness/tools/install-hooks.js   # 每个新 clone 跑一次
+```
+
+钩子本体在仓库里（`.githooks/pre-commit`，版本化、可 review），安装脚本只设
+`core.hooksPath=.githooks`。装好之后每次 commit 自动跑五步自检，红就拒绝提交：
+
+- 窗口开着时 `run/config/etim.cfg` 被测试改过 → disk-cfg 漂移，也会被拦；先停窗再提交。
+- 确实要跳过一次：`git commit --no-verify`，并在提交正文写清为什么。
+
 ## verify-diff.js —— 判窗锚点对位
 
 喂两窗的证据，输出机械差异单：规则名集合与计数、挂载行多重集、W1..W4 键集与取值、
