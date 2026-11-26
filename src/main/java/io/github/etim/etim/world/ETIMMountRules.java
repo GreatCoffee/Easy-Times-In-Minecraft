@@ -106,6 +106,27 @@ public final class ETIMMountRules {
     private ETIMMountRules() {
     }
 
+    /** Rule name plus verdict, as produced by {@link #decide}. */
+    public static final class Decision {
+        public final String rule;
+        public final boolean reject;
+
+        Decision(String rule, boolean reject) {
+            this.rule = rule;
+            this.reject = reject;
+        }
+    }
+
+    /**
+     * The one world-dependent probe the tree needs: {@code Block.isSideSolid}
+     * on the mounting face. Production supplies the real world; tests supply a
+     * lambda, which is what makes the whole tree unit-testable without a server.
+     */
+    @FunctionalInterface
+    public interface UpSolid {
+        boolean test(IBlockState state);
+    }
+
     /** R196 mounted family: {@code BlockMounted} and its ten subclasses. */
     public static boolean isMountedBlock(Block block) {
         return block instanceof BlockTorch
@@ -142,7 +163,28 @@ public final class ETIMMountRules {
             Boolean trapdoorLower) {
         BlockPos supportPos = pos.offset(face.getOpposite());
         IBlockState state = world.getBlockState(supportPos);
+        Decision decision = decide(state, face, mounted, trapdoorLower,
+                s -> s.getBlock().isSideSolid(s, world, supportPos, EnumFacing.UP));
+
+        if (ETIMConfig.blockDebugLog) {
+            ETIM.LOGGER.info("[MountLog] rule={} face={} support={} block={} result={} pos={},{},{} [server]",
+                    decision.rule, face, state.getBlock().getRegistryName(),
+                    mounted == null ? "none" : mounted.getRegistryName(),
+                    decision.reject ? "reject" : "allow",
+                    pos.getX(), pos.getY(), pos.getZ());
+        }
+        return decision.reject;
+    }
+
+    /**
+     * Pure decision tree: same arms, same order and same rule names as the
+     * world-facing entry point. {@code mounted} may be null (callers only pass
+     * it to classify); {@code state} must be the support block's state.
+     */
+    public static Decision decide(IBlockState state, EnumFacing face, Block mounted,
+            Boolean trapdoorLower, UpSolid upSolid) {
         Block support = state.getBlock();
+
 
         String rule = null;
         boolean reject = false;
@@ -155,7 +197,7 @@ public final class ETIMMountRules {
                 rule = "torch-fence-top";
             } else if (face == EnumFacing.UP && !(support instanceof BlockLeaves)
                     && !(support instanceof BlockDirectional)
-                    && support.isSideSolid(state, world, supportPos, EnumFacing.UP)) {
+                    && upSolid.test(state)) {
                 rule = "torch-flat-top";
             } else if (support.getMaterial(state) == Material.CLOTH) {
                 rule = "torch-cloth";
@@ -263,14 +305,7 @@ public final class ETIMMountRules {
             }
         }
 
-        if (ETIMConfig.blockDebugLog) {
-            ETIM.LOGGER.info("[MountLog] rule={} face={} support={} block={} result={} pos={},{},{} [server]",
-                    rule, face, support.getRegistryName(),
-                    mounted == null ? "none" : mounted.getRegistryName(),
-                    reject ? "reject" : "allow",
-                    pos.getX(), pos.getY(), pos.getZ());
-        }
-        return reject;
+        return new Decision(rule, reject);
     }
 
     private static boolean isFenceLike(Block block) {

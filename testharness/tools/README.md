@@ -59,3 +59,21 @@ node testharness/tools/check-config.js --file run/config/etim.cfg   # 盘上基�
 - 为什么需要：Forge **从不改写已存在的条目**，判窗脚本又习惯「读快照→改→跑完写回快照」，
   印错的旧值会被一代代原样还原。改过 cfg 或收批前跑一次 `--file`，`drift=0 stale=0` 才算基线干净。
 
+## 纯逻辑单测 —— `gradlew test`
+
+把判定树、刷怪门这类「纯函数」从服务端搬进 JVM 内测，反馈从起服的 ~90 秒降到 ~6 秒。
+
+```powershell
+$env:JAVA_HOME='D:\OpenCodeWorkspace\Easy Times In Minecraft\jdk\zulu25.38.107-ca-jdk25.0.5-win_x64'
+.\gradlew.bat test --console=plain
+```
+
+- 用例在 `src/test/java/`；首个样板 `world/MountRulesTest.java` 直接调
+  `ETIMMountRules.decide(state, face, mounted, trapdoorLower, upSolid)`，
+  世界依赖只通过 `upSolid` 这个 lambda 注入。
+- 1.12 的方块常量必须先在测试里注册：`@BeforeAll static void bootstrap() { Bootstrap.register(); }`，
+  否则报 `Accessed Blocks before Bootstrap!`。
+- JUnit 5 已由 `enable_junit_testing`（`gradle.properties:16 = true`）接好，无需另加依赖。
+- 这些测试**不替代**判窗：起服窗仍负责真实物品路径、日志通道与命令面。
+
+
