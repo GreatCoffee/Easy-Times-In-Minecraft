@@ -43,7 +43,8 @@ const loose = rows.filter((r) => !r.batch);
 console.log('[ScriptLog] scripts=' + rows.length + ' harness=' + rows.filter((r) => r.harness).length +
     ' batchNamed=' + rows.filter((r) => r.batch).length + ' undocumented=' + undocumented.length +
     ' nochannel=' + nochannel.length + ' scratch=' + rows.filter((r) => r.scratch).length +
-    ' stale=' + stale + ' [local]');
+    ' pinFollow=' + rows.filter((r) => r.pin === 'follow').length +
+    ' pinFrozen=' + rows.filter((r) => r.pin === 'frozen').length + ' stale=' + stale + ' [local]');
 if (list) {
     for (const r of undocumented.slice(0, 40)) console.log('[ScriptLog] S1 undocumented ' + r.rel);
     if (undocumented.length > 40) console.log('[ScriptLog] S1 … +' + (undocumented.length - 40) + ' more');
@@ -52,5 +53,7 @@ if (list) {
     for (const r of loose.slice(0, 20)) console.log('[ScriptLog] S4 loose-batch ' + r.rel);
     if (loose.length > 20) console.log('[ScriptLog] S4 … +' + (loose.length - 20) + ' more');
 }
+const frozenBig = rows.filter((r) => r.pin === 'frozen' && r.lines >= 400);
+if (list) for (const r of frozenBig) console.log('[ScriptLog] S6 frozen-pin ' + r.rel + ' (' + r.lines + ' 行，硬编码旧 jar，直接重跑会 PIN 失败)');
 console.log('[ScriptLog] verdict ' + (stale ? 'FAIL' : 'OK'));
 process.exit(stale ? 1 : 0);

@@ -70,7 +70,9 @@ function analyze(file) {
         harness: /lib\/harness\.js/.test(text),
         doc: headerLine(text),
         scratch: /^_/.test(path.basename(file)),
-        fingerprint: rel + ':' + lines + ':' + channels.join(',') + ':' + (text.includes('lib/harness.js') ? 'h' : '-') + ':' + (/^_/.test(path.basename(file)) ? 's' : 'w'),
+        pin: /jarBytes\s*[:=]|B\d+\s*=\s*\{[^}]*head:/.test(text) ? 'frozen'
+            : (/L\.PIN|mkCounts\(\)/.test(text) ? 'follow' : 'none'),
+        fingerprint: rel + ':' + lines + ':' + channels.join(',') + ':' + (text.includes('lib/harness.js') ? 'h' : '-') + ':' + (/^_/.test(path.basename(file)) ? 's' : 'w') + ':' + (/jarBytes\s*[:=]|B\d+\s*=\s*\{[^}]*head:/.test(text) ? 'f' : (/L\.PIN|mkCounts\(\)/.test(text) ? 'p' : 'n')),
     };
 }
 
@@ -107,7 +109,9 @@ function render(rows, fp) {
     out.push('scripts=' + rows.length + ' | batches=' + keys.length + ' | onHarness=' + onHarness +
         ' | withChannel=' + rows.filter((r) => r.channels.length).length +
         ' | undocumented=' + rows.filter((r) => !r.doc).length +
-        ' | scratch=' + rows.filter((r) => r.scratch).length);
+        ' | scratch=' + rows.filter((r) => r.scratch).length +
+        ' | pinFollow=' + rows.filter((r) => r.pin === 'follow').length +
+        ' | pinFrozen=' + rows.filter((r) => r.pin === 'frozen').length);
     out.push('');
     out.push('fingerprint: `' + fp + '`');
     out.push('');
@@ -115,10 +119,10 @@ function render(rows, fp) {
         const group = byBatch.get(k);
         out.push('## ' + k + '（' + group.length + ' 份）');
         out.push('');
-        out.push('| 脚本 | 行 | 通道 | harness | 说明 |');
-        out.push('| --- | ---: | --- | :---: | --- |');
+        out.push('| 脚本 | 行 | 通道 | pin | harness | 说明 |');
+        out.push('| --- | ---: | --- | :---: | :---: | --- |');
         for (const r of group) {
-            out.push('| `' + r.rel + '` | ' + r.lines + ' | ' + (r.channels.join(', ') || '—') + ' | ' +
+            out.push('| `' + r.rel + '` | ' + r.lines + ' | ' + (r.channels.join(', ') || '—') + ' | ' + r.pin + ' | ' +
                 (r.harness ? '✔' : '') + ' | ' + (r.doc.replace(/\|/g, '\\|').slice(0, 110) || '—') + ' |');
         }
         out.push('');
@@ -129,10 +133,10 @@ function render(rows, fp) {
     if (!loose.length) {
         out.push('（无）');
     } else {
-        out.push('| 脚本 | 行 | 通道 | harness | 说明 |');
-        out.push('| --- | ---: | --- | :---: | --- |');
+        out.push('| 脚本 | 行 | 通道 | pin | harness | 说明 |');
+        out.push('| --- | ---: | --- | :---: | :---: | --- |');
         for (const r of loose) {
-            out.push('| `' + r.rel + '` | ' + r.lines + ' | ' + (r.channels.join(', ') || '—') + ' | ' +
+            out.push('| `' + r.rel + '` | ' + r.lines + ' | ' + (r.channels.join(', ') || '—') + ' | ' + r.pin + ' | ' +
                 (r.harness ? '✔' : '') + ' | ' + (r.doc.replace(/\|/g, '\\|').slice(0, 110) || '—') + ' |');
         }
     }
