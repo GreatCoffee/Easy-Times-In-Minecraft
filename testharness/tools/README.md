@@ -1,6 +1,6 @@
 # testharness/tools —— 只读检查工具
 
-三个脚本都不起服、不写产品码，随时可跑。
+下列脚本都不起服、不写产品码，随时可跑。
 
 ## verify-diff.js —— 判窗锚点对位
 
@@ -42,6 +42,27 @@ node testharness/tools/check-books.js --list   # 全部发现
 
 统计 `testharness/player/` 下还有多少脚本自带 boot/stop/cmd/PIN/`[done]`，输出
 `[HarnessLog] files=… onHarness=… offenders=…`；`--list` 逐份列。恒 exit 0，看趋势用。
+
+## check-channels.js —— 判据通道活口巡检
+
+**它防的假绿**：脚本断言了某行 `[XxxLog]`，但那行其实永远不会出现（通道被 cfg 门关着、
+或通道早已改名）。B-70T4 一周内撞两次：driver log 从未写盘；cfg 复位后 `farmDebugLog=false`
+让 22 条探针全空。
+
+```powershell
+node testharness/tools/check-channels.js                       # 摘要 + 结论
+node testharness/tools/check-channels.js --list                # 逐通道：断言数/产出点/门
+node testharness/tools/check-channels.js --script testharness/player/f11-b69-smoke.js   # 跑窗前自查
+node testharness/tools/check-channels.js --strict              # 历史脚本的缺口也算失败
+```
+
+- 门 = 日志行上方 8 行内 `if (ETIMConfig.<布尔键>)`；`[ExplosionLog]` 这种前缀收在
+  `TAG` 常量里的也算产出点。
+- 「关着」＝代码默认 false **或** 盘上 `run/config/etim.cfg` 为 false；默认 true 不算。
+- 退出码：0 OK；1 有 `SILENT-OFF` / `STALE`（`--script` 模式只看这一份）；2 用法错。
+- 已上 harness 的脚本（`lib/harness.js`）必须自己强制它断言的门，否则算失败；
+  老脚本的同类缺口只计入 `DEBT` 趋势，`--strict` 才计失败。
+- 自检：`node testharness/tools/selftest-channels.js`（4 项，离线）。
 
 ## check-config.js —— ETIMConfig 结构化自检 + 盘上漂移
 
