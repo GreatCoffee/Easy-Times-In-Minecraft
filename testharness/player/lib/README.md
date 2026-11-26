@@ -42,7 +42,7 @@ h.guard(main);                        // 异常 → stop() → exit 1
 - `cmd()` 自动把 `name[moisture=n]` / `name[age=n]` 转成 1.12 的 `name <meta>`。
 - `stampPin()` 比对 `f7-wb-lib.js:35` 的 PIN（release 大小 + SHA-256）与 MK 计数，钉值仍只改那一处。
 - `stage.rules` 覆盖默认 gamerules（默认见 `harness.js` 的 `DEFAULT_RULES`）。
-- `cfg` 里的键写成 `section:key`（不写前缀默认 `blocks`）。键不在磁盘时直接写入该 section 的 `B:key=true`，起服后回读校验；回读不是 true 就硬失败，不再「按默认放行」。
+- `cfg` 里的键写成 `section:key`（不写前缀默认 `blocks`）。键不在磁盘时直接写入该 section 的 `B:key=true`；起服后**在该 section 内**回读校验，回读不是 true 就硬失败，不再「按默认放行」。section 的收尾按缩进匹配，嵌套块不会提前截断。
 - `waitRow()` 只接单个 RegExp，返回自上而下第一个命中行（多条件请自行在调用侧组合）。
 - 退出口径：`pin && 全部 res 项为 true && 无非零退出` 才 exit 0，否则 exit 2；异常路径 exit 1。
 

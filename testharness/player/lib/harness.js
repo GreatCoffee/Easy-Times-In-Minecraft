@@ -29,19 +29,67 @@ function bs(s) {
     return s.replace(/([A-Za-z0-9_:.]+)\[(?:moisture|age)=(\d+)\]/g, '$1 $2');
 }
 
-/** Insert `    B:<key>=<value>` just before a cfg section's closing brace. */
-function insertCfgEntry(text, section, key, value) {
-    const lines = text.split(/\r?\n/);
+/** Leading-whitespace width of a line (tab counts as one). */
+function indentOf(line) {
+    const m = /^[ \t]*/.exec(line);
+    return m ? m[0].length : 0;
+}
+
+/**
+ * Line range of a top-level cfg section. The close is the first `}` after the
+ * header that sits at the header's own indent, so a nested block's closer
+ * (deeper) cannot end the section early.
+ */
+function sectionBounds(lines, section) {
     const head = lines.findIndex((s) => s.trim() === section + ' {');
     if (head < 0) {
         throw new Error('cfg section missing: ' + section);
     }
-    const end = lines.findIndex((s, i) => i > head && s === '}');
+    const indent = indentOf(lines[head]);
+    const end = lines.findIndex((s, i) => i > head && s.trim() === '}' && indentOf(s) === indent);
     if (end < 0) {
         throw new Error('cfg section unclosed: ' + section);
     }
-    lines.splice(end, 0, '    B:' + key + '=' + value);
+    return [head, end];
+}
+
+/** Read `B:<key>` from inside `section` only; `null` when absent or not in it. */
+function readCfgEntry(text, section, key) {
+    const lines = text.split(/\r?\n/);
+    const [head, end] = sectionBounds(lines, section);
+    for (let i = head + 1; i < end; i++) {
+        const m = /^\s+([A-Z]):(\S+)=(.*)$/.exec(lines[i]);
+        if (m && m[2] === key) {
+            return { type: m[1], value: m[3] };
+        }
+    }
+    return null;
+}
+
+/** Insert `    B:<key>=<value>` just before a cfg section's closing brace. */
+function insertCfgEntry(text, section, key, value) {
+    const lines = text.split(/\r?\n/);
+    const [, end] = sectionBounds(lines, section);
+    const lead = ' '.repeat(indentOf(lines[end]) + 4);
+    lines.splice(end, 0, lead + 'B:' + key + '=' + value);
     return lines.join('\n');
+}
+
+/** Force `B:<key>=<value>` inside `section`, editing in place or inserting. */
+function setCfgEntry(text, section, key, value) {
+    const lines = text.split(/\r?\n/);
+    const [head, end] = sectionBounds(lines, section);
+    for (let i = head + 1; i < end; i++) {
+        const m = /^([ \t]+)([A-Z]):(\S+)=(.*)$/.exec(lines[i]);
+        if (m && m[3] === key) {
+            if (m[2] !== 'B') {
+                throw new Error('cfg key ' + section + ':' + key + ' is not a boolean');
+            }
+            lines[i] = m[1] + 'B:' + key + '=' + value;
+            return lines.join('\n');
+        }
+    }
+    return insertCfgEntry(text, section, key, value);
 }
 
 /** `'blocks:sparkR196'` or plain `'sparkR196'` (blocks section). */
@@ -158,19 +206,9 @@ function create(opts) {
         let bootCfg = h.cfgBefore;
         const forced = (o.cfg || []).map(cfgPair);
         for (const [section, key] of forced) {
-            const re = new RegExp('^([ \\t]+)([A-Z]):' + key + '=(.*)$', 'm');
-            const m = re.exec(bootCfg);
-            if (m && m[2] !== 'B') {
-                throw new Error('cfg key ' + key + ' is not a boolean');
-            }
-            if (m) {
-                bootCfg = bootCfg.replace(re, (line, lead) => lead + 'B:' + key + '=true');
-            } else {
-                // The key is not on disk yet (a flag added by the current build):
-                // write it into its section so the window really runs with it on
-                // instead of trusting whatever default the code happens to carry.
-                bootCfg = insertCfgEntry(bootCfg, section, key, 'true');
-            }
+            // Edit or insert inside the declared section only: a key that exists
+            // under another section must not be mistaken for this one.
+            bootCfg = setCfgEntry(bootCfg, section, key, 'true');
         }
         for (let attempt = 1; attempt <= 3; attempt++) {
             for (let i = 0; i < 36 && L.netstatListen(L.PORT) !== 0; i++) {
@@ -184,10 +222,12 @@ function create(opts) {
             if (await h.srv.waitFor(/Done \(/, 180000)) {
                 const disk = fs.readFileSync(L.CFG, 'utf8');
                 const badFlags = [];
-                for (const [, key] of forced) {
-                    const m = new RegExp('^\\s+[A-Z]:' + key + '=(.*)$', 'm').exec(disk);
-                    if (!m || m[1] !== 'true') {
-                        badFlags.push(key + '=' + (m ? m[1] : 'absent'));
+                for (const [section, key] of forced) {
+                    // Read back inside the same section: a true sitting under
+                    // another section means the server never saw this flag.
+                    const hit = readCfgEntry(disk, section, key);
+                    if (!hit || hit.value !== 'true') {
+                        badFlags.push(section + ':' + key + '=' + (hit ? hit.value : 'absent'));
                     }
                 }
                 if (badFlags.length) {
@@ -267,4 +307,4 @@ function create(opts) {
     return h;
 }
 
-module.exports = { create, bs, DEFAULT_RULES, insertCfgEntry, cfgPair };
+module.exports = { create, bs, DEFAULT_RULES, insertCfgEntry, setCfgEntry, readCfgEntry, cfgPair };
