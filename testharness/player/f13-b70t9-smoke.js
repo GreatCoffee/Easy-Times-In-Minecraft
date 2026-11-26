@@ -68,7 +68,6 @@ async function main() {
   // B-B70T9-1: boot() 只起服，不建 bot；缺 stampPin()/join() 时 /etest hungerpools
   // 回 "Only players can use /state."、effect 回 "Entity 'ETIM_F7' cannot be found"，
   // 四个支路全部无被测对象（r1 四臂假红即此）。
-  h.stampPin();
   await h.join();
 
   const res = {};
