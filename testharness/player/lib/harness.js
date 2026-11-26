@@ -132,7 +132,16 @@ function create(opts) {
         propsBefore: null, cfgBefore: null,
         stops: [],
         pinOk: false,
+        driverLog: path.join(L.ROOT, 'testharness', 'build-logs', run + '-driver.log'),
     };
+    fs.writeFileSync(h.driverLog, '', 'utf8');
+
+    /** Print one driver row and mirror it to `<run>-driver.log` for later diffing. */
+    function say(...parts) {
+        const line = parts.map((p) => (typeof p === 'string' ? p : JSON.stringify(p))).join(' ');
+        fs.appendFileSync(h.driverLog, line + '\n', 'utf8');
+        console.log(line);
+    }
 
     /** Read the live server log tail as split lines. */
     function logLines() {
@@ -184,7 +193,7 @@ function create(opts) {
         const mk = L.mkCounts();
         const ok = sha === expectedSha && jar.length === L.PIN.releaseSize && mk.ok;
         h.pinOk = ok;
-        console.log(`[PIN] sha=${sha} shaOk=${sha === expectedSha} size=${jar.length} sizeOk=${jar.length === L.PIN.releaseSize} mkOk=${mk.ok} ok=${ok}`);
+        say(`[PIN] sha=${sha} shaOk=${sha === expectedSha} size=${jar.length} sizeOk=${jar.length === L.PIN.releaseSize} mkOk=${mk.ok} ok=${ok}`);
         return ok;
     }
 
@@ -233,7 +242,7 @@ function create(opts) {
                 if (badFlags.length) {
                     throw new Error('cfg not forced after boot: ' + badFlags.join(' '));
                 }
-                console.log('[cfg]', t, ...forced.map(([, key]) => key + '=true'));
+                say('[cfg]', t, ...forced.map(([, key]) => key + '=true'));
                 return;
             }
             try { await h.srv.stop(30000); } catch (e) { /* noop */ }
@@ -252,7 +261,7 @@ function create(opts) {
         h.stops.push(st);
         if (h.propsBefore) { fs.writeFileSync(L.PROPS, h.propsBefore, 'utf8'); }
         if (h.cfgBefore) { fs.writeFileSync(L.CFG, h.cfgBefore, 'utf8'); }
-        console.log('[stop]', JSON.stringify(st));
+        say('[stop]', JSON.stringify(st));
         return st;
     }
 
@@ -290,7 +299,7 @@ function create(opts) {
             bad: bad.length,
             badKeys: bad,
         });
-        console.log('[done] ' + JSON.stringify(out));
+        say('[done] ' + JSON.stringify(out));
         process.exit(out.pass && out.stops === 0 ? 0 : 2);
     }
 
