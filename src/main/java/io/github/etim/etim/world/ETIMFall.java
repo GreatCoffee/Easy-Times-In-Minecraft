@@ -35,8 +35,16 @@ public final class ETIMFall {
     /** R196 raw damage before cushioning; negative when below the safe height. */
     public static float rawDamage(EntityLivingBase entity, float distance) {
         PotionEffect jump = entity.getActivePotionEffect(MobEffects.JUMP_BOOST);
-        int amp = jump == null ? 0 : jump.getAmplifier() + 1;
-        return (distance - 2.5F - amp) * 2.0F;
+        int jumpBonus = jump == null ? 0 : jump.getAmplifier() + 1;
+        return rawDamage(distance, jumpBonus);
+    }
+
+    /**
+     * Pure form of {@link #rawDamage(EntityLivingBase, float)}: {@code jumpBonus}
+     * is the Jump Boost amplifier + 1 (0 when the effect is absent).
+     */
+    public static float rawDamage(float distance, int jumpBonus) {
+        return (distance - 2.5F - jumpBonus) * 2.0F;
     }
 
     /** R196 damage after cushioning at the given resting block. */

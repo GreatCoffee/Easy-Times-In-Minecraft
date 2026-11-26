@@ -98,17 +98,28 @@ public final class ETIMCushioning {
     public static float total(World world, BlockPos resting) {
         IBlockState base = world.getBlockState(resting);
         float cushioning = of(base);
-        Material material = base.getMaterial();
-        if (material == Material.SNOW || material == Material.CRAFTED_SNOW) {
+        boolean snowLike = base.getMaterial() == Material.SNOW
+                || base.getMaterial() == Material.CRAFTED_SNOW;
+        float belowValue = 0.0F;
+        if (snowLike) {
             BlockPos belowPos = resting.down();
             IBlockState below = world.getBlockState(belowPos);
-            cushioning += below.getBlock().isAir(below, world, belowPos) ? 1.0F : of(below);
+            belowValue = below.getBlock().isAir(below, world, belowPos) ? 1.0F : of(below);
         }
         BlockPos abovePos = resting.up();
         IBlockState above = world.getBlockState(abovePos);
-        if (!above.getBlock().isAir(above, world, abovePos)) {
-            cushioning += of(above);
-        }
-        return Math.min(cushioning, 1.0F);
+        float aboveValue = above.getBlock().isAir(above, world, abovePos) ? 0.0F : of(above);
+        return compose(cushioning, snowLike, belowValue, aboveValue);
+    }
+
+    /**
+     * Pure composition half of {@link #total(World, BlockPos)}: a snow-like
+     * resting block adds the block below (1.0 when it is air, passed in as
+     * {@code belowValue}); the block above the feet adds its own value
+     * ({@code aboveValue}, 0 for air). The sum is clamped to 1.0.
+     */
+    public static float compose(float base, boolean snowLike, float belowValue, float aboveValue) {
+        float sum = base + (snowLike ? belowValue : 0.0F) + aboveValue;
+        return Math.min(sum, 1.0F);
     }
 }

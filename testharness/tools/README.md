@@ -128,6 +128,8 @@ $env:JAVA_HOME='D:\OpenCodeWorkspace\Easy Times In Minecraft\jdk\zulu25.38.107-c
 - JUnit 5 已由 `enable_junit_testing`（`gradle.properties:16 = true`）接好，无需另加依赖。
 - 这些测试**不替代**判窗：起服窗仍负责真实物品路径、日志通道与命令面。
 
+> 2026-11-26（B-70TJ）：新增 `FallTest`（7 例，R196 摔落公式：安全高度 2.5、伤害翻倍、跳跃加成先减后乘）、`CushioningTest`（6 例，17 项垫层表 + 雪层 `0.2×depth` + 合成规则）、`BlightSeatTest`（6 例，`isBlightSeat` 任意 BlockCrops 且死块排除 + `matureYield` 2/3 与 25% 分布）。合计 **150 例**（原 131）。
+
 ## 判窗驱动模板检查 —— `check-driver.js`
 
 ```powershell
