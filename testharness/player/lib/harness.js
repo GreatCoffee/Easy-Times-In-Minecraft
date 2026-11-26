@@ -20,6 +20,7 @@
  */
 'use strict';
 const fs = require('fs');
+const path = require('path'); // C-B70T4-1: :135 uses path.join for <run>-driver.log
 const L = require('../f7-wb-lib.js');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

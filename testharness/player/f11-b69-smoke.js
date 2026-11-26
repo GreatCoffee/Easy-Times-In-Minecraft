@@ -25,7 +25,9 @@ const h = H.create({
   run: RUN,
   world: 'w-b69-' + RUN + '-v1',
   bot: A,
-  cfg: ['combat:blockDebugLog', 'blocks:sparkR196', 'blocks:mountedR196'],
+  // C-B70T4-2: the reset baseline has farmDebugLog=false, so [FarmLog] drought probe
+  // rows (W1/W2 pos + W3 target) would vanish; force it for the window.
+  cfg: ['combat:blockDebugLog', 'blocks:sparkR196', 'blocks:mountedR196', 'farm:farmDebugLog'],
   props: { 'allow-flight': 'true' },
   stage: {
     gamemode: 0,
