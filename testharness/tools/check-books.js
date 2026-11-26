@@ -21,6 +21,13 @@ const LEDGER = path.join(ROOT, 'playground', 'audit', '账册', '现行账.md');
 const SESSIONS = path.join(ROOT, 'playground', 'sessions.md');
 const REPORTS = path.join(__dirname, '..', 'reports');
 
+// CI clones only the mod repo; the books tree lives beside it. Skip cleanly so
+// preflight stays green on a runner -- local runs still see every check.
+if (!fs.existsSync(CENSUS)) {
+    console.log('[LedgerLog] SKIP census tree absent at ' + CENSUS);
+    process.exit(0);
+}
+
 const LIST = process.argv.includes('--list');
 const hard = [];
 const soft = [];
