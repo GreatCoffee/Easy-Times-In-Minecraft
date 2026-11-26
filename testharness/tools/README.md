@@ -329,3 +329,28 @@ node testharness/tools/selftest-plan.js                   # 3/3：均分切块 /
 顺序：卷 B→C→E→F，同卷内 WIRE 优先、簇大的在前。批次号从 `--start` 起顺序编号，只作建议，实际开工时可在账册改号。
 生成物 `playground/audit/census/批次工单.md` 不要手改；preflight 第 11 步用 `--check` 拦陈旧。
 `PLAN_BOOKS_ROOT` 可指向别树（自检就用这个）。
+
+## 判值候选表 —— extract-values.js
+
+开工前最慢的一步是「把 R196 原文读成一张判值表」。这个工具先把机器能认的部分抽出来，
+带 R196 行号，人工只做校对。**产物是候选表，不是结论**——启发式抽取会漏（循环里的阈值、外部常量）。
+
+```
+node testharness/tools/extract-values.js --batch B-71     # 按批次工单取该批所有面
+node testharness/tools/extract-values.js --face C:137     # 单面
+node testharness/tools/extract-values.js --file EntityGhoul.java   # 整个文件
+node testharness/tools/selftest-extract.js               # 3/3：四类 / 死端掉落 / 方法分组
+```
+
+抽五类，每条带 `L<行号>`：
+
+| 类别 | 识别 |
+| --- | --- |
+| 常量 | `static final X NAME = <literal>;` |
+| 属性 | `setAttribute` / `setBaseValue` / `setMaxHealth` / `setMaxHurtResistantTime` |
+| 门 | `if (...)` 且条件里含数字或 blood/moon/biome/skylight/depth/overworld/rand/nextInt |
+| 效果 | `addPotionEffect` / `new PotionEffect` / `addExperience` / `attackEntityFrom` / `heal` |
+| 掉落 | `dropItem` / `entityDropItem` / `dropBlockAsEntityItem` / `getDropItemId` / `dropFewItems`（`return -1` 的死端自动跳过） |
+
+输出 `playground/audit/census/判值表-<批次|面>.md`，按方法分组；本方法抽不到东西时会明确写「需人工阅读」，
+并汇总「无候选的方法」名单，方便先读有货的方法。`VALUES_ROOT` / `VALUES_R196` 可指向别树（自检用）。
