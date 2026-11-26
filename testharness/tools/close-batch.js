@@ -28,7 +28,9 @@ const { execFileSync } = require('child_process');
 
 const TOOLS = __dirname;
 const REPO = path.resolve(TOOLS, '..', '..');
-const BOOKS = path.resolve(REPO, '..', '..');
+const BOOKS = process.env.CLOSE_BOOKS_ROOT
+  ? path.resolve(process.env.CLOSE_BOOKS_ROOT)
+  : path.resolve(REPO, '..', '..');
 const LEDGER = path.join(BOOKS, 'playground', 'audit', '账册', '现行账.md');
 const SESSIONS = path.join(BOOKS, 'playground', 'sessions.md');
 const CENSUS_DIR = path.join(BOOKS, 'playground', 'audit', 'census');
