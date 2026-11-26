@@ -192,7 +192,7 @@ public final class ETIMCrafting {
         int next = timer.qualityIndex >= max ? min : timer.qualityIndex + 1;
         timer.qualityIndex = next;
         float qDifficulty = ETIMQuality.qualityAdjustedDifficulty(timer.difficulty, next);
-        timer.period = getPeriod(player, qDifficulty, getBenchModifier(player.openContainer));
+        timer.period = periodFor(player, qDifficulty);
         timer.ticks = 0;
         // ❗F-7-30（第二批裁点2=A）：R196 modifyStackForRightClicks
         // (SlotCrafting:286-302) writes the picked rung onto the RESULT slot
@@ -344,24 +344,15 @@ public final class ETIMCrafting {
     // ---------------------------------------------------------------- period
 
     /**
-     * R196 ClientPlayer.calcUnmodifiedCraftingPeriod (:499-507): d&lt;25 → 25;
-     * d&gt;100 → round((d−100)^0.8)+100; else round(d).
+     * R196 ClientPlayer.calcUnmodifiedCraftingPeriod (:499-507) and
+     * getCraftingPeriod (:555-563) — the arithmetic lives in
+     * {@link CraftingGates} so it can be unit-tested.
      */
-    private static int calcUnmodifiedPeriod(float difficulty) {
-        if (difficulty < 25.0F) {
-            return 25;
-        }
-        if (difficulty > 100.0F) {
-            return Math.round((float) Math.pow(difficulty - 100.0F, ETIMConfig.craftingCurveExponent)) + 100;
-        }
-        return Math.round(difficulty);
-    }
-
-    /** R196 ClientPlayer.getCraftingPeriod (:555-563): ÷(1 + level% + bench), floor 25. */
-    private static int getPeriod(EntityPlayer player, float difficulty, float bench) {
-        int unmodified = calcUnmodifiedPeriod(difficulty);
-        float denominator = 1.0F + ETIMConfig.craftingSpeedPerLevel * player.experienceLevel + bench;
-        return (int) Math.max(unmodified / denominator, ETIMConfig.craftingPeriodFloor);
+    private static int periodFor(EntityPlayer player, float difficulty) {
+        int unmodified = CraftingGates.unmodifiedPeriod(difficulty, ETIMConfig.craftingCurveExponent);
+        return CraftingGates.period(unmodified, player.experienceLevel,
+                getBenchModifier(player.openContainer), ETIMConfig.craftingSpeedPerLevel,
+                ETIMConfig.craftingPeriodFloor);
     }
 
     /** R196 getBenchAndToolsModifier (--:509-553): bench tier; only ContainerWorkbench counts. */
@@ -416,7 +407,7 @@ public final class ETIMCrafting {
     private static void recomputePeriod(EntityPlayer player, ItemStack output, Timer existing) {
         Timer timer = existing != null ? existing : new Timer();
         timer.difficulty = sumComponentDifficulty(player.openContainer);
-        timer.period = getPeriod(player, timer.difficulty, getBenchModifier(player.openContainer));
+        timer.period = periodFor(player, timer.difficulty);
         timer.ticks = 0;
         timer.proceed = false;
         timer.lastOutput = output.copy();

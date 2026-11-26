@@ -121,7 +121,7 @@ $env:JAVA_HOME='D:\OpenCodeWorkspace\Easy Times In Minecraft\jdk\zulu25.38.107-c
   `ETIMMountRules.decide(state, face, mounted, trapdoorLower, upSolid)`，
 - B-70T9 起还覆盖 `mob/SpawnGatesTest.java`（43 例，刷怪门决策表）与
   `hunger/FoodGatesTest.java`（27 例，饥饿循环 accrual/消耗/饿伤/回血四支）；
-  三者合计 102 例，`gradlew test` 约 4 秒。
+  三者以及 `crafting/CraftingGatesTest.java`（18 例：周期曲线、品质 ×2 与经验成本、min/max 预算选档）与 `furnace/FurnaceHeatTest.java`（11 例：需求热、燃料热、沙的三分支）；合计 131 例，`gradlew test` 约 4 秒。
   世界依赖只通过 `upSolid` 这个 lambda 注入。
 - 1.12 的方块常量必须先在测试里注册：`@BeforeAll static void bootstrap() { Bootstrap.register(); }`，
   否则报 `Accessed Blocks before Bootstrap!`。
@@ -168,7 +168,7 @@ node testharness/tools/check-version.js --tag 1.0.0   # tag 与 mod_version 对�
 
 `[VersionLog] tag=… mod_version=… tagOk=… match=…` → `verdict=PASS|FAIL`；exit 0 通过、1 不符、2 缺参数。
 
-`deploy.yml` 只在 `x.y.z` tag 上触发，但先跑 `verify` job：版本对位 → `preflight.js` 七步 → `gradlew test`（102 例）→ `gradlew build`；
+`deploy.yml` 只在 `x.y.z` tag 上触发，但先跑 `verify` job：版本对位 → `preflight.js` 七步 → `gradlew test`（131 例）→ `gradlew build`；
 `publish` job 用 `needs: verify` 串在后面，任何一步红都不会发版。
 
 `ci.yml` 在每次 push 到 `master`（以及 PR、手动触发）跑同一套：preflight → test → build。

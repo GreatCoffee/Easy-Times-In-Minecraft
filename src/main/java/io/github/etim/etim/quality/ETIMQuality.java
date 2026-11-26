@@ -13,6 +13,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import org.apache.commons.lang3.StringUtils;
 
+import io.github.etim.etim.crafting.CraftingGates;
+
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
@@ -294,9 +296,12 @@ public final class ETIMQuality {
      * equivalent in ETIM); a negative level can pull the floor below average.
      */
     public static int getMinOrdinal(EntityPlayer player) {
-        int effectiveLevel = player.experienceLevel;
-        return Math.min(Math.max(EnumQuality.AVERAGE.ordinal() + effectiveLevel / 10, 0),
-                EnumQuality.AVERAGE.ordinal());
+        return CraftingGates.minOrdinal(player.experienceLevel, EnumQuality.AVERAGE.ordinal());
+    }
+
+    /** Primitive overload for unit tests (B-70TG). */
+    public static int minOrdinal(int experienceLevel) {
+        return CraftingGates.minOrdinal(experienceLevel, EnumQuality.AVERAGE.ordinal());
     }
 
     /**
@@ -305,34 +310,24 @@ public final class ETIMQuality {
      * step; xp ≤ 0 falls to the floor.
      */
     public static int getMaxOrdinal(EntityPlayer player, float unadjustedDifficulty, ItemStack result) {
-        int min = getMinOrdinal(player);
-        if (player.experienceTotal <= 0) {
-            return min;
-        }
-        int itemMax = getMaxQualityFor(result.getItem()).ordinal();
-        // ❗F-7-28（裁点核讫）：R196 :2430 walks DOWN TO average EXCLUSIVE —
-        // the average rung itself is free and never budget-checked.
-        for (int i = itemMax; i > EnumQuality.AVERAGE.ordinal(); i--) {
-            if (getExperienceCost(qualityAdjustedDifficulty(unadjustedDifficulty, i)) <= player.experienceTotal) {
-                return i;
-            }
-        }
-        return min;
+        return maxOrdinal(getMinOrdinal(player), getMaxQualityFor(result.getItem()).ordinal(),
+                player.experienceTotal, unadjustedDifficulty);
+    }
+
+    /** Primitive overload for unit tests (B-70TG). */
+    public static int maxOrdinal(int minOrdinal, int itemMaxOrdinal, int experienceTotal, float difficulty) {
+        return CraftingGates.maxOrdinal(minOrdinal, itemMaxOrdinal, EnumQuality.AVERAGE.ordinal(),
+                experienceTotal, difficulty);
     }
 
     /** Audit §3.2: n ≥ 0 multiplications of 2.0F; below average is NOT discounted. */
     public static float qualityAdjustedDifficulty(float difficulty, int qualityOrdinal) {
-        float modified = difficulty;
-        int n = qualityOrdinal - EnumQuality.AVERAGE.ordinal();
-        for (int i = 0; i < n; i++) {
-            modified *= 2.0F;
-        }
-        return modified;
+        return CraftingGates.qualityAdjustedDifficulty(difficulty, qualityOrdinal, EnumQuality.AVERAGE.ordinal());
     }
 
     /** R196 getCraftingExperienceCost (javap 7004-7020): round(qAdj / 5.0F). */
     public static int getExperienceCost(float qualityAdjustedDifficulty) {
-        return (int) Math.round(qualityAdjustedDifficulty / 5.0F);
+        return CraftingGates.experienceCost(qualityAdjustedDifficulty);
     }
 
     /** The completion charge: negative XP points through the vanilla level machinery. */

@@ -71,15 +71,24 @@ for (const e of entries) {
     const i = lines.findIndex((s) => new RegExp('^### 条 ' + e.n + '(\\D|$)').test(s));
     const next = lines.findIndex((s, j) => j > i && /^### 条 \d+/.test(s));
     const text = lines.slice(i, next < 0 ? lines.length : next).join('\n');
-    if (text.includes('待提交')) {
+    // Only the status line counts: entries may legitimately *describe* the
+    // R1 rule (and thus the word 待提交) in their prose.
+    if (/^-\s*\*\*收口提交\*\*.*待提交/m.test(text)) {
         risks.push(`R1 条 ${e.n} 仍写「待提交」`);
     }
 }
 
 // R2: short commit hashes in the newest entry must exist
 const hashes = new Set();
-for (const m of body.matchAll(/(?<![0-9a-f])([0-9a-f]{7})(?![0-9a-f])/g)) {
-    hashes.add(m[1]);
+// Hex runs of 7..39 chars that contain at least one letter. The run-based
+// scan keeps 40/64-char SHA1/SHA256 digests out: their digit-only windows
+// used to be mis-read as short commit hashes.
+for (const m of body.matchAll(/[0-9a-fA-F]{7,}/g)) {
+    const run = m[0];
+    if (run.length > 39 || !/[a-fA-F]/.test(run)) {
+        continue;
+    }
+    hashes.add(run.toLowerCase());
 }
 for (const h of hashes) {
     try {

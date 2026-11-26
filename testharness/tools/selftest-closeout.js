@@ -61,7 +61,7 @@ check('clean', books(
 
 // 2 stale 待提交 in an older entry
 check('stale-pending', books(
-    `### 条 1 · B-99X 旧批\n\n- 收口提交：待提交。\n\n### 条 2 · B-99Y 新批\n\n- 收口提交：\`${head}\`（已推送，origin 欠 0）。\n`,
+    `### 条 1 · B-99X 旧批\n\n- **收口提交**：待提交。\n\n### 条 2 · B-99Y 新批\n\n- 收口提交：\`${head}\`（已推送，origin 欠 0）。\n`,
     '## B-99X\n\n## B-99Y\n'), 1, 'R1');
 
 // 3 dead hash
