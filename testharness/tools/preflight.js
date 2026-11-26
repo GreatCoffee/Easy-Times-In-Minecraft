@@ -77,6 +77,10 @@ step('scripts', 'check-scripts.js', [], (c) => c !== 0, '[ScriptLog]');
 // B-70TF: the four closeout mistakes that actually happened (条 353 / 414).
 step('closeout', 'check-closeout.js', [], (c) => c !== 0, '[CloseoutLog]');
 
+// census「已落地」面的 ETIM位 指针必须在今天的代码里仍然成立（B-70TH）。
+// CI 只克隆 mod 仓库，缺少 playground/ 时工具自行 SKIP 并 exit 0。
+step('faces', 'check-faces.js', [], (c) => c !== 0, '[FaceLog]');
+
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);
 if (bad.length) {

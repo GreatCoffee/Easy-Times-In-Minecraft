@@ -215,3 +215,28 @@ node testharness/tools/check-closeout.js --root <books> --repo <mod-repo>   # �
 
 退出码 0 干净 / 1 有风险 / 2 账本树或仓库缺失（CI 上自动 SKIP）。
 自检：`node testharness/tools/selftest-closeout.js`（5 例，建临时账本树 + 临时 git 仓库，含裸 origin）。
+
+## 账本↔源码反向核对 —— check-faces.js
+
+census 六卷的「逐面」段里，`状态:【已落地】` 的面必须能在今天的代码里找到
+对应位置（B-70TH 起入 preflight 第 9 步）。工具只读，不猜语义：
+
+| 规则 | 检查 | 失败后果 |
+| --- | --- | --- |
+| F1 | `ETIM位` 里的 `<Name>.java` 在 ETIM `src/main/java` 或 R196 反编译树里存在 | 文件改名/删除后账本仍指旧名 |
+| F2 | 行号区间落在文件长度内（`start ≤ end ≤ lines`） | 重构后行号漂移 |
+| F3 | 文件里确有 `class/interface/enum <Name>` | 类名对不上（理论兜底） |
+
+- R196 树（`mite-src/decompile/src`）用于「间接等价（无产品改码）」类条目，
+  命中算 `r196=N` 计数，不算失败。
+- `noPointer` 是 INFO：老批次里用散文描述对位的已落地面，抽不出指针。
+- 默认从 `testharness/tools/` 往上四层找工作区；`--root` / `--repo` / `--r196`
+  或环境变量 `FACE_BOOKS_ROOT` / `FACE_REPO` / `FACE_R196` 可指别处。
+- 缺 `playground/audit/census`（CI 只克隆 mod 仓库）时打 `[FaceLog] SKIP` 并 exit 0。
+
+```
+node testharness/tools/check-faces.js          # 全卷，exit 0/1/2
+node testharness/tools/check-faces.js --list   # 逐条打印 F1/F2/F3 与 noPointer
+node testharness/tools/check-faces.js --vol C  # 单卷
+node testharness/tools/selftest-faces.js       # 6 例自检（含 F3 与 R196 引用）
+```
