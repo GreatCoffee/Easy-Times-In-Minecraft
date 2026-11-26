@@ -14,7 +14,7 @@ const h = H.create({
   run: RUN,
   world: 'w-b70-' + RUN + '-v1',      // 也接受 (run) => name
   bot: 'ETIM_F7',
-  cfg: ['blockDebugLog', 'sparkR196'], // 窗口内强制 true，stop 时还原
+  cfg: ['combat:blockDebugLog', 'blocks:sparkR196'], // section:key，窗口内强制 true，stop 时还原
   props: { 'allow-flight': 'true' },
   stage: {
     gamemode: 0, difficulty: 2, time: 6000, weather: 'clear',
@@ -42,7 +42,8 @@ h.guard(main);                        // 异常 → stop() → exit 1
 - `cmd()` 自动把 `name[moisture=n]` / `name[age=n]` 转成 1.12 的 `name <meta>`。
 - `stampPin()` 比对 `f7-wb-lib.js:35` 的 PIN（release 大小 + SHA-256）与 MK 计数，钉值仍只改那一处。
 - `stage.rules` 覆盖默认 gamerules（默认见 `harness.js` 的 `DEFAULT_RULES`）。
-- `cfg` 里若某键还没写入磁盘，窗口按服务端默认值放行并打 `[cfg] absent …`，不中断起服。
+- `cfg` 里的键写成 `section:key`（不写前缀默认 `blocks`）。键不在磁盘时直接写入该 section 的 `B:key=true`，起服后回读校验；回读不是 true 就硬失败，不再「按默认放行」。
+- `waitRow()` 只接单个 RegExp，返回自上而下第一个命中行（多条件请自行在调用侧组合）。
 - 退出口径：`pin && 全部 res 项为 true && 无非零退出` 才 exit 0，否则 exit 2；异常路径 exit 1。
 
 ## 巡检

@@ -25,7 +25,7 @@ const h = H.create({
   run: RUN,
   world: 'w-b69-' + RUN + '-v1',
   bot: A,
-  cfg: ['blockDebugLog', 'sparkR196', 'mountedR196'],
+  cfg: ['combat:blockDebugLog', 'blocks:sparkR196', 'blocks:mountedR196'],
   props: { 'allow-flight': 'true' },
   stage: {
     gamemode: 0,

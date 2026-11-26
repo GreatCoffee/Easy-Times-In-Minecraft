@@ -29,6 +29,30 @@ function bs(s) {
     return s.replace(/([A-Za-z0-9_:.]+)\[(?:moisture|age)=(\d+)\]/g, '$1 $2');
 }
 
+/** Insert `    B:<key>=<value>` just before a cfg section's closing brace. */
+function insertCfgEntry(text, section, key, value) {
+    const lines = text.split(/\r?\n/);
+    const head = lines.findIndex((s) => s.trim() === section + ' {');
+    if (head < 0) {
+        throw new Error('cfg section missing: ' + section);
+    }
+    const end = lines.findIndex((s, i) => i > head && s === '}');
+    if (end < 0) {
+        throw new Error('cfg section unclosed: ' + section);
+    }
+    lines.splice(end, 0, '    B:' + key + '=' + value);
+    return lines.join('\n');
+}
+
+/** `'blocks:sparkR196'` or plain `'sparkR196'` (blocks section). */
+function cfgPair(item) {
+    if (Array.isArray(item)) {
+        return item;
+    }
+    const i = item.indexOf(':');
+    return i < 0 ? ['blocks', item] : [item.slice(0, i), item.slice(i + 1)];
+}
+
 /** Default stage: server-side creative park, no spawns, fixed noon, flat stone arena. */
 const DEFAULT_RULES = {
     doMobLoot: 'false', doTileDrops: 'true', doDaylightCycle: 'false', doFireTick: 'false',
@@ -87,12 +111,11 @@ function create(opts) {
         await sleep(wait == null ? 250 : wait);
     }
 
-    /** Poll the log since `from` until every RegExp in `re` has a hit (or timeout). */
+    /** Poll the log since `from` for the first `re` hit (or timeout). */
     async function waitRow(re, from, ms) {
         const t0 = Date.now();
-        const res = Array.isArray(re) ? re : [re];
         while (Date.now() - t0 < ms) {
-            const hit = slice(from).map((s) => res.map((r) => r.exec(s)).find(Boolean)).filter(Boolean);
+            const hit = slice(from).map((s) => re.exec(s)).filter(Boolean);
             if (hit.length) {
                 return hit;
             }
@@ -133,17 +156,21 @@ function create(opts) {
         }
         fs.writeFileSync(L.PROPS, props, 'utf8');
         let bootCfg = h.cfgBefore;
-        const absent = [];
-        for (const key of (o.cfg || [])) {
-            const re = new RegExp('B:' + key + '=(true|false)');
-            if (!re.test(bootCfg)) {
-                // A key the last build never wrote yet: ETIMConfig registers it with
-                // its default on load, so the window keeps that default instead of
-                // forcing anything. Report it rather than silently pretending.
-                absent.push(key);
-                continue;
+        const forced = (o.cfg || []).map(cfgPair);
+        for (const [section, key] of forced) {
+            const re = new RegExp('^([ \\t]+)([A-Z]):' + key + '=(.*)$', 'm');
+            const m = re.exec(bootCfg);
+            if (m && m[2] !== 'B') {
+                throw new Error('cfg key ' + key + ' is not a boolean');
             }
-            bootCfg = bootCfg.replace(re, 'B:' + key + '=true');
+            if (m) {
+                bootCfg = bootCfg.replace(re, (line, lead) => lead + 'B:' + key + '=true');
+            } else {
+                // The key is not on disk yet (a flag added by the current build):
+                // write it into its section so the window really runs with it on
+                // instead of trusting whatever default the code happens to carry.
+                bootCfg = insertCfgEntry(bootCfg, section, key, 'true');
+            }
         }
         for (let attempt = 1; attempt <= 3; attempt++) {
             for (let i = 0; i < 36 && L.netstatListen(L.PORT) !== 0; i++) {
@@ -156,11 +183,17 @@ function create(opts) {
             h.srv = await L.startServer({ root: L.ROOT, tag: t });
             if (await h.srv.waitFor(/Done \(/, 180000)) {
                 const disk = fs.readFileSync(L.CFG, 'utf8');
-                const flags = (o.cfg || []).map((k) => k + '=' + (new RegExp('B:' + k + '=(true|false)').exec(disk) || [])[1]);
-                console.log('[cfg]', t, ...flags);
-                if (absent.length) {
-                    console.log('[cfg] absent', t, ...absent, '(key not on disk yet; server default stands)');
+                const badFlags = [];
+                for (const [, key] of forced) {
+                    const m = new RegExp('^\\s+[A-Z]:' + key + '=(.*)$', 'm').exec(disk);
+                    if (!m || m[1] !== 'true') {
+                        badFlags.push(key + '=' + (m ? m[1] : 'absent'));
+                    }
                 }
+                if (badFlags.length) {
+                    throw new Error('cfg not forced after boot: ' + badFlags.join(' '));
+                }
+                console.log('[cfg]', t, ...forced.map(([, key]) => key + '=true'));
                 return;
             }
             try { await h.srv.stop(30000); } catch (e) { /* noop */ }
@@ -208,7 +241,7 @@ function create(opts) {
     }
 
     /** Print the [done] row and exit 0 only when pin/arms/stops are all clean. */
-    function finish(res, extra) {
+    function finish(res) {
         const bad = Object.keys(res).filter((k) => !res[k]);
         const out = Object.assign({ run, pin: h.pinOk }, res, {
             stops: h.stops.filter((s) => !(s && s.exitCode === 0)).length,
@@ -216,7 +249,7 @@ function create(opts) {
             pass: h.pinOk && bad.length === 0,
             bad: bad.length,
             badKeys: bad,
-        }, extra || {});
+        });
         console.log('[done] ' + JSON.stringify(out));
         process.exit(out.pass && out.stops === 0 ? 0 : 2);
     }
@@ -234,4 +267,4 @@ function create(opts) {
     return h;
 }
 
-module.exports = { create, bs, DEFAULT_RULES };
+module.exports = { create, bs, DEFAULT_RULES, insertCfgEntry, cfgPair };
