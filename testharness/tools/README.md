@@ -288,3 +288,27 @@ node testharness/tools/batch-status.js --all      # 每批一行，末行给 wit
 退出码：0 无风险 / 1 有风险 / 2 找不到该批次。`BATCH_ROOT`（工作区根）与 `BATCH_REPO`（mod 仓库）可指别处。
 
 > 2026-11-26 首跑修掉 6 条真漂移：B-30/B-31 缺 sessions 段（已补记），B-68/B-70TA/B-70TB/B-70TC 的收口行写「未推送」而哈希早随后续批次进了 origin（已改写为「后续批次推送时一并上去」）。
+
+## 剩余面就绪度 —— face-readiness.js
+
+census 里还剩 200 多面没落地，但「能不能马上开工」差别很大：有的载体类已经在，只差行为；
+有的连类都没有；有的 R196 原文本身就缺。这个工具把三者分开，并按载体簇给出批次建议。
+
+```
+node testharness/tools/face-readiness.js          # 重建 playground/audit/census/剩余-就绪度.md
+node testharness/tools/face-readiness.js --check  # 只比对，账本变了没重建 → exit 1
+node testharness/tools/selftest-readiness.js      # 2/2：四档分类 + stale 检出
+```
+
+四档状态（逐面段 `状态:【未立项】`，§3 镜像自动跳过）：
+
+| 状态 | 判据 | 含义 |
+| --- | --- | --- |
+| `WIRE` | 存在 `ETIM<X>` / `ETIMBlock<X>` / `ETIMItem<X>` / `ETIMEntity<X>` / `ETIMWorldGen<X>` / `Mixin<X>` | 载体已在，只差行为或接线 |
+| `CITE` | 只在别的类注释里被引用（区间重叠） | 可考但需先确认载体归属 |
+| `NEW` | 都没有 | 要新建类 |
+| `NO-SOURCE` | R196 原文缺失 | 先补原文，不能开工 |
+
+依赖面按引用文件名推断：`BIOME`（群系/装饰）、`SPAWN`（刷怪）、`GUI`（容器/界面）、`CORE`（玩家/生物/物品栈）。
+生成物 `playground/audit/census/剩余-就绪度.md` 不要手改；preflight 第 10 步用 `--check` 拦陈旧。
+`READY_BOOKS_ROOT` / `READY_REPO` / `READY_R196` 可指向别树（自检就用这个）。

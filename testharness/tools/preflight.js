@@ -20,6 +20,9 @@
  *            node testharness/tools/index-scripts.js)
  *   closeout newest ledger entry vs git (stale 待提交 / dead hash /
  *            missing sessions section / push-state mismatch)
+ *   faces    census landed rows resolve to today's ETIM sources
+ *   ready    census 剩余-就绪度.md freshness (regenerate with
+ *            node testharness/tools/face-readiness.js)
  */
 'use strict';
 const { execFileSync } = require('child_process');
@@ -80,6 +83,7 @@ step('closeout', 'check-closeout.js', [], (c) => c !== 0, '[CloseoutLog]');
 // census「已落地」面的 ETIM位 指针必须在今天的代码里仍然成立（B-70TH）。
 // CI 只克隆 mod 仓库，缺少 playground/ 时工具自行 SKIP 并 exit 0。
 step('faces', 'check-faces.js', [], (c) => c !== 0, '[FaceLog]');
+step('ready', 'face-readiness.js', ['--check'], (c) => c !== 0, '[ReadyLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);
