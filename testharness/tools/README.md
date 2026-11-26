@@ -42,3 +42,20 @@ node testharness/tools/check-books.js --list   # 全部发现
 
 统计 `testharness/player/` 下还有多少脚本自带 boot/stop/cmd/PIN/`[done]`，输出
 `[HarnessLog] files=… onHarness=… offenders=…`；`--list` 逐份列。恒 exit 0，看趋势用。
+
+## check-config.js —— ETIMConfig 结构化自检 + 盘上漂移
+
+```powershell
+node testharness/tools/check-config.js                        # 字段/注册一一对应
+node testharness/tools/check-config.js --list                 # 附 config_only 与分类计数
+node testharness/tools/check-config.js --file run/config/etim.cfg   # 盘上基线 vs 代码默认
+```
+
+- 硬错（退出码 1）：字段与 `init()` 注册不一一对应、取数函数与类型不符、
+  注册默认值与字段初值不等、默认值越出 `[min,max]`、同键重复注册。
+- `--file`（退出码 2 = DRIFT）：`run/config/etim.cfg` 与代码默认比较，
+  列出 `drift`（值不同）、`stale`（文件里有、代码里已删的旧键）、
+  `missing`（代码新增、文件里还没有，首启会由 Forge 补写，仅提示）。
+- 为什么需要：Forge **从不改写已存在的条目**，判窗脚本又习惯「读快照→改→跑完写回快照」，
+  印错的旧值会被一代代原样还原。改过 cfg 或收批前跑一次 `--file`，`drift=0 stale=0` 才算基线干净。
+
