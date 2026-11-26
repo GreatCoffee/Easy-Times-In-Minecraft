@@ -2,6 +2,19 @@
 
 下列脚本都不起服、不写产品码，随时可跑。
 
+## preflight.js —— 开窗前一次跑完
+
+```powershell
+node testharness/tools/preflight.js
+```
+
+依次跑 books / config / disk-cfg / channels / harness 五步，任何一步有风险就非零退出并点名
+该修哪个。`harness` 是趋势项（脚手架收编进度），只报不挡。
+
+从 B-70T6 起，`testharness/player/lib/harness.js` 的 `boot()` 会先用
+`check-channels.js --script <当前脚本>` 自查：脚本断言了某个 `[XxxLog]` 通道却没在
+`cfg: [...]` 里打开对应的门，直接抛错，不会浪费一次 90 秒起服。
+
 ## verify-diff.js —— 判窗锚点对位
 
 喂两窗的证据，输出机械差异单：规则名集合与计数、挂载行多重集、W1..W4 键集与取值、

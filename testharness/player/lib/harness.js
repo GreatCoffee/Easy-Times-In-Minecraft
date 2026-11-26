@@ -21,7 +21,28 @@
 'use strict';
 const fs = require('fs');
 const path = require('path'); // C-B70T4-1: :135 uses path.join for <run>-driver.log
+const { execFileSync } = require('child_process');
 const L = require('../f7-wb-lib.js');
+
+/**
+ * B-70T6: refuse to start a window whose script asserts a log channel it does
+ * not force. `check-channels --script` already knows every log producer, its
+ * cfg gate and whether this file opens it, so a false green dies here instead
+ * of after a 90-second boot.
+ */
+function assertChannels(file) {
+    const tool = path.join(L.ROOT, 'testharness', 'tools', 'check-channels.js');
+    try {
+        const out = execFileSync(process.execPath, [tool, '--script', file], { encoding: 'utf8' });
+        const line = out.split(/\r?\n/).find((s) => s.startsWith('[ChannelLog] script='));
+        if (line) {
+            console.log(line);
+        }
+    } catch (e) {
+        const detail = ((e.stdout || '') + (e.stderr || '')).trim();
+        throw new Error('channel preflight failed for ' + path.basename(file) + '\n' + detail);
+    }
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -201,6 +222,11 @@ function create(opts) {
     /** Start the dev server for this batch window; retries while the port drains. */
     async function boot(tag) {
         const t = tag || run;
+        const main = require.main && require.main.filename;
+        if (main && main.includes('testharness')) {
+            // B-70T6: a script that asserts a channel it never opens dies here.
+            assertChannels(main);
+        }
         h.propsBefore = fs.readFileSync(L.PROPS, 'utf8');
         h.cfgBefore = fs.readFileSync(L.CFG, 'utf8');
         let props = h.propsBefore;

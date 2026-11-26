@@ -43,7 +43,8 @@ if (argv.includes('--script') && !scriptArg) {
   process.exit(2);
 }
 
-const TOOL_CHANNELS = new Set(['HarnessLog', 'DiffLog', 'LedgerLog', 'ChannelLog', 'PinLog']);
+// XxxLog is the placeholder used in docs, never a real channel.
+const TOOL_CHANNELS = new Set(['HarnessLog', 'DiffLog', 'LedgerLog', 'ChannelLog', 'PinLog', 'XxxLog']);
 const CHANNEL_RE = /\\?\[([A-Za-z][A-Za-z0-9]*Log)\\?\]/g;
 const GATE_RE = /if\s*\(\s*!?\s*ETIMConfig\.([A-Za-z0-9_]+)/;
 
