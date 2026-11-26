@@ -172,3 +172,24 @@ node testharness/tools/check-version.js --tag 1.0.0   # tag 与 mod_version 对�
 
 **不要再把 `org.gradle.java.home` 写进 `gradle.properties`**：那是机器相关的绝对路径，Linux runner 上一启动就失败。
 本地构建照 `AGENTS.md` 约束 0 设 `JAVA_HOME` 即可；要图省事，写进仓库外的 `%USERPROFILE%\.gradle\gradle.properties`。
+
+## 封批一条命令 —— `close-batch.js`
+
+```powershell
+node testharness/tools/close-batch.js --dry-run \
+  --batch B-71 --scope "灌木（census F :128）" \
+  --verdict testharness/reports/b71-verify-verdict.md \
+  --receipt testharness/reports/b71-verify-receipt.md \
+  --land "F:BlockBush.java:1-223=world/ETIMBlockBush.java（B-71）"
+```
+
+封批时手工六步里可机械化的五步一次做完：**翻 census 行并改卷头计数 → 账册新条目（自动接号）→ sessions 段 → 重建 `player/INDEX.md` → 跑 preflight**。
+不自动 commit：结尾打印「只 add 本批文件」的提示，按项目规矩手工提交。
+
+硬门（任一不满足就不写盘，exit 1）：
+- verdict 文件必须存在且含 `PASS` 与 `A=0`；
+- 账册里不能已有该批次条目（防重号 / 重复收口）；
+- 每个 `--land VOL:KEY=ETIM位` 的 KEY 必须在对应卷里找到且状态为【未立项】；
+- 翻面数不能超过 `census_unrecorded`（防计数变负）。
+
+`--dry-run` 只打印计划与实际会写入的条目正文；写完 preflight 仍红则 exit 2（文件已落，按提示修）。
