@@ -86,6 +86,15 @@ cases.push({
     expect: /r196=1 missingFile=0 badRange=0/,
 });
 cases.push({
+    name: 'parity-marker',
+    root: tree([
+        '[面] P.java:1-2 | parity | 状态:【已落地】 | ETIM位:【parity】vanilla 原样',
+        '[面] Z.java:1-2 | zero | 状态:【已落地】 | ETIM位:【zero-port】无载体',
+    ]),
+    want: 0,
+    expect: /parity=1 zeroPort=1 noPointer=0/,
+});
+cases.push({
     name: 'unlanded-ignored',
     root: tree([
         '[面] E.java:1-2 | pending | 状态:【未立项】 | ETIM位:',

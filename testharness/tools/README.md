@@ -250,7 +250,10 @@ census 六卷的「逐面」段里，`状态:【已落地】` 的面必须能在
 
 - R196 树（`mite-src/decompile/src`）用于「间接等价（无产品改码）」类条目，
   命中算 `r196=N` 计数，不算失败。
-- `noPointer` 是 INFO：老批次里用散文描述对位的已落地面，抽不出指针。
+- `noPointer` 是 INFO：老批次里用散文描述对位、且抽不出指针的已落地面。
+  这类行必须显式标注 `【parity】`（vanilla 行为原样保留，无 ETIM 代码）或
+  `【zero-port】`（R196 机制在 1.12 无载体/无对应物），二者分别计入
+  `parity=N` / `zeroPort=N`，不算缺口（B-70TL 起）。
 - 默认从 `testharness/tools/` 往上四层找工作区；`--root` / `--repo` / `--r196`
   或环境变量 `FACE_BOOKS_ROOT` / `FACE_REPO` / `FACE_R196` 可指别处。
 - 缺 `playground/audit/census`（CI 只克隆 mod 仓库）时打 `[FaceLog] SKIP` 并 exit 0。
@@ -259,7 +262,7 @@ census 六卷的「逐面」段里，`状态:【已落地】` 的面必须能在
 node testharness/tools/check-faces.js          # 全卷，exit 0/1/2
 node testharness/tools/check-faces.js --list   # 逐条打印 F1/F2/F3 与 noPointer
 node testharness/tools/check-faces.js --vol C  # 单卷
-node testharness/tools/selftest-faces.js       # 6 例自检（含 F3 与 R196 引用）
+node testharness/tools/selftest-faces.js       # 7 例自检（含 F3、R196 引用、parity/zero-port 标记）
 ```
 
 ## 批次状态机 —— batch-status.js

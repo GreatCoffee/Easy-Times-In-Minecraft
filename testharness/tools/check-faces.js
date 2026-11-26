@@ -78,7 +78,7 @@ const PTR = /([A-Za-z_$][\w$]*\.java):(\d+)(?:\s*-\s*(\d+))?/g;
 
 const problems = [];
 const noPointer = [];
-let rows = 0, landed = 0, pointers = 0, missingFile = 0, badRange = 0, missingSymbol = 0, r196 = 0;
+let rows = 0, landed = 0, pointers = 0, missingFile = 0, badRange = 0, missingSymbol = 0, r196 = 0, parity = 0, zeroPort = 0;
 
 for (const vol of vols) {
     const lines = fs.readFileSync(path.join(censusDir, vol), 'utf8').split(/\r?\n/);
@@ -94,7 +94,12 @@ for (const vol of vols) {
         const etim = (parts.find((p) => p.startsWith('ETIM位:')) || '').replace('ETIM位:', '');
         const where = `${vol.slice(0, 3)}:${i + 1} ${ref}`;
         const found = [...etim.matchAll(PTR)];
-        if (found.length === 0) { noPointer.push(where); continue; }
+        if (found.length === 0) {
+            if (/【parity】/.test(etim)) { parity++; continue; }
+            if (/【zero-port】/.test(etim)) { zeroPort++; continue; }
+            noPointer.push(where);
+            continue;
+        }
         for (const m of found) {
             pointers++;
             const name = m[1], start = +m[2], end = m[3] ? +m[3] : start;
@@ -134,6 +139,6 @@ if (LIST) {
 }
 const bad = missingFile + badRange + missingSymbol;
 say(`[FaceLog] vols=${vols.length} rows=${rows} landed=${landed} pointers=${pointers} r196=${r196} `
-    + `missingFile=${missingFile} badRange=${badRange} missingSymbol=${missingSymbol} noPointer=${noPointer.length} [local]`);
+    + `missingFile=${missingFile} badRange=${badRange} missingSymbol=${missingSymbol} parity=${parity} zeroPort=${zeroPort} noPointer=${noPointer.length} [local]`);
 say(`[FaceLog] verdict ${bad === 0 ? 'OK' : 'DRIFT'}`);
 process.exit(bad === 0 ? 0 : 1);
