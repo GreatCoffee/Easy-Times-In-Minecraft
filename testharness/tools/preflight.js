@@ -14,6 +14,8 @@
  *   disk-cfg run/config/etim.cfg vs code defaults (drift / stale / missing)
  *   channels [XxxLog] producers, cfg gates, script forcing
  *   harness  scaffolding trend (report only, never fails)
+ *   driver   window-driver templates: boot/PIN, mark before use, explicit
+ *            player on console seeds, gamerule prerequisites
  */
 'use strict';
 const { execFileSync } = require('child_process');
@@ -64,6 +66,8 @@ if (haveCfg) {
 }
 step('channels', 'check-channels.js', [], (c) => c !== 0, '[ChannelLog]');
 step('harness', 'check-harness.js', [], () => false, '[HarnessLog]');
+// B-70TA: the four driver defects that cost B-70T8/T9 ten B-items.
+step('driver', 'check-driver.js', [], (c) => c !== 0, '[DriverLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);

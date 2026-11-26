@@ -151,6 +151,7 @@ function create(opts) {
     const h = {
         run, world, botName,
         srv: null, bot: null,
+        pinStamped: false,
         propsBefore: null, cfgBefore: null,
         stops: [],
         pinOk: false,
@@ -215,6 +216,7 @@ function create(opts) {
         const mk = L.mkCounts();
         const ok = sha === expectedSha && jar.length === L.PIN.releaseSize && mk.ok;
         h.pinOk = ok;
+        h.pinStamped = true;
         say(`[PIN] sha=${sha} shaOk=${sha === expectedSha} size=${jar.length} sizeOk=${jar.length === L.PIN.releaseSize} mkOk=${mk.ok} ok=${ok}`);
         return ok;
     }
@@ -270,6 +272,11 @@ function create(opts) {
                     throw new Error('cfg not forced after boot: ' + badFlags.join(' '));
                 }
                 say('[cfg]', t, ...forced.map(([, key]) => key + '=true'));
+                // B-B70TA-1: every window must prove the jar it ran; forgetting
+                // stampPin() used to surface only in the receipt, one round late.
+                if (!h.pinStamped) {
+                    stampPin();
+                }
                 return;
             }
             try { await h.srv.stop(30000); } catch (e) { /* noop */ }

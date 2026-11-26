@@ -125,4 +125,20 @@ $env:JAVA_HOME='D:\OpenCodeWorkspace\Easy Times In Minecraft\jdk\zulu25.38.107-c
 - JUnit 5 已由 `enable_junit_testing`（`gradle.properties:16 = true`）接好，无需另加依赖。
 - 这些测试**不替代**判窗：起服窗仍负责真实物品路径、日志通道与命令面。
 
+## 判窗驱动模板检查 —— `check-driver.js`
 
+```powershell
+node testharness/tools/check-driver.js --list
+node testharness/tools/check-driver.js --script f13-b70t9-smoke.js
+```
+
+固定四条教训（B-70T8/B-70T9 共 10 条 B 级全部是这四类）：
+
+- **R1 boot-missing**：上 harness 的脚本必须调 `h.boot(...)`；
+- **R2 mark-after-use**：`mark()` 数量不得少于 `waitRow()`，且首个 `mark` 必须在首个 `waitRow` 之前；
+- **R3 player-missing**：`/etest hungerstate|hungerpools` 从控制台发时必须带玩家（`${A}` / `botName` / 字面名）；
+- **R4 gamerule-missing**：断言回血类行时必须出现 `naturalRegeneration`（不前置则每 tick 清零）。
+
+老脚本的 R2/R4 只计 `debt` 不计失败；R3 对所有脚本硬判。已接入 `preflight.js` 第 6 步，
+`selftest-driver.js` 用 5 个 fixture 守住检查器本身。另：`lib/harness.js` 的 `boot()` 成功后
+会自动 `stampPin()`（`h.pinStamped`），窗口不会再出现 `pin:false`。
