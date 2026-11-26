@@ -47,6 +47,19 @@ node testharness/tools/verify-diff.js --base latest --new latest
   由 harness 另写 `testharness/build-logs/<run>-driver.log`，两边一起喂才算完整。
 - 自检：`node testharness/tools/selftest-verify-diff.js`（9 项，离线）。
 
+### 模式二：`--mode=arms`（通道活口对位）
+
+`[MountLog]` 只覆盖挂载面；其它批次窗口一行 `[MountLog]` 都没有，此时默认模式是「结构性零对零」，MATCH 属平凡成立（C-B70TJ-1 的由来）。arms 模式改为对位**确定性通道**的 `[Chan] token` 是否存在：
+
+```powershell
+node testharness/tools/verify-diff.js --mode=arms --base <旧窗.out> --new <新窗.out>
+node testharness/tools/verify-diff.js --mode=arms --channels=BlockFaceLog,FarmLog --strict-counts ...
+```
+
+- 默认纳入：`BlockFaceLog / ItemLog / FarmLog / FoodR196Log / FoodLog / SparkLog / MountLog / TestLog / VesselLog`（`--channels=` 可覆盖）。
+- 环境噪声通道（`AILog / SpawnLog / WorldGenSpawnLog / GelLog / PickupLog / OreLog / EquipLog / UndeadLog`）默认不参与，避免生物随机游走造成假 DIFF。
+- 默认只比「存在性」；加 `--strict-counts` 才比条数。
+
 ## check-books.js —— 账本自检
 
 普查卷头计数、卷内 `[面]` 行、总账表、账册条号、报告清单。

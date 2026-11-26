@@ -79,6 +79,31 @@ check('detects mayplace delta', /mayplace 2 -> 3/.test(d.out));
 check('detects W3 key change', /W3 keys .*changed=x/.test(d.out));
 check('detects done diff', /done .*"bad":0.* -> .*"bad":1/.test(d.out));
 
+// --mode=arms: deterministic channels are compared, ambient ones ignored.
+function armsTee(name, lines) {
+  const p = path.join(dir, name);
+  fs.writeFileSync(p, lines.join('\n'), 'utf8');
+  return p;
+}
+const armsBase = armsTee('arms-base.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [BlockFaceLog] cushion block=minecraft:sand value=0.400',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [BlockFaceLog] fall dist=10.000 raw=15.000',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [AILog] mob wander=1',
+]);
+const armsSame = armsTee('arms-same.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [BlockFaceLog] cushion block=minecraft:wool value=0.800',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [BlockFaceLog] fall dist=10.000 raw=15.000',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [AILog] mob wander=7',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [AILog] mob wander=8',
+]);
+const armsDrift = armsTee('arms-drift.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [BlockFaceLog] cushion block=minecraft:sand value=0.400',
+]);
+const a1 = run(['--mode=arms', '--base', armsBase, '--new', armsSame]);
+check('arms MATCH ignores ambient noise', a1.code === 0 && /verdict MATCH/.test(a1.out), a1.out.trim().split('\n').pop());
+const a2 = run(['--mode=arms', '--base', armsBase, '--new', armsDrift]);
+check('arms detects a vanished arm', a2.code === 1 && /arm only-in-base: \[BlockFaceLog\] fall×1/.test(a2.out), a2.out.trim().split('\n').pop());
+
 const usage = run(['--base', 'no-such-file.out', '--new', same.tee]);
 check('missing file exits 2', usage.code === 2, usage.out.trim().split('\n').pop());
 

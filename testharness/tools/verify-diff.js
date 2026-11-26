@@ -66,6 +66,9 @@ function parseAll(files) {
         rules: new Map(),
         mounts: new Map(),
         mayplace: 0,
+        // Generic channel+first-token multiset (--mode=arms): catches an arm
+        // that silently stopped firing even when [MountLog] never appears.
+        lines: new Map(),
     };
     for (const file of files) {
         out.files.push(path.basename(file));
@@ -109,6 +112,11 @@ function parseAll(files) {
             if (/\[MountLog\] mayplace /.test(line)) {
                 out.mayplace++;
             }
+            const gm = /\[([A-Za-z0-9_]+Log)\]\s+(\S+)/.exec(line);
+            if (gm) {
+                const key = `[${gm[1]}] ${gm[2]}`;
+                out.lines.set(key, (out.lines.get(key) || 0) + 1);
+            }
         }
     }
     return out;
@@ -146,8 +154,20 @@ function main(argv) {
     const args = argv.slice(2);
     let baseArg = null;
     let newArg = null;
+    let mode = 'mount';
+    let strictArms = false;
+    let strictCounts = false;
+    let channels = null;
     for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--base') {
+        if (args[i] === '--strict-counts') {
+            strictCounts = true;
+        } else if (args[i].startsWith('--channels=')) {
+            channels = args[i].slice(11).split(',').map((s) => s.trim()).filter(Boolean);
+        } else if (args[i] === '--mode=arms') {
+            mode = 'arms';
+        } else if (args[i] === '--strict-arms') {
+            strictArms = true;
+        } else if (args[i] === '--base') {
             baseArg = args[++i];
         } else if (args[i] === '--new') {
             newArg = args[++i];
@@ -188,7 +208,33 @@ function main(argv) {
         }
     }
 
-    const rd = mapDiff(base.rules, cur.rules);
+    if (mode === 'arms') {
+        // Ambient channels (AI wandering, spawn rolls, ore gen) differ run to run;
+        // arms mode only looks at the deterministic channels the driver asserts.
+        const AUTO = ['BlockFaceLog', 'ItemLog', 'FarmLog', 'FoodR196Log', 'FoodLog',
+            'SparkLog', 'MountLog', 'TestLog', 'VesselLog'];
+        const keep = new Set(channels || AUTO);
+        const pick = (m) => {
+            const o = new Map();
+            for (const [k, v] of m) {
+                const ch = k.slice(1, k.indexOf(']'));
+                if (keep.has(ch)) o.set(k, strictCounts ? v : 1);
+            }
+            return o;
+        };
+        console.log('[DiffLog] arms channels=' + [...keep].join(','));
+        const ld = mapDiff(pick(base.lines), pick(cur.lines));
+        if (ld.onlyA.length) findings.push('arm only-in-base: ' + ld.onlyA.join(' ; '));
+        if (ld.onlyB.length) findings.push('arm only-in-new: ' + ld.onlyB.join(' ; '));
+        if (ld.delta.length) findings.push('arm count: ' + ld.delta.join(' ; '));
+        if (!base.lines.size && !cur.lines.size && !strictArms) {
+            console.log('[DiffLog] note arms mode saw zero [XxxLog] rows on both sides — pass --strict-arms to fail instead');
+        } else if (base.lines.size && cur.lines.size) {
+            console.log(`[DiffLog] arms base=${base.lines.size} new=${cur.lines.size}`);
+        }
+    }
+
+    const rd = mode === 'arms' ? { onlyA: [], onlyB: [], delta: [] } : mapDiff(base.rules, cur.rules);
     if (rd.onlyA.length) {
         findings.push('rule only-in-base: ' + rd.onlyA.join(', '));
     }
@@ -199,7 +245,7 @@ function main(argv) {
         findings.push('rule count: ' + rd.delta.join(', '));
     }
 
-    const md = mapDiff(base.mounts, cur.mounts);
+    const md = mode === 'arms' ? { onlyA: [], onlyB: [], delta: [] } : mapDiff(base.mounts, cur.mounts);
     if (md.onlyA.length) {
         findings.push('mount only-in-base: ' + md.onlyA.join(' ; '));
     }
@@ -209,7 +255,7 @@ function main(argv) {
     if (md.delta.length) {
         findings.push('mount count: ' + md.delta.join(' ; '));
     }
-    if (base.mayplace !== cur.mayplace) {
+    if (mode !== 'arms' && base.mayplace !== cur.mayplace) {
         findings.push(`mayplace ${base.mayplace} -> ${cur.mayplace}`);
     }
 
