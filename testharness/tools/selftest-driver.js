@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Fixture self-test for check-driver.js: five tiny scripts, one per rule plus a
- * clean one. Builds a throw-away tree under the temp dir and asserts the exit
- * codes, so the checker itself cannot regress silently.
+ * Fixture self-test for check-driver.js: one tiny script per rule, each run in
+ * its OWN throw-away tree so a failure can only come from that fixture (an
+ * earlier bad file must not lend an exit code to a later case).
  *
  *   node testharness/tools/selftest-driver.js
  */
@@ -13,10 +13,6 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const TOOL = path.join(__dirname, 'check-driver.js');
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'driver-selftest-'));
-const player = path.join(root, 'testharness', 'player');
-fs.mkdirSync(player, { recursive: true });
-
 const HEAD = "const H = require('./lib/harness.js');\n";
 
 const cases = [
@@ -37,6 +33,12 @@ const cases = [
         code: 1,
     },
     {
+        // C-B70TA-2: the other half of R2 — one mark serving two waitRows.
+        name: 'mark-short.js',
+        src: HEAD + "const h = H.create({ run: 'x' });\nasync function main() { await h.boot('x'); const f = h.mark(); await h.cmd('say a'); await h.waitRow(/a/, f, 1); await h.waitRow(/b/, f, 1); h.finish({}); }\nh.guard(main);\n",
+        code: 1,
+    },
+    {
         name: 'no-player.js',
         src: HEAD + "const h = H.create({ run: 'x' });\nasync function main() { await h.boot('x'); const f = h.mark(); await h.cmd('etest hungerstate'); await h.waitRow(/x/, f, 1); h.finish({}); }\nh.guard(main);\n",
         code: 1,
@@ -50,6 +52,9 @@ const cases = [
 
 let pass = 0;
 for (const c of cases) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'driver-selftest-'));
+    const player = path.join(root, 'testharness', 'player');
+    fs.mkdirSync(player, { recursive: true });
     fs.writeFileSync(path.join(player, c.name), c.src, 'utf8');
     let code = 0;
     try {
@@ -57,10 +62,10 @@ for (const c of cases) {
     } catch (e) {
         code = typeof e.status === 'number' ? e.status : 1;
     }
+    fs.rmSync(root, { recursive: true, force: true });
     const ok = code === c.code;
     console.log((ok ? 'PASS' : 'FAIL') + ' ' + c.name + ' exit=' + code + ' want=' + c.code);
     if (ok) pass++;
 }
-fs.rmSync(root, { recursive: true, force: true });
 console.log('selftest-driver: ' + pass + '/' + cases.length);
 process.exit(pass === cases.length ? 0 : 1);
