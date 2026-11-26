@@ -156,3 +156,19 @@ node testharness/tools/check-scripts.js --list   # 只读巡检
 
 巡检项（只报不拦）：S1 无头部说明、S3 无日志通道引用、S4 文件名不含批次、`_` 前缀的临时脚本计数。
 `master` 上现存 450 份：136 份带批次、3 份上 harness、51 份是 `_` 临时脚本。
+
+## CI 自检闸 —— `check-version.js` / `ci.yml` / `deploy.yml`
+
+```powershell
+node testharness/tools/check-version.js --tag 1.0.0   # tag 与 mod_version 对位
+```
+
+`[VersionLog] tag=… mod_version=… tagOk=… match=…` → `verdict=PASS|FAIL`；exit 0 通过、1 不符、2 缺参数。
+
+`deploy.yml` 只在 `x.y.z` tag 上触发，但先跑 `verify` job：版本对位 → `preflight.js` 七步 → `gradlew test`（102 例）→ `gradlew build`；
+`publish` job 用 `needs: verify` 串在后面，任何一步红都不会发版。
+
+`ci.yml` 在每次 push 到 `master`（以及 PR、手动触发）跑同一套：preflight → test → build。
+
+**不要再把 `org.gradle.java.home` 写进 `gradle.properties`**：那是机器相关的绝对路径，Linux runner 上一启动就失败。
+本地构建照 `AGENTS.md` 约束 0 设 `JAVA_HOME` 即可；要图省事，写进仓库外的 `%USERPROFILE%\.gradle\gradle.properties`。

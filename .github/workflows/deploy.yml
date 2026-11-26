@@ -1,5 +1,6 @@
-# A deployment template that works out of the box
-# It supports these objectives:
+# Deployment template with a verification gate.
+# Publish only runs after `verify` proves: tag == mod_version, preflight green,
+# unit tests green, jar builds. Objectives:
 # - Deploy to Maven (Build Job) [Secrets: MAVEN_USER, MAVEN_PASS]
 # - Deploy to CurseForge (Upload Job) [Secrets: CURSEFORGE_TOKEN]
 # - Deploy to Modrinth (Upload Job) [Secrets: MODRINTH_TOKEN]
@@ -12,7 +13,43 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  build:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Grant Execute Permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Tag matches mod_version
+        run: node testharness/tools/check-version.js --tag "${GITHUB_REF_NAME}"
+
+      - name: Preflight (books / config / channels / scripts / driver)
+        run: node testharness/tools/preflight.js
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'zulu'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@6
+
+      - name: Unit tests
+        run: ./gradlew test
+
+      - name: Build
+        run: ./gradlew build
+
+  publish:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
