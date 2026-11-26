@@ -5,9 +5,12 @@
  *   node testharness/tools/check-books.js
  *   node testharness/tools/check-books.js --list   （逐条列出发现，默认只列前若干）
  *
- * 硬错（退出码 1）：landed+pooled+unrecorded(+zero_port)≠total、【未立项】行数与卷头不符、账册条号重复。
- * 软错（仅提示）：唯一 [面] 行数≠total（各卷 §3 结构不同）、总账表与卷头不一致、条号跳号、
- * 已落地行 ETIM位 为空、报告未被账册/sessions 引用。
+ * 硬错（退出码 1）：landed+pooled+unrecorded(+zero_port)≠total、逐面段 [面] 行数≠total、
+ * 【未立项】行数与卷头不符、账册条号重复。
+ * 软错（仅提示）：总账表与卷头不一致、条号跳号、已落地行 ETIM位 为空、报告未被账册/sessions 引用。
+ *
+ * 口径：卷内「逐面」段（`## §2 逐面行` / `## 二、逐面行` / `## 一、逐面清单`）是唯一计数真值，
+ * 其后的未立项清单 / 批次日志只作工作区与留痕，不参与计数（A 卷 B-40..B-45 批次行用 `[批]`）。
  */
 const fs = require('fs');
 const path = require('path');
@@ -63,6 +66,33 @@ function faceRows(lines) {
     return rows;
 }
 
+/**
+ * The "逐面" section is the only place a face may be counted: it runs from the
+ * heading that contains 逐面 (or §2) to the next `## ` heading. Rows after it
+ * are a working list (未立项清单 / 批次日志) and are reported, never counted.
+ */
+function faceSection(lines) {
+    const start = lines.findIndex((s) => /^##\s/.test(s) && /逐面|§2/.test(s));
+    if (start < 0) {
+        return null;
+    }
+    let end = lines.findIndex((s, i) => i > start && /^##\s/.test(s) && !/^###/.test(s));
+    if (end < 0) {
+        end = lines.length;
+    }
+    return { start, end };
+}
+
+function countRowsIn(lines, from, to) {
+    let n = 0;
+    for (let i = from; i < to; i++) {
+        if (lines[i].startsWith('[面] ') && !/^\[面\] B-\d/.test(lines[i])) {
+            n++;
+        }
+    }
+    return n;
+}
+
 function statusOf(text) {
     const m = /状态:([^|]*)/.exec(text);
     return m ? m[1].trim() : '';
@@ -84,11 +114,22 @@ for (const file of volumes) {
     if (sum !== head.faces_total) {
         hard.push(`${file}: landed+pooled+unrecorded+zp=${sum} ≠ total=${head.faces_total}`);
     }
-    // 各卷 §3 结构不同（重列 vs 独立行），唯一行数只作提示，不作硬判。
-    if (rows.size < head.faces_total) {
-        soft.push(`${file}: 唯一 [面] 行=${rows.size} < total=${head.faces_total}（可能有面缺行）`);
-    } else if (rows.size > head.faces_total) {
-        soft.push(`${file}: 唯一 [面] 行=${rows.size} > total=${head.faces_total}（§3 重贴或独立行，需按档口径核对）`);
+    // 逐面段行数是唯一计数真值；段外行只作提示（工作清单/批次日志）。
+    const sec = faceSection(lines);
+    if (sec) {
+        const n = countRowsIn(lines, sec.start, sec.end);
+        if (n !== head.faces_total) {
+            hard.push(`${file}: 逐面段 [面] 行=${n} ≠ total=${head.faces_total}`);
+        }
+        const outside = lines.length - sec.end;
+        if (outside > 0) {
+            const extra = countRowsIn(lines, sec.end, lines.length);
+            if (extra > 0) {
+                stats.outside = extra;
+            }
+        }
+    } else {
+        soft.push(`${file}: 未找到「逐面」段，无法做行数核对`);
     }
     for (const [, r] of rows) {
         const st = statusOf(r.text);

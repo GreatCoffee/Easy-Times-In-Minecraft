@@ -18,6 +18,8 @@
  *            player on console seeds, gamerule prerequisites
  *   scripts  testharness/player/INDEX.md freshness (regenerate with
  *            node testharness/tools/index-scripts.js)
+ *   closeout newest ledger entry vs git (stale 待提交 / dead hash /
+ *            missing sessions section / push-state mismatch)
  */
 'use strict';
 const { execFileSync } = require('child_process');
@@ -72,6 +74,8 @@ step('harness', 'check-harness.js', [], () => false, '[HarnessLog]');
 step('driver', 'check-driver.js', [], (c) => c !== 0, '[DriverLog]');
 // B-70TB: INDEX.md is the retrieval surface for 450 windows; it must not rot.
 step('scripts', 'check-scripts.js', [], (c) => c !== 0, '[ScriptLog]');
+// B-70TF: the four closeout mistakes that actually happened (条 353 / 414).
+step('closeout', 'check-closeout.js', [], (c) => c !== 0, '[CloseoutLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);

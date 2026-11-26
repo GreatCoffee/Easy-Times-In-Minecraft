@@ -57,9 +57,12 @@ node testharness/tools/check-books.js --list   # 全部发现
 ```
 
 - 硬错（退出码 1）：`landed+pooled+unrecorded(+zero_port) ≠ total`、
-  `【未立项】` 行数与卷头不符、账册 `### 条 N` 重号。
-- 软错（仅提示）：唯一 `[面]` 行数与 total 不等（各卷 §3 结构不同，重贴或独立行）、
-  总账表仍是旧快照、条号跳号、已落地行 `ETIM位` 为空、报告未被账册/sessions 引用。
+  逐面段 `[面]` 行数 ≠ total、`【未立项】` 行数与卷头不符、账册 `### 条 N` 重号。
+- 软错（仅提示）：总账表仍是旧快照、条号跳号、已落地行 `ETIM位` 为空、
+  报告未被账册/sessions 引用。
+- 口径：卷内「逐面」段（`## §2 逐面行` / `## 二、逐面行` / `## 一、逐面清单`）
+  是唯一计数真值；其后的未立项清单 / 批次日志只作工作区与留痕，不参与计数。
+  批次留痕行用 `[批]` 前缀，不得写成 `[面]`。
 - `--root <dir>` 或 `BOOKS_ROOT` 可指向别的树（自检用）。
 - 自检：`node testharness/tools/selftest-books.js`（4 项，离线）。
 
@@ -193,3 +196,22 @@ node testharness/tools/close-batch.js --dry-run \
 - 翻面数不能超过 `census_unrecorded`（防计数变负）。
 
 `--dry-run` 只打印计划与实际会写入的条目正文；写完 preflight 仍红则 exit 2（文件已落，按提示修）。
+
+## 收口一致性 —— `check-closeout.js`
+
+`preflight` 第 8 步。检查**最新一条账册**与 git / sessions 是否对得上；它抓的是工具和翻面对位都抓不到的那类错：
+
+```powershell
+node testharness/tools/check-closeout.js
+node testharness/tools/check-closeout.js --root <books> --repo <mod-repo>   # 自检/别树
+```
+
+| 规则 | 抓什么 | 由来 |
+| --- | --- | --- |
+| R1 stale-pending | 非最新条仍写「待提交」 | 条 414 忘改「已推送」 |
+| R2 dead-hash | 最新条引用的 7 位哈希不在 `git log` | 收口时手抄/改写 hash |
+| R3 missing-sessions | 最新条批次在 `sessions.md` 无 `## <批次>` 段 | 收口只写账册 |
+| R4 push-state | 写「已推送」但 origin 仍有提交，或写的欠数与实际不符 | 推送后回头补写 |
+
+退出码 0 干净 / 1 有风险 / 2 账本树或仓库缺失（CI 上自动 SKIP）。
+自检：`node testharness/tools/selftest-closeout.js`（5 例，建临时账本树 + 临时 git 仓库，含裸 origin）。
