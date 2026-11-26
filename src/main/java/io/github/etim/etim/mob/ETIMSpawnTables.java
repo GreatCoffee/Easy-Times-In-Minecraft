@@ -311,193 +311,126 @@ public final class ETIMSpawnTables {
                 return null;
             }
             Class<? extends EntityLiving> cls = picked.entityClass;
-            // 1.12 carriers: R196 hasSkylight() = provider.hasSkyLight();
-            // R196 isOutdoors(x,y,z) ≈ canSeeSky (lit ray to the sky — the
-            // exact R196 outdoors mesh has no 1.12 counterpart; nearest
-            // vanilla carrier, gap noted in the report addendum).
-            if (cls == EntityCreeper.class) {
-                if (w.provider.hasSkyLight() && !w.isDaytime() && w.canSeeSky(pos) && w.rand.nextInt(4) != 0) {
-                    continue; // 3/4 drop on lit-outdoor nights
-                }
-                // B-47 (R196 WorldServer:624-626): the survivor branch rolls
-                // the depth/coin infernal replacement; `rand.nextInt(40) >= y`
-                // is true for every y <= 0 and most cave depths.
-                if (w.rand.nextInt(40) >= pos.getY() && w.rand.nextFloat() < 0.5F) {
-                    if (ETIMConfig.mobDebugLog) {
-                        ETIM.LOGGER.info("[SpawnLog] creeper-gate infernal y=" + pos.getY()
-                                + " at " + posToString(pos));
-                    }
-                    return new Biome.SpawnListEntry(ETIMEntityInfernalCreeper.class,
-                            picked.itemWeight, picked.minGroupCount, picked.maxGroupCount);
-                }
-                return picked;
+            SpawnGates.Ctx ctx = context(w, pos, cls);
+            SpawnGates.Decision d = SpawnGates.decide(cls, ctx);
+            if (d.kind == SpawnGates.Kind.REJECT) {
+                logReject(pos, cls, d, ctx);
+                continue;
             }
-            if (cls == EntitySpider.class) {
-                if (w.provider.hasSkyLight() && w.canSeeSky(pos) && w.rand.nextInt(4) == 0) {
-                    continue; // 1/4 drop on lit outdoors (day-independent per the one-hand gate)
-                }
-                return picked;
-            }
-            // 三蜘蛛轮门1（R196 WorldServer:714-716 一手，勘正面）：BlackWidow 专属
-            // 50% 通过门——nextFloat<0.5F 拒（continue 重掷），≥0.5 接受；per-attempt
-            // 语义，外层 16-attempt 循环承接。
-            if (cls == ETIMEntityBlackWidowSpider.class) {
-                float dice = w.rand.nextFloat();
-                if (dice < 0.5F) {
-                    if (ETIMConfig.mobDebugLog) {
-                        ETIM.LOGGER.info("[SpawnLog] blackwidow-gate reject nextFloat="
-                                + Math.round(dice * 100.0F) / 100.0F + " at " + posToString(pos));
-                    }
-                    continue;
-                }
-                return picked;
-            }
-            // 三蜘蛛轮门2（R196 :682+:718-720，check_depth = isOverworld 一手
-            // :604）：Demon/Phase 专属地下支——主世界 y>32 拒（underworld 批
-            // 2026-10-25: the gate reads ETIMUnderworldSpawns.checkDepth —
-            // M6-05，非主世界走 [SpawnLog] depth-bypass 行）。
-            if ((cls == ETIMEntityDemonSpider.class || cls == ETIMEntityPhaseSpider.class)
-                    && io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w) && pos.getY() > 32) {
+            if (d.kind == SpawnGates.Kind.INFERNAL) {
                 if (ETIMConfig.mobDebugLog) {
-                    ETIM.LOGGER.info("[SpawnLog] depth-gate reject cls=" + cls.getSimpleName()
-                            + " y=" + pos.getY() + " at " + posToString(pos));
+                    ETIM.LOGGER.info("[SpawnLog] creeper-gate infernal y=" + pos.getY()
+                            + " at " + posToString(pos));
                 }
-                continue;
+                return new Biome.SpawnListEntry(ETIMEntityInfernalCreeper.class,
+                        picked.itemWeight, picked.minGroupCount, picked.maxGroupCount);
             }
-            // B-56（R196 WorldServer:690-700 一手）：木蜘蛛结构门——
-            // (露天 || 上方是树叶 || 上方是原木) && 5×2 内有原木 && (x,y+5,z) 5×5 内有树叶。
-            if (cls == ETIMEntityWoodSpider.class && !woodspiderGate(w, pos)) {
-                continue;
-            }
-            // B-46（R196 WorldServer:630-633 一手）：slime 只在「上方没有石头」
-            // 时放行；stoneAbove 命中任一石变体即拒，非空气非石先打断扫描。
-            if (cls == EntitySlime.class && stoneAbove(w, pos)) {
-                if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
-                    --gateLogBudget;
-                    ETIM.LOGGER.info("[SpawnLog] slime-gate reject stoneAbove at " + posToString(pos));
-                }
-                continue;
-            }
-            // B-52 (census D :282; R196 WorldServer:666-669): the ooze keeps
-            // the B-46 slime no-stone-above rule and adds y<=32 on the
-            // overworld plus a stone floor. Non-overworld keeps the depth
-            // bypass (checkDepth false) but still needs the stone sandwich.
-            if (cls == ETIMEntityOoze.class) {
-                boolean depthOk = !io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w)
-                        || pos.getY() <= 32;
-                boolean stoneFloor = w.getBlockState(pos.down()).getBlock() == Blocks.STONE;
-                boolean stoneCeiling = stoneAbove(w, pos);
-                if (!depthOk || !stoneFloor || !stoneCeiling) {
-                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
-                        --gateLogBudget;
-                        ETIM.LOGGER.info("[SpawnLog] ooze-gate reject depth=" + depthOk
-                                + " floor=" + stoneFloor + " stoneAbove=" + stoneCeiling
-                                + " y=" + pos.getY() + " at " + posToString(pos));
-                    }
-                    continue;
-                }
-            }
-            // B-57（R196 WorldServer:634-681 一手）：凝胶三族各自的深度/石顶门。
-            // Jelly 只要求上方有石；Blob 加 y≤40；Pudding 加 y≤24 且脚下是石。
-            if (cls == ETIMEntityJelly.class) {
-                boolean stoneCeiling = stoneAbove(w, pos);
-                if (!stoneCeiling) {
-                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
-                        --gateLogBudget;
-                        ETIM.LOGGER.info("[SpawnLog] jelly-gate reject stoneAbove=false y=" + pos.getY()
-                                + " at " + posToString(pos));
-                    }
-                    continue;
-                }
-            }
-            if (cls == ETIMEntityBlob.class || cls == ETIMEntityPudding.class) {
-                boolean isPudding = cls == ETIMEntityPudding.class;
-                int threshold = isPudding ? 24 : 40;
-                boolean depthOk = !io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w)
-                        || pos.getY() <= threshold;
-                boolean stoneFloor = !isPudding
-                        || w.getBlockState(pos.down()).getBlock() == Blocks.STONE;
-                boolean stoneCeiling = stoneAbove(w, pos);
-                if (!depthOk || !stoneFloor || !stoneCeiling) {
-                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
-                        --gateLogBudget;
-                        ETIM.LOGGER.info("[SpawnLog] gel-gate reject cls="
-                                + (isPudding ? "pudding" : "blob")
-                                + " depth=" + depthOk + " floor=" + stoneFloor
-                                + " stoneAbove=" + stoneCeiling + " y=" + pos.getY()
-                                + " at " + posToString(pos));
-                    }
-                    continue;
-                }
-            }
-            // B-46（R196 WorldServer:650-653 / :674-677 一手）：亡魂 y≤44、
-            // 骨王 y≤32；主世界超过阈值时只放行血月夜（isBloodMoon(true)）。
-            if (cls == ETIMEntityRevenant.class || cls == ETIMEntityBoneLord.class) {
-                int threshold = cls == ETIMEntityRevenant.class ? 44 : 32;
-                boolean blood = bloodMoonNight(w);
-                if (io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w)
-                        && pos.getY() > threshold && !blood) {
-                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
-                        --gateLogBudget;
-                        ETIM.LOGGER.info("[SpawnLog] deep-gate reject cls=" + cls.getSimpleName()
-                                + " y=" + pos.getY() + " threshold=" + threshold
-                                + " blood=" + blood + " at " + posToString(pos));
-                    }
-                    continue;
-                }
-            }
-            // B-59 (census D :76/:110-112; R196 WorldServer:634-637 / :642-645
-            // / :687-690): cfg switch + ghoul y<=56, wight y<=48 or
-            // (blood && freezing), shadow y<=32 or (blood && desert);
-            // non-overworld keeps the depth bypass like the rows above.
-            if (cls == ETIMEntityGhoul.class || cls == ETIMEntityWight.class || cls == ETIMEntityShadow.class || cls == ETIMEntityInvisibleStalker.class) {
-                if (!ETIMConfig.mobUndeadSurfaceR196) {
-                    continue;
-                }
-                if (undeadGateReject(w, pos, cls)) {
-                    continue;
-                }
-            }
-            // B-57 (census D :276/:281/:283/:284): the gel family switch.
-            if (!ETIMConfig.mobGelatinousR196
-                    && (cls == ETIMEntityJelly.class || cls == ETIMEntityBlob.class
-                    || cls == ETIMEntityPudding.class || cls == ETIMEntityOoze.class)) {
-                continue;
-            }
-            // B-55 (census D :82/:236; R196 WorldServer:646-649 / :670-673):
-            // the vampire bat is live down to y<=48 and the nightwing to y<=32,
-            // both also open on blood-moon nights; non-overworld keeps the
-            // depth bypass, mirroring the revenant/bone-lord gate above.
-            if (!ETIMConfig.mobBatFamilyR196
-                    && (cls == ETIMEntityVampireBat.class || cls == ETIMEntityNightwing.class)) {
-                continue;
-            }
-            if (cls == ETIMEntityVampireBat.class || cls == ETIMEntityNightwing.class) {
-                int batThreshold = cls == ETIMEntityVampireBat.class ? 48 : 32;
-                boolean batBlood = bloodMoonNight(w);
-                if (io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w)
-                        && pos.getY() > batThreshold && !batBlood) {
-                    if (ETIMConfig.mobDebugLog && gateLogBudget > 0) {
-                        --gateLogBudget;
-                        ETIM.LOGGER.info("[SpawnLog] bat-gate reject cls=" + cls.getSimpleName()
-                                + " y=" + pos.getY() + " threshold=" + batThreshold
-                                + " blood=" + batBlood + " at " + posToString(pos));
-                    }
-                    continue;
-                }
-            }
-            if (cls == EntityGhast.class && ghastDedup(w, pos)) {
+            if (d.kind == SpawnGates.Kind.CANCEL) {
                 // ❗B2-6（会话七终验回执）：dedup was a silent null — verdict
                 // line for the F-4a face (48² dedup, strict < 2304).
                 if (ETIMConfig.mobDebugLog) {
                     ETIM.LOGGER.info("[SpawnLog] ghast dedup cancel at (" + pos.getX() + "," + pos.getY()
                             + "," + pos.getZ() + ") → null");
                 }
-                return null; // dedup cancel
+                return null;
             }
             return picked;
         }
         return null;
+    }
+
+    /**
+     * World reads for one attempt, computed only for the classes that need
+     * them: the stone scans and the structure/dedup checks are not free.
+     */
+    private static SpawnGates.Ctx context(WorldServer w, BlockPos pos, Class<? extends EntityLiving> cls) {
+        SpawnGates.Ctx c = new SpawnGates.Ctx();
+        c.y = pos.getY();
+        c.skylight = w.provider.hasSkyLight();
+        c.day = w.isDaytime();
+        c.seeSky = w.canSeeSky(pos);
+        c.overworld = io.github.etim.etim.world.ETIMUnderworldSpawns.checkDepth(w);
+        c.rand = new SpawnGates.Dice(w.rand);
+        boolean gel = cls == ETIMEntityOoze.class || cls == ETIMEntityJelly.class
+                || cls == ETIMEntityBlob.class || cls == ETIMEntityPudding.class;
+        if (cls == EntitySlime.class || gel) {
+            c.stoneAbove = stoneAbove(w, pos);
+        }
+        if (cls == ETIMEntityOoze.class || cls == ETIMEntityPudding.class) {
+            c.stoneFloor = w.getBlockState(pos.down()).getBlock() == Blocks.STONE;
+        }
+        if (cls == ETIMEntityWoodSpider.class) {
+            c.woodspiderOk = woodspiderGate(w, pos);
+        }
+        if (cls == ETIMEntityRevenant.class || cls == ETIMEntityBoneLord.class
+                || cls == ETIMEntityVampireBat.class || cls == ETIMEntityNightwing.class) {
+            c.blood = bloodMoonNight(w);
+        }
+        c.gelatinous = ETIMConfig.mobGelatinousR196;
+        c.batFamily = ETIMConfig.mobBatFamilyR196;
+        c.undeadSurface = ETIMConfig.mobUndeadSurfaceR196;
+        if (c.undeadSurface && (cls == ETIMEntityGhoul.class || cls == ETIMEntityWight.class
+                || cls == ETIMEntityShadow.class || cls == ETIMEntityInvisibleStalker.class)) {
+            c.undeadOk = !undeadGateReject(w, pos, cls);
+        }
+        if (cls == EntityGhast.class) {
+            c.ghastDedup = ghastDedup(w, pos);
+        }
+        return c;
+    }
+
+    /** Keeps the per-reason log lines byte-identical to the pre-refactor gates. */
+    private static void logReject(BlockPos pos, Class<? extends EntityLiving> cls, SpawnGates.Decision d, SpawnGates.Ctx ctx) {
+        if (!ETIMConfig.mobDebugLog) {
+            return;
+        }
+        if (d.reason.equals("blackwidow")) {
+            ETIM.LOGGER.info("[SpawnLog] blackwidow-gate reject nextFloat="
+                    + Math.round(d.value * 100.0F) / 100.0F + " at " + posToString(pos));
+            return;
+        }
+        if (gateLogBudget <= 0) {
+            return;
+        }
+        if (d.reason.equals("depth")) {
+            --gateLogBudget;
+            ETIM.LOGGER.info("[SpawnLog] depth-gate reject cls=" + cls.getSimpleName()
+                    + " y=" + pos.getY() + " at " + posToString(pos));
+        } else if (d.reason.equals("slime")) {
+            --gateLogBudget;
+            ETIM.LOGGER.info("[SpawnLog] slime-gate reject stoneAbove at " + posToString(pos));
+        } else if (d.reason.equals("ooze")) {
+            --gateLogBudget;
+            boolean depthOk = !ctx.overworld || ctx.y <= 32;
+            ETIM.LOGGER.info("[SpawnLog] ooze-gate reject depth=" + depthOk
+                    + " floor=" + ctx.stoneFloor + " stoneAbove=" + ctx.stoneAbove
+                    + " y=" + pos.getY() + " at " + posToString(pos));
+        } else if (d.reason.equals("jelly")) {
+            --gateLogBudget;
+            ETIM.LOGGER.info("[SpawnLog] jelly-gate reject stoneAbove=false y=" + pos.getY()
+                    + " at " + posToString(pos));
+        } else if (d.reason.equals("gel")) {
+            --gateLogBudget;
+            boolean pudding = cls == ETIMEntityPudding.class;
+            boolean depthOk = !ctx.overworld || ctx.y <= (pudding ? 24 : 40);
+            ETIM.LOGGER.info("[SpawnLog] gel-gate reject cls="
+                    + (pudding ? "pudding" : "blob")
+                    + " depth=" + depthOk + " floor=" + ctx.stoneFloor
+                    + " stoneAbove=" + ctx.stoneAbove + " y=" + pos.getY()
+                    + " at " + posToString(pos));
+        } else if (d.reason.equals("deep")) {
+            --gateLogBudget;
+            int threshold = cls == ETIMEntityRevenant.class ? 44 : 32;
+            ETIM.LOGGER.info("[SpawnLog] deep-gate reject cls=" + cls.getSimpleName()
+                    + " y=" + pos.getY() + " threshold=" + threshold
+                    + " blood=false at " + posToString(pos));
+        } else if (d.reason.equals("bat")) {
+            --gateLogBudget;
+            int threshold = cls == ETIMEntityVampireBat.class ? 48 : 32;
+            ETIM.LOGGER.info("[SpawnLog] bat-gate reject cls=" + cls.getSimpleName()
+                    + " y=" + pos.getY() + " threshold=" + threshold
+                    + " blood=false at " + posToString(pos));
+        }
     }
 
     /** B-46 instrument budget: gate-reject rows are per-pass capped so a
