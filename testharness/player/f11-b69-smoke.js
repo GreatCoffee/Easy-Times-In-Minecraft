@@ -11,105 +11,30 @@
 //      skull/trapdoor arms cover the item paths that bypass World#mayPlace
 //   W4 static: classes, mixin config, registration, cfg keys, assets, lang
 const L = require('./f7-wb-lib.js');
+const H = require('./lib/harness.js');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fs = require('fs');
 const path = require('path');
 
 const RUN = process.env.RUN || 'r1';
 const A = 'ETIM_F7';
-const EXPECTED_SHA = process.env.EXPECTED_SHA || L.PIN.releaseSha;
-const WORLD = 'w-b69-' + RUN + '-v1';
 
-let bot = null, srv = null, propsBefore = null, cfgBefore = null;
-const stops = [];
-
-// 1.12 has no block-state syntax — `name[prop=n]` becomes `name <meta>`.
-function bs(s) { return s.replace(/([A-Za-z0-9_:.]+)\[(?:moisture|age)=(\d+)\]/g, '$1 $2'); }
-async function cmd(s, wait) { srv.send(bs(s)); await sleep(wait == null ? 250 : wait); }
-function logLines() {
-  try { return fs.readFileSync(srv.logPath, 'utf8').split(/\r?\n/); } catch (e) { return []; }
-}
-function slice(from) { return logLines().slice(from); }
-function mark() { return logLines().length; }
-async function waitRow(re, from, ms) {
-  const t0 = Date.now();
-  while (Date.now() - t0 < ms) {
-    const hit = slice(from).map(s => re.exec(s)).filter(Boolean);
-    if (hit.length) return hit;
-    await sleep(300);
-  }
-  return [];
-}
-
-function stampPin() {
-  const jar = path.join(L.ROOT, 'build', 'libs', 'etim-1.0.0.jar');
-  const bytes = fs.readFileSync(jar);
-  const sha = L.sha256(bytes).toUpperCase();
-  const mk = L.mkCounts();
-  const ok = sha === EXPECTED_SHA && bytes.length === L.PIN.releaseSize && mk.ok;
-  console.log(`[PIN] sha=${sha} shaOk=${sha === EXPECTED_SHA} size=${bytes.length} sizeOk=${bytes.length === L.PIN.releaseSize} mkOk=${mk.ok} ok=${ok}`);
-  return ok;
-}
-
-async function startBoot(tag) {
-  propsBefore = fs.readFileSync(L.PROPS, 'utf8');
-  cfgBefore = fs.readFileSync(L.CFG, 'utf8');
-  let props = L.setProp(propsBefore, 'level-name', WORLD);
-  props = L.setProp(props, 'allow-flight', 'true');
-  fs.writeFileSync(L.PROPS, props, 'utf8');
-  const bootCfg = cfgBefore.replace(/B:blockDebugLog=(true|false)/, 'B:blockDebugLog=true')
-    .replace(/B:sparkR196=(true|false)/, 'B:sparkR196=true')
-    .replace(/B:mountedR196=(true|false)/, 'B:mountedR196=true');
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    for (let i = 0; i < 36 && L.netstatListen(L.PORT) !== 0; i++) await sleep(5000);
-    if (L.netstatListen(L.PORT) !== 0) throw new Error('port 25565 still held');
-    fs.writeFileSync(L.CFG, bootCfg, 'utf8');
-    srv = await L.startServer({ root: L.ROOT, tag });
-    if (await srv.waitFor(/Done \(/, 180000)) {
-      const disk = fs.readFileSync(L.CFG, 'utf8');
-      console.log('[cfg]', tag,
-        'blockDebugLog=' + (/B:blockDebugLog=(true|false)/.exec(disk) || [])[1],
-        'sparkR196=' + (/B:sparkR196=(true|false)/.exec(disk) || [])[1],
-        'mountedR196=' + (/B:mountedR196=(true|false)/.exec(disk) || [])[1]);
-      return;
-    }
-    try { await srv.stop(30000); } catch (e) { /* noop */ }
-    srv = null;
-  }
-  throw new Error('no Done( in 3 attempts');
-}
-
-async function stopBoot() {
-  try { if (bot) { bot.quit(); bot = null; await sleep(1500); } } catch (e) { /* noop */ }
-  const st = await srv.stop();
-  srv = null;
-  stops.push(st);
-  if (propsBefore) fs.writeFileSync(L.PROPS, propsBefore, 'utf8');
-  if (cfgBefore) fs.writeFileSync(L.CFG, cfgBefore, 'utf8');
-  console.log('[stop]', JSON.stringify(st));
-  return st;
-}
-
-async function join() {
-  bot = await L.joinBot(srv, A);
-  await sleep(1500);
-  try { bot.physicsEnabled = false; } catch (e) { /* noop */ }
-  try { bot.physics.enabled = false; } catch (e) { /* noop */ }
-  await cmd('op ' + A, 500);
-  await cmd('gamemode 0 ' + A, 300);
-  for (const g of ['doMobLoot false', 'doTileDrops true', 'doDaylightCycle false',
-    'doFireTick false', 'keepInventory true', 'naturalRegeneration false',
-    'doWeatherCycle false', 'doMobSpawning false']) {
-    await cmd('gamerule ' + g, 150);
-  }
-  await cmd('difficulty 2', 200);
-  await cmd('weather clear', 150);
-  await cmd('time set 6000', 250);
-  // C-B68-2 lesson: 1.12 `fill` refuses unloaded chunks, so tp first.
-  await cmd('tp ' + A + ' 12.5 130 10.5', 1200);
-  await cmd('fill 0 129 0 24 129 24 minecraft:stone', 900);
-  await cmd('fill 0 130 0 24 133 24 minecraft:air', 600);
-}
+// B-70T: boot/stop, props+cfg snapshot-restore, PIN stamping and log slicing
+// live in lib/harness.js; this batch only declares its verdict arms below.
+const h = H.create({
+  run: RUN,
+  world: 'w-b69-' + RUN + '-v1',
+  bot: A,
+  cfg: ['blockDebugLog', 'sparkR196', 'mountedR196'],
+  props: { 'allow-flight': 'true' },
+  stage: {
+    gamemode: 0,
+    tp: ['12.5', '130', '10.5'],
+    // C-B68-2 lesson: 1.12 `fill` refuses unloaded chunks, so tp first.
+    fill: ['fill 0 129 0 24 129 24 minecraft:stone', 'fill 0 130 0 24 133 24 minecraft:air'],
+  },
+});
+const { cmd, mark, slice, waitRow } = h;
 
 const PROBE_RE = /\[FarmLog\] drought probe block=(\S+) age=(-?\d+) pos=(-?\d+),(-?\d+),(-?\d+)/;
 const SPARK_RE = /\[SparkLog\] (\S+)(?: pos=(-?\d+),(-?\d+),(-?\d+))?/;
@@ -220,9 +145,9 @@ async function holdAt(item, x, y, z, face) {
 }
 
 async function main() {
-  const pinOk = stampPin();
-  await startBoot(`b69-${RUN}-b1`);
-  await join();
+  h.stampPin();
+  await h.boot(`b69-${RUN}-b1`);
+  await h.join();
   const res = { w1: false, w2: false, w3: false, w4: false };
 
   // ---- W1 spark tick: snuff / planks / netherrack ----
@@ -487,19 +412,8 @@ async function main() {
   res.w4 = srcOk && flintOk && mixinOk && regOk && cfgOk && cmdOk && assetsOk && langOk && rulesOk;
   console.log('[W4]', JSON.stringify({ srcOk, flintOk, mixinOk, regOk, cfgOk, cmdOk, assetsOk, langOk, rulesOk, pass: res.w4 }));
 
-  await stopBoot();
-  const bad = Object.keys(res).filter(k => !res[k]);
-  const out = {
-    run: RUN, pin: pinOk, w1: res.w1, w2: res.w2, w3: res.w3, w4: res.w4,
-    stops: stops.map(s => (s && s.exitCode === 0) ? 0 : 1).reduce((a, b) => a + b, 0),
-    crashes: L.crashCount(), pass: pinOk && bad.length === 0, bad: bad.length, badKeys: bad,
-  };
-  console.log('[done] ' + JSON.stringify(out));
-  process.exit(out.pass && out.stops === 0 ? 0 : 2);
+  await h.stop();
+  h.finish(res);
 }
 
-main().catch(async (e) => {
-  console.error('[fatal]', (e && e.stack) || e);
-  try { await stopBoot(); } catch (x) { /* noop */ }
-  process.exit(1);
-});
+h.guard(main);
