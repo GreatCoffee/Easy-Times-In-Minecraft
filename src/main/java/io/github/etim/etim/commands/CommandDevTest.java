@@ -178,6 +178,12 @@ public class CommandDevTest extends CommandBase {
             case "health":
                 executeHealth(server, sender, args);
                 break;
+            case "hungerstate":
+                executeHungerState(server, sender, args);
+                break;
+            case "hungerpools":
+                executeHungerPools(server, sender, args);
+                break;
             case "level":
                 executeLevel(server, sender, args);
                 break;
@@ -534,6 +540,63 @@ public class CommandDevTest extends CommandBase {
             respond(player, "commands.etest.food_set_bar", level, stats.getSaturationLevel(), cap);
         }
         FoodDebugNetwork.sync(player);
+    }
+
+    /**
+     * {@code /etest hungerstate [player]} — the B-70T9 window probe. Unconditional
+     * (not behind {@code foodDebugLog}) so a verdict window can read the five
+     * pools even when the channel is off.
+     */
+    private static void executeHungerState(MinecraftServer server, ICommandSender sender, String[] args)
+            throws CommandException {
+        EntityPlayerMP player = args.length >= 2
+                ? CommandBase.getPlayer(server, sender, args[1])
+                : (sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null);
+        if (player == null) {
+            throw new PlayerNotFoundException("commands.state.no_player");
+        }
+        ETIMFoodStats.IFoodState state = ETIMFoodStats.get(player);
+        if (state == null) {
+            return;
+        }
+        ETIM.LOGGER.info("[FoodLog] probe player={} pool={} only={} satiation={} nutrition={} heal={} starve={} limit={}",
+                player.getName(), state.getHungerPool(), state.getNutritionOnlyPool(),
+                state.getSatiation(), state.getNutrition(), state.getHealProgress(),
+                state.getStarveProgress(), ETIMFoodStats.getLimit(player));
+    }
+
+    /**
+     * {@code /etest hungerpools <pool> <only> <satiation> <nutrition> <heal> <starve> [player]}
+     * — seeds the five pools so the next tick reaches the branch under test
+     * (set pool to {@code hungerPerFoodUnit - epsilon} for an immediate unit).
+     */
+    private static void executeHungerPools(MinecraftServer server, ICommandSender sender, String[] args)
+            throws CommandException {
+        if (args.length < 7) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = args.length >= 8
+                ? CommandBase.getPlayer(server, sender, args[7])
+                : (sender instanceof EntityPlayerMP ? (EntityPlayerMP) sender : null);
+        if (player == null) {
+            throw new PlayerNotFoundException("commands.state.no_player");
+        }
+        ETIMFoodStats.IFoodState state = ETIMFoodStats.get(player);
+        if (state == null) {
+            return;
+        }
+        int limit = ETIMFoodStats.getLimit(player);
+        state.setHungerPool((float) parseDouble(args[1], 0.0D, ETIMConfig.hungerPoolCap));
+        state.setNutritionOnlyPool((float) parseDouble(args[2], 0.0D, 4096.0D));
+        state.setSatiation(CommandBase.parseInt(args[3], 0, limit));
+        state.setNutrition(CommandBase.parseInt(args[4], 0, limit));
+        state.setHealProgress((float) parseDouble(args[5], 0.0D, 4096.0D));
+        state.setStarveProgress((float) parseDouble(args[6], 0.0D, 4096.0D));
+        ETIMFoodStats.syncVanillaFoodLevel(player);
+        ETIM.LOGGER.info("[FoodLog] set player={} pool={} only={} satiation={} nutrition={} heal={} starve={} limit={}",
+                player.getName(), state.getHungerPool(), state.getNutritionOnlyPool(),
+                state.getSatiation(), state.getNutrition(), state.getHealProgress(),
+                state.getStarveProgress(), limit);
     }
 
     private static void executeHealth(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {

@@ -116,6 +116,9 @@ $env:JAVA_HOME='D:\OpenCodeWorkspace\Easy Times In Minecraft\jdk\zulu25.38.107-c
 
 - 用例在 `src/test/java/`；首个样板 `world/MountRulesTest.java` 直接调
   `ETIMMountRules.decide(state, face, mounted, trapdoorLower, upSolid)`，
+- B-70T9 起还覆盖 `mob/SpawnGatesTest.java`（43 例，刷怪门决策表）与
+  `hunger/FoodGatesTest.java`（27 例，饥饿循环 accrual/消耗/饿伤/回血四支）；
+  三者合计 102 例，`gradlew test` 约 4 秒。
   世界依赖只通过 `upSolid` 这个 lambda 注入。
 - 1.12 的方块常量必须先在测试里注册：`@BeforeAll static void bootstrap() { Bootstrap.register(); }`，
   否则报 `Accessed Blocks before Bootstrap!`。

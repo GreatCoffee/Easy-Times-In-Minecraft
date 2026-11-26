@@ -334,83 +334,73 @@ public final class ETIMFoodStats {
         }
         int limit = getLimit(player);
 
-        // Hunger accrual (:40-44) + per-unit consumption rhythm (:46-56)
-        if (!creative) {
-            float gain = ETIMConfig.effectiveHungerGainPerTick();
-            float gainTick = gain * getHungerMultiplier(player);
-            float hunger = state.getHungerPool();
-            hunger = Math.min(hunger + gainTick, ETIMConfig.hungerPoolCap);
-            state.setHungerPool(hunger);
-            state.setNutritionOnlyPool(state.getNutritionOnlyPool() + gain * ETIMConfig.hungerNutritionOnlyFactor);
-        }
+        // B-70T9: the arithmetic lives in the pure FoodGates table; this method
+        // only gathers the context, writes the result back and turns the one
+        // decided action into the R196 log line.
+        FoodGates.Ctx ctx = new FoodGates.Ctx();
+        ctx.hungerPool = state.getHungerPool();
+        ctx.nutritionOnlyPool = state.getNutritionOnlyPool();
+        ctx.satiation = state.getSatiation();
+        ctx.nutrition = state.getNutrition();
+        ctx.healProgress = state.getHealProgress();
+        ctx.starveProgress = state.getStarveProgress();
+        ctx.gain = ETIMConfig.effectiveHungerGainPerTick();
+        ctx.gainMultiplier = getHungerMultiplier(player);
+        ctx.hungerPoolCap = ETIMConfig.hungerPoolCap;
+        ctx.hungerPerFoodUnit = ETIMConfig.hungerPerFoodUnit;
+        ctx.nutritionOnlyFactor = ETIMConfig.hungerNutritionOnlyFactor;
+        ctx.limit = limit;
+        ctx.starveGain = ETIMConfig.effectiveStarveGainPerTick();
+        ctx.starveHealthCeiling = ETIMConfig.starveHealthCeiling;
+        ctx.difficulty = player.world.getDifficulty().getId();
+        ctx.health = player.getHealth();
+        ctx.healBase = ETIMConfig.healBasePerTick;
+        ctx.healPerNutrition = ETIMConfig.healPerNutritionPerTick;
+        ctx.malnourished = NutritionSystem.isMalnourished(player);
+        ctx.malnourishedRegenFactor = ETIMConfig.malnourishedRegenFactor;
+        ctx.sleeping = player.isPlayerSleeping();
+        ctx.bedRegenFactor = ETIMConfig.bedRegenFactor;
+        ctx.regenFactor = 1.0F + ETIMConfig.regenerationPerLevel
+                * net.minecraft.enchantment.EnchantmentHelper.getMaxEnchantmentLevel(
+                    io.github.etim.etim.mining.ETIMEnchantments.REGENERATION, player);
+        ctx.naturalRegeneration = player.world.getGameRules().getBoolean("naturalRegeneration");
+        ctx.shouldHeal = player.shouldHeal();
 
-        if (state.getHungerPool() >= ETIMConfig.hungerPerFoodUnit) {
-            state.setHungerPool(state.getHungerPool() - ETIMConfig.hungerPerFoodUnit);
-            if (state.getSatiation() > 0 || state.getNutrition() > 0) {
-                if (state.getSatiation() >= 1
-                        && (!(state.getNutritionOnlyPool() + 0.001F >= ETIMConfig.hungerPerFoodUnit)
-                            || state.getNutrition() <= 0)) {
-                    state.setSatiation(state.getSatiation() - 1);
-                    logFood(player, "consumed satiation point (nutritionOnlyPool="
-                            + state.getNutritionOnlyPool() + ", pools " + state.getSatiation() + "/"
-                            + limit + " " + state.getNutrition() + "/" + limit + ") hungerPool="
-                            + state.getHungerPool());
-                } else {
-                    state.setNutrition(state.getNutrition() - 1);
-                    state.setNutritionOnlyPool(0.0F);
-                    logFood(player, "consumed nutrition point (pools " + state.getSatiation() + "/"
-                            + limit + " " + state.getNutrition() + "/" + limit + ") hungerPool="
-                            + state.getHungerPool());
-                }
-                pushMirror(player);
-            }
+        FoodGates.Result r = FoodGates.tick(ctx, creative);
+        state.setHungerPool(r.hungerPool);
+        state.setNutritionOnlyPool(r.nutritionOnlyPool);
+        state.setSatiation(r.satiation);
+        state.setNutrition(r.nutrition);
+        state.setHealProgress(r.healProgress);
+        state.setStarveProgress(r.starveProgress);
+
+        if (r.act == FoodGates.Act.CONSUMED_SATIATION) {
+            logFood(player, "consumed satiation point (nutritionOnlyPool="
+                    + state.getNutritionOnlyPool() + ", pools " + state.getSatiation() + "/"
+                    + limit + " " + state.getNutrition() + "/" + limit + ") hungerPool="
+                    + state.getHungerPool());
+        } else if (r.act == FoodGates.Act.CONSUMED_NUTRITION) {
+            logFood(player, "consumed nutrition point (pools " + state.getSatiation() + "/"
+                    + limit + " " + state.getNutrition() + "/" + limit + ") hungerPool="
+                    + state.getHungerPool());
+        }
+        if (r.act == FoodGates.Act.CONSUMED_SATIATION || r.act == FoodGates.Act.CONSUMED_NUTRITION) {
+            pushMirror(player);
         }
 
         // Beds hit while lying in them charge hunger (R196 :58-60; the
         // charge arrives via ETIMFoodStatsEvents' damage hook).
-        // keepHealthBranches below.
-
-        state.setSatiation(Math.min(state.getSatiation(), limit));
-        state.setNutrition(Math.min(state.getNutrition(), limit));
-
-        // Starve / heal branches (:62-89)
-        if (state.getNutrition() == 0) {
-            state.setHealProgress(0.0F);
-            state.setStarveProgress(state.getStarveProgress() + ETIMConfig.effectiveStarveGainPerTick());
-            if (state.getStarveProgress() >= 1.0F) {
-                int difficulty = player.world.getDifficulty().getId();
-                if (player.getHealth() > ETIMConfig.starveHealthCeiling
-                        || difficulty >= 3
-                        || player.getHealth() > 1.0F && difficulty >= 2) {
-                    player.attackEntityFrom(DamageSource.STARVE, 1.0F);
-                    logFood(player, "STARVE strike 1.0 (health=" + player.getHealth()
-                            + " difficulty=" + difficulty + ")");
-                }
-                state.setStarveProgress(state.getStarveProgress() - 1.0F);
-                state.setNutritionOnlyPool(0.0F);
-            }
-        } else {
-            state.setStarveProgress(0.0F);
-            float regenFactor = 1.0F + ETIMConfig.regenerationPerLevel
-                    * net.minecraft.enchantment.EnchantmentHelper.getMaxEnchantmentLevel(
-                        io.github.etim.etim.mining.ETIMEnchantments.REGENERATION, player);
-            float healProgress = state.getHealProgress()
-                    + (ETIMConfig.healBasePerTick + state.getNutrition() * ETIMConfig.healPerNutritionPerTick)
-                        * (NutritionSystem.isMalnourished(player) ? ETIMConfig.malnourishedRegenFactor : 1.0F)
-                        * (player.isPlayerSleeping() ? ETIMConfig.bedRegenFactor : 1.0F)
-                        * regenFactor;
-            if (!player.world.getGameRules().getBoolean("naturalRegeneration") || !player.shouldHeal()) {
-                healProgress = 0.0F;
-            } else if (healProgress >= 1.0F) {
-                player.heal(1.0F);
-                state.setHungerPool(Math.min(state.getHungerPool() + 1.0F, ETIMConfig.hungerPoolCap));
-                healProgress -= 1.0F;
-                logFood(player, "healed 1.0 via regen (health=" + player.getHealth()
-                        + " nutrition=" + state.getNutrition()
-                        + " regenFactor=" + new java.math.BigDecimal(String.valueOf(regenFactor)).stripTrailingZeros().toPlainString()
-                        + " hungerPool+=" + 1.0 + ")");
-            }
-            state.setHealProgress(healProgress);
+        if (r.strike) {
+            player.attackEntityFrom(DamageSource.STARVE, 1.0F);
+            logFood(player, "STARVE strike 1.0 (health=" + player.getHealth()
+                    + " difficulty=" + ctx.difficulty + ")");
+        }
+        if (r.healed) {
+            player.heal(1.0F);
+            logFood(player, "healed 1.0 via regen (health=" + player.getHealth()
+                    + " nutrition=" + state.getNutrition()
+                    + " regenFactor=" + new java.math.BigDecimal(String.valueOf(ctx.regenFactor)).stripTrailingZeros().toPlainString()
+                    + " hungerPool+=" + 1.0 + ")");
         }
 
         syncVanillaFoodLevel(player);
