@@ -240,3 +240,27 @@ node testharness/tools/check-faces.js --list   # 逐条打印 F1/F2/F3 与 noPoi
 node testharness/tools/check-faces.js --vol C  # 单卷
 node testharness/tools/selftest-faces.js       # 6 例自检（含 F3 与 R196 引用）
 ```
+
+## 批次状态机 —— batch-status.js
+
+一个批次的状态散在五处（census 翻面、verdict 正本、判窗回执、账册条、sessions 段）再加 git 提交与推送；本工具把它们拼成一份只读视图。
+
+```powershell
+node testharness/tools/batch-status.js B-70TH     # 单批详情
+node testharness/tools/batch-status.js --latest   # 账册最新一条
+node testharness/tools/batch-status.js --all      # 每批一行，末行给 withRisk
+```
+
+| 判定 | 含义 |
+| --- | --- |
+| 缺正本 | 产品批（census 有该批翻面）缺 `<slug>-verify-verdict.md`；工装批记 n/a |
+| verdict 非 PASS | 取文件里**第一条**「状态/终判/判决/判定/结论」宣告行；无宣告行时退到最后一个 `"pass":` 值 |
+| 账册无该批次条 | 账册里没有 `### 条 N · …B-xx…` |
+| 哈希不在 git | 收口行引用的短哈希 `git cat-file -e` 失败 |
+| 待提交 | 收口行仍是「待提交」 |
+| 推送态不符 | 收口行写「已推送」但该哈希不在 origin/master；或反之 |
+| sessions 缺段 | `sessions.md` 无 `## <批次>` |
+
+退出码：0 无风险 / 1 有风险 / 2 找不到该批次。`BATCH_ROOT`（工作区根）与 `BATCH_REPO`（mod 仓库）可指别处。
+
+> 2026-11-26 首跑修掉 6 条真漂移：B-30/B-31 缺 sessions 段（已补记），B-68/B-70TA/B-70TB/B-70TC 的收口行写「未推送」而哈希早随后续批次进了 origin（已改写为「后续批次推送时一并上去」）。
