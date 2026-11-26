@@ -5,7 +5,7 @@
 
 scripts=450 | batches=65 | onHarness=6 | withChannel=163 | undocumented=304 | scratch=51 | pinFollow=105 | pinFrozen=3
 
-fingerprint: `B7815033AD625A6137A69629E1026BD98B320049AA0DC622432DD6FA70D936A1`
+fingerprint: `E923BE2FDE7BC89CE418A156B641257BC3E83C709D282635081288D14868D52A`
 
 ## B-70T9（1 份）
 
@@ -664,7 +664,7 @@ fingerprint: `B7815033AD625A6137A69629E1026BD98B320049AA0DC622432DD6FA70D936A1`
 | `f7-wb-fm7v2-pilot2.js` | 217 | — | none |  | — |
 | `f7-wb-fm7v2.js` | 416 | TestLog | follow |  | — |
 | `f7-wb-growth.js` | 83 | — | none |  | — |
-| `f7-wb-lib.js` | 208 | ArrowLog, ButchLog, EnchantLog, EntityLog, FarmLog, FishLog, FoodLog, MeleeLog, MiningLog | follow |  | — |
+| `f7-wb-lib.js` | 208 | ArrowLog, ButchLog, EnchantLog, FarmLog, FishLog, FoodLog, MeleeLog, MiningLog | follow |  | — |
 | `f7-wb-main.js` | 530 | — | follow |  | — |
 | `f7-wb-moist.js` | 211 | FarmLog | follow |  | — |
 | `f7-wb-pilot.js` | 119 | — | none |  | — |

@@ -193,7 +193,7 @@ function rowCounts(lines) {
   return {
     farm: has('[FarmLog]'), melee: has('[MeleeLog]'), mining: has('[MiningLog]'),
     butch: has('[ButchLog]'), arrow: has('[ArrowLog]'), ench: has('[EnchantLog]'),
-    entity: has('[EntityLog]'), fish: has('[FishLog]'), food: has('[FoodLog]'),
+    fish: has('[FishLog]'), food: has('[FoodLog]'),
     mixinFail: lines.filter((l) => /Mixin apply failed|MixinException|InvalidInjectionException|Critical injection failure/.test(l)).length,
   };
 }

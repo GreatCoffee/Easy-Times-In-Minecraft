@@ -6,7 +6,9 @@
  *   1. 断言 [FarmLog] 但没强制 farmDebugLog 的脚本 → exit 1 + SILENT-OFF FarmLog；
  *   2. 同一脚本加了 cfg 强制 → exit 0 + verdict OK；
  *   3. 断言一个不存在的通道 → exit 1 + STALE；
- *   4. 缺 --script 参数 → exit 2。
+ *   4. 脚本自己 mark 出来的通道（harness 通道）→ exit 0，不算 STALE；
+ *   5. 允许清单里的反向检查标签（ExtraLog）→ exit 0，记 LEGACY；
+ *   6. 缺 --script 参数 → exit 2。
  */
 'use strict';
 
@@ -42,7 +44,17 @@ check('强制 farmDebugLog → OK', r.code === 0 && /verdict OK/.test(r.out), `c
 const stale = path.join(dir, 'stale.js');
 fs.writeFileSync(stale, "const RE = /\\[AnvilLog\\] /;\nconsole.log(RE);\n", 'utf8');
 r = run(['--script', stale]);
-check('死通道 → STALE-RISK', r.code === 1, `code=${r.code}`);
+check('死通道 → STALE-RISK', r.code === 1 && /STALE AnvilLog/.test(r.out), `code=${r.code}`);
+
+const emitted = path.join(dir, 'emitted.js');
+fs.writeFileSync(emitted, "const mark = (s) => console.log(s);\nmark(`[AnvilLog] w2 out=1 | PASS`);\n", 'utf8');
+r = run(['--script', emitted]);
+check('脚本自打通道 → OK', r.code === 0 && /harness=1/.test(r.out), `code=${r.code}`);
+
+const legacy = path.join(dir, 'legacy.js');
+fs.writeFileSync(legacy, "const re = /\\[ExtraLog\\]|ETIM-Extra/i;\nconsole.log(re);\n", 'utf8');
+r = run(['--script', legacy]);
+check('允许清单的反向检查 → OK', r.code === 0 && /legacy=1/.test(r.out), `code=${r.code}`);
 
 r = run(['--script']);
 check('缺参数 → exit 2', r.code === 2, `code=${r.code}`);
