@@ -38,6 +38,7 @@ const ALIAS = {
     'batch-status': 'batchstatus',
     'index-scripts': 'scripts',
     'regression-plan': 'regplan',
+    'gen-config-doc': 'configdoc',
 };
 
 for (const t of tools) {

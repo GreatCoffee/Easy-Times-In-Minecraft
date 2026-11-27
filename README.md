@@ -138,3 +138,8 @@ RAD (Reload Audio Drivers), Step Up, and The One Probe.
 ## License
 
 Template licensed MIT; project license TBD.
+
+## Configuration
+
+All 270 keys (type, default, range, one-line description) are generated from the source:
+see [`docs/CONFIG.md`](docs/CONFIG.md). Regenerate with `node testharness/tools/gen-config-doc.js`.

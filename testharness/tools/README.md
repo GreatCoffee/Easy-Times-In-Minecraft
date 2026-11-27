@@ -515,3 +515,9 @@ node testharness/tools/selftest-all.js --only coverage   # 只跑名字含 cover
 - **环境覆盖**：自检一律用临时树 + 环境变量指向（`CONFIG_REPO` / `HARNESS_PLAYER` / `SCRIPTS_REPO` / `VERSION_REPO` / `REG_REPO` / `BATCH_ROOT`+\`BATCH_REPO\` / `TOOLS_DIR`），不写真实仓库。
 - **preflight**：第 19 步 `tools` 跑 `selftest-all.js`，任一自检红即拦提交。
 
+## 配置文档 —— `gen-config-doc.js`
+
+- `node testharness/tools/gen-config-doc.js` 从 `src/main/java/io/github/etim/etim/ETIMConfig.java` 生成 `docs/CONFIG.md`（25 个分类、270 键：键名/类型/默认值/范围/一句话说明）。
+- 单一真值：说明取字段 javadoc（同组连续声明共享首个 javadoc），范围取注册调用里的 min/max；文档不手改。
+- `--check` 两个失败面：①字段缺 javadoc（新增键必须写说明）②`docs/CONFIG.md` 与源码不一致（改完源码要重新生成）。preflight 第 20 步 `configdoc`。
+- 自检 `node testharness/tools/selftest-configdoc.js`（9 例：生成、键列、组 javadoc 继承、分组计数、新鲜、过期、缺 javadoc 报错、--check 拦截、缺源 exit 2）。

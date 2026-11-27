@@ -194,6 +194,9 @@ step('reports', 'check-reports.js', [], (c) => c !== 0, '[ReportLog]');
 // B-70UE: a landed census face whose carrier has no `[XxxLog]` is invisible to
 // the regression net. Baseline ratchet: new silent faces fail, drops are noted.
 step('coverage', 'check-coverage.js', ['--check'], (c) => c !== 0, '[CoverageLog]');
+// B-70UL: docs/CONFIG.md is generated from ETIMConfig.java; every config key
+// must carry javadoc, and the checked-in doc must match the source.
+step('configdoc', 'gen-config-doc.js', ['--check'], (c) => c !== 0, '[ConfigDocLog]');
 step('tools', 'selftest-all.js', [], (c) => c !== 0, '[SelftestLog]');
 
 const bad = steps.filter((s) => s.bad);
