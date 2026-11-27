@@ -11,7 +11,7 @@
 | 被 harness 覆盖 | 42 |
 | 无覆盖（GAP） | 9 |
 | harness 脚本 | 18 |
-| 已封批（有 verdict） | 73 |
+| 已封批（有 verdict） | 74 |
 
 ## 在跑的窗口
 

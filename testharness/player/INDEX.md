@@ -5,7 +5,7 @@
 
 scripts=454 | batches=65 | onHarness=18 | withChannel=166 | undocumented=308 | scratch=51 | pinFollow=97 | pinFrozen=3
 
-fingerprint: `8DE4ABAF21B7784819720ECAABB7716B30E5434EF09C75252ACC3CCA0B431289`
+fingerprint: `C8277FBFFBC62444448CFA1E8DEB2861E703BC68ABA7A843F6DC8F1B0C4299F0`
 
 ## B-70T9（1 份）
 
@@ -633,7 +633,7 @@ fingerprint: `8DE4ABAF21B7784819720ECAABB7716B30E5434EF09C75252ACC3CCA0B431289`
 | `f15-reg-chains.js` | 183 | IngestLog | none | ✔ | — |
 | `f16-reg-third.js` | 205 | SwingLog | none | ✔ | — |
 | `f16-spec-fix.js` | 49 | — | none |  | — |
-| `f17-reg-fourth.js` | 142 | — | none | ✔ | — |
+| `f17-reg-fourth.js` | 147 | — | none | ✔ | — |
 | `f5-arrow2.js` | 137 | — | none |  | — |
 | `f5-debug-fish.js` | 83 | — | none |  | — |
 | `f5-dirty.js` | 87 | — | none |  | — |

@@ -175,7 +175,7 @@ function checkFile(file, sections) {
                 const actual = sections.get(key);
                 if (actual === undefined) {
                     hits.push({ rule: 'R6 cfg-section', detail: key + ' is not registered in ETIMConfig' });
-                } else if (actual !== want) {
+                } else if (actual.toLowerCase() !== want.toLowerCase()) {
                     hits.push({ rule: 'R6 cfg-section', detail: key + ' lives in [' + actual + '], script says [' + want + ']' });
                 }
             }

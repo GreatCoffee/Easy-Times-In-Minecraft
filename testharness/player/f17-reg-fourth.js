@@ -34,7 +34,7 @@ const h = H.create({
   },
   cfg: [
     'combat:blockDebugLog',
-    'playerCaps:playerCapDebugLog',
+    'playercaps:playerCapDebugLog', // C-B70UA-1: the cfg section header is `playercaps` (lowercase)
     'mobs:mobDebugLog',
     'mobs:underworldDebugLog',
     'combat:butcheringDebugLog',
@@ -43,7 +43,9 @@ const h = H.create({
 const { cmd, mark, waitRow, logLines } = h;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const CUBE_RE = /\[BlockLog\] solidcube at (\S+) block=(\S+) fullCube=(\S+) moves=(\S+) result=(\S+)/;
+// C-B70UA-2: the position field is `BlockPos{x=3, y=129, z=3}` — it contains spaces,
+// so `at (\S+)` never matched (r2 W1 rows=0 against real rows).
+const CUBE_RE = /\[BlockLog\] solidcube at (BlockPos\{[^}]*\}) block=(\S+) fullCube=(\S+) moves=(\S+) result=(\S+)/;
 const CAP_RE = /\[CapLog\] lvl=(-?\d+) cap=(-?\d+) prevBase=([\d.]+) healthBefore=([\d.]+) heal=([\d.]+) healthAfter=([\d.]+)/;
 const MOB_RE = /\[MobLog\] level-modifier lvl=(-?\d+) melee bonus=([\d.]+)/;
 const DIM_WORLDS_RE = /\[DimLog\] worlds=\[([^\]]*)\]/;
@@ -78,7 +80,10 @@ async function main() {
 
   // ---- W2: CapLog (level-driven health/food cap) ----
   from = mark();
-  await cmd(`xp add ${A} 10 levels`, 400);
+  // C-B70UA-3: 1.12 has no `/xp add <player> <n> levels` (r2: `'add' is not a valid number`);
+  // the vanilla form is `/xp <amount>L <player>`. Levels drive both CapLog and the
+  // MobLog level modifier, so W2/W3 share this arm's outcome.
+  await cmd(`xp 10L ${A}`, 400);
   await sleep(1200);
   const caps = await waitRow(CAP_RE, from, 8000);
   const cap = lastOf(caps);

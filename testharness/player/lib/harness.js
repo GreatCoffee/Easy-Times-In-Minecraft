@@ -63,7 +63,10 @@ function indentOf(line) {
  * (deeper) cannot end the section early.
  */
 function sectionBounds(lines, section) {
-    const head = lines.findIndex((s) => s.trim() === section + ' {');
+    // Forge lower-cases section headers when it writes the file back, so the
+    // on-disk name can be `playercaps` while the code registers `playerCaps`.
+    const want = String(section).toLowerCase();
+    const head = lines.findIndex((s) => s.trim().toLowerCase() === want + ' {');
     if (head < 0) {
         throw new Error('cfg section missing: ' + section);
     }
