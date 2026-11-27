@@ -96,6 +96,7 @@ step('assets', 'check-assets.js', [], (c) => c !== 0, '[AssetLog]');
 // B-70TR: legacy windows are archived with a reason; the manifest must not rot.
 step('archive', 'check-channels.js', ['--check-archive'], (c) => c !== 0, '[ChannelLog]');
 step('values', 'extract-values.js', ['--all', '--check'], (c) => c !== 0, '[ValuesLog]');
+step('reports', 'check-reports.js', [], (c) => c !== 0, '[ReportLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);

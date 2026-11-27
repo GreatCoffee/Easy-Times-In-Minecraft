@@ -1,0 +1,9 @@
+{
+  "playground/audit/audit18-w2j-adjudication.md": "playground/archive/audit/audit18-w2j-adjudication.md",
+  "playground/audit/audit19-w3-close.md": "playground/archive/audit/audit19-w3-close.md",
+  "playground/audit/audit19-density-limit-closure.md": "playground/archive/audit/audit19-density-limit-closure.md",
+  "playground/audit/audit19-w3-adjudication.md": "playground/archive/audit/audit19-w3-adjudication.md",
+  "playground/audit/bed-entry-slice-comparison.md": "playground/archive/audit/bed-entry-slice-comparison.md",
+  "playground/audit/weather-verdict.md": "testharness/reports/weather-verdict.md",
+  "ETIMItemShearsRusted.java": "src/main/java/io/github/etim/etim/metal/ETIMItemShears.java"
+}

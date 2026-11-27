@@ -1,0 +1,21 @@
+{
+  "note": "历史报告里提到、但今天按设计已不存在的文件。命中这些名字时只计数，不判失败。",
+  "files": [
+    "fire_elemental_glow.png",
+    "sandstone_side.png",
+    "b3-equip-diff.json",
+    "metgear-quickboot.js",
+    "metgear-w62.js",
+    "mark-after.js",
+    "wait-first.js",
+    "no-boot.js",
+    "no-player.js",
+    "regen-no-rule.js",
+    "stale.js"
+  ],
+  "patterns": [
+    "*.refmap.json",
+    "crash-*-server.txt",
+    "*-evidence.json"
+  ]
+}

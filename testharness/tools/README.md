@@ -426,3 +426,20 @@ node testharness/tools/extract-values.js --face C:137       # 只生成某面
 - **口径**：这些是「候选」，不是结论——数字是否真的落在该面的路径上，仍要按 R196 原文和 census 描述核对。
 - **依赖**：先跑 `face-readiness.js`（要 `剩余-就绪度.md`）与 `plan-batches.js`（`--batch` 要 `批次工单.md`）。
 - **环境变量**：`VALUES_ROOT` / `VALUES_R196` 可指向别处树。
+
+## 报告卫生 —— check-reports.js
+
+```
+node testharness/tools/check-reports.js                 # 汇总（死链 / 索引 / 孤儿）
+node testharness/tools/check-reports.js --list          # 逐条明细
+node testharness/tools/check-reports.js --write-index   # 重建 reports/INDEX.md
+node testharness/tools/selftest-reports.js              # 10 例自检
+```
+
+- **路径解析三级**：精确路径 → 同后缀（`item/X.java` 命中 `…/net/minecraft/item/X.java`）→ 同名。索引覆盖 mod 仓、`playground/`、`mite-src/`、`build/rfg/minecraft-src/` 与工作区根文件。
+- **旧名表** `report-aliases.json`：历史报告里指向已搬迁位置的路径（如 `playground/audit/*.md` → `playground/archive/audit/*.md`、`ETIMItemShearsRusted.java` → `metal/ETIMItemShears.java`）在这里给出新址，报告正文不动，读者照样能点。
+- **退役表** `report-retired.json`：按设计已不存在的产物（临时脚本、旧贴图名、`*.refmap.json`、`crash-*-server.txt`）只计数 `retired=`，不判失败。
+- **不判失败的另外两类**：`volatile=`（`run/`、`build/`、`build-logs/` 与运行期文件）与 `external=`（mineflayer 的 `entities.js` 等）。
+- **提交哈希**：只校验「提交上下文」里的 7–12 / 40 位十六进制；UUID 片段、`0x` 位模式、浮点位模式、文件 SHA-256 都排除。
+- **孤儿**：账册 / sessions / census / 其他报告都没提到的报告，只报数量（历史留存层），见 `testharness/reports/README.md`。
+- **索引**：`INDEX.md` 是机制生成物（文件 / 字节 / 引用方 / 结论），`--write-index` 重建；未重建即 `indexMissing` 硬失败。preflight 第 16 步。
