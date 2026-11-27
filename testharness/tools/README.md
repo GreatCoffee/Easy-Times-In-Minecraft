@@ -498,3 +498,19 @@ PREFLIGHT_SKIP_GRADLE=1 node testharness/tools/preflight.js  # 跳过（CI 自�
 - **成本**：热缓存约 1–3 秒；改了产品码约 20–60 秒（AP + jar 之外的编译）。
 - **为什么放在钩子里**：B-70TY 的 `MixinItemFood` 补丁是手工 `build` 才发现的；钩子不编译就等于允许提交不可编译的代码。
 - **CI**：`.github/workflows/ci.yml` 与 `deploy.yml` 的 preflight 步骤设 `PREFLIGHT_SKIP_GRADLE: '1'`，因为下一步就是 `./gradlew test`，不重复跑。
+
+## 工具自检卫生 — check-tool-selftests.js / selftest-all.js
+
+```
+node testharness/tools/check-tool-selftests.js           # 每个工具必须有自检或人工登记
+node testharness/tools/check-tool-selftests.js --list    # 逐条列出 selftest / manual / MISSING
+node testharness/tools/selftest-all.js                   # 跑遍全部 selftest-*.js（不起服务端，约 20 s）
+node testharness/tools/selftest-all.js --only coverage   # 只跑名字含 coverage 的自检
+```
+
+- **规则**：`tools/` 下每个工具（非 `selftest-*`）必须满足其一 —— 有同名自检（`selftest-<tool>.js`，`check-*` 可省前缀，另有别名表兼容 `selftest-extract` / `selftest-plan` / `selftest-readiness` / `selftest-batchstatus` / `selftest-scripts` / `selftest-regplan` 这类简写），或在 `tool-manual.json` 里带理由登记为人工/端到端工具。
+- **登记表防腐**：`tool-manual.json` 里的键必须在 `tools/` 真实存在，否则报 `STALE-MANUAL`（工具删了、登记没删）。
+- **人工工具**：`install-hooks`（改 .git 配置）、`preflight`（编排器）、`run-regression`（起真实服务端，按纪律只能会话七跑）、`close-batch`（封批写入器）、`check-tool-selftests`（自引用）。
+- **环境覆盖**：自检一律用临时树 + 环境变量指向（`CONFIG_REPO` / `HARNESS_PLAYER` / `SCRIPTS_REPO` / `VERSION_REPO` / `REG_REPO` / `BATCH_ROOT`+\`BATCH_REPO\` / `TOOLS_DIR`），不写真实仓库。
+- **preflight**：第 19 步 `tools` 跑 `selftest-all.js`，任一自检红即拦提交。
+

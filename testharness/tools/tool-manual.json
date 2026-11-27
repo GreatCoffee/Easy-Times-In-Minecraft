@@ -1,0 +1,10 @@
+{
+  "note": "人工/端到端工具：不配 selftest-*.js，理由写在下表；check-tool-selftests.js 会校验条目对应的工具仍存在。",
+  "tools": {
+    "install-hooks": "有副作用（改 .git/config 的 core.hooksPath），自检会污染开发者仓库；人工 `node testharness/tools/install-hooks.js` 一次即可。",
+    "preflight": "编排器：本身就是所有检查器的端到端串联，单独自检等于把 19 步全跑一遍；由 CI（ci.yml / deploy.yml）与 pre-commit 钩子实测覆盖。",
+    "run-regression": "会起真实服务端（每窗 ~90 s），按纪律只能由会话七在判窗时执行；自检会违反「主会话不代跑验证窗」。",
+    "close-batch": "封批写入器：一次写 census + 账册 + sessions + INDEX。冒烟路径需真实账本树，风险高于收益；由 dry-run 人工演练 + check-books/check-closeout 事后校验覆盖。",
+    "check-tool-selftests": "卫生棘轮自身：自检等于自引用。用 `--list` + 临时 TOOLS_DIR 演练（改一格登记看是否 FAIL）。"
+  }
+}

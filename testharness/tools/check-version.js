@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..', '..');
+const ROOT = process.env.VERSION_REPO || path.resolve(__dirname, '..', '..');
 const PROPS = path.join(ROOT, 'gradle.properties');
 
 function arg(name) {

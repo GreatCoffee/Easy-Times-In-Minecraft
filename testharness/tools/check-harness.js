@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PLAYER = path.join(__dirname, '..', 'player');
+const PLAYER = process.env.HARNESS_PLAYER || path.join(__dirname, '..', 'player');
 const listMode = process.argv.includes('--list');
 
 const PATTERNS = {

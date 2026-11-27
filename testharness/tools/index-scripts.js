@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const ROOT = path.resolve(__dirname, '..', '..');
+const ROOT = process.env.SCRIPTS_REPO || path.resolve(__dirname, '..', '..');
 const PLAYER = path.join(ROOT, 'testharness', 'player');
 const INDEX = path.join(PLAYER, 'INDEX.md');
 const SKIP_DIRS = new Set(['node_modules', 'lib', '.git']);

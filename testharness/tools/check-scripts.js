@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { collect } = require('./index-scripts.js');
 
-const ROOT = path.resolve(__dirname, '..', '..');
+const ROOT = process.env.SCRIPTS_REPO || path.resolve(__dirname, '..', '..');
 const INDEX = path.join(ROOT, 'testharness', 'player', 'INDEX.md');
 const list = process.argv.includes('--list');
 

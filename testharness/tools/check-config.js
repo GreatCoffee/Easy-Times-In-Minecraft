@@ -14,7 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..', '..');
+const ROOT = process.env.CONFIG_REPO || path.resolve(__dirname, '..', '..');
 const CFG = path.join(ROOT, 'src/main/java/io/github/etim/etim/ETIMConfig.java');
 const src = fs.readFileSync(CFG, 'utf8');
 const lines = src.split(/\r?\n/);
