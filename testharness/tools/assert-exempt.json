@@ -1,0 +1,4 @@
+{
+    "note": "check-asserts 的豁免表：某条正则在一个窗口里刻意不出现时，登记 script:RE_NAME 并写理由。键必须能被 check-asserts 读到，且理由要写清「为什么这条断言在这类窗口可以 0 命中」。",
+    "scripts": {}
+}

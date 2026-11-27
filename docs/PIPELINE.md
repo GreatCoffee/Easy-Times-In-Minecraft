@@ -91,13 +91,14 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 新窗口脚本用 `gen-window.js --name fNN-bXX --batch B-XX --faces … --channels …` 生成骨架；骨架默认是红的，不会漏填。
 
-## 3. 质量闸：`preflight.js` 的 22 步
+## 3. 质量闸：`preflight.js` 的 26 步
 
 `node testharness/tools/preflight.js` 是提交钩子（`.githooks/pre-commit`）跑的东西，任何一步红就拒绝提交。
 
 | 步 | 工具 | 管什么 |
 | --- | --- | --- |
 | `gradle` | `gradlew test` | 编译主码 + 单测；XML 里有 failure/error 即失败；CI 用 `PREFLIGHT_SKIP_GRADLE=1` 跳过 |
+| `pin` | `set-pin.js --check` | PIN 与磁盘 jar 是否一致 |
 | `books` | `check-books.js` | 六卷三态算术、逐面段行数、账册条号唯一 |
 | `config` | `check-config.js` | 字段↔注册一一对应、类型、默认值与范围 |
 | `disk-cfg` | `check-config.js --file` | 磁盘 cfg 与代码默认是否漂移 |
@@ -121,7 +122,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `tools` | `selftest-all.js` | 所有 `selftest-*.js` 是否全绿 |
 | `retention` | `retention.js --check` | `run/` 与 `build-logs/` 的体积棘轮（证据日志不动） |
 | `assert` | `face-assert.js --check` | 面↔断言图是否过期 |
-| `pin` | `set-pin.js --check` | PIN 与磁盘 jar 是否一致 |
+| `asserts` | `check-asserts.js` | 窗口正则是否还能在最新 tee 里命中；1.13 选择器与未知 `/etest` 子命令即失败 |
 
 ## 4. 目录地图
 
@@ -163,7 +164,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 ## 7. 交接与自查
 
-- 每天开工前：`node testharness/tools/preflight.js`（25 步绿才动码）。
+- 每天开工前：`node testharness/tools/preflight.js`（26 步绿才动码）。
 - 看现状：`node testharness/tools/batch-status.js --all`（60 批，0 风险）、`check-books.js --list`、`regression-plan.js`、`face-readiness.js`。
 - 看通道：`docs/CHANNELS.md`；看配置：`docs/CONFIG.md`；看回归：`testharness/reports/REGRESSION.md`；看覆盖：`testharness/reports/COVERAGE.md`。
 - 装钩子：`node testharness/tools/install-hooks.js`；跳过钩子必须 `--no-verify` 并在提交正文写原因。

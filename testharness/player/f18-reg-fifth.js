@@ -39,7 +39,7 @@ const { cmd, mark, waitRow, logLines } = h;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const ARROW_RELEASE_RE = /\[ArrowLog\] release charge=(\d+) divisor=\S+ velocity=([\d.]+)/;
-const ARROW_SPAWN_RE = /\[ArrowLog\] arrow spawn shooter=(\S+)/;
+const ARROW_SPAWN_RE = /\[ArrowLog\] shot wander=([\d.]+)/;
 const NON_TABLE_RE = /\[EnchLog\] nonTable src=mob tension=([\d.]+)/;
 const REPAIR_PICKUP_RE = /\[RepairLog\] pickup src=(\S+) heal=([\d.]+) hp=([\d.]+) cooldown=(\d+) item=(\S+)/;
 
@@ -71,7 +71,7 @@ async function main() {
   res.w1 = !!rel && +rel[1] >= 5;
   console.log('[W1]', JSON.stringify({
     release: rel && { charge: +rel[1], velocity: +rel[2] },
-    spawn: sp && sp[1], rows: releases.length + spawns.length, pass: res.w1,
+    shot: sp && +sp[1], rows: releases.length + spawns.length, pass: res.w1,
   }));
 
   // ---- W2: EnchLog (mob equipment pool row) ----

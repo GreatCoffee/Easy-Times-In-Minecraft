@@ -634,3 +634,21 @@ node testharness/tools/gen-window.js --name f20-b71 --batch B-71 \
 其余选项：`--stage "gamemode=1;difficulty=2;tp=0.5,130,0.5"`、`--dry-run`（只打印）、`--force`（覆盖已存在文件；默认拒绝）。
 
 自检：`node testharness/tools/selftest-genwindow.js`（5 例：一臂一面、生成物可解析、拒绝覆盖、dry-run 不落盘、缺参数 exit 2）。
+## 判窗断言离线预演 —— check-asserts.js（B-70UX）
+
+```
+node testharness/tools/check-asserts.js            # 全量回放，exit 1 即有死断言
+node testharness/tools/check-asserts.js --list     # 逐脚本给出 regexes/etest/tees/noHit
+node testharness/tools/check-asserts.js --script f18-reg-fifth.js --tees 8
+```
+
+窗口脚本里的正则只有真跑一次才知道对不对：`at (\S+)` 会被 `BlockPos{x=3, y=…}` 的空格截断，`(\S:[\w:]+)` 匹配不了 `minecraft:cooked_beef`——这两类都是 `node --check` 查不出、起服 90 秒后才暴露的 B 级缺陷。本工具把每个脚本自带的 tee 当证据回放：
+
+- **tee 匹配**：两条命名约定取并集——家族前缀（`f18-…`）或批号 token（脚本名第二段，如 `b69`，按 `(^|-)token(-|$)` 比）。取最新 `--tees`（默认 5）份。
+- **判定**：正则编译失败、5 份 tee 全 0 命中、1.13+ 选择器（`limit=`/`sort=`）、`/etest` 子命令在 `CommandDevTest.java` 的 `case` 表里不存在 → RISK / exit 1。
+- **豁免**：`assert-exempt.json` 的 `"script:RE_NAME"` 键（带理由）计 `exempt`，只适用于「这类窗口刻意不出现」的行。
+- **环境**：`ASSERT_PLAYER` / `ASSERT_LOGS` / `ASSERT_REPO` / `ASSERT_EXEMPT` 均可指向临时树（自检用）。
+
+首跑抓到的真死断言：`f18-reg-fifth.js` 的 `ARROW_SPAWN_RE` 等 `[ArrowLog] arrow spawn shooter=`，仓库实际只发 `[ArrowLog] shot wander=`——改成后者后 21 脚本 / 114 正则全命中。
+
+自检：`node testharness/tools/selftest-asserts.js`（5 例：干净树 exit 0、死正则 exit 1、`limit=` 报出、未知子命令报出、豁免后放行）。

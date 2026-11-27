@@ -215,6 +215,10 @@ step('retention', 'retention.js', ['--check'], (c) => c !== 0, '[RetentionLog]')
 // B-70UR: check-coverage says "this face has a channel"; face-assert says
 // "this script asserts it". A face whose channel nobody asserts cannot go red.
 step('assert', 'face-assert.js', ['--check'], (c) => c !== 0, '[AssertLog]');
+// B-70UX: a window's regexes are only proven by running them. Replay every
+// driver regex against the newest tees so a dead pattern (wrong field name,
+// space-splitting capture) fails here instead of in the judge window.
+step('asserts', 'check-asserts.js', [], (c) => c !== 0, '[AssertLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);
