@@ -467,3 +467,21 @@ node testharness/tools/selftest-kickoff.js            # 8 例自检
 - **骨架里已含**：三要素头、面集表（键 / R196 一手 / 内容）、抽表候选、验收格式与纪律行；生成后按需补判值与面细节。
 - **不接 preflight**：按批按需生成；已生成的骨架若与工单/判值表不一致，`--check` 会报 `stale`。
 - **依赖**：先跑 `plan-batches.js` 产出工单；判值表由 `extract-values.js --all` 生成。
+
+## 面↔通道覆盖棘轮 —— check-coverage.js
+
+```
+node testharness/tools/check-coverage.js              # 汇总
+node testharness/tools/check-coverage.js --list       # 逐条 silent 面
+node testharness/tools/check-coverage.js --write-doc  # 重建 reports/COVERAGE.md
+node testharness/tools/check-coverage.js --check      # 文档 + 基线（preflight 第 17 步）
+node testharness/tools/check-coverage.js --update-baseline
+node testharness/tools/selftest-coverage.js           # 6 例自检
+```
+
+- **口径**：每卷 `已落地` 面 → `ETIM位` 里的 Java 指针 → 读载体源码，出现 `[XxxLog]` 字面量即 `logged`；没有任何通道即 `silent`（回归网看不见它）。
+- **豁免**：`【parity】`/`【zero-port】` 面（无产品码）计入 `parity`；指针只落在 R196 侧、解析不到 ETIM 载体的计入 `unresolved`，都不进棘轮。
+- **棘轮**：`coverage-baseline.json` 存当前 silent 面。基线外新增 silent → exit 1；silent 减少只提示下调，`--update-baseline` 写盘。
+- **新规矩**：新落地面要么载体里带判据通道，要么写明 `no-log` 理由并同一批下调基线，否则 preflight 拦在提交前。
+- **文档**：`testharness/reports/COVERAGE.md` 是生成物（分卷汇总 + silent 逐面清单），`--write-doc` 重建，手改会被 `--check` 判 stale。
+- **基线覆盖**：`COVERAGE_BASELINE` 可指向别处（自检用），否则默认 `testharness/tools/coverage-baseline.json`。

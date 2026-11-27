@@ -97,6 +97,9 @@ step('assets', 'check-assets.js', [], (c) => c !== 0, '[AssetLog]');
 step('archive', 'check-channels.js', ['--check-archive'], (c) => c !== 0, '[ChannelLog]');
 step('values', 'extract-values.js', ['--all', '--check'], (c) => c !== 0, '[ValuesLog]');
 step('reports', 'check-reports.js', [], (c) => c !== 0, '[ReportLog]');
+// B-70UE: a landed census face whose carrier has no `[XxxLog]` is invisible to
+// the regression net. Baseline ratchet: new silent faces fail, drops are noted.
+step('coverage', 'check-coverage.js', ['--check'], (c) => c !== 0, '[CoverageLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);
