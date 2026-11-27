@@ -8,9 +8,9 @@
 | 项 | 数 |
 | --- | --- |
 | 判据通道（有产出点） | 51 |
-| 被 harness 覆盖 | 42 |
-| 无覆盖（GAP） | 9 |
-| harness 脚本 | 18 |
+| 被 harness 覆盖 | 45 |
+| 无覆盖（GAP） | 6 |
+| harness 脚本 | 19 |
 | 已封批（有 verdict） | 74 |
 
 ## 在跑的窗口
@@ -35,13 +35,14 @@
 | `f15-reg-chains.js` | - | 7 个：CraftingLog/DeathLog/FishLog/FurnaceLog/IngestLog/MeleeLog/OreLog | 无 |
 | `f16-reg-third.js` | - | 7 个：EnchantLog/EquipLog/HoeLog/PickupLog/SleepLog/SwingLog/WeatherLog | 无 |
 | `f17-reg-fourth.js` | - | 6 个：BlockLog/ButchLog/CapLog/DimLog/MobLog/SkillLog | 无 |
+| `f18-reg-fifth.js` | - | 4 个：AILog/ArrowLog/EnchLog/RepairLog | 无 |
 
 ## 通道覆盖
 
 | 通道 | 产出文件 | 覆盖脚本 | 状态 |
 | --- | --- | --- | --- |
-| `AILog` | CommandDevTest.java, ETIM.java, ETIMConfig.java … | f11-b60-smoke.js | COVERED |
-| `ArrowLog` | ETIMBlockLog.java, ETIMDamageLog.java, ETIM.java … | - | GAP |
+| `AILog` | CommandDevTest.java, ETIM.java, ETIMConfig.java … | f11-b60-smoke.js, f18-reg-fifth.js | COVERED |
+| `ArrowLog` | ETIMBlockLog.java, ETIMDamageLog.java, ETIM.java … | f18-reg-fifth.js | COVERED |
 | `BatLog` | MixinEntityBat.java | - | GAP |
 | `BatMobLog` | CommandDevTest.java, ETIMEntityNightwing.java, ETIMEntityVampireBat.java … | - | GAP |
 | `BeastLog` | CommandDevTest.java, ETIMEntityDireWolf.java, ETIMEntityHellhound.java | f11-b61-smoke.js | COVERED |
@@ -56,7 +57,7 @@
 | `DimLog` | CommandUnderworld.java, ETIM.java, ETIMConfig.java … | f17-reg-fourth.js | COVERED |
 | `DropLog` | ETIMBlockDrops.java, MixinEntityLivingBase.java, ETIMMobDrops.java | f11-b67-smoke.js | COVERED |
 | `ElementalLog` | CommandDevTest.java, MixinBlockStaticLiquid.java, MixinEntitySnowball.java … | f11-b62-smoke.js | COVERED |
-| `EnchLog` | ETIMEnchantPool.java, ETIMConfig.java | - | GAP |
+| `EnchLog` | ETIMEnchantPool.java, ETIMConfig.java | f18-reg-fifth.js | COVERED |
 | `EnchantLog` | CommandDevTest.java, ETIMConfig.java, ETIMAnvilRepair.java … | f16-reg-third.js | COVERED |
 | `EquipLog` | ETIM.java, ETIMConfig.java, ETIMGear.java … | f16-reg-third.js | COVERED |
 | `ExplosionLog` | ETIMExplosion.java | f11-b67-smoke.js | COVERED |
@@ -78,7 +79,7 @@
 | `OreLog` | ETIMConfig.java, ETIMOreGen.java | f15-reg-chains.js | COVERED |
 | `PickupLog` | ETIMMobPickup.java | f16-reg-third.js | COVERED |
 | `PoseLog` | CommandPose.java, GuiPoseTuner.java, PoseFileWatcher.java … | - | GAP |
-| `RepairLog` | ETIMEntityAIMoveToRepairItem.java | - | GAP |
+| `RepairLog` | ETIMEntityAIMoveToRepairItem.java | f18-reg-fifth.js | COVERED |
 | `SilverLog` | CommandDevTest.java, MixinBlockSilverfish.java, MixinEntitySnowball.java … | f11-b63-smoke.js | COVERED |
 | `SkillLog` | ClientNetworkHooks.java, CommandDevTest.java, CommandEtimSkill.java | f17-reg-fourth.js | COVERED |
 | `SleepLog` | ETIMConfig.java, MixinEntityPlayer.java, ETIMDigging.java … | f16-reg-third.js | COVERED |

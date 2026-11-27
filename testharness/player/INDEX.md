@@ -3,9 +3,9 @@
 > 由 `node testharness/tools/index-scripts.js` 生成，请勿手改；`check-scripts.js` 会校验下方 fingerprint。
 > 用途：按批次 / 日志通道检索现成判据，避免重写同面窗口。
 
-scripts=454 | batches=65 | onHarness=18 | withChannel=166 | undocumented=308 | scratch=51 | pinFollow=97 | pinFrozen=3
+scripts=455 | batches=65 | onHarness=19 | withChannel=167 | undocumented=309 | scratch=51 | pinFollow=97 | pinFrozen=3
 
-fingerprint: `C8277FBFFBC62444448CFA1E8DEB2861E703BC68ABA7A843F6DC8F1B0C4299F0`
+fingerprint: `3BBEC03E9E3A109EBC6E5325037642E867972CFF7733C018A0E2AE5144867DFF`
 
 ## B-70T9（1 份）
 
@@ -468,7 +468,7 @@ fingerprint: `C8277FBFFBC62444448CFA1E8DEB2861E703BC68ABA7A843F6DC8F1B0C4299F0`
 | `b1-run.js` | 2274 | FurnaceLog, MiningLog, OreLog, TestLog | none |  | — |
 | `f5-b1-verify.js` | 24 | — | none |  | — |
 
-## 未标批次（318 份）
+## 未标批次（319 份）
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
@@ -634,6 +634,7 @@ fingerprint: `C8277FBFFBC62444448CFA1E8DEB2861E703BC68ABA7A843F6DC8F1B0C4299F0`
 | `f16-reg-third.js` | 205 | SwingLog | none | ✔ | — |
 | `f16-spec-fix.js` | 49 | — | none |  | — |
 | `f17-reg-fourth.js` | 147 | — | none | ✔ | — |
+| `f18-reg-fifth.js` | 112 | AILog | none | ✔ | — |
 | `f5-arrow2.js` | 137 | — | none |  | — |
 | `f5-debug-fish.js` | 83 | — | none |  | — |
 | `f5-dirty.js` | 87 | — | none |  | — |
