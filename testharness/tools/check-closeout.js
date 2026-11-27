@@ -83,9 +83,15 @@ const hashes = new Set();
 // Hex runs of 7..39 chars that contain at least one letter. The run-based
 // scan keeps 40/64-char SHA1/SHA256 digests out: their digit-only windows
 // used to be mis-read as short commit hashes.
+// A digest truncated with an ellipsis (dev/sources `B2B7049C…`) is a note, not
+// a commit id, and must not be resolved.
+const ELLIPSIS_RE = /^\s*(…|\.\.\.)/;
 for (const m of body.matchAll(/[0-9a-fA-F]{7,}/g)) {
     const run = m[0];
     if (run.length > 39 || !/[a-fA-F]/.test(run)) {
+        continue;
+    }
+    if (ELLIPSIS_RE.test(body.slice(m.index + run.length, m.index + run.length + 4))) {
         continue;
     }
     hashes.add(run.toLowerCase());

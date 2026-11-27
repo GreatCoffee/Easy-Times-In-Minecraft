@@ -83,6 +83,11 @@ check('push-mismatch', books(
     '## B-99X\n'), 1, 'R4');
 git(repo, ['reset', '-q', '--hard', 'HEAD~1']);
 
+// 6 a truncated digest with an ellipsis is a note, not a commit reference
+check('ellipsis-digest', books(
+    `### 条 1 · B-99X\n\n- 收口提交：\`${head}\`（未推送，origin 欠 0）；dev 1,541,016 \`b2b7049c…\`。\n`,
+    '## B-99X\n'), 0, 'verdict OK');
+
 for (const r of results) {
     console.log((r.ok ? 'PASS ' : 'FAIL ') + r.name + ` (exit=${r.code} want=${r.want}) ${r.ok ? '' : r.out}`);
 }
