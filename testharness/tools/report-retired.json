@@ -14,7 +14,14 @@
     "stale.js",
     "leftover.js",
     "cfg-bad-section.js",
-    "cfg-good.js"
+    "cfg-good.js",
+    "_b70uv-cmp.js",
+    "_b70uv-size.js",
+    "_b70uv-run.ps1",
+    "_b70tu-run.ps1",
+    "_b70tu2-run.ps1",
+    "_b70tz-size.js",
+    "_b70ub-size.js"
   ],
   "patterns": [
     "*.refmap.json",
