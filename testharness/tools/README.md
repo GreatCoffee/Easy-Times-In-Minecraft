@@ -652,3 +652,21 @@ node testharness/tools/check-asserts.js --script f18-reg-fifth.js --tees 8
 首跑抓到的真死断言：`f18-reg-fifth.js` 的 `ARROW_SPAWN_RE` 等 `[ArrowLog] arrow spawn shooter=`，仓库实际只发 `[ArrowLog] shot wander=`——改成后者后 21 脚本 / 114 正则全命中。
 
 自检：`node testharness/tools/selftest-asserts.js`（5 例：干净树 exit 0、死正则 exit 1、`limit=` 报出、未知子命令报出、豁免后放行）。
+## 对照报告草稿 —— gen-report.js（B-70UY）
+
+```
+node testharness/tools/gen-report.js --batch B-71        # 写 playground/audit/draft/B-71-对照报告-草稿.md
+node testharness/tools/gen-report.js --batch B-71 --check # 只比对，过期 exit 1
+node testharness/tools/gen-report.js --check-dir         # preflight 用：所有草稿逐份比对
+```
+
+每一批最费时间的是「会话六 摸底 → 对照报告」：把 R196 原文读成判值，再和 ETIM 现状对位。这一步的输入其实早就齐了（批次工单面集、就绪度载体、判值表候选、R196 原文、ETIM 载体通道），本工具把它们排到一张纸上：
+
+- **§1 面集**：键 / R196 一手 / 就绪档（WIRE/CITE/NEW）/ 载体 / 载体文件内通道，附「无载体 / 零通道 / 判值表仅上下文」三计数。
+- **§2 逐面**：工单说明、依赖、载体路径与行数、判值候选（≤14 条）、R196 原文摘录（≤26 行，单行引用取 ±6 行）、以及自动生成的「会话六待办」（无载体、无通道、判值表仅上下文、仅注释引用）。
+- **§3/§4/§5 留空**：D 位表、A/B/C 分级、终判——这些必须由人填。
+
+输入全缺即 `missing …` exit 1；批次不存在 exit 1；不给 `--batch` exit 2。
+`REPORT_ROOT` / `REPORT_REPO` / `REPORT_R196` 可指向临时树。
+
+自检：`node testharness/tools/selftest-genreport.js`（9 例：生成、面与摘录、载体通道、留空表、无载体、`--check` 新鲜/过期、未知批次、缺输入）。

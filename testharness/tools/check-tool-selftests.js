@@ -45,6 +45,7 @@ const ALIAS = {
     'gen-channel-doc': 'chandoc',
     'check-pipeline-doc': 'pipeline',
     'check-asserts': 'asserts',
+    'gen-report': 'genreport',
 };
 
 for (const t of tools) {

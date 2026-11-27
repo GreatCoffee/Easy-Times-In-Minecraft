@@ -219,6 +219,9 @@ step('assert', 'face-assert.js', ['--check'], (c) => c !== 0, '[AssertLog]');
 // driver regex against the newest tees so a dead pattern (wrong field name,
 // space-splitting capture) fails here instead of in the judge window.
 step('asserts', 'check-asserts.js', [], (c) => c !== 0, '[AssertLog]');
+// B-70UY: the comparison report is where 会话六 spends its day. Drafts keep
+// those inputs on one page; a stale draft is worse than none.
+step('draft', 'gen-report.js', ['--check-dir'], (c) => c !== 0, '[DraftLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);
