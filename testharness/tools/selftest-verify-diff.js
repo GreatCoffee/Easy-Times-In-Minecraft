@@ -121,6 +121,26 @@ check('arms filters noisy UndeadLog spawn', a3.code === 0 && /verdict MATCH/.tes
 const a4 = run(['--mode=arms', '--base', undBase, '--new', undDrift]);
 check('arms still catches a vanished probe', a4.code === 1 && /arm only-in-base: \[UndeadLog\] probe/.test(a4.out), a4.out.trim().split('\n').pop());
 
+// --mode=values: the numbers inside a surviving line must not move.
+const valBase = armsTee('val-base.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [FarmLog] growth crop=wheat rate=0.0250 light=15',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [FarmLog] drought probe block=minecraft:wheat age=7 pos=11,130,4 roll=0.25',
+]);
+const valSame = armsTee('val-same.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [FarmLog] growth crop=wheat rate=0.025 light=15',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [FarmLog] drought probe block=minecraft:wheat age=7 pos=99,64,-7 roll=0.250',
+]);
+const valDrift = armsTee('val-drift.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [FarmLog] growth crop=wheat rate=0.021 light=15',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [FarmLog] drought probe block=minecraft:wheat age=7 pos=11,130,4 roll=0.25',
+]);
+const v1 = run(['--mode=values', '--base', valBase, '--new', valSame]);
+check('values MATCH normalises float format and ignores pos', v1.code === 0 && /verdict MATCH/.test(v1.out), v1.out.trim().split('\n').pop());
+const v2 = run(['--mode=values', '--base', valBase, '--new', valDrift]);
+check('values catches a changed number', v2.code === 1 && /value changed: .*rate: 0\.025 -> 0\.021/.test(v2.out), v2.out.trim().split('\n').pop());
+const v3 = run(['--mode=values', '--tol=0.01', '--base', valBase, '--new', valDrift]);
+check('values --tol absorbs sub-tolerance drift', v3.code === 0 && /verdict MATCH/.test(v3.out), v3.out.trim().split('\n').pop());
+
 const usage = run(['--base', 'no-such-file.out', '--new', same.tee]);
 check('missing file exits 2', usage.code === 2, usage.out.trim().split('\n').pop());
 

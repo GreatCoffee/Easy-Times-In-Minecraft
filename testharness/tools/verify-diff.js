@@ -69,6 +69,11 @@ function parseAll(files) {
         // Generic channel+first-token multiset (--mode=arms): catches an arm
         // that silently stopped firing even when [MountLog] never appears.
         lines: new Map(),
+        // Channel|field -> raw values (--mode=values). C-B70UV-2: arms mode only
+        // proves a line still fires; this table proves the numbers inside did
+        // not move (a refactor that turns 1500 into 1450 must not pass).
+        values: new Map(),
+        valueRows: 0,
     };
     for (const file of files) {
         out.files.push(path.basename(file));
@@ -116,6 +121,16 @@ function parseAll(files) {
             if (gm) {
                 const key = `[${gm[1]}] ${gm[2]}`;
                 out.lines.set(key, (out.lines.get(key) || 0) + 1);
+                // key=value pairs on the same row; braces/quotes keep their spaces.
+                let pairs = 0;
+                for (const m of line.matchAll(/([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|\{[^}]*\}|[^\s\]]+)/g)) {
+                    const field = `[${gm[1]}] ${m[1]}`;
+                    const arr = out.values.get(field) || [];
+                    arr.push(m[2]);
+                    out.values.set(field, arr);
+                    pairs++;
+                }
+                if (pairs) out.valueRows++;
             }
         }
     }
@@ -141,14 +156,135 @@ function mapDiff(a, b) {
     return { onlyA, onlyB, delta };
 }
 
-function jsonKeyDiff(a, b) {
-    const ka = Object.keys(a || {}).sort();
+// Fields whose value is environment-dependent by design: the player/bot name,
+// entity instance ids, coordinates, clock and RNG seeds. Every window picks new
+// ones, so comparing them would drown the real signal (C-B70UV-2).
+const VALUE_IGNORE = new Set([
+    'player', 'owner', 'shooter', 'uuid', 'pos', 'at', 'chunk', 'origin', 'seed',
+    // entity instance ids (FoodR196Log zombie=1978 is the mob's id, not a metric).
+    'zombie', 'animal', 'mob', 'target', 'attacker', 'victim', 'entity', 'entityId',
+    'time', 'twt', 'worldtime', 'tick', 'ticks', 'ticksExisted', 'ms', 'elapsed',
+    'uptime', 'run', 'stamp', 'x', 'y', 'z',
+]);
+
+function normToken(raw, tol) {
+    let s = String(raw);
+    if (s.length > 1 && s.startsWith('"') && s.endsWith('"')) {
+        s = s.slice(1, -1);
+    }
+    // EntityZombie#2177 — the instance id changes every run.
+    s = s.replace(/#\d+/g, '#N');
+    // "-107.356,24.064,86.499" (drop points, block positions) — keep the shape, drop the numbers.
+    if (/^-?\d+(?:\.\d+)?(?:,-?\d+(?:\.\d+)?){2}$/.test(s)) {
+        s = 'vec';
+    }
+    if (/^-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(s)) {
+        const v = Number(s);
+        return 'n:' + (Number.isInteger(v) ? String(v) : String(Number(v.toFixed(6))));
+    }
+    return 's:' + s;
+}
+
+function valueTable(map, keep, ignore, tol) {
+    const out = new Map();
+    for (const [field, arr] of map) {
+        const ch = field.slice(1, field.indexOf(']'));
+        if (keep && !keep.has(ch)) continue;
+        const key = field.slice(field.indexOf('] ') + 2);
+        if (ignore.has(key)) continue;
+        const counts = new Map();
+        for (const v of arr) {
+            const t = normToken(v, tol);
+            counts.set(t, (counts.get(t) || 0) + 1);
+        }
+        out.set(field, counts);
+    }
+    return out;
+}
+
+function numsOf(m) {
+    const out = [];
+    for (const [k, v] of m) {
+        if (!k.startsWith('n:')) continue;
+        for (let i = 0; i < v; i++) out.push(Number(k.slice(2)));
+    }
+    out.sort((x, y) => x - y);
+    return out;
+}
+
+function strsOf(m) {
+    const out = new Map();
+    for (const [k, v] of m) {
+        if (!k.startsWith('n:')) out.set(k, v);
+    }
+    return out;
+}
+
+function fmtCounts(arr, prefix) {
+    const c = new Map();
+    for (const n of arr) {
+        const k = prefix + n;
+        c.set(k, (c.get(k) || 0) + 1);
+    }
+    const rows = [...c.entries()];
+    const head = rows.slice(0, 6).map(([k, v]) => k + '×' + v).join(' ');
+    return rows.length > 6 ? head + ' …+' + (rows.length - 6) : head;
+}
+
+function valuesDiff(a, b, tol) {
+    const onlyA = [];
+    const onlyB = [];
+    const delta = [];
+    for (const [k, ma] of a) {
+        if (!b.has(k)) {
+            onlyA.push(k);
+            continue;
+        }
+        const mb = b.get(k);
+        const sd = mapDiff(strsOf(ma), strsOf(mb));
+        for (const x of sd.delta) delta.push(k + ': ' + x);
+        for (const x of sd.onlyA) delta.push(k + ': only-in-base ' + x);
+        for (const x of sd.onlyB) delta.push(k + ': only-in-new ' + x);
+
+        const na = numsOf(ma);
+        const nb = numsOf(mb);
+        if (na.length !== nb.length) {
+            delta.push(k + ': count ' + na.length + '->' + nb.length
+                + ' [' + fmtCounts(na, '') + '] -> [' + fmtCounts(nb, '') + ']');
+            continue;
+        }
+        for (let i = 0; i < na.length; i++) {
+            if (Math.abs(na[i] - nb[i]) > tol) {
+                delta.push(k + ': ' + na[i] + ' -> ' + nb[i]);
+                break;
+            }
+        }
+    }
+    for (const k of b.keys()) {
+        if (!a.has(k)) onlyB.push(k);
+    }
+    return { onlyA, onlyB, delta };
+}
+
+function jsonKeyDiff(a, b) {    const ka = Object.keys(a || {}).sort();
     const kb = Object.keys(b || {}).sort();
     const onlyA = ka.filter((k) => !kb.includes(k));
     const onlyB = kb.filter((k) => !ka.includes(k));
     const changed = ka.filter((k) => kb.includes(k) && JSON.stringify(a[k]) !== JSON.stringify(b[k]));
     return { onlyA, onlyB, changed };
 }
+
+// Deterministic channels the driver asserts. Ambient ones (AILog, SpawnLog,
+// WorldGenSpawnLog, OreLog, ...) vary run to run and are excluded by default in
+// both arms and values modes; --channels= overrides.
+const AUTO = ['BlockFaceLog', 'ItemLog', 'FarmLog', 'FoodR196Log', 'FoodLog',
+    'SparkLog', 'MountLog', 'TestLog', 'VesselLog', 'StalkerLog',
+    'UndeadLog', 'DamageLog', 'MiningLog'];
+
+// Values mode additionally drops BlockFaceLog: its dropbox rows come from ambient
+// block breaks (rails/tallgrass), so its field counts are world-dependent. Pass
+// --channels=BlockFaceLog explicitly when that is exactly what you want to see.
+const VALUE_CHANNELS = AUTO.filter((c) => c !== 'BlockFaceLog');
 
 function main(argv) {
     const args = argv.slice(2);
@@ -158,13 +294,24 @@ function main(argv) {
     let strictArms = false;
     let strictCounts = false;
     let channels = null;
+    let tol = 0;
+    let ignore = null;
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--strict-counts') {
             strictCounts = true;
+        } else if (args[i].startsWith('--tol=')) {
+            tol = Number(args[i].slice(6));
+            if (!(tol >= 0)) {
+                throw new Error('bad --tol value');
+            }
+        } else if (args[i].startsWith('--ignore=')) {
+            ignore = args[i].slice(9).split(',').map((s) => s.trim()).filter(Boolean);
         } else if (args[i].startsWith('--channels=')) {
             channels = args[i].slice(11).split(',').map((s) => s.trim()).filter(Boolean);
         } else if (args[i] === '--mode=arms') {
             mode = 'arms';
+        } else if (args[i] === '--mode=values') {
+            mode = 'values';
         } else if (args[i] === '--strict-arms') {
             strictArms = true;
         } else if (args[i] === '--base') {
@@ -214,9 +361,6 @@ function main(argv) {
         // C-B70TW-4: StalkerLog rows (spawn/seek) come from explicit summons and are
         // deterministic; DamageLog/MiningLog tokens are stable words (dmg/prot/mine)
         // even when ambient hits add rows, so set semantics are safe.
-        const AUTO = ['BlockFaceLog', 'ItemLog', 'FarmLog', 'FoodR196Log', 'FoodLog',
-            'SparkLog', 'MountLog', 'TestLog', 'VesselLog', 'StalkerLog',
-            'UndeadLog', 'DamageLog', 'MiningLog'];
         // Tokens that depend on the ambient world rather than on the driver's arms
         // (mob spawns during the window); drop them before comparing.
         const NOISY = { UndeadLog: ['spawn'] };
@@ -246,7 +390,22 @@ function main(argv) {
         }
     }
 
-    const rd = mode === 'arms' ? { onlyA: [], onlyB: [], delta: [] } : mapDiff(base.rules, cur.rules);
+    if (mode === 'values') {
+        const keep = new Set(channels || VALUE_CHANNELS);
+        const ign = new Set([...VALUE_IGNORE, ...(ignore || [])]);
+        const vb = valueTable(base.values, keep, ign, tol);
+        const vn = valueTable(cur.values, keep, ign, tol);
+        console.log('[DiffLog] values ignore=' + [...ign].join(',')
+            + ' tol=' + tol + ' fields base=' + vb.size + ' new=' + vn.size);
+        const vd = valuesDiff(vb, vn, tol);
+        const cap = (arr) => arr.slice(0, 10).join(' ; ') + (arr.length > 10 ? ' …(+' + (arr.length - 10) + ')' : '');
+        if (vd.onlyA.length) findings.push('value only-in-base: ' + cap(vd.onlyA));
+        if (vd.onlyB.length) findings.push('value only-in-new: ' + cap(vd.onlyB));
+        if (vd.delta.length) findings.push('value changed: ' + cap(vd.delta));
+        console.log(`[DiffLog] values rows base=${base.valueRows} new=${cur.valueRows} fields=${vb.size}`);
+    }
+
+    const rd = (mode === 'arms' || mode === 'values') ? { onlyA: [], onlyB: [], delta: [] } : mapDiff(base.rules, cur.rules);
     if (rd.onlyA.length) {
         findings.push('rule only-in-base: ' + rd.onlyA.join(', '));
     }
@@ -257,7 +416,7 @@ function main(argv) {
         findings.push('rule count: ' + rd.delta.join(', '));
     }
 
-    const md = mode === 'arms' ? { onlyA: [], onlyB: [], delta: [] } : mapDiff(base.mounts, cur.mounts);
+    const md = (mode === 'arms' || mode === 'values') ? { onlyA: [], onlyB: [], delta: [] } : mapDiff(base.mounts, cur.mounts);
     if (md.onlyA.length) {
         findings.push('mount only-in-base: ' + md.onlyA.join(' ; '));
     }
@@ -267,7 +426,7 @@ function main(argv) {
     if (md.delta.length) {
         findings.push('mount count: ' + md.delta.join(' ; '));
     }
-    if (mode !== 'arms' && base.mayplace !== cur.mayplace) {
+    if (mode !== 'arms' && mode !== 'values' && base.mayplace !== cur.mayplace) {
         findings.push(`mayplace ${base.mayplace} -> ${cur.mayplace}`);
     }
 
@@ -282,7 +441,7 @@ function main(argv) {
     for (const f of findings) {
         console.log('[DiffLog] DIFF ' + f);
     }
-    console.log(`[DiffLog] summary rules base=${base.rules.size} new=${cur.rules.size} ` +
+    console.log(`[DiffLog] summary mode=${mode} rules base=${base.rules.size} new=${cur.rules.size} ` +
         `mounts base=${base.mounts.size} new=${cur.mounts.size} mayplace=${cur.mayplace} diffs=${findings.length}`);
     console.log('[DiffLog] verdict ' + (findings.length ? 'DIFF' : 'MATCH'));
     return findings.length ? 1 : 0;

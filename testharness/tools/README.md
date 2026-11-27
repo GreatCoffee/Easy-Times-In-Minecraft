@@ -45,7 +45,7 @@ node testharness/tools/verify-diff.js --base latest --new latest
 - `[done]` 的 `run` 字段按设计逐窗不同，比较时忽略；其余字段逐项比。
 - tee（`b69-<run>-b1.out`）只有服务端输出；driver 行（`[PIN]`/`[cfg]`/`[W*]`/`[done]`）
   由 harness 另写 `testharness/build-logs/<run>-driver.log`，两边一起喂才算完整。
-- 自检：`node testharness/tools/selftest-verify-diff.js`（9 项，离线）。
+- 自检：`node testharness/tools/selftest-verify-diff.js`（16 项，离线）。
 
 ### 模式二：`--mode=arms`（通道活口对位）
 
@@ -64,6 +64,23 @@ TestLog / VesselLog / StalkerLog / UndeadLog / DamageLog / MiningLog`。其中 `
 - 默认纳入：`BlockFaceLog / ItemLog / FarmLog / FoodR196Log / FoodLog / SparkLog / MountLog / TestLog / VesselLog`（`--channels=` 可覆盖）。
 - 环境噪声通道（`AILog / SpawnLog / WorldGenSpawnLog / GelLog / PickupLog / OreLog / EquipLog / UndeadLog`）默认不参与，避免生物随机游走造成假 DIFF。
 - 默认只比「存在性」；加 `--strict-counts` 才比条数。
+
+### 模式三：`--mode=values`（数值对位）
+
+arms 模式只证明「这行还在发」，证明不了「行里的数没变」。把一个咬钩时间从 1500 改成 1450、
+把摔落系数改了，窗口照样 MATCH —— 这正是 C-B70UV-2 记下的漏洞。values 模式按「通道 × 字段」
+聚成多重集逐字段比。
+
+```powershell
+node testharness/tools/verify-diff.js --mode=values --base <旧窗.out> --new <新窗.out>
+node testharness/tools/verify-diff.js --mode=values --tol=0.01 --base … --new …
+```
+
+- 取每条 `[XxxLog]` 行的 `key=value`；数值按数值比（`0.0250` ≡ `0.025`），`--tol` 以内算相等；字符串逐字比。
+- 默认忽略环境量：玩家/实体名与实例 id、坐标（三元组归一成 `vec`）、时钟（`time/twt/worldtime/tick/ms`）、随机种子；`--ignore=a,b` 追加。
+- 默认通道复用 arms 的确定性表，但**去掉 BlockFaceLog**（dropbox 行来自路过时的自然破坏）；要看它请显式 `--channels=BlockFaceLog`。
+- 输出 `value only-in-base / only-in-new / changed`，每条给「旧 → 新」；每字段最多列 6 个取值，其余折叠 `…+N`。
+- 实测：`b65-b70tc-r3` vs `b65-b70uv-r2` → 37 字段 0 差异 MATCH；`f15-b70ty-r11` vs `f15-b70uv-r1` → 13 字段 MATCH。
 
 ## check-books.js —— 账本自检
 
