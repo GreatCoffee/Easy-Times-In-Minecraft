@@ -2,6 +2,7 @@ package io.github.etim.etim.mixins;
 
 import io.github.etim.etim.ETIMConfig;
 import io.github.etim.etim.hunger.ETIMFoodStats;
+import io.github.etim.etim.ingest.ETIMIngestibles;
 import io.github.etim.etim.nutrition.NutritionSystem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemFood;
@@ -52,7 +53,12 @@ public abstract class MixinItemFood {
         }
         ItemStack stack = player.getHeldItem(hand);
         if (!ETIMFoodStats.canIngest(player, NutritionSystem.getFoodValue(stack))) {
+            // B-B70TY-4: the gate used to refuse silently; rule 9 wants every
+            // refused judgment on the [IngestLog] channel too.
+            ETIMIngestibles.logIngest(player, ETIMIngestibles.itemKey(stack) + " right-click refused by canIngest");
             cir.setReturnValue(new ActionResult<ItemStack>(EnumActionResult.FAIL, stack));
+            return;
         }
+        ETIMIngestibles.logIngest(player, ETIMIngestibles.itemKey(stack) + " start eating (vanilla ItemFood)");
     }
 }

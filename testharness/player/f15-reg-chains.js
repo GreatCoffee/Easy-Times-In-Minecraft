@@ -42,14 +42,17 @@ const h = H.create({
     'furnace:furnaceDebugLog',
     'combat:meleeDebugLog',
     'death:deathDebugLog',
+    'death:deathXpOrbs', // C-B70TY-1: default false ⇒ 无 "death orb dump" 行，W6 判据面不可达
   ],
 });
 const { cmd, mark, waitRow } = h;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const FISH_GATE_RE = /\[FishLog\] gate token=1 wt=(-?\d+)/;
 const FISH_TYPE_RE = /\[FishLog\] type n=(\d+) cod=(\d+) salmon=(\d+)/;
 const ANVIL_RE = /\[CraftingLog\] anvilplan player=(\S+) item=(\S+) kind=(\S+)/;
-const INGEST_RE = /\[IngestLog\] (\S+) \(\d+\) (\S:[\w:]+) start eating/;
+const INGEST_RE = /\[IngestLog\] (\S+) \(\d+\) (\S+) start eating/;
+const INGEST_REFUSE_RE = /\[IngestLog\] (\S+) \(\d+\) (\S+) right-click refused by canIngest/;
 const FURNACE_RE = /\[FurnaceLog\] 8 judged smelting rows registered/;
 const MELEE_RE = /\[MeleeLog\] melee target=(\S+) lvl_stun=(\d+) lvl_vamp=(\d+) lvl_disarm=(\d+)/;
 const DEATH_RE = /\[DeathLog\] (\S+) \(\d+\) death (orb dump|keepInventory)/;
@@ -60,37 +63,48 @@ const lastOf = (rows) => (rows.length ? rows[rows.length - 1] : null);
 async function main() {
   h.stampPin();
   await h.boot(`f15-${RUN}-b1`);
+  const bootFrom = mark(); // C-B70TY-2: W1 的门行可能在 join() 返回后极短时间内出现，取 boot 后全窗切片
   await h.join();
 
   const res = { w1: false, w2: false, w3: false, w4: false, w5: false, w6: false, w7: false };
 
   // ---- W1: fishing gate + fish type (bot is the command sender) ----
-  let from = mark();
+  const from0 = bootFrom;
   h.bot.chat('/etest fishgate 1000 0 0 false false 5');
   h.bot.chat('/etest fishprobe type 50');
-  const gates = await waitRow(FISH_GATE_RE, from, 10000);
-  const types = await waitRow(FISH_TYPE_RE, from, 10000);
+  const gates = await waitRow(FISH_GATE_RE, from0, 10000);
+  const types = await waitRow(FISH_TYPE_RE, from0, 10000);
   const t = lastOf(types);
   res.w1 = gates.length > 0 && !!t && +t[1] === 50 && (+t[2] + +t[3]) === 50;
   console.log('[W1]', JSON.stringify({ gateRows: gates.length, type: t && { n: +t[1], cod: +t[2], salmon: +t[3] }, pass: res.w1 }));
 
   // ---- W2: anvil plan row (console sender + explicit player) ----
-  from = mark();
+  let from = mark();
   await cmd(`etest anvilplan ${A} minecraft:iron_pickaxe`, 900);
   const anvils = await waitRow(ANVIL_RE, from, 8000);
   const an = lastOf(anvils);
   res.w2 = !!an && an[1] === A && an[2] === 'minecraft:iron_pickaxe';
   console.log('[W2]', JSON.stringify({ anvil: an && { player: an[1], item: an[2], kind: an[3] }, pass: res.w2 }));
 
-  // ---- W3: ingest start-eating row (hold food, right-click) ----
+  // ---- W3: ingest channel — vanilla-food start row + egg refusal row ----
   await cmd(`etest food 4 ${A}`, 400);
   await cmd(`etest hold minecraft:cooked_beef ${A}`, 400);
+  await sleep(400);
   from = mark();
-  try { await h.bot.activateItem(); } catch (e) { /* older mineflayer name */ }
-  const ingests = await waitRow(INGEST_RE, from, 8000);
+  try { await h.bot.activateItem(); } catch (e) { /* ignore */ }
+  const ingests = await waitRow(INGEST_RE, from, 6000);
   const ing = lastOf(ingests);
-  res.w3 = !!ing && ing[1] === A;
-  console.log('[W3]', JSON.stringify({ ingest: ing && { player: ing[1], item: ing[2] }, pass: res.w3 }));
+  // B-B70TY-4: the egg fork is the refusal face (egg is not edible) — proving both
+  // halves of the channel, now that vanilla ItemFood logs its own start row.
+  await cmd(`etest hold minecraft:egg ${A}`, 400);
+  await sleep(400);
+  const fromRefuse = mark();
+  try { await h.bot.activateItem(); } catch (e) { /* ignore */ }
+  const refusals = await waitRow(INGEST_REFUSE_RE, fromRefuse, 6000);
+  res.w3 = !!ing && ing[1] === A && refusals.length > 0;
+  console.log('[W3]', JSON.stringify({
+    food: ing && { player: ing[1], item: ing[2] }, refused: refusals.length, pass: res.w3,
+  }));
 
   // ---- W4: furnace registration row (boot-time judgement channel) ----
   const furnace = await waitRow(FURNACE_RE, 0, 4000);
@@ -106,8 +120,17 @@ async function main() {
   const zombie = Object.values(h.bot.entities).find((e) => e && e.name === 'zombie');
   if (!zombie) { console.log('[W5]', JSON.stringify({ error: 'no zombie entity in bot view', pass: false })); }
   else {
+    // C-B70TY-5: ETIM reach 用实体射线距离，视线不对准目标会得到 Double.MAX_VALUE → deny_attack
+    try {
+      await h.bot.lookAt(zombie.position.offset(0, zombie.height * 0.85, 0), true);
+    } catch (e) { /* keep going */ }
+    await sleep(300);
     try { h.bot.attack(zombie); } catch (e) { console.log('[W5]', JSON.stringify({ error: String(e), pass: false })); }
-    const melee = await waitRow(MELEE_RE, from, 8000);
+    let melee = await waitRow(MELEE_RE, from, 5000);
+    if (!melee.length) {
+      try { h.bot.attack(zombie); } catch (e) { /* ignore */ }
+      melee = await waitRow(MELEE_RE, from, 5000);
+    }
     const me = lastOf(melee);
     res.w5 = !!me && +me[2] >= 1;
     console.log('[W5]', JSON.stringify({ melee: me && { target: me[1], stun: +me[2] }, pass: res.w5 }));
@@ -135,3 +158,4 @@ async function main() {
 }
 
 h.guard(main);
+

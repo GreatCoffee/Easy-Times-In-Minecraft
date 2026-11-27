@@ -66,7 +66,7 @@
 | `FurnaceLog` | ETIMConfig.java, FurnaceHeat.java, ETIMBlocks.java … | f15-reg-chains.js | COVERED |
 | `GelLog` | CommandDevTest.java, ETIMEntityCubic.java, ETIMEntityGelatinousCube.java … | f11-b58-smoke.js | COVERED |
 | `HoeLog` | ETIMItemMattock.java, MixinItemHoe.java | - | GAP |
-| `IngestLog` | ETIMConfig.java, ETIMIngestibles.java, MixinBlock.java | f15-reg-chains.js | COVERED |
+| `IngestLog` | ETIMConfig.java, ETIMIngestibles.java, MixinBlock.java … | f15-reg-chains.js | COVERED |
 | `ItemLog` | CommandDevTest.java, ETIMItemMelt.java, ETIMItemStacks.java … | f11-b64-smoke.js | COVERED |
 | `MeleeLog` | ETIMMelee.java, ETIMConfig.java | f15-reg-chains.js | COVERED |
 | `MiningLog` | ETIMConfig.java, ETIMMining.java, MixinItem.java … | f14-reg-core.js | COVERED |

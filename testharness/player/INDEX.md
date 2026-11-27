@@ -5,7 +5,7 @@
 
 scripts=452 | batches=65 | onHarness=16 | withChannel=164 | undocumented=306 | scratch=51 | pinFollow=97 | pinFrozen=3
 
-fingerprint: `168455BD6F984AD1DF43CC908045412155CD6CB2245BAEB498F6B70F6F23817B`
+fingerprint: `A2CE7ED28C1D99601BE78AA64CEC377787DC89804C1B95FCC7F404C17C0F3A17`
 
 ## B-70T9（1 份）
 
@@ -630,7 +630,7 @@ fingerprint: `168455BD6F984AD1DF43CC908045412155CD6CB2245BAEB498F6B70F6F23817B`
 | `f11-rcon-stop.js` | 41 | — | none |  | — |
 | `f11-spec3.js` | 57 | — | none |  | — |
 | `f14-reg-core.js` | 95 | DamageLog, MiningLog, TestLog | none | ✔ | — |
-| `f15-reg-chains.js` | 138 | — | none | ✔ | — |
+| `f15-reg-chains.js` | 162 | — | none | ✔ | — |
 | `f16-spec-fix.js` | 49 | — | none |  | — |
 | `f5-arrow2.js` | 137 | — | none |  | — |
 | `f5-debug-fish.js` | 83 | — | none |  | — |
