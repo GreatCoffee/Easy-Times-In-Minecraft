@@ -23,7 +23,8 @@ const PLAYER = path.join(REPO, 'testharness', 'player');
 const REPORTS = path.join(REPO, 'testharness', 'reports');
 const OUT = path.join(REPORTS, 'REGRESSION.md');
 
-const CH_RE = /\[([A-Z][A-Za-z0-9]*Log)\]/g;
+// Escaped brackets too: scripts write /\\[FishLog\\] .../ (regex literals).
+const CH_RE = /\\?\[([A-Z][A-Za-z0-9]*Log)\\?\]/g;
 const TAG_RE = /"([A-Z][A-Za-z0-9]*Log)"/g;
 
 function walk(d, out = []) {

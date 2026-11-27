@@ -95,9 +95,17 @@ function readSections() {
     return map;
 }
 
+/** Strip comments so doc-shaped text never trips the code rules (R5/R7). */
+function stripComments(text) {
+    return text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|\s)\/\/[^\n]*/g, '$1');
+}
+
 function checkFile(file, sections) {
     const full = path.join(PLAYER, file);
     const src = fs.readFileSync(full, 'utf8');
+    const code = stripComments(src);
     const harness = src.includes("require('./lib/harness.js')");
     const hits = [];
 
@@ -138,7 +146,7 @@ function checkFile(file, sections) {
             [/(?<!h\.)\bbot\./, 'bare bot.'],
         ];
         for (const [re, name] of leftovers) {
-            if (re.test(src)) hits.push({ rule: 'R5 leftover-scaffold', detail: name });
+            if (re.test(code)) hits.push({ rule: 'R5 leftover-scaffold', detail: name });
         }
     }
 
@@ -147,7 +155,7 @@ function checkFile(file, sections) {
     if (harness) {
         const BUILTINS = ['path', 'fs', 'os', 'child_process', 'crypto', 'url', 'util'];
         for (const mod of BUILTINS) {
-            const used = new RegExp('\\b' + mod + '\\.').test(src);
+            const used = new RegExp('\\b' + mod + '\\.').test(code);
             const req = new RegExp("require\\(\\s*['\"]" + mod + "['\"]\\s*\\)").test(src)
                 || new RegExp("require\\(\\s*['\"]node:" + mod + "['\"]\\s*\\)").test(src);
             if (used && !req) {

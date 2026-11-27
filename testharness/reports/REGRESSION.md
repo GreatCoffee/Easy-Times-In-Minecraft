@@ -8,9 +8,9 @@
 | 项 | 数 |
 | --- | --- |
 | 判据通道（有产出点） | 51 |
-| 被 harness 覆盖 | 21 |
-| 无覆盖（GAP） | 30 |
-| harness 脚本 | 15 |
+| 被 harness 覆盖 | 29 |
+| 无覆盖（GAP） | 22 |
+| harness 脚本 | 16 |
 | 已封批（有 verdict） | 71 |
 
 ## 在跑的窗口
@@ -29,9 +29,10 @@
 | `f11-b67-smoke.js` | B-67 | 3 个：BoomLog/DropLog/ExplosionLog | 有 |
 | `f11-b68-smoke.js` | B-68 | 1 个：FarmLog | 有 |
 | `f11-b69-smoke.js` | B-69 | 3 个：FarmLog/MountLog/SparkLog | 有 |
-| `f12-b70t8-smoke.js` | - | 0 个：- | 无 |
+| `f12-b70t8-smoke.js` | - | 2 个：SpawnLog/WorldGenSpawnLog | 无 |
 | `f13-b70t9-smoke.js` | - | 1 个：FoodLog | 无 |
 | `f14-reg-core.js` | - | 3 个：DamageLog/MiningLog/TestLog | 无 |
+| `f15-reg-chains.js` | - | 7 个：CraftingLog/DeathLog/FishLog/FurnaceLog/IngestLog/MeleeLog/OreLog | 无 |
 
 ## 通道覆盖
 
@@ -47,9 +48,9 @@
 | `BoomLog` | CommandDevTest.java | f11-b67-smoke.js | COVERED |
 | `ButchLog` | EnchantmentButchering.java, ETIMButchering.java, ETIMButcheringEvents.java … | - | GAP |
 | `CapLog` | ETIMConfig.java, CapLog.java | - | GAP |
-| `CraftingLog` | CommandDevTest.java, ETIMCrafting.java, ETIM.java … | - | GAP |
+| `CraftingLog` | CommandDevTest.java, ETIMCrafting.java, ETIM.java … | f15-reg-chains.js | COVERED |
 | `DamageLog` | ETIMBlockLog.java, ETIMDamageLog.java, ETIMMelee.java … | f14-reg-core.js | COVERED |
-| `DeathLog` | ETIMDeathEvents.java, ETIMConfig.java | - | GAP |
+| `DeathLog` | ETIMDeathEvents.java, ETIMConfig.java | f15-reg-chains.js | COVERED |
 | `DimLog` | CommandUnderworld.java, ETIM.java, ETIMConfig.java … | - | GAP |
 | `DropLog` | ETIMBlockDrops.java, MixinEntityLivingBase.java, ETIMMobDrops.java | f11-b67-smoke.js | COVERED |
 | `ElementalLog` | CommandDevTest.java, MixinBlockStaticLiquid.java, MixinEntitySnowball.java … | f11-b62-smoke.js | COVERED |
@@ -59,20 +60,20 @@
 | `ExplosionLog` | ETIMExplosion.java | f11-b67-smoke.js | COVERED |
 | `FarmLog` | CommandDevTest.java, ETIMConfig.java, ETIMCompost.java … | f11-b68-smoke.js, f11-b69-smoke.js | COVERED |
 | `FireLog` | ETIMFireSpreadRules.java | - | GAP |
-| `FishLog` | CommandDevTest.java, ETIMConfig.java, ETIMFishing.java | - | GAP |
+| `FishLog` | CommandDevTest.java, ETIMConfig.java, ETIMFishing.java | f15-reg-chains.js | COVERED |
 | `FoodLog` | CommandDevTest.java, ETIMConfig.java, ETIMEndurance.java … | f11-b58-smoke.js, f13-b70t9-smoke.js | COVERED |
 | `FoodR196Log` | CommandDevTest.java, ETIMAppleGoldEvents.java, ETIMVesselEvents.java | f11-b65-smoke.js | COVERED |
-| `FurnaceLog` | ETIMConfig.java, FurnaceHeat.java, ETIMBlocks.java … | - | GAP |
+| `FurnaceLog` | ETIMConfig.java, FurnaceHeat.java, ETIMBlocks.java … | f15-reg-chains.js | COVERED |
 | `GelLog` | CommandDevTest.java, ETIMEntityCubic.java, ETIMEntityGelatinousCube.java … | f11-b58-smoke.js | COVERED |
 | `HoeLog` | ETIMItemMattock.java, MixinItemHoe.java | - | GAP |
-| `IngestLog` | ETIMConfig.java, ETIMIngestibles.java, MixinBlock.java | - | GAP |
+| `IngestLog` | ETIMConfig.java, ETIMIngestibles.java, MixinBlock.java | f15-reg-chains.js | COVERED |
 | `ItemLog` | CommandDevTest.java, ETIMItemMelt.java, ETIMItemStacks.java … | f11-b64-smoke.js | COVERED |
-| `MeleeLog` | ETIMMelee.java, ETIMConfig.java | - | GAP |
+| `MeleeLog` | ETIMMelee.java, ETIMConfig.java | f15-reg-chains.js | COVERED |
 | `MiningLog` | ETIMConfig.java, ETIMMining.java, MixinItem.java … | f14-reg-core.js | COVERED |
 | `MobLog` | ETIMConfig.java, ETIMArrowLog.java, ETIMEntityArachnid.java … | - | GAP |
 | `MountLog` | CommandDevTest.java, MixinBlockTorchFarmland.java, ETIMMountRules.java | f11-b69-smoke.js | COVERED |
 | `OozeLog` | ETIMOozeSpawn.java | - | GAP |
-| `OreLog` | ETIMConfig.java, ETIMOreGen.java | - | GAP |
+| `OreLog` | ETIMConfig.java, ETIMOreGen.java | f15-reg-chains.js | COVERED |
 | `PickupLog` | ETIMMobPickup.java | - | GAP |
 | `PoseLog` | CommandPose.java, GuiPoseTuner.java, PoseFileWatcher.java … | - | GAP |
 | `RepairLog` | ETIMEntityAIMoveToRepairItem.java | - | GAP |
@@ -81,13 +82,13 @@
 | `SleepLog` | ETIMConfig.java, MixinEntityPlayer.java, ETIMDigging.java … | - | GAP |
 | `SoundLog` | ETIMSoundLog.java, ETIM.java, ETIMConfig.java | - | GAP |
 | `SparkLog` | ETIMBlockSpark.java, ETIMSpecialBlocks.java | f11-b69-smoke.js | COVERED |
-| `SpawnLog` | CommandDevTest.java, ETIMSpawnCycle.java, ETIMSpawnTables.java … | f11-b59-smoke.js, f11-b60-smoke.js, f11-b61-smoke.js, f11-b62-smoke.js | COVERED |
+| `SpawnLog` | CommandDevTest.java, ETIMSpawnCycle.java, ETIMSpawnTables.java … | f11-b59-smoke.js, f11-b60-smoke.js, f11-b61-smoke.js, f11-b62-smoke.js, f12-b70t8-smoke.js | COVERED |
 | `StalkerLog` | ETIMEntityAISeekLitTorch.java, ETIMEntityInvisibleStalker.java | f11-b60-smoke.js | COVERED |
 | `SwingLog` | MixinItem.java | - | GAP |
 | `TestLog` | ETIMItemModels.java, CommandDevTest.java, TestDriver.java … | f14-reg-core.js | COVERED |
 | `UndeadLog` | CommandDevTest.java, ETIMEntityGhoul.java, ETIMEntityShadow.java … | f11-b59-smoke.js, f11-b60-smoke.js | COVERED |
 | `WeatherLog` | CommandDevTest.java, ETIMConfig.java, MixinWorldServer.java … | - | GAP |
-| `WorldGenSpawnLog` | CommandDevTest.java, MixinWorldEntitySpawner.java, ETIMWorldGenSpawning.java | - | GAP |
+| `WorldGenSpawnLog` | CommandDevTest.java, MixinWorldEntitySpawner.java, ETIMWorldGenSpawning.java | f12-b70t8-smoke.js | COVERED |
 
 ## 缺口怎么读
 
