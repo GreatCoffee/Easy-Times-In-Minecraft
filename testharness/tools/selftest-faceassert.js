@@ -74,7 +74,7 @@ function check(name, ok, detail) {
     check('delegate tier', /T:Holder\.java:1-1 tier=MENTIONED/.test(out), 'HelperLog only mentioned');
     check('no-chan tier', /T:Quiet\.java:1-1 tier=NO-CHAN/.test(out), 'carrier has no channel');
     check('parity treated as no-chan', /T:None\.java:1-1 tier=NO-CHAN/.test(out), '【parity】');
-    check('counts line', /faces=5 asserted=1 mentioned=1 unasserted=1 noChan=2/.test(out), out.trim().split('\n').pop());
+    check('counts line', /faces=5 asserted=1 mentioned=1 unasserted=1 exempt=0 noChan=2/.test(out), out.trim().split('\n').pop());
 }
 
 // 2) 文档生成 + 新鲜度
@@ -93,7 +93,20 @@ function check(name, ok, detail) {
     check('stale doc fails --check', c2.status === 1 && /stale/.test(c2.stdout), c2.stdout.trim().split('\n').pop());
 }
 
-// 3) 缺账本树 → SKIP
+// 3) 已登记豁免的通道 → EXEMPT，不计入 UNASSERTED
+{
+    const t2 = tree();
+    fs.writeFileSync(path.join(t2.repo, 'src', 'main', 'java', 'x', 'Batty.java'),
+        'class Batty { void f() { log("[BatLog] z=3"); } }\n');
+    fs.appendFileSync(path.join(t2.root, 'playground', 'audit', 'census', '普查T-测试-盘点.md'),
+        '[面] Batty.java:1-1 | 状态:【已落地】 | ETIM位:x/Batty.java:1-1\n');
+    const exemptFile = path.join(t2.root, 'exempt.json');
+    fs.writeFileSync(exemptFile, JSON.stringify({ channels: { BatLog: 'window cannot target it' } }));
+    const r = run(['--root', t2.root, '--repo', t2.repo, '--list'], { ASSERT_EXEMPT: exemptFile });
+    check('exempt channel', /T:Batty\.java:1-1 tier=EXEMPT/.test(r.stdout), 'BatLog registered in regression-exempt');
+}
+
+// 4) 缺账本树 → SKIP
 {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'faceassert-empty-'));
     const r = run(['--root', root, '--repo', path.join(root, 'repo')]);

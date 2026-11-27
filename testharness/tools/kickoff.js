@@ -93,8 +93,66 @@ for (const v of vols) {
     }
 }
 
+// B-70US: 每一面今天「有没有被判据窗断言」是判窗任务书的第一信息。
+// 直接复用 face-assert 的分档（含豁免表），避免两处口径漂移。
+const FACE_ASSERT = (() => {
+    const map = new Map();
+    try {
+        for (const r of require('./face-assert.js').analyze().rows) {
+            const file = r.key.replace(/:\d.*$/, '');
+            if (!map.has(file)) map.set(file, []);
+            map.get(file).push(r);
+        }
+    } catch (err) {
+        // 账本或源码不在这棵树里时降级为「未知」，不阻塞开箱。
+    }
+    return map;
+})();
+
+function refSpan(ref) {
+    const m = ref.match(/^(.*?):(\d+)(?:-(\d+))?$/);
+    if (!m) return null;
+    const s = +m[2];
+    return { file: m[1], s, e: m[3] ? +m[3] : s };
+}
+
+function rowSpan(r) {
+    const m = r.key.match(/^(.*?):(\d+)(?:-(\d+))?$/);
+    if (!m) return null;
+    const s = +m[2];
+    return { s, e: m[3] ? +m[3] : s };
+}
+
+function assertCell(key, ref) {
+    // 面键是「卷:工单行号」，face-assert 的键是「卷:R196 引用」——
+    // 按文件名 + 行区间重叠匹配（同一文件的多个面各占一段）。
+    const want = refSpan(ref);
+    const cands = want ? (FACE_ASSERT.get(want.file) || []) : [];
+    const r = cands.find((c) => {
+        const got = rowSpan(c);
+        return got && Math.max(want.s, got.s) <= Math.min(want.e, got.e);
+    });
+    if (!r) {
+        // 未落地（或本面尚无载体）时，face-assert 里没有这一行的记录。
+        // 但同一 R196 文件的其它已落地面可能已有窗口——那是「可参考」，不是「已覆盖」。
+        const sibs = cands.filter((c) => c.tier === 'ASSERTED' && c.scripts);
+        if (sibs.length) {
+            const who = sibs[0].scripts.split(/[,，]/)[0].trim();
+            const chan = sibs[0].chans || '';
+            return '同类面参考: ' + (chan ? chan + ' @ ' : '') + who + '（本面未覆盖）';
+        }
+        return '无现成窗口（新面）';
+    }
+    if (r.tier === 'ASSERTED') return '已断言: ' + (r.scripts || '-');
+    if (r.tier === 'EXEMPT') return '豁免: ' + (r.chans ? '通道 ' + r.chans : 'no-log 登记');
+    if (r.tier === 'MENTIONED') return '仅提及: ' + (r.scripts || '-');
+    if (r.tier === 'UNASSERTED') return '**未断言**';
+    return '**无通道**';
+}
+
 const today = arg('date', new Date().toISOString().slice(0, 10));
-const faceTable = faces.map((f) => '| `' + f.key + '` | ' + f.ref + ' | ' + f.desc + ' |').join('\n');
+const assertOnlyTable = faces.map((f) => '| `' + f.key + '` | ' + f.ref + ' | ' + assertCell(f.key, f.ref) + ' |').join('\n');
+const faceTable = faces.map((f) => '| `' + f.key + '` | ' + f.ref + ' | ' + f.desc + ' | ' + assertCell(f.key, f.ref) + ' |').join('\n');
 const valuesBlock = faces.map((f) => {
     const v = valueSections.get(f.key);
     return '### ' + f.key + ' · ' + f.ref + '\n\n' + (v && v.length ? v.join('\n') : '（判值表无候选，需会话六回原文逐行核）');
@@ -117,8 +175,8 @@ ${header('主会话', '主会话')}
 
 ## 面集
 
-| 键 | R196 一手 | 内容 |
-| --- | --- | --- |
+| 键 | R196 一手 | 内容 | 断言窗口 |
+| --- | --- | --- | --- |
 ${faceTable}
 
 ## 判值摘要（extract-values 候选，需回原文校对）
@@ -142,8 +200,8 @@ ${header('主会话', '会话六')}
 
 ## 面集（${count} 面，${kind}）
 
-| 键 | R196 一手 | 内容 |
-| --- | --- | --- |
+| 键 | R196 一手 | 内容 | 断言窗口 |
+| --- | --- | --- | --- |
 ${faceTable}
 
 ## 抽表候选（逐条回原文核，漏抽要补）
@@ -212,6 +270,15 @@ ${header('主会话', '会话七')}
 钉值（落码后由主会话填实）：
 - \`f7-wb-lib.js:35\` = \`${pin}\`
 - release / dev / sources 三项字节与 SHA-256、MK 计数、jar mtime：以主会话交付消息为准
+
+## 面集与现有断言
+
+| 键 | R196 一手 | 断言窗口 |
+| --- | --- | --- |
+${assertOnlyTable}
+
+「已断言」只说明有现成窗口覆盖同一通道，不等于本面已验；本轮仍需每面各自的 \`file:line\` 锚点。
+「豁免」的面按 \`regression-exempt.json\` / \`no-log.json\` 登记的理由免验，回执里照抄理由即可。
 
 ## 窗口
 

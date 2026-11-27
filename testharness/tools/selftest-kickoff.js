@@ -66,6 +66,7 @@ function check(name, ok, detail) {
     const card = files.length ? fs.readFileSync(path.join(dir, 'B-99-0-立项.md'), 'utf8') : '';
     check('face-table-and-pin', m.includes('`B:1`') && card.includes('selftest-build') && m.includes('Bar.java:20'));
     check('values-embedded', m.includes('if (x > 3)'));
+    check('assert-column', m.includes('| 键 | R196 一手 | 内容 | 断言窗口 |') && /\| `B:1` \| Foo\.java:10 \| 第一面 \| [^|]+ \|/.test(m), 'face table carries the assertion column');
     const w = files.length ? fs.readFileSync(path.join(dir, 'B-99-4-判窗.md'), 'utf8') : '';
     check('window-taskbook', w.includes('verify-receipt.md') && w.includes('180'));
 }

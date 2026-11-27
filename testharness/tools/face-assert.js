@@ -34,6 +34,25 @@ const SRC = path.join(REPO, 'src', 'main', 'java');
 const PLAYER = process.env.ASSERT_PLAYER || path.join(REPO, 'testharness', 'player');
 const DOC = path.join(REPO, 'testharness', 'reports', 'FACE-ASSERT.md');
 
+const EXEMPT_CHANNELS = (() => {
+    const f = process.env.ASSERT_EXEMPT || path.join(__dirname, 'regression-exempt.json');
+    try {
+        const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+        return new Set(Object.keys(j.channels || j));
+    } catch (err) {
+        return new Set();
+    }
+})();
+const NOLOG_KEYS = (() => {
+    const f = process.env.ASSERT_NOLOG || path.join(__dirname, 'no-log.json');
+    try {
+        const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+        return new Set(Object.keys(j).map((k) => k.replace(/^[A-F]:/, '')));
+    } catch (err) {
+        return new Set();
+    }
+})();
+
 const WRITE = argv.includes('--write-doc');
 const CHECK = argv.includes('--check');
 const LIST = argv.includes('--list');
@@ -165,7 +184,12 @@ function classify() {
         const chans = channelsForFace(idx, f);
         const hit = chans.filter((c) => asserted.has(c));
         const soft = chans.filter((c) => !asserted.has(c) && mentioned.has(c));
-        const tier = hit.length ? 'ASSERTED' : (chans.length ? (soft.length ? 'MENTIONED' : 'UNASSERTED') : 'NO-CHAN');
+        // B-70US: 「没人断言」有两种。已登记豁免的（regression-exempt 的通道、
+        // no-log 的面）不是债，是决定——归 EXEMPT，别混进 UNASSERTED 噪声。
+        const exempt = hit.length ? false
+            : (chans.length ? chans.every((c) => EXEMPT_CHANNELS.has(c)) : NOLOG_KEYS.has(f.key));
+        const tier = hit.length ? 'ASSERTED'
+            : (exempt ? 'EXEMPT' : (chans.length ? (soft.length ? 'MENTIONED' : 'UNASSERTED') : 'NO-CHAN'));
         rows.push({
             vol: f.vol,
             key: f.key,
@@ -204,7 +228,7 @@ function render(rows) {
     lines.push('| 合计 | ' + total + ' | ' + tier('ASSERTED') + ' | ' + tier('MENTIONED') + ' | '
         + tier('UNASSERTED') + ' | ' + tier('NO-CHAN') + ' |');
     lines.push('');
-    for (const t of ['ASSERTED', 'MENTIONED', 'UNASSERTED', 'NO-CHAN']) {
+    for (const t of ['ASSERTED', 'MENTIONED', 'UNASSERTED', 'EXEMPT', 'NO-CHAN']) {
         const rs = rows.filter((r) => r.tier === t);
         lines.push('## ' + t + '（' + rs.length + '）');
         lines.push('');
@@ -245,7 +269,7 @@ function main() {
     const count = (t) => rows.filter((r) => r.tier === t).length;
     console.log('[AssertLog] faces=' + rows.length + ' asserted=' + count('ASSERTED')
         + ' mentioned=' + count('MENTIONED') + ' unasserted=' + count('UNASSERTED')
-        + ' noChan=' + count('NO-CHAN'));
+        + ' exempt=' + count('EXEMPT') + ' noChan=' + count('NO-CHAN'));
 
     if (CHECK) {
         const current = fs.existsSync(DOC) ? fs.readFileSync(DOC, 'utf8') : '';
@@ -263,4 +287,12 @@ function main() {
     }
 }
 
-main();
+function analyze() {
+    return { rows: classify(), exempt: EXEMPT_CHANNELS };
+}
+
+module.exports = { analyze };
+
+if (require.main === module) {
+    main();
+}
