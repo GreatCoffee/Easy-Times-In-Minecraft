@@ -3,9 +3,9 @@
 > 由 `node testharness/tools/index-scripts.js` 生成，请勿手改；`check-scripts.js` 会校验下方 fingerprint。
 > 用途：按批次 / 日志通道检索现成判据，避免重写同面窗口。
 
-scripts=450 | batches=65 | onHarness=9 | withChannel=163 | undocumented=304 | scratch=51 | pinFollow=102 | pinFrozen=3
+scripts=450 | batches=65 | onHarness=13 | withChannel=163 | undocumented=304 | scratch=51 | pinFollow=98 | pinFrozen=3
 
-fingerprint: `A4471F3700E3BF67003CD1B07EC2E1CA5BBA009876A7CF0ED99199EB72CA8D11`
+fingerprint: `45A430B991ED749CB02F4C6E9D4AF6CF559ABFB479AFB15BB040851B76DE0143`
 
 ## B-70T9（1 份）
 
@@ -59,7 +59,7 @@ fingerprint: `A4471F3700E3BF67003CD1B07EC2E1CA5BBA009876A7CF0ED99199EB72CA8D11`
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b63-smoke.js` | 241 | SilverLog | follow |  | B-63 smoke: R196 EntityCopperspine / EntityHoarySilverfish / EntityNetherspawn |
+| `f11-b63-smoke.js` | 161 | SilverLog | none | ✔ | B-63 smoke: R196 EntityCopperspine / EntityHoarySilverfish / EntityNetherspawn |
 
 ## B-62（1 份）
 
@@ -71,7 +71,7 @@ fingerprint: `A4471F3700E3BF67003CD1B07EC2E1CA5BBA009876A7CF0ED99199EB72CA8D11`
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b61-smoke.js` | 244 | BeastLog, SpawnLog | follow |  | B-61 smoke: R196 EntityDireWolf + EntityHellhound (census D :69/:86/:115/:116/:241/:242). |
+| `f11-b61-smoke.js` | 165 | BeastLog, SpawnLog | none | ✔ | B-61 smoke: R196 EntityDireWolf + EntityHellhound (census D :69/:86/:115/:116/:241/:242). |
 
 ## B-60（1 份）
 
@@ -83,13 +83,13 @@ fingerprint: `A4471F3700E3BF67003CD1B07EC2E1CA5BBA009876A7CF0ED99199EB72CA8D11`
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b59-smoke.js` | 304 | SpawnLog, UndeadLog | follow |  | B-59 smoke: surface undead trio (R196 EntityGhoul / EntityWight / EntityShadow |
+| `f11-b59-smoke.js` | 221 | SpawnLog, UndeadLog | none | ✔ | B-59 smoke: surface undead trio (R196 EntityGhoul / EntityWight / EntityShadow |
 
 ## B-58（1 份）
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b58-smoke.js` | 288 | FoodLog, GelLog | follow |  | B-58 smoke: gelatinous sphere item + throwable (R196 ItemGelatinousSphere / |
+| `f11-b58-smoke.js` | 210 | FoodLog, GelLog | none | ✔ | B-58 smoke: gelatinous sphere item + throwable (R196 ItemGelatinousSphere / |
 
 ## B-57（6 份）
 

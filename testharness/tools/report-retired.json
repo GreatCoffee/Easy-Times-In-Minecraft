@@ -11,7 +11,10 @@
     "no-boot.js",
     "no-player.js",
     "regen-no-rule.js",
-    "stale.js"
+    "stale.js",
+    "leftover.js",
+    "cfg-bad-section.js",
+    "cfg-good.js"
   ],
   "patterns": [
     "*.refmap.json",

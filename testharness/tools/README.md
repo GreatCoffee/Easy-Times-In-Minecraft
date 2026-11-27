@@ -156,15 +156,17 @@ node testharness/tools/check-driver.js --list
 node testharness/tools/check-driver.js --script f13-b70t9-smoke.js
 ```
 
-固定四条教训（B-70T8/B-70T9 共 10 条 B 级全部是这四类）：
+固定六条教训（B-70T8/B-70T9 的 10 条 B 级、B-70TV 的两条 A 级与一条段名错都是这几类）：
 
 - **R1 boot-missing**：上 harness 的脚本必须调 `h.boot(...)`；
 - **R2 mark-after-use**：`mark()` 数量不得少于 `waitRow()`，且首个 `mark` 必须在首个 `waitRow` 之前；
 - **R3 player-missing**：`/etest hungerstate|hungerpools` 从控制台发时必须带玩家（`${A}` / `botName` / 字面名）；
 - **R4 gamerule-missing**：断言回血类行时必须出现 `naturalRegeneration`（不前置则每 tick 清零）。
+- **R5 leftover-scaffold**：已上 harness 的脚本不得再引用被删的旧全局（`startBoot(`/`stopBoot(`/`srv.`/`stops`/`propsBefore`/`cfgBefore`/`EXPECTED_SHA`/裸 `bot.`）——这类残留 `node --check` 查不出，只在跑窗时抛 `ReferenceError`（B-70TV r3/r4 各废掉一整窗）。
+- **R6 cfg-section**：`cfg: ['section:key']` 的段名必须与 `ETIMConfig.java` 的注册段一致——写错段时文件写入器照收、回读也通过，但运行期按真段读的是 false（B-70TV r4 的 W5 因此空转一窗）。
 
 老脚本的 R2/R4 只计 `debt` 不计失败；R3 对所有脚本硬判。已接入 `preflight.js` 第 6 步，
-`selftest-driver.js` 用 5 个 fixture 守住检查器本身。另：`lib/harness.js` 的 `boot()` 成功后
+`selftest-driver.js` 用 8 个 fixture 守住检查器本身（含 `leftover.js` 的 R5 反例与 `cfg-bad-section.js` 的 R6 反例）。另：`lib/harness.js` 的 `boot()` 成功后
 会自动 `stampPin()`（`h.pinStamped`），窗口不会再出现 `pin:false`。
 
 ## 判窗脚本索引 —— `index-scripts.js` / `check-scripts.js`

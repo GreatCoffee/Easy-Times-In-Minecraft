@@ -15,6 +15,12 @@
  *                        token (${A}, botName or the literal bot name)
  *   R4 gamerule-missing  asserts regen/heal rows but never names
  *                        naturalRegeneration
+ *   R5 leftover-scaffold harness script still touches a deleted global
+ *                        (startBoot/stopBoot/srv/stops/propsBefore/cfgBefore/
+ *                        EXPECTED_SHA or bare bot.*); these only fail at runtime
+ *   R6 cfg-section       `cfg: ['section:key']` names a section the key is not
+ *                        registered under in ETIMConfig.java (a bogus section is
+ *                        written to the file but never read — B-70TV r4)
  *
  * Exit 0 = no offenders, 1 = at least one, 2 = usage error.
  */
@@ -72,7 +78,21 @@ function scanPlayers(src, hits) {
 }
 
 /** Check one file; returns { file, harness, hits: [{rule, detail}] }. */
-function checkFile(file) {
+/**
+ * R6 support: key -> section from ETIMConfig.java's init() registrations.
+ * Returns null when the config source is absent (e.g. a fixture tree).
+ */
+function readSections() {
+    const src = path.join(ROOT, 'src', 'main', 'java', 'io', 'github', 'etim', 'etim', 'ETIMConfig.java');
+    if (!fs.existsSync(src)) return null;
+    const text = fs.readFileSync(src, 'utf8');
+    const map = new Map();
+    const re = /config\.get\w*\(\s*"([A-Za-z0-9_.]+)"\s*,\s*"([A-Za-z0-9_]+)"\s*,/g;
+    for (const m of text.matchAll(re)) map.set(m[1], m[2]);
+    return map;
+}
+
+function checkFile(file, sections) {
     const full = path.join(PLAYER, file);
     const src = fs.readFileSync(full, 'utf8');
     const harness = src.includes("require('./lib/harness.js')");
@@ -101,13 +121,49 @@ function checkFile(file) {
     if (/healed|regenFactor|via regen/.test(src) && !src.includes('naturalRegeneration')) {
         hits.push({ rule: 'R4 gamerule-missing', detail: 'asserts regen without naturalRegeneration', debt: !harness });
     }
+
+    // R5: after the move to lib/harness.js the old globals are gone; a surviving
+    // reference compiles fine and only throws when the window runs (B-70TV r3/r4).
+    if (harness) {
+        const leftovers = [
+            [/startBoot\(/, 'startBoot('],
+            [/stopBoot\(/, 'stopBoot('],
+            [/\bsrv\./, 'srv.'],
+            [/\bstops\b/, 'stops'],
+            [/propsBefore|cfgBefore/, 'propsBefore/cfgBefore'],
+            [/EXPECTED_SHA/, 'EXPECTED_SHA'],
+            [/(?<!h\.)\bbot\./, 'bare bot.'],
+        ];
+        for (const [re, name] of leftovers) {
+            if (re.test(src)) hits.push({ rule: 'R5 leftover-scaffold', detail: name });
+        }
+    }
+
+    // R6: a cfg entry written under the wrong section is accepted by the file
+    // writer, echoed by the readback, and then read as false at runtime.
+    if (harness && sections) {
+        const arr = /cfg:\s*\[([^\]]*)\]/.exec(src);
+        if (arr) {
+            for (const m of arr[1].matchAll(/'([A-Za-z0-9_]+):([A-Za-z0-9_]+)'/g)) {
+                const want = m[1];
+                const key = m[2];
+                const actual = sections.get(key);
+                if (actual === undefined) {
+                    hits.push({ rule: 'R6 cfg-section', detail: key + ' is not registered in ETIMConfig' });
+                } else if (actual !== want) {
+                    hits.push({ rule: 'R6 cfg-section', detail: key + ' lives in [' + actual + '], script says [' + want + ']' });
+                }
+            }
+        }
+    }
     return { file, harness, hits };
 }
 
 function main() {
     const args = readArgs(process.argv.slice(2));
     const files = args.script ? [args.script] : fs.readdirSync(PLAYER).filter((f) => f.endsWith('.js'));
-    const rows = files.map(checkFile);
+    const sections = readSections();
+    const rows = files.map((f) => checkFile(f, sections));
     const hard = rows.filter((r) => r.hits.some((h) => !h.debt));
     const onHarness = rows.filter((r) => r.harness).length;
     if (args.list) {
