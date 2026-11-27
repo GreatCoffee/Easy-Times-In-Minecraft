@@ -535,3 +535,9 @@ node testharness/tools/selftest-all.js --only coverage   # 只跑名字含 cover
 - 确实盖不了的（client 侧、概率低到 60 秒窗抓不到、行已并入别的通道），在 `testharness/tools/regression-exempt.json` 的 `channels` 里写通道名 + 原因；矩阵里标 **EXEMPT** 并单列一节。
 - 棘轮两头都管：①新出现的未覆盖通道没登记 → `UNEXPLAINED` 失败；②登记过的通道后来被覆盖或消失了 → `STALE-EXEMPT` 失败，逼你删掉没用的豁免。
 - `REG_EXEMPT` 可指向别的清单（自检用）；`selftest-regplan` 9/9 覆盖「未登记失败 / 登记通过 / 豁免失效 / 文档过期」。
+
+## 流程文档 —— `docs/PIPELINE.md`
+
+- `docs/PIPELINE.md` 是「一条判据的生命线」：七个阶段、22 步质量闸、目录地图、判据纪律与真实踩坑。属于散文，不能生成。
+- 但它不能腐烂：`node testharness/tools/check-pipeline-doc.js` 要求文档**点名每个工具**（`testharness/tools/*.js`）且**覆盖每个 preflight 步**，漏一个就 exit 1；preflight 第 22 步 `pipeline`。
+- 自检 `node testharness/tools/selftest-pipeline.js`（4 例：干净、漏工具、漏步、缺文档 exit 2）。

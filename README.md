@@ -147,3 +147,7 @@ see [`docs/CONFIG.md`](docs/CONFIG.md). Regenerate with `node testharness/tools/
 ## Judgement channels
 
 Every `[XxxLog]` channel with its config gate, producers, `/etest` drivers and the window script that asserts it: see [`docs/CHANNELS.md`](docs/CHANNELS.md). Regenerate with `node testharness/tools/gen-channel-doc.js`.
+
+## Pipeline
+
+How a census face travels from kickoff to a sealed batch — stages, quality gates, directory map and the lessons that cost us rounds: see [`docs/PIPELINE.md`](docs/PIPELINE.md).

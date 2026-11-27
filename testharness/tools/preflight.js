@@ -201,6 +201,9 @@ step('configdoc', 'gen-config-doc.js', ['--check'], (c) => c !== 0, '[ConfigDocL
 // producers, /etest drivers and asserting scripts. Adding a channel without
 // regenerating is a red preflight.
 step('chandoc', 'gen-channel-doc.js', ['--check'], (c) => c !== 0, '[ChanDocLog]');
+// B-70UO: docs/PIPELINE.md is prose, so it cannot be generated — but it must
+// name every tool and every preflight step, or a newcomer reads a stale map.
+step('pipeline', 'check-pipeline-doc.js', [], (c) => c !== 0, '[PipelineLog]');
 step('tools', 'selftest-all.js', [], (c) => c !== 0, '[SelftestLog]');
 
 const bad = steps.filter((s) => s.bad);

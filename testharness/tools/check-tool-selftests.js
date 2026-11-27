@@ -40,6 +40,7 @@ const ALIAS = {
     'regression-plan': 'regplan',
     'gen-config-doc': 'configdoc',
     'gen-channel-doc': 'chandoc',
+    'check-pipeline-doc': 'pipeline',
 };
 
 for (const t of tools) {
