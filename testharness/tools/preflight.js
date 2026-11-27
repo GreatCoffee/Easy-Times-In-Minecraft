@@ -222,6 +222,9 @@ step('asserts', 'check-asserts.js', [], (c) => c !== 0, '[AssertLog]');
 // B-70UY: the comparison report is where 会话六 spends its day. Drafts keep
 // those inputs on one page; a stale draft is worse than none.
 step('draft', 'gen-report.js', ['--check-dir'], (c) => c !== 0, '[DraftLog]');
+// B-70UZ: the three paper documents (comparison / verdict / receipt) are what
+// the next session reads. Shape drift is how a batch gets re-opened.
+step('shape', 'check-report-shape.js', [], (c) => c !== 0, '[ShapeLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);

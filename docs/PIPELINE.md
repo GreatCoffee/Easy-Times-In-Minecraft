@@ -91,7 +91,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 新窗口脚本用 `gen-window.js --name fNN-bXX --batch B-XX --faces … --channels …` 生成骨架；骨架默认是红的，不会漏填。
 
-## 3. 质量闸：`preflight.js` 的 27 步
+## 3. 质量闸：`preflight.js` 的 28 步
 
 `node testharness/tools/preflight.js` 是提交钩子（`.githooks/pre-commit`）跑的东西，任何一步红就拒绝提交。
 
@@ -124,6 +124,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `assert` | `face-assert.js --check` | 面↔断言图是否过期 |
 | `asserts` | `check-asserts.js` | 窗口正则是否还能在最新 tee 里命中；1.13 选择器与未知 `/etest` 子命令即失败 |
 | `draft` | `gen-report.js --check-dir` | 对照报告草稿是否与账本/判值表一致（过期即失败） |
+| `shape` | `check-report-shape.js` | 对照报告/正本/回执的最小结构（终判、分级、A 项锚点、钉值、逐面覆盖） |
 
 ## 4. 目录地图
 
@@ -165,7 +166,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 ## 7. 交接与自查
 
-- 每天开工前：`node testharness/tools/preflight.js`（27 步绿才动码）。
+- 每天开工前：`node testharness/tools/preflight.js`（28 步绿才动码）。
 - 看现状：`node testharness/tools/batch-status.js --all`（60 批，0 风险）、`check-books.js --list`、`regression-plan.js`、`face-readiness.js`。
 - 看通道：`docs/CHANNELS.md`；看配置：`docs/CONFIG.md`；看回归：`testharness/reports/REGRESSION.md`；看覆盖：`testharness/reports/COVERAGE.md`。
 - 装钩子：`node testharness/tools/install-hooks.js`；跳过钩子必须 `--no-verify` 并在提交正文写原因。

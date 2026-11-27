@@ -670,3 +670,22 @@ node testharness/tools/gen-report.js --check-dir         # preflight 用：所�
 `REPORT_ROOT` / `REPORT_REPO` / `REPORT_R196` 可指向临时树。
 
 自检：`node testharness/tools/selftest-genreport.js`（9 例：生成、面与摘录、载体通道、留空表、无载体、`--check` 新鲜/过期、未知批次、缺输入）。
+## 文书结构棘轮 —— check-report-shape.js（B-70UZ）
+
+```
+node testharness/tools/check-report-shape.js           # 棘轮：基线外新增失败即 exit 1
+node testharness/tools/check-report-shape.js --list    # 逐份列出 OK / BASE / FAIL
+node testharness/tools/check-report-shape.js --update-baseline
+```
+
+查三类文书「有没有写到该写的字段」，不判内容对错：
+
+| 对象 | 规则 |
+| --- | --- |
+| 判窗正本 `*-verify-verdict.md` | V1 有终判行（终判/判决/结论 + PASS/FAIL/放行/退回/DIFF/MATCH，允许写在下一行）；V2 有 `A=n / B=n / C=n`；V3 `A>0` 时每个 `A-<id>` 后 300 字符内要有 `X.java:数字`；V4 有钉值 |
+| 判窗回执 `*-verify-receipt.md` | R1 有 `[done]` 或 `"pass":`；R2 有钉值（PIN/sha/钉值） |
+| 对照报告 `playground/audit/*对照报告.md` | C1 有 R196 `.java:数字`；C2 有终判与分级；C3 能认出批次时，工单面集每个面键都要出现 |
+
+旧文书格式不一（53 份进了 `report-shape-baseline.json`），棘轮只拦**新增**失败；修好一份就从基线删一份，工具会提示可收缩项。`draft/` 与 `archive/` 不参与检查。
+
+自检：`node testharness/tools/selftest-shape.js`（7 例：三类全好、A 缺锚点、缺分级、回执缺钉值、报告缺面、基线冻结、基线外新增）。
