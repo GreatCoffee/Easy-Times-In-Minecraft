@@ -98,8 +98,8 @@
 | `b70tu-verify-receipt.md` | 14881 | ledger/sessions | 二轮终判：PASS** — 三窗（b68/b67/b62）在补回 `stage` 后全部 `pass:true bad:0`、EXIT=0，六个/六个/七个 Wn 与历史正本逐臂同义，A-B70TU-1 闭环、A-B70TU-2 撤回。A= |
 | `b70tv-verify-receipt.md` | 15510 | ledger/sessions | `[W1]` ghoul 20/20/40/5/0.28/10 `undead=false`、wight 0.25 `undead=true`、shadow 0.23 `undead=true`；`[W2]` `playerKill fou |
 | `b70tw-verify-receipt.md` | 9952 | ledger | [DiffLog] verdict DIFF |
-| `b70ty-verify-receipt.md` | 11201 | 无 | §r6 终判：PASS（W1–W7 全绿，W3 双面成立）** |
-| `b70ty-verify-verdict.md` | 4137 | 无 | 终判：**PASS**（A=0 / B=7 / C=10） |
+| `b70ty-verify-receipt.md` | 11201 | ledger | §r6 终判：PASS（W1–W7 全绿，W3 双面成立）** |
+| `b70ty-verify-verdict.md` | 4137 | ledger/sessions | 终判：**PASS**（A=0 / B=7 / C=10） |
 | `b8-verify-verdict.md` | 16853 | 无 | 判决**：**PASS**（R1..R10 **✓10／✗0**）｜A 0／**B 1**（B-8-1 死块显示名）／C 7（工装与簿记，均不影响判值） |
 | `b9-verify-verdict.md` | 15068 | 无 | 判决**：**PASS**（R0..R10 **✓11／✗0**）｜A 0／B 0／C 8（工装与簿记，均不影响判值） |
 | `batch2-qs-verdict.md` | 29978 | 无 | audit20 · 第二批 Q+S 实测窗 + F5/C11 工装 · 判决报告 |

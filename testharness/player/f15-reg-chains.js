@@ -87,20 +87,41 @@ async function main() {
   console.log('[W2]', JSON.stringify({ anvil: an && { player: an[1], item: an[2], kind: an[3] }, pass: res.w2 }));
 
   // ---- W3: ingest channel — vanilla-food start row + egg refusal row ----
+  // C-B70TY-8: r6 showed the [IngestLog] rows land *during* the hold/sleep window,
+  // i.e. before a mark() taken just before activateItem(); take the slice index
+  // before the whole arm and anchor it with a say marker so nothing is skipped.
+  from = mark();
+  await cmd('say zzW3BEEF', 200);
   await cmd(`etest food 4 ${A}`, 400);
   await cmd(`etest hold minecraft:cooked_beef ${A}`, 400);
   await sleep(400);
-  from = mark();
   try { await h.bot.activateItem(); } catch (e) { /* ignore */ }
   const ingests = await waitRow(INGEST_RE, from, 6000);
   const ing = lastOf(ingests);
   // B-B70TY-4: the egg fork is the refusal face (egg is not edible) — proving both
   // halves of the channel, now that vanilla ItemFood logs its own start row.
+  // C-B70TY-10: the egg is not edible → canIngest must refuse it, but only once the
+  // beef's 32-tick chew has finished and the hunger model has settled (r6 refused at
+  // +6 s; r9 accepted at +1 s). Wait for the eat to land before the refusal arm.
+  await sleep(2500);
+  const fromRefuse = mark();
+  await cmd('say zzW3EGG', 200);
   await cmd(`etest hold minecraft:egg ${A}`, 400);
   await sleep(400);
-  const fromRefuse = mark();
   try { await h.bot.activateItem(); } catch (e) { /* ignore */ }
   const refusals = await waitRow(INGEST_REFUSE_RE, fromRefuse, 6000);
+  // C-B70TY-9: r6/r7 both saw the two [IngestLog] rows in the tee but not through
+  // waitRow(); dump the driver's own index view so the miss can be localised.
+  {
+    const ls = h.logLines();
+    console.log('[W3-diag]', JSON.stringify({
+      len: ls.length,
+      fromBeef: from,
+      fromEgg: fromRefuse,
+      ingestAll: ls.filter((s) => s.indexOf('[IngestLog]') >= 0).length,
+      tail: ls.slice(-6).map((s) => s.slice(0, 70)),
+    }));
+  }
   res.w3 = !!ing && ing[1] === A && refusals.length > 0;
   console.log('[W3]', JSON.stringify({
     food: ing && { player: ing[1], item: ing[2] }, refused: refusals.length, pass: res.w3,
