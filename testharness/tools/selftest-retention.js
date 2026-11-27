@@ -44,7 +44,7 @@ function check(name, ok, detail) {
 {
     const t = tree();
     const r = run(['--root', t.root, '--repo', t.repo, '--archive', path.join(t.root, 'arch'), '--keep', '1'],
-        { RETENTION_BASELINE: path.join(t.root, 'base.json') });
+        { RETENTION_BASELINE: path.join(t.root, 'base.json'), RETENTION_MANIFEST: path.join(t.root, 'manifest.json') });
     const alive = fs.existsSync(path.join(t.repo, 'run', 'w-a-r1', 'level.dat'))
         && fs.existsSync(path.join(t.repo, 'testharness', 'build-logs', 'a-r1.out'));
     check('dry-run leaves files in place', alive && /dry-run/.test(r.stdout), r.stdout.split('\n')[0]);
@@ -55,7 +55,7 @@ function check(name, ok, detail) {
     const t = tree();
     const arch = path.join(t.root, 'arch');
     const r = run(['--root', t.root, '--repo', t.repo, '--archive', arch, '--keep', '1', '--apply'],
-        { RETENTION_BASELINE: path.join(t.root, 'base.json') });
+        { RETENTION_BASELINE: path.join(t.root, 'base.json'), RETENTION_MANIFEST: path.join(t.root, 'manifest.json') });
     const logKept = fs.existsSync(path.join(t.repo, 'testharness', 'build-logs', 'a-r1.out'));
     const oldWorld = fs.existsSync(path.join(arch, 'world', 'w-a-r1'));
     const newWorld = fs.existsSync(path.join(t.repo, 'run', 'w-a-r2', 'level.dat'));
@@ -68,7 +68,7 @@ function check(name, ok, detail) {
 // 3) --check 棘轮：新增世界后应 exit 1
 {
     const t = tree();
-    const env = { RETENTION_BASELINE: path.join(t.root, 'base.json') };
+    const env = { RETENTION_BASELINE: path.join(t.root, 'base.json'), RETENTION_MANIFEST: path.join(t.root, 'manifest.json') };
     run(['--root', t.root, '--repo', t.repo, '--archive', path.join(t.root, 'arch'), '--keep', '1', '--apply'], env);
     fs.mkdirSync(path.join(t.repo, 'run', 'w-a-r3'), { recursive: true });
     fs.writeFileSync(path.join(t.repo, 'run', 'w-a-r3', 'level.dat'), 'zzz');

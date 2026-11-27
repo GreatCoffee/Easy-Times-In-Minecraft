@@ -32,6 +32,8 @@ const missing = [];
 const stale = [];
 
 const ALIAS = {
+    'set-pin': 'setpin',
+    'gen-window': 'genwindow',
     'face-assert': 'faceassert',
     'extract-values': 'extract',
     'face-readiness': 'readiness',

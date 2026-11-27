@@ -162,6 +162,9 @@ function gradleStep() {
 
 step('books', 'check-books.js', [], (c) => c !== 0, '[LedgerLog]');
 gradleStep();
+// B-70US: the PIN line must equal the jar on disk. A stale PIN only
+// surfaces at window time (a whole wasted run); catch it at commit time.
+step('pin', 'set-pin.js', ['--check'], (c) => c !== 0, '[PinLog]');
 step('config', 'check-config.js', [], (c) => c !== 0, '[ConfigLog]');
 if (haveCfg) {
     // exit 2 = DRIFT: the on-disk file disagrees with the code defaults.

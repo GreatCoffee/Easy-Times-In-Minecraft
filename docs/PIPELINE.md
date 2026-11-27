@@ -89,6 +89,8 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 - 真跑后会翻 census 两处（§2 与 §3 镜像）、改头部计数、接账册号、写 `sessions.md` 段、重建 `player/INDEX.md`、跑一遍 preflight。**commit 仍要手打**。
 - 收口行写「未推送」而不是「欠 N」——写具体数字会被 pre-commit 的 `check-closeout` R4 拒（提交前 ahead 比提交后少 1）。
 
+新窗口脚本用 `gen-window.js --name fNN-bXX --batch B-XX --faces … --channels …` 生成骨架；骨架默认是红的，不会漏填。
+
 ## 3. 质量闸：`preflight.js` 的 22 步
 
 `node testharness/tools/preflight.js` 是提交钩子（`.githooks/pre-commit`）跑的东西，任何一步红就拒绝提交。
@@ -119,6 +121,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `tools` | `selftest-all.js` | 所有 `selftest-*.js` 是否全绿 |
 | `retention` | `retention.js --check` | `run/` 与 `build-logs/` 的体积棘轮（证据日志不动） |
 | `assert` | `face-assert.js --check` | 面↔断言图是否过期 |
+| `pin` | `set-pin.js --check` | PIN 与磁盘 jar 是否一致 |
 
 ## 4. 目录地图
 
@@ -160,7 +163,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 ## 7. 交接与自查
 
-- 每天开工前：`node testharness/tools/preflight.js`（24 步绿才动码）。
+- 每天开工前：`node testharness/tools/preflight.js`（25 步绿才动码）。
 - 看现状：`node testharness/tools/batch-status.js --all`（60 批，0 风险）、`check-books.js --list`、`regression-plan.js`、`face-readiness.js`。
 - 看通道：`docs/CHANNELS.md`；看配置：`docs/CONFIG.md`；看回归：`testharness/reports/REGRESSION.md`；看覆盖：`testharness/reports/COVERAGE.md`。
 - 装钩子：`node testharness/tools/install-hooks.js`；跳过钩子必须 `--no-verify` 并在提交正文写原因。

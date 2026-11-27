@@ -41,7 +41,10 @@ const CHECK = argv.includes('--check');
 const UPDATE = argv.includes('--update-baseline');
 
 const BASELINE = process.env.RETENTION_BASELINE || path.join(__dirname, 'retention-baseline.json');
-const MANIFEST = path.join(__dirname, 'retention-manifest.json');
+// B-70US: the manifest describes the archive, so it lives beside it — never in
+// the repo (a self-test once wrote 56 fixture entries into the tracked copy).
+const MANIFEST = process.env.RETENTION_MANIFEST
+    || path.join(path.dirname(ARCHIVE), 'retention-manifest.json');
 
 const docDirs = [
     path.join(ROOT, 'playground'),

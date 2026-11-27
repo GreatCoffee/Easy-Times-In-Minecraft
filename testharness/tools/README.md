@@ -587,3 +587,32 @@ node testharness/tools/face-assert.js --check    # 文档新鲜度（preflight �
 通道识别与 `check-coverage` 同口径：载体自身的 `[XxxLog]`/"XxxLog" 常量 + 指针跨度内的 `SomeClass.row(…)` 委托；脚本侧容忍转义写法 `/\[FarmLog\]/`。
 
 自检：`node testharness/tools/selftest-faceassert.js`（10 例：三档判定、计数行、写文档、新鲜、过期、缺账本 SKIP）。
+
+
+## 钉值自愈 —— set-pin.js（B-70US）
+
+每批 `gradlew build` 之后，`testharness/player/f7-wb-lib.js` 的 `PIN` 与 `MK_PIN` 两行必须等于磁盘上的 jar。手敲会漏会错，而错了只在判窗开窗时暴露——等于白跑一轮。
+
+```
+node testharness/tools/set-pin.js --build b71-build1   # 实测并改写两行（回读校验）
+node testharness/tools/set-pin.js --check              # PIN 是否等于当前 jar（preflight 第 3 步）
+node testharness/tools/set-pin.js                      # 只打印实测值
+```
+
+实测来源：`build/libs/etim-1.0.0{,-dev,-sources}.jar` 的 size 与 SHA-256、两份 refmap 的 classes/entries（并要求 A/B 一致）、`mixins.etim.json` 的 mixins/client 数量。写盘后 `require` 回读，值必须一致才算 OK。
+
+退出码：0 OK、1 不一致、2 缺 jar。自检：`node testharness/tools/selftest-setpin.js`（6 例：过期 PIN 红、写入回读、jar 漂移红、缺 jar exit 2、dry-run 不写）。
+
+## 判窗脚本骨架 —— gen-window.js（B-70US）
+
+```
+node testharness/tools/gen-window.js --name f20-b71 --batch B-71 \
+     --faces C:141,C:147 --channels MountLog \
+     --cfg combat:blockDebugLog --out testharness/player/f20-b71-smoke.js
+```
+
+生成的骨架**故意是红的**：每个面一个 `res.wN = false; // TODO`，填完驱动与断言才可能变绿——不会出现「忘了填，窗口仍然 pass」。
+
+其余选项：`--stage "gamemode=1;difficulty=2;tp=0.5,130,0.5"`、`--dry-run`（只打印）、`--force`（覆盖已存在文件；默认拒绝）。
+
+自检：`node testharness/tools/selftest-genwindow.js`（5 例：一臂一面、生成物可解析、拒绝覆盖、dry-run 不落盘、缺参数 exit 2）。
