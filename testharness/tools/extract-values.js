@@ -43,7 +43,7 @@ function readLines(file) {
 
 /** 用大括号配平找方法区间：返回 [{name, sig, start, end}]（1-based 行号，含上下沿）。 */
 function methods(lines) {
-    const out = [];
+    let out = [];
     for (let i = 0; i < lines.length; i++) {
         const m = METHOD_RE.exec(lines[i]);
         if (!m) continue;
@@ -130,6 +130,10 @@ function facesFromReady() {
 const faceArg = arg('--face');
 const batchArg = arg('--batch');
 const fileArg = arg('--file');
+const ALL = argv.includes('--all');
+const VOL = arg('--vol');
+const CHECK = argv.includes('--check');
+const OUTDIR = arg('--out', path.join(BOOKS, '判值表'));
 
 let targets = [];
 if (fileArg) targets = [{ key: 'file', ref: fileArg }];
@@ -140,8 +144,11 @@ else if (faceArg) {
 } else if (batchArg) {
     targets = facesFromBatch(batchArg);
     if (targets.length === 0) { console.error('[ValuesLog] batch not found or empty: ' + batchArg); process.exit(2); }
+} else if (ALL) {
+    targets = facesFromReady().filter((f) => !VOL || f.key.startsWith(VOL + ':'));
+    if (!targets.length) { console.error('[ValuesLog] no faces for --all' + (VOL ? ' --vol ' + VOL : '')); process.exit(2); }
 } else {
-    console.error('usage: extract-values.js --batch B-71 | --face C:37 | --file X.java');
+    console.error('usage: extract-values.js --all [--vol A] | --batch B-71 | --face C:37 | --file X.java');
     process.exit(2);
 }
 
@@ -151,7 +158,7 @@ const get = (f) => {
     return cache.get(f);
 };
 
-const out = [];
+let out = [];
 out.push('# 判值候选表' + (batchArg ? '：' + batchArg : faceArg ? '：' + faceArg : '：' + fileArg));
 out.push('');
 out.push('> 由 `node testharness/tools/extract-values.js` 生成。**候选表，不是结论**：');
@@ -159,29 +166,39 @@ out.push('> 每条带 R196 行号，落码前逐条回原文校对；启发式�
 out.push('');
 
 let missing = 0, totalItems = 0;
-for (const t of targets) {
+
+/** Render one face section; returns its lines and item/missing deltas. */
+function renderFace(t) {
+    const saved = out;
+    out = [];
+    const i0 = totalItems, m0 = missing;
+    const done = () => { const lines = out; out = saved; return { lines, items: totalItems - i0, missing: missing - m0 }; };
     let ref = t.ref;
     if (/^[A-Za-z][A-Za-z0-9_]*\.java$/.test(ref)) {
         const ex0 = get(ref);
         ref = ref + ':1-' + (ex0 ? ex0.lines.length : 1);
     }
     const m = /^([A-Za-z][A-Za-z0-9_]*\.java):(\d+)(?:-(\d+))?$/.exec(ref);
-    if (!m) { out.push(`## ${t.key} ${t.ref}`); out.push(''); out.push('- （非 class:line 形式，跳过）'); out.push(''); continue; }
+    if (!m) { out.push(`## ${t.key} ${t.ref}`); out.push(''); out.push('- （非 class:line 形式，跳过）'); out.push(''); return done(); }
     const ex = get(m[1]);
     out.push(`## ${t.key} · ${t.ref}`);
     out.push('');
-    if (!ex) { out.push('- R196 原文缺失：`' + m[1] + '`'); out.push(''); missing++; continue; }
+    if (!ex) { out.push('- R196 原文缺失：`' + m[1] + '`'); out.push(''); missing++; return done(); }
     const start = +m[2], end = m[3] ? +m[3] : +m[2];
     const hosts = ex.methods.filter((x) => x.start + 1 <= end && x.end + 1 >= start);
     if (hosts.length === 0) {
-        out.push('- 未落在任何方法内（字段声明/匿名块），下面列文件级常量与该行附近候选：');
-        for (const c of ex.consts.slice(0, 20)) out.push(`  - [常量] L${c.line} \`${c.name} = ${c.value}\``);
-        for (const it of ex.items.filter((x) => x.line >= start - 5 && x.line <= end + 5).slice(0, 20)) {
-            out.push(`  - [${it.kind}] L${it.line} \`${it.text.slice(0, 140)}\``);
+        const lo = Math.max(1, start - 10);
+        const hi = Math.min(ex.lines.length, end + 10);
+        out.push(`- 未落在已识别的方法内；列 L${lo}-L${hi} 原文上下文（落码前逐行核对）：`);
+        for (const c of ex.consts.filter((x) => x.line >= lo && x.line <= hi)) out.push(`  - [常量] L${c.line} \`${c.name} = ${c.value}\``);
+        for (let n = lo; n <= hi; n++) {
+            const txt = (ex.lines[n - 1] || '').trim();
+            if (!txt) continue;
+            out.push(`  - [L${n}] \`${txt.slice(0, 140)}\``);
             totalItems++;
         }
         out.push('');
-        continue;
+        return done();
     }
     const empty = [];
     for (const host of hosts) {
@@ -199,6 +216,70 @@ for (const t of targets) {
     }
     if (empty.length) out.push(`- 无候选的方法：${empty.join('、')}`);
     out.push('');
+    return done();
+}
+
+if (ALL) {
+    fs.mkdirSync(OUTDIR, { recursive: true });
+    const vols = new Map();
+    for (const t of targets) {
+        const v = t.key.split(':')[0];
+        if (!vols.has(v)) vols.set(v, []);
+        vols.get(v).push(t);
+    }
+    const index = ['# 判值表 · 全量索引', '', '> 由 `node testharness/tools/extract-values.js --all` 生成。', '> 每面给出 R196 行号与候选行；落码前仍需对照原文核对。', ''];
+    const stale = [];
+    let grand = 0, grandItems = 0, grandMissing = 0;
+    for (const v of [...vols.keys()].sort()) {
+        const list = vols.get(v);
+        const head = [`# 判值表 · ${v} 卷（${list.length} 面）`, '', '> 由 `node testharness/tools/extract-values.js --all` 生成。', '> 每面给出 R196 行号与候选行；落码前仍需对照原文核对。', ''];
+        let items = 0, miss = 0;
+        const body = [];
+        for (const t of list) {
+            const r = renderFace(t);
+            body.push(...r.lines);
+            items += r.items;
+            miss += r.missing;
+        }
+        const text = head.concat(body, ['---', `合计 faces=${list.length} items=${items} missingFile=${miss}`]).join('\n') + '\n';
+        const file = path.join(OUTDIR, `判值表-${v}.md`);
+        if (CHECK) {
+            const old = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+            if (old !== text) stale.push(`${v} 卷`);
+        } else {
+            fs.writeFileSync(file, text, 'utf8');
+        }
+        index.push(`- ${v} 卷：${list.length} 面，候选 ${items} 条，缺原文 ${miss} → \`判值表-${v}.md\``);
+        grand += list.length;
+        grandItems += items;
+        grandMissing += miss;
+        console.log(`[ValuesLog] vol=${v} faces=${list.length} items=${items} missing=${miss}`);
+    }
+    index.push('', '---', `合计 faces=${grand} items=${grandItems} missingFile=${grandMissing}`);
+    const indexText = index.join('\n') + '\n';
+    const indexFile = path.join(OUTDIR, '判值表-INDEX.md');
+    if (CHECK) {
+        const old = fs.existsSync(indexFile) ? fs.readFileSync(indexFile, 'utf8') : '';
+        if (old !== indexText) stale.push('INDEX');
+    } else {
+        fs.writeFileSync(indexFile, indexText, 'utf8');
+    }
+    console.log(`[ValuesLog] all faces=${grand} items=${grandItems} missing=${grandMissing}`);
+    if (CHECK) {
+        if (stale.length) {
+            console.log(`[ValuesLog] stale ${stale.join(', ')} — run without --check to rebuild`);
+            console.log('[ValuesLog] verdict FAIL');
+            process.exit(1);
+        }
+        console.log('[ValuesLog] verdict OK (fresh)');
+        process.exit(0);
+    }
+    console.log('[ValuesLog] verdict OK');
+    process.exit(0);
+}
+
+for (const t of targets) {
+    out.push(...renderFace(t).lines);
 }
 
 const stamp = new Date().toISOString().slice(0, 19).replace('T', ' ');

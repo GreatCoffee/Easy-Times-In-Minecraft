@@ -409,3 +409,20 @@ node testharness/tools/check-channels.js --check-archive # 只比对（preflight
 - **debt**：会静默假绿的窗口数——脚本断言了某通道、该通道的 cfg 门在代码或磁盘上是关的、而脚本没有强制打开它。harness 脚本由 `assertChannels` 在起服前拦下，所以债务只会出现在未上 harness 的脚本里。
 - **archived**：未上 harness 的老脚本无法被任何强制机制覆盖（它们不经过 `lib/harness.js`），因此连同原因（`frozen-pin` / `own-scaffold` / `no-harness`）记进 `channel-archive.json`；`debt` 不再统计它们，但数量随时可见，脚本改名或迁 harness 后 `--check-archive` 会报 stale。
 - 基线 `channel-debt.json` 仍按 `--update-baseline` 维护；`--strict` 把 archived 也算失败，供将来收编时启用。
+
+## 全量判值表 —— extract-values.js
+
+```
+node testharness/tools/extract-values.js --all              # 生成六卷判值表 + INDEX
+node testharness/tools/extract-values.js --all --check      # 只比对（preflight 第 15 步）
+node testharness/tools/extract-values.js --vol C            # 只生成 C 卷
+node testharness/tools/extract-values.js --batch B-71       # 只生成某批
+node testharness/tools/extract-values.js --face C:137       # 只生成某面
+```
+
+- **产物**：`playground/audit/census/判值表/判值表-{B,C,E,F}.md` + `判值表-INDEX.md`。A、D 两卷已全部落地，不生成。
+- **每面一节**：`## C:137 · EntityZombie.java:35`；命中方法时按方法分组（`- 方法 `sig`，L1275-1310，候选 N 条`），没命中方法时打 L-10..L+10 原文窗口并标注 `[L<行号>]`（落码前直接对照，不用再翻 470 行原文）。
+- **候选四类**：`[常量]`（`static final`）、`[属性]`（setAttribute / setBaseValue / setMaxHealth / setMaxHurtResistantTime）、`[门]`（if 条件带数字或 blood/moon/biome/skylight/depth/overworld/rand/nextInt/nextFloat/isDay/canSeeSky）、`[效果]`（addPotionEffect / new PotionEffect / addExperience / attackEntityFrom / heal）、`[掉落]`（dropItem / entityDropItem / dropBlockAsEntityItem / dropFewItems / addDrop；`getDropItemId(){ return -1; }` 判死端跳过）。
+- **口径**：这些是「候选」，不是结论——数字是否真的落在该面的路径上，仍要按 R196 原文和 census 描述核对。
+- **依赖**：先跑 `face-readiness.js`（要 `剩余-就绪度.md`）与 `plan-batches.js`（`--batch` 要 `批次工单.md`）。
+- **环境变量**：`VALUES_ROOT` / `VALUES_R196` 可指向别处树。
