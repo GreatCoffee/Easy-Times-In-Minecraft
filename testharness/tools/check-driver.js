@@ -186,7 +186,8 @@ function checkFile(file, sections) {
 
 function main() {
     const args = readArgs(process.argv.slice(2));
-    const files = args.script ? [args.script] : fs.readdirSync(PLAYER).filter((f) => f.endsWith('.js'));
+    const one = args.script ? path.basename(args.script) : null;
+    const files = one ? [one] : fs.readdirSync(PLAYER).filter((f) => f.endsWith('.js'));
     const sections = readSections();
     const rows = files.map((f) => checkFile(f, sections));
     const hard = rows.filter((r) => r.hits.some((h) => !h.debt));
