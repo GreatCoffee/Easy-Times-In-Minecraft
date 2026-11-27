@@ -3,19 +3,19 @@
 > 生成物，勿手改：`node testharness/tools/face-assert.js --write-doc`。
 > 用途：改某个面时，从这里查出该跑哪个窗口脚本。
 
-三档：**ASSERTED**＝有脚本用正则匹配该通道（会判红）；**MENTIONED**＝只被提到；**NO-CHAN**＝载体无通道（parity / zero-port / no-log 豁免）。
+三档：**ASSERTED**＝有脚本用正则匹配该通道（会判红）；**MENTIONED**＝只被提到；**EXEMPT**＝无窗口但已决定不验（census 行内【parity】/【zero-port】声明、`regression-exempt.json` 通道、`no-log.json` 面）；**NO-CHAN**＝载体无通道且未登记理由（真空白）。
 
-| 卷 | 面数 | ASSERTED | MENTIONED | UNASSERTED | NO-CHAN |
-| --- | --- | --- | --- | --- | --- |
-| A | 70 | 53 | 0 | 0 | 2 |
-| B | 68 | 57 | 0 | 0 | 1 |
-| C | 28 | 15 | 0 | 0 | 0 |
-| D | 214 | 169 | 20 | 0 | 1 |
-| E | 12 | 11 | 0 | 0 | 0 |
-| F | 97 | 56 | 0 | 0 | 14 |
-| 合计 | 489 | 361 | 20 | 0 | 18 |
+| 卷 | 面数 | ASSERTED | MENTIONED | UNASSERTED | EXEMPT | NO-CHAN |
+| --- | --- | --- | --- | --- | --- | --- |
+| A | 70 | 54 | 0 | 0 | 16 | 0 |
+| B | 68 | 57 | 0 | 0 | 11 | 0 |
+| C | 28 | 15 | 0 | 0 | 13 | 0 |
+| D | 214 | 169 | 20 | 0 | 25 | 0 |
+| E | 12 | 11 | 0 | 0 | 1 | 0 |
+| F | 97 | 56 | 0 | 0 | 41 | 0 |
+| 合计 | 489 | 362 | 20 | 0 | 107 | 0 |
 
-## ASSERTED（361）
+## ASSERTED（362）
 
 | 面 | 载体 | 通道 | 断言脚本 |
 | --- | --- | --- | --- |
@@ -65,6 +65,7 @@
 | A:Material.java:405-407 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:MaterialMinHarvestLevel.java:4-21 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:ItemTool.java:62-66 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
+| A:ItemTool.java:143-148 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:ItemCudgel.java:6-14,22-44＋ItemClub.java:3-27 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:ItemShears.java:74-99 | src/main/java/io/github/etim/etim/mixins/MixinItem.java | MiningLog,SwingLog | f14-reg-core.js,f16-reg-third.js |
 | A:ItemHoe.java:54-56 | src/main/java/io/github/etim/etim/mixins/MixinItemHoe.java | FarmLog,HoeLog | f11-b68-smoke.js,f11-b69-smoke.js,f16-reg-third.js |
@@ -138,8 +139,7 @@
 | C:ItemArmor.java:36-43 | src/main/java/io/github/etim/etim/metal/ETIMMetalArmor.java | CraftingLog,EnchantLog,EquipLog,TestLog | f15-reg-chains.js,f16-reg-third.js,f14-reg-core.js |
 | C:EntityPlayer.java:624-630 | src/main/java/io/github/etim/etim/playerstate/PlayerLevelBonuses.java | MobLog | f17-reg-fourth.js |
 | C:EntityPlayer.java:1104-1108 | src/main/java/io/github/etim/etim/mob/ETIMEntityArrow.java | ArrowLog,MobLog | f18-reg-fifth.js,f17-reg-fourth.js |
-| C:EntityArrow.java:352-365 | src/main/java/io/github/etim/etim/mob/ETIMEntityArrow.java | ArrowLog,MobLog | f18-reg-fifth.js,f17-reg-fourth.js |
-| … | | | 另有 241 面 |
+| … | | | 另有 242 面 |
 
 ## MENTIONED（20）
 
@@ -170,7 +170,7 @@
 
 （无）
 
-## EXEMPT（90）
+## EXEMPT（107）
 
 | 面 | 载体 | 通道 | 断言脚本 |
 | --- | --- | --- | --- |
@@ -180,6 +180,7 @@
 | A:EnumQuality.java:4-13 | src/main/java/io/github/etim/etim/mixins/MixinItemStack.java | - | - |
 | A:ItemTool.java:236-239 | src/main/java/io/github/etim/etim/metal/ETIMItemPickaxe.java | - | - |
 | A:ItemTool.java:279-282 | src/main/java/io/github/etim/etim/metal/ETIMItemPickaxe.java | - | - |
+| A:ItemStack.java:270-301 | - | - | - |
 | A:ItemTool.java:28 | src/main/java/io/github/etim/etim/reach/ETIMReach.java | - | - |
 | A:ItemShears.java:8／ItemDagger.java:6／ItemKnife.java:6／ItemCudgel.java:7／ItemHatchet.java:6／ItemScythe.java:7 | src/main/java/io/github/etim/etim/metal/ETIMItemShears.java | - | - |
 | A:ItemTool.java:245-252 | src/main/java/io/github/etim/etim/metal/ETIMItemSword.java | - | - |
@@ -190,6 +191,7 @@
 | A:ItemInWorldManager.java:80-113 | src/main/java/io/github/etim/etim/mining/ETIMOozeSpawn.java | OozeLog | - |
 | A:ItemTool.java:29-33 | src/main/java/io/github/etim/etim/skill/ETIMSkillRules.java | - | - |
 | B:EntityPlayer.java:2398-2412 | src/main/java/io/github/etim/etim/quality/ETIMQuality.java | - | - |
+| B:TileEntityFurnace.java:187-191 | - | - | - |
 | B:TileEntityFurnace.java:267-294 | src/main/java/io/github/etim/etim/metal/ETIMFurnaceGate.java | - | - |
 | B:BlockFurnaceClay.java:26-38／BlockFurnaceHardenedClay.java:25-33／BlockFurnaceSandstone.java:25-33／BlockFurnaceCobblestone.java:25-28／BlockFurnaceObsidian.java:25-28／BlockFurnaceNetherrack.java:25-28 | src/main/java/io/github/etim/etim/metal/ETIMBlockFurnace.java | - | - |
 | B:BlockAnvil.java:47-54 | src/main/java/io/github/etim/etim/metal/ETIMBlockAnvil.java | - | - |
@@ -224,6 +226,7 @@
 | D:EntityLiving.java:1185-1194 | src/main/java/io/github/etim/etim/mixins/MixinEntityLivingDisarm.java | - | - |
 | D:EntityOcelot.java:53-55 | src/main/java/io/github/etim/etim/mixins/MixinEntityOcelot.java | - | - |
 | D:Entity.java:1801-1803 / :1899 | src/main/java/io/github/etim/etim/mixins/MixinEntity.java | - | - |
+| D:EntityMob.java:15-22 | - | - | - |
 | D:EntityZombie.java:35 | src/main/java/io/github/etim/etim/mixins/MixinEntityZombie.java | - | - |
 | D:EntityWoodSpider.java:34-47 | src/main/java/io/github/etim/etim/mob/ETIMEntityWoodSpider.java | - | - |
 | D:EntityDemonSpider.java:30-42 | src/main/java/io/github/etim/etim/mob/ETIMEntityDemonSpider.java | - | - |
@@ -242,6 +245,7 @@
 | F:Item.java:917-926/1546-1616 | src/main/java/io/github/etim/etim/mixins/MixinItemStack.java | - | - |
 | F:Item.java:1338-1341 | src/main/java/io/github/etim/etim/crafting/CraftingDifficulty.java | - | - |
 | F:ItemFood.java:60-64 | src/main/java/io/github/etim/etim/item/ETIMItemVessel.java | - | - |
+| F:ItemFood.java:99-102 | - | - | - |
 | F:ItemFood.java:104-108 | src/main/java/io/github/etim/etim/furnace/FurnaceXpRewards.java | - | - |
 | F:FoodStats.java:43 | src/main/java/io/github/etim/etim/hunger/FoodGates.java | - | - |
 | F:FoodStats.java:46-56 | src/main/java/io/github/etim/etim/hunger/FoodGates.java | - | - |
@@ -251,40 +255,34 @@
 | F:ItemBowl.java:4-8/107-110 | src/main/java/io/github/etim/etim/item/ETIMItemBowl.java | - | - |
 | F:ItemBowl.java:11-24 | src/main/java/io/github/etim/etim/item/ETIMItemVessel.java | - | - |
 | F:ItemBowl.java:112-172 | src/main/java/io/github/etim/etim/item/ETIMBowlContents.java | - | - |
+| F:ItemPotion.java:161-163 | - | - | - |
+| F:ItemPotion.java:59-77/80-82 | - | - | - |
+| F:Block.java:1459-1463 | - | - | - |
 | F:Block.java:2575-2582 | src/main/java/io/github/etim/etim/world/ETIMCushioning.java | - | - |
 | F:Block.java:2597-2600 | src/main/java/io/github/etim/etim/crafting/CraftingDifficulty.java | - | - |
+| F:Block.java:2939-2943 | - | - | - |
+| F:Block.java:2633-2635 | - | - | - |
+| F:Block.java:2923-2937 | - | - | - |
+| F:Block.java:1162-1373 | - | - | - |
 | F:Material.java:10-178 | src/main/java/io/github/etim/etim/item/ETIMMaterialTraits.java | - | - |
+| F:BlockBreakInfo.java:29-51 | - | - | - |
+| F:BlockBreakInfo.java:77-190 | - | - | - |
+| F:Block.java:1852-1862 | - | - | - |
 | F:Explosion.java:167-214 | src/main/java/io/github/etim/etim/mixins/MixinExplosion.java | - | - |
 | F:Block.java:971-979 | src/main/java/io/github/etim/etim/metal/ETIMBlockMantleOrCore.java | - | - |
 | F:BlockUnderminable.java:1-101 | src/main/java/io/github/etim/etim/mining/ETIMUndermine.java | - | - |
 | F:BlockSpark.java:1-54 | src/main/java/io/github/etim/etim/mixins/MixinItemFlintAndSteel.java | - | - |
 | F:BlockCropsDead.java:1-48/BlockCarrotDead.java/BlockOnionDead.java/BlockPotatoDead.java | src/main/java/io/github/etim/etim/farm/ETIMBlockDeadPlant.java | - | - |
 | F:ItemFood.java:60-64 | src/main/java/io/github/etim/etim/item/ETIMItemVessel.java | - | - |
+| F:ItemFood.java:99-102 | - | - | - |
 | F:ItemVessel.java:82-85 | src/main/java/io/github/etim/etim/item/ETIMItemVessel.java | - | - |
 | F:ItemBowl.java:4-8/107-110 | src/main/java/io/github/etim/etim/item/ETIMItemBowl.java | - | - |
 | F:ItemBowl.java:11-24 | src/main/java/io/github/etim/etim/item/ETIMItemVessel.java | - | - |
 | F:ItemBowl.java:112-172 | src/main/java/io/github/etim/etim/item/ETIMBowlContents.java | - | - |
-
-## NO-CHAN（18）
-
-| 面 | 载体 | 通道 | 断言脚本 |
-| --- | --- | --- | --- |
-| A:ItemStack.java:270-301 | - | - | - |
-| A:ItemTool.java:143-148 | - | - | - |
-| B:TileEntityFurnace.java:187-191 | - | - | - |
-| D:EntityMob.java:15-22 | - | - | - |
-| F:ItemFood.java:99-102 | - | - | - |
 | F:ItemPotion.java:161-163 | - | - | - |
 | F:ItemPotion.java:59-77/80-82 | - | - | - |
-| F:Block.java:1459-1463 | - | - | - |
-| F:Block.java:2939-2943 | - | - | - |
-| F:Block.java:2633-2635 | - | - | - |
-| F:Block.java:2923-2937 | - | - | - |
-| F:Block.java:1162-1373 | - | - | - |
-| F:BlockBreakInfo.java:29-51 | - | - | - |
-| F:BlockBreakInfo.java:77-190 | - | - | - |
-| F:Block.java:1852-1862 | - | - | - |
-| F:ItemFood.java:99-102 | - | - | - |
-| F:ItemPotion.java:161-163 | - | - | - |
-| F:ItemPotion.java:59-77/80-82 | - | - | - |
+
+## NO-CHAN（0）
+
+（无）
 

@@ -73,8 +73,8 @@ function check(name, ok, detail) {
     check('unasserted tier', /T:Lonely\.java:1-1 tier=UNASSERTED/.test(out), 'has channel, no script');
     check('delegate tier', /T:Holder\.java:1-1 tier=MENTIONED/.test(out), 'HelperLog only mentioned');
     check('no-chan tier', /T:Quiet\.java:1-1 tier=NO-CHAN/.test(out), 'carrier has no channel');
-    check('parity treated as no-chan', /T:None\.java:1-1 tier=NO-CHAN/.test(out), '【parity】');
-    check('counts line', /faces=5 asserted=1 mentioned=1 unasserted=1 exempt=0 noChan=2/.test(out), out.trim().split('\n').pop());
+    check('parity treated as exempt', /T:None\.java:1-1 tier=EXEMPT why=parity/.test(out), '【parity】');
+    check('counts line', /faces=5 asserted=1 mentioned=1 unasserted=1 exempt=1 noChan=1/.test(out), out.trim().split('\n').pop());
 }
 
 // 2) 文档生成 + 新鲜度
@@ -106,7 +106,16 @@ function check(name, ok, detail) {
     check('exempt channel', /T:Batty\.java:1-1 tier=EXEMPT/.test(r.stdout), 'BatLog registered in regression-exempt');
 }
 
-// 4) 缺账本树 → SKIP
+// 4) census 行里已写【parity】/【zero-port】的面 → EXEMPT（不是空白）
+{
+    const t2 = tree();
+    fs.appendFileSync(path.join(t2.root, 'playground', 'audit', 'census', '普查T-测试-盘点.md'),
+        '[面] Ghost.java:1-1 | 零端口面 | 状态:【已落地】 | ETIM位:【zero-port】1.12 无该机制\n');
+    const r = run(['--root', t2.root, '--repo', t2.repo, '--list']);
+    check('parity-declared', /T:Ghost\.java:1-1 tier=EXEMPT why=zero-port/.test(r.stdout), '【zero-port】声明归 EXEMPT');
+}
+
+// 5) 缺账本树 → SKIP
 {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'faceassert-empty-'));
     const r = run(['--root', root, '--repo', path.join(root, 'repo')]);

@@ -34,6 +34,8 @@ const SRC = path.join(REPO, 'src', 'main', 'java');
 const PLAYER = process.env.ASSERT_PLAYER || path.join(REPO, 'testharness', 'player');
 const DOC = path.join(REPO, 'testharness', 'reports', 'FACE-ASSERT.md');
 
+const DECLARED = /【\s*(parity|zero-port)\s*】/i;
+
 const EXEMPT_CHANNELS = (() => {
     const f = process.env.ASSERT_EXEMPT || path.join(__dirname, 'regression-exempt.json');
     try {
@@ -186,8 +188,12 @@ function classify() {
         const soft = chans.filter((c) => !asserted.has(c) && mentioned.has(c));
         // B-70US: 「没人断言」有两种。已登记豁免的（regression-exempt 的通道、
         // no-log 的面）不是债，是决定——归 EXEMPT，别混进 UNASSERTED 噪声。
-        const exempt = hit.length ? false
-            : (chans.length ? chans.every((c) => EXEMPT_CHANNELS.has(c)) : NOLOG_KEYS.has(f.key));
+        const declared = (DECLARED.exec(f.etim || '') || [])[1] || null;
+        const exemptWhy = hit.length ? null
+            : (chans.length
+                ? (chans.every((c) => EXEMPT_CHANNELS.has(c)) ? 'exempt-channel' : null)
+                : (declared ? declared.toLowerCase() : (NOLOG_KEYS.has(f.key) ? 'no-log' : null)));
+        const exempt = exemptWhy !== null;
         const tier = hit.length ? 'ASSERTED'
             : (exempt ? 'EXEMPT' : (chans.length ? (soft.length ? 'MENTIONED' : 'UNASSERTED') : 'NO-CHAN'));
         rows.push({
@@ -196,6 +202,7 @@ function classify() {
             carrier: files.map((p) => path.relative(REPO, p).replace(/\\/g, '/'))[0] || '-',
             chans: chans.join(','),
             scripts: [...new Set(hit.flatMap((c) => asserted.get(c)))].join(','),
+            why: exemptWhy || '',
             tier
         });
     }
@@ -213,20 +220,20 @@ function render(rows) {
     lines.push('> 生成物，勿手改：`node testharness/tools/face-assert.js --write-doc`。');
     lines.push('> 用途：改某个面时，从这里查出该跑哪个窗口脚本。');
     lines.push('');
-    lines.push('三档：**ASSERTED**＝有脚本用正则匹配该通道（会判红）；**MENTIONED**＝只被提到；**NO-CHAN**＝载体无通道（parity / zero-port / no-log 豁免）。');
+    lines.push('三档：**ASSERTED**＝有脚本用正则匹配该通道（会判红）；**MENTIONED**＝只被提到；**EXEMPT**＝无窗口但已决定不验（census 行内【parity】/【zero-port】声明、`regression-exempt.json` 通道、`no-log.json` 面）；**NO-CHAN**＝载体无通道且未登记理由（真空白）。');
     lines.push('');
     const total = rows.length;
     const tier = (t) => rows.filter((r) => r.tier === t).length;
-    lines.push('| 卷 | 面数 | ASSERTED | MENTIONED | UNASSERTED | NO-CHAN |');
-    lines.push('| --- | --- | --- | --- | --- | --- |');
+    lines.push('| 卷 | 面数 | ASSERTED | MENTIONED | UNASSERTED | EXEMPT | NO-CHAN |');
+    lines.push('| --- | --- | --- | --- | --- | --- | --- |');
     for (const v of Object.keys(byVol).sort()) {
         const rs = byVol[v];
         const c = (t) => rs.filter((r) => r.tier === t).length;
         lines.push('| ' + v + ' | ' + rs.length + ' | ' + c('ASSERTED') + ' | ' + c('MENTIONED') + ' | '
-            + c('UNASSERTED') + ' | ' + c('NO-CHAN') + ' |');
+            + c('UNASSERTED') + ' | ' + c('EXEMPT') + ' | ' + c('NO-CHAN') + ' |');
     }
     lines.push('| 合计 | ' + total + ' | ' + tier('ASSERTED') + ' | ' + tier('MENTIONED') + ' | '
-        + tier('UNASSERTED') + ' | ' + tier('NO-CHAN') + ' |');
+        + tier('UNASSERTED') + ' | ' + tier('EXEMPT') + ' | ' + tier('NO-CHAN') + ' |');
     lines.push('');
     for (const t of ['ASSERTED', 'MENTIONED', 'UNASSERTED', 'EXEMPT', 'NO-CHAN']) {
         const rs = rows.filter((r) => r.tier === t);
@@ -261,7 +268,7 @@ function main() {
 
     if (LIST) {
         for (const r of rows) {
-            console.log('[AssertLog] ' + r.vol + ':' + r.key + ' tier=' + r.tier
+            console.log('[AssertLog] ' + r.vol + ':' + r.key + ' tier=' + r.tier + (r.why ? ' why=' + r.why : '')
                 + ' chans=' + (r.chans || '-') + ' scripts=' + (r.scripts || '-'));
         }
     }
