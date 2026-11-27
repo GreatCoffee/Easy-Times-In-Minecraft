@@ -451,3 +451,19 @@ node testharness/tools/selftest-reports.js              # 10 例自检
 - **提交哈希**：只校验「提交上下文」里的 7–12 / 40 位十六进制；UUID 片段、`0x` 位模式、浮点位模式、文件 SHA-256 都排除。
 - **孤儿**：账册 / sessions / census / 其他报告都没提到的报告，只报数量（历史留存层），见 `testharness/reports/README.md`。
 - **索引**：`INDEX.md` 是机制生成物（文件 / 字节 / 引用方 / 结论），`--write-index` 重建；未重建即 `indexMissing` 硬失败。preflight 第 16 步。
+
+## 批次开箱器 —— kickoff.js
+
+```
+node testharness/tools/kickoff.js B-71                # 生成五份任务书骨架
+node testharness/tools/kickoff.js B-71 --pin b70ty-build1
+node testharness/tools/kickoff.js B-71 --check        # 只比对，过期 exit 1
+node testharness/tools/kickoff.js B-71 --stdout       # 打到屏幕，不落盘
+node testharness/tools/selftest-kickoff.js            # 8 例自检
+```
+
+- **输入**：`playground/audit/census/批次工单.md`（面集与组成）+ `判值表/判值表-<卷>.md`（抽表候选）+ `testharness/player/f7-wb-lib.js:35`（当前 PIN）。
+- **产物**（默认 `playground/audit/kickoff/`）：`<batch>-0-立项.md`（主会话自用）、`-1-摸底.md`（会话六）、`-2-对照.md`（会话六）、`-3-终审.md`（会话五）、`-4-判窗.md`（会话七）。
+- **骨架里已含**：三要素头、面集表（键 / R196 一手 / 内容）、抽表候选、验收格式与纪律行；生成后按需补判值与面细节。
+- **不接 preflight**：按批按需生成；已生成的骨架若与工单/判值表不一致，`--check` 会报 `stale`。
+- **依赖**：先跑 `plan-batches.js` 产出工单；判值表由 `extract-values.js --all` 生成。
