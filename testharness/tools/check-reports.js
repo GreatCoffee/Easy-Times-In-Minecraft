@@ -75,6 +75,11 @@ function norm(tok) {
 function resolves(tok) {
     const t = norm(tok);
     if (fs.existsSync(path.join(REPO, t)) || fs.existsSync(path.join(WS, t))) return true;
+    // B-70UC: historical window scripts live in testharness/archive/player/ now.
+    if (t.startsWith('testharness/player/')) {
+        const moved = 'testharness/archive/player/' + t.slice('testharness/player/'.length);
+        if (fs.existsSync(path.join(REPO, moved))) return true;
+    }
     const base = t.split('/').pop();
     const list = index.get(base) || [];
     if (!list.length) return false;
