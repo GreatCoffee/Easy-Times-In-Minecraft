@@ -104,8 +104,13 @@ for (const file of walk(SRC).filter(f => f.endsWith('.java'))) {
         const hit = GATE_RE.exec(lines[i - d] || '');
         if (hit && isBool.has(hit[1])) gate = hit[1];
       }
+      const rel = path.relative(ROOT, file).replace(/\\/g, '/');
+      // Dev-command rows are printed unconditionally (only devTools gates the
+      // command registration). The 8-line gate heuristic otherwise reads a
+      // neighbouring config key and invents a gate that never guards the row.
+      if (rel.includes('/commands/') || rel.includes('/client/')) gate = null;
       if (!producers.has(ch)) producers.set(ch, []);
-      producers.get(ch).push({ file: path.relative(ROOT, file).replace(/\\/g, '/'), line: i + 1, gate });
+      producers.get(ch).push({ file: rel, line: i + 1, gate });
     }
     // 通道前缀收在常量里（如 ETIMExplosion 的 `TAG = "ExplosionLog"`），也算产出点。
     for (const m of text.matchAll(/String\s+[A-Za-z0-9_]+\s*=\s*"([A-Za-z][A-Za-z0-9]*Log)"/g)) {
