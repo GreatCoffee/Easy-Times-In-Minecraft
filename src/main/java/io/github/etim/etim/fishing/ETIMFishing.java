@@ -88,7 +88,7 @@ public final class ETIMFishing {
 
     /** R196 World:1686-1692 getAdjustedTimeOfDay = (tod + 6000) % 24000. */
     public static int adjustedTime(World world) {
-        return (int) ((world.getWorldTime() + 6000L) % 24000L);
+        return FishingGates.adjustedTime(world.getWorldTime());
     }
 
     /** R196 World:2391-2397 — day-level blue moon AND night-only (A-3 白天否决); ETIMMoonState carries the backend + judgement moonStateOverride. */
@@ -96,7 +96,7 @@ public final class ETIMFishing {
         if (world.isDaytime()) {
             return false; // R196 isBlueMoon(exclusively_at_night = true) — daytime veto
         }
-        if ((world.getTotalWorldTime() / 24000L + 1L) % 128L == 0L) { // R196 :2395
+        if (FishingGates.blueMoonCycle(world.getTotalWorldTime())) { // R196 :2395
             return true;
         }
         if (!(world instanceof net.minecraft.world.WorldServer)) {
@@ -115,21 +115,9 @@ public final class ETIMFishing {
      */
     public static int[] cascadeChain(World world, int adj, int fortune, int lure,
                                      boolean worm, boolean light, boolean blueMoon) {
-        int dist = Math.min(Math.abs(adj - 5500), Math.abs(adj - 17500));
-        float timeFactor = dist / 600.0F;
-        int ci0 = blueMoon
-                ? MathHelper.clamp(600, ETIMConfig.fishingBiteChanceMin, ETIMConfig.fishingBiteChanceMax)
-                : MathHelper.clamp((int) (600.0F * timeFactor),
-                        ETIMConfig.fishingBiteChanceMin, ETIMConfig.fishingBiteChanceMax);
-        int ci1 = light ? ci0 / 2 : ci0;
-        int ci2 = ci1; // D-3 甲: the skill face is OFF (条 270)
-        int ci3 = ci2;
-        for (int i = 0; i < fortune + lure; i++) {
-            ci3 = (int) (ci3 * ETIMConfig.fishingFortuneBiteFactor);
-        }
-        int ci4 = worm ? (int) (ci3 * ETIMConfig.fishingWormBiteFactor) : ci3;
-        ci4 = Math.max(ci4, 1); // crash face-guard (zero-roll nextInt face)
-        return new int[]{ci0, ci1, ci2, ci3, ci4};
+        return FishingGates.cascade(adj, fortune, lure, worm, light, blueMoon,
+                ETIMConfig.fishingBiteChanceMin, ETIMConfig.fishingBiteChanceMax,
+                ETIMConfig.fishingFortuneBiteFactor, ETIMConfig.fishingWormBiteFactor);
     }
 
     /** The catch/roll RNG face: the ANGLER's own stream (LivingBase getRNG face —

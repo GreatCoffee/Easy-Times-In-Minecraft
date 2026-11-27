@@ -174,29 +174,26 @@ public final class ETIMEndurance {
             return;
         }
         if (player.isInsideOfMaterial(Material.WATER)) {
-            int cm = Math.round(MathHelper.sqrt(dx * dx + dy * dy + dz * dz) * 100.0F);
+            int cm = EnduranceGates.distanceCm(dx, dy, dz, true, false);
             if (cm > 0) {
-                charge(player, ETIMConfig.swimHungerPerMeter * cm * 0.01F, 1.0F, "diveDrain cm=" + cm);
+                charge(player, EnduranceGates.perMeter(ETIMConfig.swimHungerPerMeter, cm), 1.0F, "diveDrain cm=" + cm);
             }
         } else if (player.isInWater()) {
-            int cm = Math.round(MathHelper.sqrt(dx * dx + dz * dz) * 100.0F);
+            int cm = EnduranceGates.distanceCm(dx, dy, dz, false, false);
             if (cm > 0) {
-                charge(player, ETIMConfig.swimHungerPerMeter * cm * 0.01F, 1.0F, "swimDrain cm=" + cm);
+                charge(player, EnduranceGates.perMeter(ETIMConfig.swimHungerPerMeter, cm), 1.0F, "swimDrain cm=" + cm);
             }
         } else if (player.isOnLadder()) {
             if (dy > 0.0D) {
-                charge(player, (float) dy / ETIMConfig.ladderHungerDivisor, 1.0F, "ladderDrain dy=" + dy);
+                charge(player, EnduranceGates.ladderDrain(dy, ETIMConfig.ladderHungerDivisor), 1.0F, "ladderDrain dy=" + dy);
             }
         } else if (player.onGround) {
-            int cm = Math.round(MathHelper.sqrt(dx * dx + dz * dz) * 100.0F);
-            if (player.isPlayerSleeping()) {
-                cm = 0;
-            }
+            int cm = EnduranceGates.distanceCm(dx, dy, dz, false, player.isPlayerSleeping());
             if (cm > 0) {
                 if (player.isSprinting()) {
-                    charge(player, ETIMConfig.sprintHungerPerMeter * cm * 0.01F, 1.0F, "sprintDrain cm=" + cm);
+                    charge(player, EnduranceGates.perMeter(ETIMConfig.sprintHungerPerMeter, cm), 1.0F, "sprintDrain cm=" + cm);
                 } else {
-                    charge(player, ETIMConfig.walkHungerPerMeter * cm * 0.01F, 1.0F, "walkDrain cm=" + cm);
+                    charge(player, EnduranceGates.perMeter(ETIMConfig.walkHungerPerMeter, cm), 1.0F, "walkDrain cm=" + cm);
                 }
             }
         }

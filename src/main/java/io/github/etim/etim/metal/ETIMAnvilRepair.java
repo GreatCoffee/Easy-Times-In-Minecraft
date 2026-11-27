@@ -160,27 +160,27 @@ public final class ETIMAnvilRepair {
 
     /** The nugget's own material durability (R196 :87 reads the SECOND slot's material; EnumEquipmentMaterial :4-20). */
     public static float repairMaterialDurability(ItemStack nugget) {
-        Item item = nugget.getItem();
+        return AnvilGates.nuggetDurability(metalOf(nugget));
+    }
+
+    /** 金属珠 → 金属；不认识返回 {@code null}（材料不耐久）。 */
+    private static ETIMMetals metalOf(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return null;
+        }
+        Item item = stack.getItem();
         if (item == Items.IRON_NUGGET) {
-            return 8.0F; // :1237 — the shared iron/rusted carrier, iron column
+            return ETIMMetals.RUSTED_IRON;
         }
-        if (item == ETIMItems.nuggetCopper || item == ETIMItems.nuggetSilver) {
-            return 4.0F;
-        }
-        if (item == ETIMItems.nuggetMithril) {
-            return 64.0F;
-        }
-        if (item == ETIMItems.nuggetAdamantium) {
-            return 256.0F;
-        }
-        if (item == ETIMItems.nuggetAncientMetal) {
-            return 16.0F;
-        }
-        // metgear 批 B-4: gold nugget material durability (R196 Item:1235-1236 gold column = 4).
         if (item == Items.GOLD_NUGGET) {
-            return 4.0F;
+            return ETIMMetals.GOLD;
         }
-        return Float.MAX_VALUE;
+        for (ETIMMetals m : ETIMMetals.values()) {
+            if (item == nuggetOf(m)) {
+                return m;
+            }
+        }
+        return null;
     }
 
     /**
