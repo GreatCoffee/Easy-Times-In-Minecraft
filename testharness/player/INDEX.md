@@ -3,9 +3,9 @@
 > 由 `node testharness/tools/index-scripts.js` 生成，请勿手改；`check-scripts.js` 会校验下方 fingerprint。
 > 用途：按批次 / 日志通道检索现成判据，避免重写同面窗口。
 
-scripts=452 | batches=65 | onHarness=16 | withChannel=164 | undocumented=306 | scratch=51 | pinFollow=97 | pinFrozen=3
+scripts=452 | batches=65 | onHarness=16 | withChannel=165 | undocumented=306 | scratch=51 | pinFollow=97 | pinFrozen=3
 
-fingerprint: `A2CE7ED28C1D99601BE78AA64CEC377787DC89804C1B95FCC7F404C17C0F3A17`
+fingerprint: `EB23EE96F5B2C8D7F4A62D78DAA0C0C73ADB1B6AB3D99D36406A118E508344E2`
 
 ## B-70T9（1 份）
 
@@ -630,7 +630,7 @@ fingerprint: `A2CE7ED28C1D99601BE78AA64CEC377787DC89804C1B95FCC7F404C17C0F3A17`
 | `f11-rcon-stop.js` | 41 | — | none |  | — |
 | `f11-spec3.js` | 57 | — | none |  | — |
 | `f14-reg-core.js` | 95 | DamageLog, MiningLog, TestLog | none | ✔ | — |
-| `f15-reg-chains.js` | 162 | — | none | ✔ | — |
+| `f15-reg-chains.js` | 183 | IngestLog | none | ✔ | — |
 | `f16-spec-fix.js` | 49 | — | none |  | — |
 | `f5-arrow2.js` | 137 | — | none |  | — |
 | `f5-debug-fish.js` | 83 | — | none |  | — |
