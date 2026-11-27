@@ -93,6 +93,8 @@ step('regression', 'regression-plan.js', ['--check'], (c) => c !== 0, '[RegLog]'
 // B-70TQ: models/textures/lang/blockstates must agree; a raw `item.etim.x.name`
 // in a tooltip is a player-visible defect, same class as a missing texture.
 step('assets', 'check-assets.js', [], (c) => c !== 0, '[AssetLog]');
+// B-70TR: legacy windows are archived with a reason; the manifest must not rot.
+step('archive', 'check-channels.js', ['--check-archive'], (c) => c !== 0, '[ChannelLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);

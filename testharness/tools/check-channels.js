@@ -41,12 +41,15 @@ const SRC = path.join(ROOT, 'src', 'main', 'java');
 const SCRIPTS = path.join(ROOT, 'testharness', 'player');
 const CFG = path.join(ROOT, 'run', 'config', 'etim.cfg');
 const BASELINE = path.join(__dirname, 'channel-debt.json');
+const ARCHIVE = path.join(__dirname, 'channel-archive.json');
 
 const argv = process.argv.slice(2);
 const LIST = argv.includes('--list');
 const STRICT = argv.includes('--strict');
 const DEBT_DETAIL = argv.includes('--debt');
 const UPDATE_BASELINE = argv.includes('--update-baseline');
+const WRITE_ARCHIVE = argv.includes('--write-archive');
+const CHECK_ARCHIVE = argv.includes('--check-archive');
 const scriptArg = argv.includes('--script') ? argv[argv.indexOf('--script') + 1] : null;
 if (argv.includes('--script') && !scriptArg) {
   console.error('用法: node testharness/tools/check-channels.js --script <file>');
@@ -201,10 +204,21 @@ if (scriptArg) {
 // ---- 全量模式 -----------------------------------------------------------
 
 const scriptFiles = walk(SCRIPTS).filter(f => f.endsWith('.js'));
+
+function readArchive() {
+  try {
+    const j = JSON.parse(fs.readFileSync(ARCHIVE, 'utf8'));
+    return j.scripts || {};
+  } catch (e) {
+    return {};
+  }
+}
+const archivedScripts = new Map(Object.entries(readArchive()));
 const all = new Map();
 let assertCount = 0;
 const harnessRisks = [];
 const debt = [];
+const archivedDebt = [];
 const harnessChannels = new Set();
 const harnessTags = new Set();
 const legacyTags = new Set();
@@ -221,7 +235,11 @@ for (const f of scriptFiles) {
     if (script.onHarness) harnessChannels.add(ch);
   }
   const risks = risksFor(script);
-  for (const r of risks) (script.onHarness ? harnessRisks : debt).push({ name, ...r });
+  for (const r of risks) {
+    if (script.onHarness) harnessRisks.push({ name, ...r });
+    else if (archivedScripts.has(name)) archivedDebt.push({ name, reason: archivedScripts.get(name), ...r });
+    else debt.push({ name, ...r });
+  }
 }
 
 const stale = [];
@@ -234,7 +252,7 @@ for (const ch of all.keys()) {
 
 console.log(`[ChannelLog] channels=${new Set([...producers.keys(), ...all.keys()]).size} ` +
   `producers=${producers.size} assertions=${assertCount} scripts=${scriptFiles.length} ` +
-  `harness-risks=${harnessRisks.length} debt=${debt.length} stale=${stale.length} ` +
+  `harness-risks=${harnessRisks.length} debt=${debt.length} archived=${archivedDebt.length} stale=${stale.length} ` +
   `harnessTags=${harnessTags.size} legacy=${legacyTags.size} [local]`);
 
 if (LIST) {
@@ -258,6 +276,11 @@ if (DEBT_DETAIL) {
   }
 }
 
+if (DEBT_DETAIL && archivedDebt.length) {
+  const byReason = new Map();
+  for (const d of archivedDebt) byReason.set(d.reason, (byReason.get(d.reason) | 0) + 1);
+  console.log(`[ChannelLog] ARCHIVED entries=${archivedDebt.length} reasons=` + [...byReason].map(([k, v]) => k + ':' + v).join(','));
+}
 for (const r of harnessRisks) {
   console.log(`[ChannelLog] SILENT-OFF ${r.channel} gate=${r.gate} script=${r.name} ` +
     `(code=${r.state.code} disk=${r.state.disk})`);
@@ -265,6 +288,38 @@ for (const r of harnessRisks) {
 for (const ch of stale) console.log(`[ChannelLog] STALE ${ch}: 脚本仍在断言，src 里已无产出点`);
 
 // ---- 债务与基线比较 -----------------------------------------------------
+
+// B-70TR: legacy scripts never load harness, so no forcing mechanism can reach
+// them. Archive them with a reason; debt only counts scripts that could run
+// today and still go silently green. --strict counts archived as failure too.
+if (WRITE_ARCHIVE) {
+  const scripts = {};
+  for (const d of archivedDebt) scripts[d.name] = scripts[d.name] || d.reason;
+  for (const f of scriptFiles) {
+    const script = readScript(f);
+    if (script.onHarness) continue;
+    const name = path.relative(SCRIPTS, f).replace(/\\/g, '/');
+    if (!risksFor(script).length) continue;
+    const text = fs.readFileSync(f, 'utf8');
+    scripts[name] = scripts[name] || (/jarBytes:/.test(text) ? 'frozen-pin' : /startBoot\(/.test(text) ? 'own-scaffold' : 'no-harness');
+  }
+  const sorted = {};
+  for (const k of Object.keys(scripts).sort()) sorted[k] = scripts[k];
+  fs.writeFileSync(ARCHIVE, JSON.stringify({ updated: new Date().toISOString().slice(0, 10), total: Object.keys(sorted).length, scripts: sorted }, null, 2) + '\n', 'utf8');
+  console.log(`[ChannelLog] ARCHIVE written scripts=${Object.keys(sorted).length} -> ${path.relative(ROOT, ARCHIVE).replace(/\\/g, '/')}`);
+}
+let archiveStale = 0;
+if (CHECK_ARCHIVE) {
+  const live = new Set(archivedDebt.map(d => d.name));
+  const missing = [...live].filter(n => !archivedScripts.has(n));
+  const extra = [...archivedScripts.keys()].filter(n => !live.has(n));
+  if (missing.length || extra.length) {
+    archiveStale = 1;
+    console.log(`[ChannelLog] ARCHIVE stale missing=${missing.length} extra=${extra.length}`);
+  } else {
+    console.log(`[ChannelLog] ARCHIVE fresh scripts=${live.size}`);
+  }
+}
 
 const baseline = readBaseline();
 const grown = debt.length > baseline.total;
@@ -298,6 +353,6 @@ if (stale.length) {
   console.log(`[ChannelLog] DEBT 老脚本断言了已消失的通道 ${stale.length} 个: ${stale.join(', ')}`);
 }
 
-const failed = harnessRisks.length + staleHarness.length + (grown ? 1 : 0) + (STRICT ? debt.length + stale.length : 0);
+const failed = harnessRisks.length + staleHarness.length + archiveStale + (grown ? 1 : 0) + (STRICT ? debt.length + stale.length : 0);
 console.log(`[ChannelLog] verdict ${failed ? 'RISK' : 'OK'}`);
 process.exit(failed ? 1 : 0);

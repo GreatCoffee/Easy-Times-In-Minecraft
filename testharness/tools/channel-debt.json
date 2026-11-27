@@ -1,31 +1,5 @@
 {
-  "updated": "2026-11-26",
-  "total": 321,
-  "channels": {
-    "BlockLog": 7,
-    "DamageLog": 31,
-    "FoodLog": 18,
-    "CraftingLog": 9,
-    "ArrowLog": 15,
-    "MobLog": 15,
-    "FurnaceLog": 1,
-    "ButchLog": 11,
-    "MeleeLog": 16,
-    "FarmLog": 70,
-    "SpawnLog": 18,
-    "EnchLog": 8,
-    "AILog": 52,
-    "CapLog": 4,
-    "FireLog": 2,
-    "DropLog": 5,
-    "SwingLog": 4,
-    "SkillLog": 2,
-    "PickupLog": 2,
-    "BatLog": 2,
-    "BatMobLog": 1,
-    "WeatherLog": 1,
-    "FishLog": 11,
-    "DeathLog": 3,
-    "DimLog": 13
-  }
+  "updated": "2026-11-27",
+  "total": 0,
+  "channels": {}
 }

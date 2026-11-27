@@ -396,3 +396,16 @@ node testharness/tools/selftest-assets.js         # 自检 2/2
 状态模型白名单：`*_cast`（钓竿投射态）、`*_lit`（熔炉燃烧态）、`gelatinous_sphere_<color>`（按 metadata 换 key）；`*_lit` 的 blockstate 随基名判 lang。
 
 由来：B-70TQ 首跑抓到 `metal/ETIMBlockMantleOrCore.java:36` 的 translationKey 在中英文 lang 里都没有——玩家看到的是裸键名，与紫黑格子同一类硬伤。preflight 第 13 步。
+
+## 通道债务与归档 —— check-channels.js
+
+```
+node testharness/tools/check-channels.js                 # 汇总（debt / archived）
+node testharness/tools/check-channels.js --debt          # 债务与归档明细
+node testharness/tools/check-channels.js --write-archive # 重建 channel-archive.json
+node testharness/tools/check-channels.js --check-archive # 只比对（preflight 第 14 步）
+```
+
+- **debt**：会静默假绿的窗口数——脚本断言了某通道、该通道的 cfg 门在代码或磁盘上是关的、而脚本没有强制打开它。harness 脚本由 `assertChannels` 在起服前拦下，所以债务只会出现在未上 harness 的脚本里。
+- **archived**：未上 harness 的老脚本无法被任何强制机制覆盖（它们不经过 `lib/harness.js`），因此连同原因（`frozen-pin` / `own-scaffold` / `no-harness`）记进 `channel-archive.json`；`debt` 不再统计它们，但数量随时可见，脚本改名或迁 harness 后 `--check-archive` 会报 stale。
+- 基线 `channel-debt.json` 仍按 `--update-baseline` 维护；`--strict` 把 archived 也算失败，供将来收编时启用。
