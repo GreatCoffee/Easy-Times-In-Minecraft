@@ -89,6 +89,9 @@ function resolves(tok) {
 
 /* ---------- reports ---------- */
 const META = new Set(['INDEX.md', 'README.md']);
+const archivedDir = path.join(REP, 'archive');
+const archivedCount = fs.existsSync(archivedDir) ? fs.readdirSync(archivedDir).filter((f) => f.endsWith('.md')).length : 0;
+
 const files = fs.readdirSync(REP).filter((f) => f.endsWith('.md') && !META.has(f)).sort();
 const text = new Map(files.map((f) => [f, fs.readFileSync(path.join(REP, f), 'utf8')]));
 
@@ -228,7 +231,7 @@ if (flag('--write-index')) {
 const hard = deadDoc.length + deadSource.length + deadHash.length + indexMissing.length;
 const uniqHash = [...new Set(deadHash.map((d) => d.h))];
 
-console.log('[ReportLog] files=' + files.length + ' refs=' + pathRefs + ' hashes=' + hashRefs + ' orphans=' + orphans.length + ' volatile=' + volatileRefs + ' external=' + extRefs + ' aliased=' + aliased + ' retired=' + retired);
+console.log('[ReportLog] files=' + files.length + ' refs=' + pathRefs + ' hashes=' + hashRefs + ' orphans=' + orphans.length + ' volatile=' + volatileRefs + ' external=' + extRefs + ' aliased=' + aliased + ' retired=' + retired + ' archived=' + archivedCount);
 console.log('[ReportLog] deadDoc=' + deadDoc.length + ' deadSource=' + deadSource.length + ' deadHash=' + uniqHash.length + ' indexRows=' + (indexRows === null ? 'n/a' : indexRows) + ' indexMissing=' + indexMissing.length);
 
 if (flag('--list')) {
@@ -236,7 +239,7 @@ if (flag('--list')) {
     for (const d of deadSource.slice(0, 60)) console.log('  [deadSource] ' + d.f + ':' + d.line + ' -> ' + d.raw);
     for (const h of uniqHash.slice(0, 20)) console.log('  [deadHash] ' + h + ' <- ' + deadHash.filter((x) => x.h === h).map((x) => x.f).slice(0, 3).join(','));
     for (const f of indexMissing.slice(0, 40)) console.log('  [indexMissing] ' + f);
-    for (const f of orphans.slice(0, 60)) console.log('  [orphan] ' + f);
+    for (const f of orphans) console.log('  [orphan] ' + f);
 }
 
 console.log('[ReportLog] verdict ' + (hard ? 'FAIL' : 'OK') + ' hard=' + hard);

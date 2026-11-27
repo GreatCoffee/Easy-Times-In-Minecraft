@@ -21,3 +21,9 @@
 
 - 产品批：`<slug>-verify-verdict.md` + 回执，两件都进账册与 sessions。
 - 工装批：可以只有账册条目，不强制报告；若写了报告，必须被账册引用。
+
+## 归档层（archive/）
+
+- 无任何账册 / sessions / census / 回执引用的历史报告移到 `archive/`，内容不改写，不参与索引与死链校验（汇总行计 `archived=N`）。
+- 判定口径：`check-reports` 的 `orphans`（引用数为 0）连续两轮收敛，直到 0；互相引用链断裂造成的次级孤儿也一并归档。
+- 复活方式见 `archive/README.md`（`git mv` 回顶层 + `check-reports --write-index`）。
