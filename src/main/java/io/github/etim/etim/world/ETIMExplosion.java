@@ -41,9 +41,7 @@ public final class ETIMExplosion {
         }
         Vec3d center = new Vec3d(x, y, z);
         double density = world.getBlockDensity(center, entity.getEntityBoundingBox());
-        double factor = (1.0D - distance / (double) effective) * density;
-        float damage = (float) (effective * factor * 4.0D * 0.6666667D);
-        float result = damage >= 0.5F ? damage : 0.0F;
+        float result = ExplosionGates.entityDamage(entitySize, distance, density);
         if (ETIMConfig.explosionR196) {
             row("dmg entity=" + entity.getClass().getSimpleName()
                     + " dist=" + fmt(distance)
@@ -64,7 +62,7 @@ public final class ETIMExplosion {
         if (state == null) {
             return;
         }
-        long until = world.getTotalWorldTime() + 400L + world.rand.nextInt(400);
+        long until = ExplosionGates.spookUntil(world.getTotalWorldTime(), world.rand.nextInt(400));
         state.setSpookedUntil(until);
         row("spook entity=" + entity.getClass().getSimpleName() + " until=" + until);
     }
@@ -96,7 +94,7 @@ public final class ETIMExplosion {
 
     /** Entity box used for the R196 livestock sweep (effective - 1) * 4. */
     public static AxisAlignedBB livestockBox(double x, double y, double z, float entitySize) {
-        double reach = Math.max(0.0D, (double) (entitySize - 1.0F)) * 4.0D;
+        double reach = ExplosionGates.livestockReach(entitySize);
         return new AxisAlignedBB(x - reach, y - reach, z - reach, x + reach, y + reach, z + reach);
     }
 

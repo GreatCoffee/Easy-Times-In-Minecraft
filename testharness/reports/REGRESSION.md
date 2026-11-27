@@ -11,7 +11,7 @@
 | 被 harness 覆盖 | 45 |
 | 登记豁免（结构不可覆盖） | 6 |
 | 未处理 GAP | 0 |
-| harness 脚本 | 19 |
+| harness 脚本 | 20 |
 | 已封批（有 verdict） | 69 |
 
 ## 在跑的窗口
@@ -37,6 +37,7 @@
 | `f16-reg-third.js` | - | 7 个：EnchantLog/EquipLog/HoeLog/PickupLog/SleepLog/SwingLog/WeatherLog | 无 |
 | `f17-reg-fourth.js` | - | 6 个：BlockLog/ButchLog/CapLog/DimLog/MobLog/SkillLog | 无 |
 | `f18-reg-fifth.js` | - | 4 个：AILog/ArrowLog/EnchLog/RepairLog | 无 |
+| `f19-reg-explosion.js` | - | 2 个：DropLog/ExplosionLog | 无 |
 
 ## 通道覆盖
 
@@ -56,12 +57,12 @@
 | `DamageLog` | ETIMBlockLog.java, ETIMDamageLog.java, ETIMMelee.java … | f14-reg-core.js | COVERED |
 | `DeathLog` | ETIMDeathEvents.java, ETIMConfig.java | f15-reg-chains.js | COVERED |
 | `DimLog` | CommandUnderworld.java, ETIM.java, ETIMConfig.java … | f17-reg-fourth.js | COVERED |
-| `DropLog` | ETIMBlockDrops.java, MixinEntityLivingBase.java, ETIMMobDrops.java | f11-b67-smoke.js | COVERED |
+| `DropLog` | ETIMBlockDrops.java, MixinEntityLivingBase.java, ETIMMobDrops.java | f11-b67-smoke.js, f19-reg-explosion.js | COVERED |
 | `ElementalLog` | CommandDevTest.java, MixinBlockStaticLiquid.java, MixinEntitySnowball.java … | f11-b62-smoke.js | COVERED |
 | `EnchLog` | ETIMEnchantPool.java, ETIMConfig.java | f18-reg-fifth.js | COVERED |
 | `EnchantLog` | CommandDevTest.java, ETIMConfig.java, ETIMAnvilRepair.java … | f16-reg-third.js | COVERED |
 | `EquipLog` | ETIM.java, ETIMConfig.java, ETIMGear.java … | f16-reg-third.js | COVERED |
-| `ExplosionLog` | ETIMExplosion.java | f11-b67-smoke.js | COVERED |
+| `ExplosionLog` | ETIMExplosion.java | f11-b67-smoke.js, f19-reg-explosion.js | COVERED |
 | `FarmLog` | CommandDevTest.java, ETIMConfig.java, ETIMCompost.java … | f11-b68-smoke.js, f11-b69-smoke.js | COVERED |
 | `FireLog` | ETIMFireSpreadRules.java | - | EXEMPT |
 | `FishLog` | CommandDevTest.java, ETIMConfig.java, ETIMFishing.java | f15-reg-chains.js | COVERED |

@@ -15,6 +15,7 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.World;
+import io.github.etim.etim.world.ExplosionGates;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,7 +73,7 @@ public final class ETIMBlockDrops {
             chance = 0.5F;
         } else {
             drops.addAll(block.getDrops(world, pos, state, 0));
-            chance = applyChanceModifiers(state.getMaterial(), chance);
+            chance = ExplosionGates.chanceFor(chanceClass(state.getMaterial()));
         }
 
         int dropped = 0;
@@ -80,7 +81,7 @@ public final class ETIMBlockDrops {
             if (stack.isEmpty()) {
                 continue;
             }
-            int kept = roll(stack.getCount(), chance);
+            int kept = ExplosionGates.keep(stack.getCount(), chance, RAND::nextFloat);
             if (kept <= 0) {
                 continue;
             }
@@ -99,13 +100,9 @@ public final class ETIMBlockDrops {
         }
 
         // R196 :2042-2057 — experience scales with the number of drops; lapis is exempt.
-        int xp = 0;
         boolean exempt = block == Blocks.LAPIS_BLOCK;
-        int base = 0;
-        if (!exempt) {
-            base = block.getExpDrop(state, world, pos, 0);
-            xp = base * dropped;
-        }
+        int base = exempt ? 0 : block.getExpDrop(state, world, pos, 0);
+        int xp = ExplosionGates.experience(base, dropped, exempt);
         row("xpcheck block=" + block.getRegistryName() + " base=" + base
                 + " drops=" + dropped + " xp=" + xp + " exempt=" + exempt);
         if (xp > 0) {
@@ -115,33 +112,16 @@ public final class ETIMBlockDrops {
         }
     }
 
-    /** R196 :1984-1992 chance modifiers. */
-    private static float applyChanceModifiers(Material material, float chance) {
+    /** R196 :1984-1992 — material class feeding {@link ExplosionGates#chanceFor}. */
+    private static ExplosionGates.ChanceClass chanceClass(Material material) {
         if (material == Material.SNOW || material == Material.CRAFTED_SNOW || material == Material.GLASS) {
-            return chance * 0.4F;
+            return ExplosionGates.ChanceClass.FRAGILE;
         }
         if (material == Material.PLANTS || material == Material.CACTUS
                 || material == Material.VINE || material == Material.CAKE) {
-            return 0.0F;
+            return ExplosionGates.ChanceClass.INERT;
         }
-        return chance;
-    }
-
-    /** R196 per-unit roll; values above 1 get one extra guaranteed-ish roll. */
-    private static int roll(int count, float chance) {
-        if (chance <= 0.0F) {
-            return 0;
-        }
-        int kept = 0;
-        for (int i = 0; i < count; i++) {
-            if (RAND.nextFloat() < chance) {
-                kept++;
-            }
-        }
-        if (chance > 1.0F && RAND.nextFloat() < (chance - 1.0F)) {
-            kept++;
-        }
-        return Math.min(kept, count + 1);
+        return ExplosionGates.ChanceClass.NORMAL;
     }
 
     /** R196 :350-356 + :2059-2093 — selected box × 0.5, pickup delay 10, explosion motion. */
@@ -165,7 +145,7 @@ public final class ETIMBlockDrops {
         double dz = z - ez;
         double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len > 1.0E-4D) {
-            double speed = 0.25D + RAND.nextDouble() * 0.35D;
+            double speed = ExplosionGates.motionSpeed(RAND.nextFloat());
             item.motionX = dx / len * speed;
             item.motionY = dy / len * speed + 0.15D;
             item.motionZ = dz / len * speed;

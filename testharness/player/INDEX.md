@@ -3,9 +3,9 @@
 > 由 `node testharness/tools/index-scripts.js` 生成，请勿手改；`check-scripts.js` 会校验下方 fingerprint。
 > 用途：按批次 / 日志通道检索现成判据，避免重写同面窗口。
 
-scripts=21 | batches=14 | onHarness=19 | withChannel=17 | undocumented=6 | scratch=0 | pinFollow=1 | pinFrozen=0
+scripts=22 | batches=14 | onHarness=20 | withChannel=17 | undocumented=7 | scratch=0 | pinFollow=1 | pinFrozen=0
 
-fingerprint: `B779A0BA31737C92BF8BFDB3236C1588D7354550D3B5975A0D8E22C540923361`
+fingerprint: `04A75BEC04C49D296CFF796BCBAD4BF67F6923008628E1A698C25FC99DE06FE8`
 
 ## B-70T9（1 份）
 
@@ -91,7 +91,7 @@ fingerprint: `B779A0BA31737C92BF8BFDB3236C1588D7354550D3B5975A0D8E22C540923361`
 | --- | ---: | --- | :---: | :---: | --- |
 | `f11-b58-smoke.js` | 210 | FoodLog, GelLog | none | ✔ | B-58 smoke: gelatinous sphere item + throwable (R196 ItemGelatinousSphere / |
 
-## 未标批次（7 份）
+## 未标批次（8 份）
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
@@ -100,5 +100,6 @@ fingerprint: `B779A0BA31737C92BF8BFDB3236C1588D7354550D3B5975A0D8E22C540923361`
 | `f16-reg-third.js` | 205 | SwingLog | none | ✔ | — |
 | `f17-reg-fourth.js` | 147 | — | none | ✔ | — |
 | `f18-reg-fifth.js` | 138 | AILog | none | ✔ | — |
+| `f19-reg-explosion.js` | 91 | — | none | ✔ | — |
 | `f7-wb-lib.js` | 208 | ArrowLog, ButchLog, EnchantLog, FarmLog, FishLog, FoodLog, MeleeLog, MiningLog | follow |  | — |
 | `fmlbot.js` | 68 | — | none |  | fmlbot.js — mineflayer 假玩家 + FML\|HS 握手公共模块（会话七 · testharness/player） |
