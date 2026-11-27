@@ -260,13 +260,16 @@ public final class DespawnRules {
             if (c < ANIMAL_QUIET) {
                 return false;
             }
-            if (w.getClosestPlayer(e.posX, e.posY, e.posZ, ANIMAL_PLAYER_RADIUS, false) != null
-                    || hasFenceNearby(w, e)) {
+            boolean playerNear = w.getClosestPlayer(e.posX, e.posY, e.posZ, ANIMAL_PLAYER_RADIUS, false) != null;
+            boolean fenceNear = !playerNear && hasFenceNearby(w, e);
+            DespawnGates.Wall wall = DespawnGates.animalWall(c, playerNear, fenceNear,
+                    ANIMAL_QUIET, ANIMAL_KILL);
+            if (wall == DespawnGates.Wall.PLAYER || wall == DespawnGates.Wall.FENCE) {
                 ((EntityLivingBaseAccessor) e).etim$setIdleTime(0);
                 log(e, "hold=animal-player-or-fence");
                 return false;
             }
-            if (c <= ANIMAL_KILL) {
+            if (wall == DespawnGates.Wall.KILL) {
                 return false;
             }
             // fall through to the LOS gate (== MITE super.canDespawn())
@@ -365,10 +368,7 @@ public final class DespawnRules {
         double dx = p.posX - e.posX;
         double dy = p.posY - e.posY;
         double dz = p.posZ - e.posZ;
-        if (!hourOfGrace) {
-            dy *= 2.0;
-        }
-        double distSq = dx * dx + dy * dy + dz * dz;
+        double distSq = DespawnGates.distanceSq(dx, dy, dz, hourOfGrace);
         // A5 final-window instrument (run27 2026-10-13): the kill-pass gate
         // (p exists && c≥200) opens silently when canDespawn == false and the
         // retired reroll row made the cycle unreadable (A5FIN 窗三面归零之谜).
@@ -407,14 +407,14 @@ public final class DespawnRules {
                         + " entity=" + e.getClass().getSimpleName() + "#" + e.getEntityId());
             }
         }
-        if (distSq > KILL_DIST_SQ && !hasContainedItems(e) && canDespawn(e)) {
+        if (DespawnGates.beyondKill(distSq, KILL_DIST_SQ) && !hasContainedItems(e) && canDespawn(e)) {
             logKill(e, c, distSq);
             e.setDead();
         } else {
-            if (distSq > KILL_DIST_SQ && hasContainedItems(e)) {
+            if (DespawnGates.equippedHold(distSq, hasContainedItems(e), KILL_DIST_SQ)) {
                 log(e, "hold=equipped");
             }
-            int reroll = (int) (Math.random() * REROLL_RANGE) - REROLL_RANGE / 2;
+            int reroll = DespawnGates.reroll(Math.random(), REROLL_RANGE);
             ((EntityLivingBaseAccessor) e).etim$setIdleTime(reroll);
             // [AILog] reroll row retired (run27 noise review): one row per
             // ~8-12 s per far entity read as 1374 rows over 70 s with zero

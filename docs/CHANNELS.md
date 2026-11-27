@@ -9,7 +9,7 @@ Channels: **51**, asserted by a window script: **45**.
 
 | Channel | Gate | Producers | Drivers used | Asserted by |
 | --- | --- | --- | --- | --- |
-| `AILog` | `mobDebugLog` (mobs) | `commands/CommandDevTest.java:1689`<br>`commands/CommandDevTest.java:1776`<br>`commands/CommandDevTest.java:2502`<br>`mob/DespawnRules.java:247`<br>`mob/DespawnRules.java:322`<br>`mob/DespawnRules.java:345`<br>+59 more | `/etest hold`<br>`/etest stalker`<br>`/etest undeadgate` | `f11-b60-smoke.js`<br>`f18-reg-fifth.js` |
+| `AILog` | `mobDebugLog` (mobs) | `commands/CommandDevTest.java:1689`<br>`commands/CommandDevTest.java:1776`<br>`commands/CommandDevTest.java:2502`<br>`mob/DespawnRules.java:247`<br>`mob/DespawnRules.java:325`<br>`mob/DespawnRules.java:348`<br>+59 more | `/etest hold`<br>`/etest stalker`<br>`/etest undeadgate` | `f11-b60-smoke.js`<br>`f18-reg-fifth.js` |
 | `ArrowLog` | `arrowDebugLog` (mobs) | `mob/ETIMArrowLog.java:23` | `/etest hold` | `f18-reg-fifth.js`<br>`f7-wb-lib.js` |
 | `BatLog` | `mobDebugLog` (mobs) | `mixins/MixinEntityBat.java:80`<br>`mixins/MixinEntityBat.java:114`<br>`mixins/MixinEntityBat.java:124`<br>`mixins/MixinEntityBat.java:196` | — | **uncovered** |
 | `BatMobLog` | `mobDebugLog` (mobs) | `commands/CommandDevTest.java:1270`<br>`commands/CommandDevTest.java:1295`<br>`commands/CommandDevTest.java:1301`<br>`commands/CommandDevTest.java:1321`<br>`commands/CommandDevTest.java:1341`<br>`mob/ETIMEntityNightwing.java:81`<br>+9 more | — | **uncovered** |

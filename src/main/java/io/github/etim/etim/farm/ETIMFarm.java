@@ -511,8 +511,7 @@ public final class ETIMFarm {
     public static float temperatureModifier(World world, BlockPos pos, Block blockIn, float[] out) {
         float[] w = growthTempWindow(blockIn);
         float t = world.getBiome(pos).getTemperature(pos);
-        float delta = t < w[0] ? w[0] - t : (t > w[1] ? t - w[1] : 0.0F);
-        float mod = Math.max(1.0F - delta / GROW_TEMP_TOLERANCE, 0.0F);
+        float mod = GrowthGates.tempModifier(t, w[0], w[1], GROW_TEMP_TOLERANCE);
         out[0] = t;
         out[1] = w[0];
         out[2] = w[1];
@@ -533,33 +532,26 @@ public final class ETIMFarm {
         boolean south = world.getBlockState(pos.south()).getBlock() == blockIn;
         boolean west = world.getBlockState(pos.west()).getBlock() == blockIn;
         int neighbors = (north ? 1 : 0) + (east ? 1 : 0) + (south ? 1 : 0) + (west ? 1 : 0);
-        if (neighbors > 1) {
-            return 1.0F;
+        if (neighbors != 1) {
+            return GrowthGates.proximity(neighbors, false); // 0 → 0.5, ≥2 → 1.0
         }
-        if (neighbors == 0) {
-            return 0.5F; // R196 :64-66
-        }
-        if (north && (world.getBlockState(pos.north(2)).getBlock() == blockIn
-                || world.getBlockState(pos.north().east()).getBlock() == blockIn
-                || world.getBlockState(pos.north().west()).getBlock() == blockIn)) {
-            return 1.0F;
-        }
-        if (east && (world.getBlockState(pos.east().north()).getBlock() == blockIn
-                || world.getBlockState(pos.east(2)).getBlock() == blockIn
-                || world.getBlockState(pos.east().south()).getBlock() == blockIn)) {
-            return 1.0F;
-        }
-        if (south && (world.getBlockState(pos.south().east()).getBlock() == blockIn
-                || world.getBlockState(pos.south(2)).getBlock() == blockIn
-                || world.getBlockState(pos.south().west()).getBlock() == blockIn)) {
-            return 1.0F;
-        }
-        if (west && (world.getBlockState(pos.west().north()).getBlock() == blockIn
-                || world.getBlockState(pos.west().south()).getBlock() == blockIn
-                || world.getBlockState(pos.west(2)).getBlock() == blockIn)) {
-            return 1.0F;
-        }
-        return 0.75F;
+        // Exactly one neighbour: does its rank-1 direction carry a rank-2 extension?
+        boolean ext = north
+                ? (world.getBlockState(pos.north(2)).getBlock() == blockIn
+                        || world.getBlockState(pos.north().east()).getBlock() == blockIn
+                        || world.getBlockState(pos.north().west()).getBlock() == blockIn)
+                : east
+                        ? (world.getBlockState(pos.east().north()).getBlock() == blockIn
+                                || world.getBlockState(pos.east(2)).getBlock() == blockIn
+                                || world.getBlockState(pos.east().south()).getBlock() == blockIn)
+                        : south
+                                ? (world.getBlockState(pos.south().east()).getBlock() == blockIn
+                                        || world.getBlockState(pos.south(2)).getBlock() == blockIn
+                                        || world.getBlockState(pos.south().west()).getBlock() == blockIn)
+                                : (world.getBlockState(pos.west().north()).getBlock() == blockIn
+                                        || world.getBlockState(pos.west().south()).getBlock() == blockIn
+                                        || world.getBlockState(pos.west(2)).getBlock() == blockIn);
+        return GrowthGates.proximity(1, ext);
     }
 
     /**
@@ -585,14 +577,7 @@ public final class ETIMFarm {
         }
         float global = ETIMConfig.globalGrowthRateFactor; // R196 :17-19
         float proxMod = stem ? 1.0F : proximityModifierR196(world, pos, blockIn);
-        float value = base;
-        if (fertilized) {
-            value *= fertilizedFactor; // R196 :205-207 order face
-        }
-        value *= tempMod;
-        value *= humMod;
-        value *= global;
-        value *= proxMod;
+        float value = GrowthGates.compose(base, fertilized, fertilizedFactor, tempMod, humMod, global, proxMod);
         row("growth rate block=" + name(blockIn)
                 + " family=" + (stem ? (blockIn == net.minecraft.init.Blocks.MELON_STEM ? "stem_melon" : "stem_pumpkin") : "crops")
                 + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
@@ -634,7 +619,7 @@ public final class ETIMFarm {
         int blv = world.getLightFromNeighbors(head);
         boolean stem = blockIn instanceof net.minecraft.block.BlockStem;
         // R196 :68 reads only the lower bound for stems; crops carry the full window (:115)
-        boolean lightBlocked = blv < ETIMConfig.growthLightMin || (!stem && blv > ETIMConfig.growthLightMax);
+        boolean lightBlocked = GrowthGates.lightBlocked(blv, stem, ETIMConfig.growthLightMin, ETIMConfig.growthLightMax);
         if (lightBlocked) {
             row("growth gate light block=" + name(blockIn)
                     + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()

@@ -165,16 +165,19 @@ public final class ETIMButchering {
     /** F3 cow — leather + well-gated beef with the ==1 nudge (R196:91-107). */
     public static void butcherCow(EntityLivingBase e, java.util.Random rnd, int level,
                                   java.util.List<net.minecraft.entity.item.EntityItem> list, World world) {
-        int leather = rnd.nextInt(3) + 1; // :92 — no B, no gate
+        int leather = ButcherGates.cowLeather(rnd.nextInt(3)); // :92 — no B, no gate
         boolean well = isWell(e);
         int beef = 0, nudge = 0, rB = -1;
         if (well) {
-            beef = rnd.nextInt(3) + 1; // :99 part 1
+            int roll3 = rnd.nextInt(3); // :99 part 1
             rB = rnd.nextInt(1 + level); // :99 part 2 — the B roll logged for the N window
-            beef += rB;
-            if (beef == 1 && rnd.nextInt(2) == 0) { // :100-102 the ==1-half nudge — cow ONLY
-                beef++;
-                nudge = 1;
+            beef = ButcherGates.cowBeefBase(true, roll3, rB); // :99 sum
+            if (ButcherGates.cowNudgeRolls(beef)) { // :100-102 the ==1-half nudge — cow ONLY
+                int after = ButcherGates.cowBeefAfterNudge(beef, rnd.nextInt(2));
+                if (after != beef) {
+                    nudge = 1;
+                }
+                beef = after;
             }
         }
         Item meat = e.isBurning() ? Items.COOKED_BEEF : Items.BEEF; // :105
@@ -192,9 +195,9 @@ public final class ETIMButchering {
         boolean well = isWell(e);
         int pork = 0, rB = -1;
         if (well) {
-            pork = rnd.nextInt(3) + 1; // :119 part 1
+            int roll3 = rnd.nextInt(3); // :119 part 1
             rB = rnd.nextInt(1 + level); // :119 part 2
-            pork += rB;
+            pork = ButcherGates.pigPork(true, roll3, rB); // :119 sum
         }
         Item meat = e.isBurning() ? Items.COOKED_PORKCHOP : Items.PORKCHOP; // :122
         row("pig well=" + well + " lvl=" + level + " rB=" + rB + " pork=" + pork
@@ -213,18 +216,16 @@ public final class ETIMButchering {
         EntitySheep sheep = (EntitySheep) e;
         boolean sheared = sheep.getSheared();
         boolean burning = e.isBurning();
-        boolean wool = !sheared && !burning && rnd.nextInt(2) == 0; // :101-103 (②概率覆盖面 A-1, 条 263)
+        boolean wool = ButcherGates.sheepWoolGate(sheared, burning) // :101-103 (②概率覆盖面 A-1, 条 263)
+                && ButcherGates.sheepWoolLanded(rnd.nextInt(2));
         boolean well = isWell(e);
         int mutton = 0, rB = -1;
         if (well) {
-            mutton = rnd.nextInt(2); // :106 part 1
+            int roll2 = rnd.nextInt(2); // :106 part 1
             rB = rnd.nextInt(1 + level); // :106 part 2
-            mutton += rB;
-            if (mutton < 1) {
-                mutton = 1; // :107-109 floor
-            }
+            mutton = ButcherGates.sheepMutton(true, roll2, rB); // :106 sum + :107-109 floor
         }
-        boolean leather = rnd.nextInt(2) == 0; // :116-117
+        boolean leather = ButcherGates.sheepLeather(rnd.nextInt(2)); // :116-117
         Item meat = burning ? Items.COOKED_MUTTON : Items.MUTTON; // :112
         row("sheep sheared=" + sheared + " burning=" + burning + " color=" + sheep.getFleeceColor()
                 + " well=" + well + " lvl=" + level + " rB=" + rB
@@ -252,7 +253,7 @@ public final class ETIMButchering {
         boolean zombie = c == EntityZombieHorse.class;
         boolean type4 = c == EntitySkeletonHorse.class;
 
-        int n = rnd.nextInt(3) + 1; // :514 the base face (leather/bone/flesh)
+        int n = ButcherGates.horsePieces(rnd.nextInt(3)); // :514 the base face (leather/bone/flesh)
         int flesh = 0, zeroed = 0;
         for (int i = 0; i < n; i++) { // :516-518 per-piece drops
             if (!zombie) {
@@ -265,10 +266,8 @@ public final class ETIMButchering {
         }
         int meat = 0;
         if (!zombie && !type4) { // :520 the meat face — horse/donkey/mule/llama ONLY (D-3/D-9 乙)
-            meat = 1 + rnd.nextInt(1 + level); // :521
-            if (plainHorse) {
-                meat += rnd.nextInt(2); // :522-524 plain-horse-only
-            }
+            int rollLevel = rnd.nextInt(1 + level); // :521
+            meat = ButcherGates.horseMeat(plainHorse, rollLevel, plainHorse ? rnd.nextInt(2) : 0); // :521-524
             Item m = e.isBurning() ? Items.COOKED_BEEF : Items.BEEF; // :527
             addStack(list, world, e, new ItemStack(m, meat));
         }
@@ -293,10 +292,10 @@ public final class ETIMButchering {
         int a = -1;
         if (recentlyHit) {
             a = rnd.nextInt(3);
-            if (a == 0) {
+            if (ButcherGates.spiderEyeFirst(a)) {
                 eye = true; // short-circuit: the second roll never happens
             } else {
-                eye = rnd.nextInt(1 + level) > 0;
+                eye = ButcherGates.spiderEyeLevel(rnd.nextInt(1 + level));
             }
         }
         row("spider recent=" + recentlyHit + " lvl=" + level + " r3=" + a
