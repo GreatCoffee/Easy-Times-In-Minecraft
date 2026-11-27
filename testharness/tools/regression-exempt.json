@@ -1,0 +1,11 @@
+{
+  "_comment": "B-70UN: channels with a producer in src but no window script can assert them. Each entry needs a reason; regression-plan.js fails on any gap not listed here, and on entries that stop being gaps. Prefer fixing the channel over listing it.",
+  "channels": {
+    "BatLog": "客户端/服务端共用的蝙蝠 AI 行，1.12 的蝙蝠行为判据由 SpawnLog 的 batpick 与 MobLog 的实体属性行共同承载；本通道只在原版 AI 内部翻转时产出，窗口无法定点触发。",
+    "BatMobLog": "蝙蝠/夜翼/吸血鬼蝠的自定义 AI 状态，与 SpawnLog 的 batpick/gelpick 判据重叠；行由 AI tick 概率触发，60 秒窗不可稳捕。",
+    "FireLog": "火焰蔓延 roll 概率 0.00125–0.01/tick，R196 原值；窗口需要数十分钟才可能命中，且命中与否不改变结论（B-67 已用 SparkLog 与爆炸链替代验证）。",
+    "OozeLog": "src 里已无产出行（B-58 起合并进 GelLog 的 ooze 分支）；保留标签只为历史日志可读，实际判据在 GelLog。",
+    "PoseLog": "仅在 client/ 侧（渲染姿态）产出，服务端判窗看不到；客户端面按纪律由用户目视，不作通道判据。",
+    "SoundLog": "仅在 client/ 侧（音效播放）产出；音效属听觉面，判据纪律不允许拿它当回归依据。"
+  }
+}

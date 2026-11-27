@@ -39,12 +39,15 @@ fs.writeFileSync(path.join(player, 'f12-b98-smoke.js'), [
     'module.exports = H;',
 ].join('\n'), 'utf8');
 fs.writeFileSync(path.join(reports, 'b-99-verify-verdict.md'), 'PASS\n', 'utf8');
+// B-70UN: an open gap must be registered or it fails the ratchet.
+const exemptFile = path.join(root, 'exempt.json');
+fs.writeFileSync(exemptFile, JSON.stringify({ channels: { BetaLog: 'fixture: no window in this tree' } }), 'utf8');
 
 function run(tool, args) {
     try {
         const out = execFileSync(process.execPath, [tool, ...args], {
             encoding: 'utf8',
-            env: { ...process.env, REG_REPO: root },
+            env: { ...process.env, REG_REPO: root, REG_EXEMPT: exemptFile },
         });
         return { code: 0, out };
     } catch (e) {
@@ -56,7 +59,10 @@ let pass = 0;
 const total = 3;
 
 const p1 = run(PLAN, []);
-const ok1 = p1.code === 0 && /channels=2 covered=1 gaps=1 scripts=2 verdicts=1/.test(p1.out);
+const ok1 = p1.code === 0
+    && /channels=2\b/.test(p1.out) && /covered=1\b/.test(p1.out)
+    && /gaps=1\b/.test(p1.out) && /exempt=1\b/.test(p1.out)
+    && /scripts=2\b/.test(p1.out) && /verdicts=1\b/.test(p1.out);
 if (ok1) pass++;
 console.log(`${ok1 ? 'PASS' : 'FAIL'} matrix-counts`);
 if (!ok1) console.log(p1.out.trim());

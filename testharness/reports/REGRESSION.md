@@ -9,7 +9,8 @@
 | --- | --- |
 | 判据通道（有产出点） | 51 |
 | 被 harness 覆盖 | 45 |
-| 无覆盖（GAP） | 6 |
+| 登记豁免（结构不可覆盖） | 6 |
+| 未处理 GAP | 0 |
 | harness 脚本 | 19 |
 | 已封批（有 verdict） | 69 |
 
@@ -43,8 +44,8 @@
 | --- | --- | --- | --- |
 | `AILog` | CommandDevTest.java, ETIM.java, ETIMConfig.java … | f11-b60-smoke.js, f18-reg-fifth.js | COVERED |
 | `ArrowLog` | ETIMBlockLog.java, ETIMDamageLog.java, ETIM.java … | f18-reg-fifth.js | COVERED |
-| `BatLog` | MixinEntityBat.java | - | GAP |
-| `BatMobLog` | CommandDevTest.java, ETIMEntityNightwing.java, ETIMEntityVampireBat.java … | - | GAP |
+| `BatLog` | MixinEntityBat.java | - | EXEMPT |
+| `BatMobLog` | CommandDevTest.java, ETIMEntityNightwing.java, ETIMEntityVampireBat.java … | - | EXEMPT |
 | `BeastLog` | CommandDevTest.java, ETIMEntityDireWolf.java, ETIMEntityHellhound.java | f11-b61-smoke.js | COVERED |
 | `BlockFaceLog` | CommandDevTest.java, ETIMBlockStacks.java, ETIMItemMaterialEvents.java | f11-b66-smoke.js | COVERED |
 | `BlockLog` | ETIMBlockLog.java, ETIMGhost.java, CommandDevTest.java … | f17-reg-fourth.js | COVERED |
@@ -62,7 +63,7 @@
 | `EquipLog` | ETIM.java, ETIMConfig.java, ETIMGear.java … | f16-reg-third.js | COVERED |
 | `ExplosionLog` | ETIMExplosion.java | f11-b67-smoke.js | COVERED |
 | `FarmLog` | CommandDevTest.java, ETIMConfig.java, ETIMCompost.java … | f11-b68-smoke.js, f11-b69-smoke.js | COVERED |
-| `FireLog` | ETIMFireSpreadRules.java | - | GAP |
+| `FireLog` | ETIMFireSpreadRules.java | - | EXEMPT |
 | `FishLog` | CommandDevTest.java, ETIMConfig.java, ETIMFishing.java | f15-reg-chains.js | COVERED |
 | `FoodLog` | CommandDevTest.java, ETIMConfig.java, ETIMEndurance.java … | f11-b58-smoke.js, f13-b70t9-smoke.js | COVERED |
 | `FoodR196Log` | CommandDevTest.java, ETIMAppleGoldEvents.java, ETIMVesselEvents.java | f11-b65-smoke.js | COVERED |
@@ -75,15 +76,15 @@
 | `MiningLog` | ETIMConfig.java, ETIMMining.java, ETIMMiningEvents.java … | f14-reg-core.js | COVERED |
 | `MobLog` | ETIMConfig.java, ETIMArrowLog.java, ETIMEntityArachnid.java … | f17-reg-fourth.js | COVERED |
 | `MountLog` | CommandDevTest.java, MixinBlockTorchFarmland.java, ETIMMountRules.java | f11-b69-smoke.js | COVERED |
-| `OozeLog` | ETIMOozeSpawn.java | - | GAP |
+| `OozeLog` | ETIMOozeSpawn.java | - | EXEMPT |
 | `OreLog` | ETIMConfig.java, ETIMOreGen.java | f15-reg-chains.js | COVERED |
 | `PickupLog` | ETIMMobPickup.java | f16-reg-third.js | COVERED |
-| `PoseLog` | CommandPose.java, GuiPoseTuner.java, PoseFileWatcher.java … | - | GAP |
+| `PoseLog` | CommandPose.java, GuiPoseTuner.java, PoseFileWatcher.java … | - | EXEMPT |
 | `RepairLog` | ETIMEntityAIMoveToRepairItem.java | f18-reg-fifth.js | COVERED |
 | `SilverLog` | CommandDevTest.java, MixinBlockSilverfish.java, MixinEntitySnowball.java … | f11-b63-smoke.js | COVERED |
 | `SkillLog` | ClientNetworkHooks.java, CommandDevTest.java, CommandEtimSkill.java | f17-reg-fourth.js | COVERED |
 | `SleepLog` | ETIMConfig.java, MixinEntityPlayer.java, ETIMDigging.java … | f16-reg-third.js | COVERED |
-| `SoundLog` | ETIMSoundLog.java, ETIM.java, ETIMConfig.java | - | GAP |
+| `SoundLog` | ETIMSoundLog.java, ETIM.java, ETIMConfig.java | - | EXEMPT |
 | `SparkLog` | ETIMBlockSpark.java, ETIMSpecialBlocks.java | f11-b69-smoke.js | COVERED |
 | `SpawnLog` | CommandDevTest.java, ETIMSpawnCycle.java, ETIMSpawnTables.java … | f11-b59-smoke.js, f11-b60-smoke.js, f11-b61-smoke.js, f11-b62-smoke.js, f12-b70t8-smoke.js | COVERED |
 | `StalkerLog` | ETIMEntityAISeekLitTorch.java, ETIMEntityInvisibleStalker.java | f11-b60-smoke.js | COVERED |
@@ -92,6 +93,20 @@
 | `UndeadLog` | CommandDevTest.java, ETIMEntityGhoul.java, ETIMEntityShadow.java … | f11-b59-smoke.js, f11-b60-smoke.js | COVERED |
 | `WeatherLog` | CommandDevTest.java, ETIMConfig.java, MixinWorldServer.java … | f16-reg-third.js | COVERED |
 | `WorldGenSpawnLog` | CommandDevTest.java, MixinWorldEntitySpawner.java, ETIMWorldGenSpawning.java | f12-b70t8-smoke.js | COVERED |
+
+## 结构上不可覆盖（登记豁免）
+
+> 这些通道在 `testharness/tools/regression-exempt.json` 里登记了原因。新增的未覆盖通道不会自动豁免：
+> 要么补一个能重跑的窗，要么在清单里写清为什么盖不了，否则 preflight 第 12 步失败。
+
+| 通道 | 原因 |
+| --- | --- |
+| `BatLog` | 客户端/服务端共用的蝙蝠 AI 行，1.12 的蝙蝠行为判据由 SpawnLog 的 batpick 与 MobLog 的实体属性行共同承载；本通道只在原版 AI 内部翻转时产出，窗口无法定点触发。 |
+| `BatMobLog` | 蝙蝠/夜翼/吸血鬼蝠的自定义 AI 状态，与 SpawnLog 的 batpick/gelpick 判据重叠；行由 AI tick 概率触发，60 秒窗不可稳捕。 |
+| `FireLog` | 火焰蔓延 roll 概率 0.00125–0.01/tick，R196 原值；窗口需要数十分钟才可能命中，且命中与否不改变结论（B-67 已用 SparkLog 与爆炸链替代验证）。 |
+| `OozeLog` | src 里已无产出行（B-58 起合并进 GelLog 的 ooze 分支）；保留标签只为历史日志可读，实际判据在 GelLog。 |
+| `PoseLog` | 仅在 client/ 侧（渲染姿态）产出，服务端判窗看不到；客户端面按纪律由用户目视，不作通道判据。 |
+| `SoundLog` | 仅在 client/ 侧（音效播放）产出；音效属听觉面，判据纪律不允许拿它当回归依据。 |
 
 ## 缺口怎么读
 

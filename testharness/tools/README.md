@@ -528,3 +528,10 @@ node testharness/tools/selftest-all.js --only coverage   # 只跑名字含 cover
 - 数据源：`src/main/java/**`（产出点，跳过注释与 `ETIMConfig.java`）、`ETIMConfig.java`（键→段、布尔默认值取字段初值）、`testharness/player/**.js`（断言与驱动；`f7-wb-lib`/`fmlbot` 不算驱动来源）。
 - `--check` 过期即失败；preflight 第 21 步 `chandoc`。
 - 自检 `node testharness/tools/selftest-chandoc.js`（12 例：生成、通道行、键+段、产出点、驱动、脚本、计数、新鲜/过期、注释不算产出、uncovered、覆盖计数）。
+
+## 回归缺口豁免 —— `regression-exempt.json`
+
+- 覆盖矩阵里「有产出点但没有窗脚本断言」的通道，默认算 **GAP**，preflight 第 12 步直接失败。
+- 确实盖不了的（client 侧、概率低到 60 秒窗抓不到、行已并入别的通道），在 `testharness/tools/regression-exempt.json` 的 `channels` 里写通道名 + 原因；矩阵里标 **EXEMPT** 并单列一节。
+- 棘轮两头都管：①新出现的未覆盖通道没登记 → `UNEXPLAINED` 失败；②登记过的通道后来被覆盖或消失了 → `STALE-EXEMPT` 失败，逼你删掉没用的豁免。
+- `REG_EXEMPT` 可指向别的清单（自检用）；`selftest-regplan` 9/9 覆盖「未登记失败 / 登记通过 / 豁免失效 / 文档过期」。
