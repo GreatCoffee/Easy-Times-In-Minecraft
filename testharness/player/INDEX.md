@@ -3,9 +3,9 @@
 > 由 `node testharness/tools/index-scripts.js` 生成，请勿手改；`check-scripts.js` 会校验下方 fingerprint。
 > 用途：按批次 / 日志通道检索现成判据，避免重写同面窗口。
 
-scripts=450 | batches=65 | onHarness=6 | withChannel=163 | undocumented=304 | scratch=51 | pinFollow=105 | pinFrozen=3
+scripts=450 | batches=65 | onHarness=9 | withChannel=163 | undocumented=304 | scratch=51 | pinFollow=102 | pinFrozen=3
 
-fingerprint: `E923BE2FDE7BC89CE418A156B641257BC3E83C709D282635081288D14868D52A`
+fingerprint: `A4471F3700E3BF67003CD1B07EC2E1CA5BBA009876A7CF0ED99199EB72CA8D11`
 
 ## B-70T9（1 份）
 
@@ -29,13 +29,13 @@ fingerprint: `E923BE2FDE7BC89CE418A156B641257BC3E83C709D282635081288D14868D52A`
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b68-smoke.js` | 310 | FarmLog | follow |  | B-68 smoke: R196 root crops (carrot/potato/onion) + four dead-plant families |
+| `f11-b68-smoke.js` | 219 | FarmLog | none | ✔ | B-68 smoke: R196 root crops (carrot/potato/onion) + four dead-plant families |
 
 ## B-67（1 份）
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b67-smoke.js` | 247 | BoomLog, DropLog, ExplosionLog | follow |  | B-67 smoke: R196 explosion + block drop faces (census F :100-:104, :108-:113). |
+| `f11-b67-smoke.js` | 164 | BoomLog, DropLog, ExplosionLog | none | ✔ | B-67 smoke: R196 explosion + block drop faces (census F :100-:104, :108-:113). |
 
 ## B-66（1 份）
 
@@ -65,7 +65,7 @@ fingerprint: `E923BE2FDE7BC89CE418A156B641257BC3E83C709D282635081288D14868D52A`
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b62-smoke.js` | 275 | ElementalLog, SpawnLog | follow |  | B-62 smoke: R196 EntityEarthElemental / EntityFireElemental / EntityClayGolem |
+| `f11-b62-smoke.js` | 196 | ElementalLog, SpawnLog | none | ✔ | B-62 smoke: R196 EntityEarthElemental / EntityFireElemental / EntityClayGolem |
 
 ## B-61（1 份）
 

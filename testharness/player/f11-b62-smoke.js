@@ -8,104 +8,34 @@
 //   W5 gate: earth y<=40 allowed, high y rejected + base row probe
 //   W6 spawn rows in table source + lava-spawn mixin registered
 //   W7 assets: 13 textures + lang keys + registration ids 26/27/28
+const H = require('./lib/harness.js');
 const L = require('./f7-wb-lib.js');
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fs = require('fs');
 const path = require('path');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const RUN = process.env.RUN || 'r1';
 const A = 'ETIM_F7';
-const EXPECTED_SHA = process.env.EXPECTED_SHA || L.PIN.releaseSha;
-const WORLD = 'w-b62-' + RUN + '-v1';
 
-let bot = null, srv = null, propsBefore = null, cfgBefore = null;
-const stops = [];
-
-async function cmd(s, wait) { srv.send(s); await sleep(wait == null ? 250 : wait); }
-function logLines() {
-  try { return fs.readFileSync(srv.logPath, 'utf8').split(/\r?\n/); } catch (e) { return []; }
-}
-function slice(from) { return logLines().slice(from); }
-function mark() { return logLines().length; }
-async function waitRow(re, from, ms) {
-  const t0 = Date.now();
-  while (Date.now() - t0 < ms) {
-    const hit = slice(from).map(s => re.exec(s)).filter(Boolean);
-    if (hit.length) return hit;
-    await sleep(500);
-  }
-  return [];
-}
+const h = H.create({
+  run: RUN,
+  world: 'w-b62-' + RUN + '-v1',
+  bot: A,
+  stage: {
+    gamemode: 1,
+    rules: { doTileDrops: false },
+    tp: [0.5, 130, 0.5],
+    fill: [
+      'fill 0 129 0 15 129 15 minecraft:stone',
+      'fill 0 130 0 15 133 15 minecraft:air',
+      'tp ETIM_F7 0.5 130 0.5',
+    ],
+  },
+  props: { 'allow-flight': 'true' },
+  cfg: ['mobs:mobDebugLog', 'mobs:mobElementalR196'],
+});
+const { cmd, mark, slice, waitRow, logLines } = h;
 function lastOf(rows) { return rows.length ? rows[rows.length - 1] : null; }
-
-function stampPin() {
-  const jar = path.join(L.ROOT, 'build', 'libs', 'etim-1.0.0.jar');
-  const bytes = fs.readFileSync(jar);
-  const sha = L.sha256(bytes).toUpperCase();
-  const mk = L.mkCounts();
-  const ok = sha === EXPECTED_SHA && bytes.length === L.PIN.releaseSize && mk.ok;
-  console.log(`[PIN] sha=${sha} shaOk=${sha === EXPECTED_SHA} size=${bytes.length} sizeOk=${bytes.length === L.PIN.releaseSize} mkOk=${mk.ok} ok=${ok}`);
-  return ok;
-}
-
-async function startBoot(tag) {
-  propsBefore = fs.readFileSync(L.PROPS, 'utf8');
-  cfgBefore = fs.readFileSync(L.CFG, 'utf8');
-  let props = fs.readFileSync(L.PROPS, 'utf8');
-  props = L.setProp(props, 'level-name', WORLD);
-  props = L.setProp(props, 'allow-flight', 'true');
-  fs.writeFileSync(L.PROPS, props, 'utf8');
-  let bootCfg = cfgBefore.replace(/B:mobDebugLog=(true|false)/, 'B:mobDebugLog=true');
-  bootCfg = bootCfg.replace(/B:mobElementalR196=(true|false)/, 'B:mobElementalR196=true');
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    for (let i = 0; i < 36 && L.netstatListen(L.PORT) !== 0; i++) await sleep(5000);
-    if (L.netstatListen(L.PORT) !== 0) throw new Error('port 25565 still held');
-    fs.writeFileSync(L.CFG, bootCfg, 'utf8');
-    srv = await L.startServer({ root: L.ROOT, tag });
-    if (await srv.waitFor(/Done \(/, 180000)) {
-      const disk = fs.readFileSync(L.CFG, 'utf8');
-      console.log('[cfg]', tag,
-        'mobDebugLog=' + (/B:mobDebugLog=(true|false)/.exec(disk) || [])[1],
-        'mobElementalR196=' + (/B:mobElementalR196=(true|false)/.exec(disk) || [])[1]);
-      return;
-    }
-    try { await srv.stop(30000); } catch (e) { /* noop */ }
-    srv = null;
-  }
-  throw new Error('no Done( in 3 attempts');
-}
-
-async function stopBoot() {
-  try { if (bot) { bot.quit(); bot = null; await sleep(1500); } } catch (e) { /* noop */ }
-  const st = await srv.stop();
-  srv = null;
-  stops.push(st);
-  if (propsBefore) fs.writeFileSync(L.PROPS, propsBefore, 'utf8');
-  if (cfgBefore) fs.writeFileSync(L.CFG, cfgBefore, 'utf8');
-  console.log('[stop]', JSON.stringify(st));
-  return st;
-}
-
-async function join() {
-  bot = await L.joinBot(srv, A);
-  await sleep(1500);
-  try { bot.physicsEnabled = false; } catch (e) { /* noop */ }
-  try { bot.physics.enabled = false; } catch (e) { /* noop */ }
-  await cmd('op ' + A, 500);
-  await cmd('gamemode 1 ' + A, 300);
-  for (const g of ['doMobLoot false', 'doTileDrops false', 'doDaylightCycle false',
-    'doFireTick false', 'keepInventory true', 'naturalRegeneration false', 'doWeatherCycle false',
-    'doMobSpawning false']) {
-    await cmd('gamerule ' + g, 150);
-  }
-  await cmd('difficulty 2', 200);
-  await cmd('weather clear', 150);
-  await cmd('time set 6000', 250);
-  await cmd('tp ' + A + ' 0.5 130 0.5', 2000);
-  await cmd('fill 0 129 0 15 129 15 minecraft:stone', 900);
-  await cmd('fill 0 130 0 15 133 15 minecraft:air', 500);
-  await cmd('tp ' + A + ' 0.5 130 0.5', 600);
-}
 
 const PROBE_RE = /\[ElementalLog\] probe kind=(\w+) hp=([\d.]+) max=([\d.]+) attack=([\d.]+) speed=([\d.]+) follow=([\d.]+) xp=(-?\d+) type=(-?\d+) magma=(true|false) defense=(-?[\d.]+) entity=/;
 const MAGMA_RE = /\[ElementalLog\] magma kind=(\w+) type=(\d+) heat=(\d+) magma=(true|false) hardened=(true|false) defense=([\d.]+) entity=/;
@@ -124,9 +54,9 @@ async function gate(x, y, z) {
 }
 
 async function main() {
-  const pinOk = stampPin();
-  await startBoot(`b62-${RUN}-b1`);
-  await join();
+  const pinOk = h.stampPin();
+  await h.boot(`b62-${RUN}-b1`);
+  await h.join();
   const res = { w1: false, w2: false, w3: false, w4: false, w5: false, w6: false, w7: false };
 
   // ---- W1 attributes ----
@@ -258,17 +188,8 @@ async function main() {
   res.w7 = tex.length === 0 && langs && reg;
   console.log('[W7]', JSON.stringify({ texMissing: tex, langs, reg, pass: res.w7 }));
 
-  await stopBoot();
-  const bad = Object.keys(res).filter(k => !res[k]);
-  const out = { run: RUN, pin: pinOk, w1: res.w1, w2: res.w2, w3: res.w3, w4: res.w4, w5: res.w5, w6: res.w6, w7: res.w7,
-    stops: stops.map(s => (s && s.exitCode === 0) ? 0 : 1).reduce((a, b) => a + b, 0),
-    crashes: L.crashCount(), pass: pinOk && bad.length === 0, bad: bad.length, badKeys: bad };
-  console.log('[done] ' + JSON.stringify(out));
-  process.exit(out.pass && out.stops === 0 ? 0 : 2);
+  await h.stop();
+  h.finish(res);
 }
 
-main().catch(async (e) => {
-  console.error('[fatal]', (e && e.stack) || e);
-  try { await stopBoot(); } catch (x) { /* noop */ }
-  process.exit(1);
-});
+h.guard(main);

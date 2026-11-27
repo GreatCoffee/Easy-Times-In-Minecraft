@@ -10,115 +10,35 @@
 //      dead_potato / dead_onion / dead_crop with the age preserved;
 //      mature onion -> 2..3 onion drops + air
 //   W6 static: carriers/registration/assets/models/lang, stage7 removed
+const H = require('./lib/harness.js');
 const L = require('./f7-wb-lib.js');
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fs = require('fs');
 const path = require('path');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const RUN = process.env.RUN || 'r1';
 const A = 'ETIM_F7';
-const EXPECTED_SHA = process.env.EXPECTED_SHA || L.PIN.releaseSha;
-const WORLD = 'w-b68-' + RUN + '-v1';
 
-let bot = null, srv = null, propsBefore = null, cfgBefore = null;
-const stops = [];
-
-// C-B68-1: 1.12 has no block-state syntax — rewrite `name[moisture|age=n]` to `name <meta>`
-// before it reaches the server. Harness-side only; assertions untouched.
-function bs(s) { return s.replace(/([A-Za-z0-9_:.]+)\[(?:moisture|age)=(\d+)\]/g, '$1 $2'); }
-async function cmd(s, wait) { srv.send(bs(s)); await sleep(wait == null ? 250 : wait); }
-function logLines() {
-  try { return fs.readFileSync(srv.logPath, 'utf8').split(/\r?\n/); } catch (e) { return []; }
-}
-function slice(from) { return logLines().slice(from); }
-function mark() { return logLines().length; }
-async function waitRow(re, from, ms) {
-  const t0 = Date.now();
-  while (Date.now() - t0 < ms) {
-    const hit = slice(from).map(s => re.exec(s)).filter(Boolean);
-    if (hit.length) return hit;
-    await sleep(400);
-  }
-  return [];
-}
+const h = H.create({
+  run: RUN,
+  world: 'w-b68-' + RUN + '-v1',
+  bot: A,
+  stage: {
+    gamemode: 0,
+    tp: [12.5, 130, 12.5],
+    fill: [
+      'fill 0 129 0 24 129 24 minecraft:stone',
+      'fill 0 130 0 24 133 24 minecraft:air',
+      'fill 3 130 8 20 130 8 minecraft:farmland 7',
+      'fill 3 130 10 20 130 10 minecraft:farmland 0',
+      'tp ETIM_F7 3.5 130 6.5',
+    ],
+  },
+  props: { 'allow-flight': 'true' },
+  cfg: ['farm:farmDebugLog', 'farm:blightR196', 'farm:droughtDeathR196'],
+});
+const { cmd, mark, slice, waitRow, logLines } = h;
 function lastOf(rows) { return rows.length ? rows[rows.length - 1] : null; }
-
-function stampPin() {
-  const jar = path.join(L.ROOT, 'build', 'libs', 'etim-1.0.0.jar');
-  const bytes = fs.readFileSync(jar);
-  const sha = L.sha256(bytes).toUpperCase();
-  const mk = L.mkCounts();
-  const ok = sha === EXPECTED_SHA && bytes.length === L.PIN.releaseSize && mk.ok;
-  console.log(`[PIN] sha=${sha} shaOk=${sha === EXPECTED_SHA} size=${bytes.length} sizeOk=${bytes.length === L.PIN.releaseSize} mkOk=${mk.ok} ok=${ok}`);
-  return ok;
-}
-
-async function startBoot(tag) {
-  propsBefore = fs.readFileSync(L.PROPS, 'utf8');
-  cfgBefore = fs.readFileSync(L.CFG, 'utf8');
-  let props = fs.readFileSync(L.PROPS, 'utf8');
-  props = L.setProp(props, 'level-name', WORLD);
-  props = L.setProp(props, 'allow-flight', 'true');
-  fs.writeFileSync(L.PROPS, props, 'utf8');
-  let bootCfg = cfgBefore.replace(/B:farmDebugLog=(true|false)/, 'B:farmDebugLog=true');
-  bootCfg = bootCfg.replace(/B:blightR196=(true|false)/, 'B:blightR196=true');
-  bootCfg = bootCfg.replace(/B:droughtDeathR196=(true|false)/, 'B:droughtDeathR196=true');
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    for (let i = 0; i < 36 && L.netstatListen(L.PORT) !== 0; i++) await sleep(5000);
-    if (L.netstatListen(L.PORT) !== 0) throw new Error('port 25565 still held');
-    fs.writeFileSync(L.CFG, bootCfg, 'utf8');
-    srv = await L.startServer({ root: L.ROOT, tag });
-    if (await srv.waitFor(/Done \(/, 180000)) {
-      const disk = fs.readFileSync(L.CFG, 'utf8');
-      console.log('[cfg]', tag,
-        'farmDebugLog=' + (/B:farmDebugLog=(true|false)/.exec(disk) || [])[1],
-        'blightR196=' + (/B:blightR196=(true|false)/.exec(disk) || [])[1],
-        'droughtDeathR196=' + (/B:droughtDeathR196=(true|false)/.exec(disk) || [])[1]);
-      return;
-    }
-    try { await srv.stop(30000); } catch (e) { /* noop */ }
-    srv = null;
-  }
-  throw new Error('no Done( in 3 attempts');
-}
-
-async function stopBoot() {
-  try { if (bot) { bot.quit(); bot = null; await sleep(1500); } } catch (e) { /* noop */ }
-  const st = await srv.stop();
-  srv = null;
-  stops.push(st);
-  if (propsBefore) fs.writeFileSync(L.PROPS, propsBefore, 'utf8');
-  if (cfgBefore) fs.writeFileSync(L.CFG, cfgBefore, 'utf8');
-  console.log('[stop]', JSON.stringify(st));
-  return st;
-}
-
-async function join() {
-  bot = await L.joinBot(srv, A);
-  await sleep(1500);
-  try { bot.physicsEnabled = false; } catch (e) { /* noop */ }
-  try { bot.physics.enabled = false; } catch (e) { /* noop */ }
-  await cmd('op ' + A, 500);
-  await cmd('gamemode 0 ' + A, 300);
-  for (const g of ['doMobLoot false', 'doTileDrops true', 'doDaylightCycle false',
-    'doFireTick false', 'keepInventory true', 'naturalRegeneration false',
-    'doWeatherCycle false', 'doMobSpawning false']) {
-    await cmd('gamerule ' + g, 150);
-  }
-  await cmd('difficulty 2', 200);
-  await cmd('weather clear', 150);
-  await cmd('time set 6000', 250);
-  // Arena: stone floor y=129, air above, a wet farmland row at z=8 (planting /
-  // harvest) and a dry row at z=10 (forced drought; no water within 4 blocks).
-  // C-B68-2: 1.12 `fill` refuses unloaded chunks ("Cannot place blocks outside
-  // of the world"), so load the arena first — the tp must precede the fills.
-  await cmd('tp ' + A + ' 12.5 130 12.5', 1200);
-  await cmd('fill 0 129 0 24 129 24 minecraft:stone', 900);
-  await cmd('fill 0 130 0 24 133 24 minecraft:air', 500);
-  await cmd('fill 3 130 8 20 130 8 minecraft:farmland[moisture=7]', 700);
-  await cmd('fill 3 130 10 20 130 10 minecraft:farmland[moisture=0]', 700);
-  await cmd('tp ' + A + ' 3.5 130 6.5', 1200);
-}
 
 const PROBE_RE = /\[FarmLog\] drought probe block=(\S+) age=(-?\d+) pos=(-?\d+),(-?\d+),(-?\d+)/;
 const ROOT_RE = /\[FarmLog\] rootcrop crop=(\S+) age=(\d+) blighted=(\d) harvester=(\S+) branch=(\S+) drops=(\d+) first=(\S+) pos=(-?\d+),(-?\d+),(-?\d+)/;
@@ -161,9 +81,9 @@ async function place(x, y, z, block) {
 }
 
 async function main() {
-  const pinOk = stampPin();
-  await startBoot(`b68-${RUN}-b1`);
-  await join();
+  const pinOk = h.stampPin();
+  await h.boot(`b68-${RUN}-b1`);
+  await h.join();
   const res = { w1: false, w2: false, w3: false, w4: false, w5: false, w6: false };
 
   // ---- W1 onion item plants on farmland only ----
@@ -291,19 +211,8 @@ async function main() {
   res.w6 = srcOk && regOk && helperOk && blightOk && stateOk && texOk && langOk;
   console.log('[W6]', JSON.stringify({ srcOk, regOk, helperOk, blightOk, stateOk, texOk, langOk, pass: res.w6 }));
 
-  await stopBoot();
-  const bad = Object.keys(res).filter(k => !res[k]);
-  const out = {
-    run: RUN, pin: pinOk, w1: res.w1, w2: res.w2, w3: res.w3, w4: res.w4, w5: res.w5, w6: res.w6,
-    stops: stops.map(s => (s && s.exitCode === 0) ? 0 : 1).reduce((a, b) => a + b, 0),
-    crashes: L.crashCount(), pass: pinOk && bad.length === 0, bad: bad.length, badKeys: bad,
-  };
-  console.log('[done] ' + JSON.stringify(out));
-  process.exit(out.pass && out.stops === 0 ? 0 : 2);
+  await h.stop();
+  h.finish(res);
 }
 
-main().catch(async (e) => {
-  console.error('[fatal]', (e && e.stack) || e);
-  try { await stopBoot(); } catch (x) { /* noop */ }
-  process.exit(1);
-});
+h.guard(main);
