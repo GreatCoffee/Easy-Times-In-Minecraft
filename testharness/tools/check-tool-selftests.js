@@ -39,6 +39,7 @@ const ALIAS = {
     'index-scripts': 'scripts',
     'regression-plan': 'regplan',
     'gen-config-doc': 'configdoc',
+    'gen-channel-doc': 'chandoc',
 };
 
 for (const t of tools) {

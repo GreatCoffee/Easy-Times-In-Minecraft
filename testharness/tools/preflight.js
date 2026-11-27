@@ -197,6 +197,10 @@ step('coverage', 'check-coverage.js', ['--check'], (c) => c !== 0, '[CoverageLog
 // B-70UL: docs/CONFIG.md is generated from ETIMConfig.java; every config key
 // must carry javadoc, and the checked-in doc must match the source.
 step('configdoc', 'gen-config-doc.js', ['--check'], (c) => c !== 0, '[ConfigDocLog]');
+// B-70UM: docs/CHANNELS.md lists every judgement channel with its gate,
+// producers, /etest drivers and asserting scripts. Adding a channel without
+// regenerating is a red preflight.
+step('chandoc', 'gen-channel-doc.js', ['--check'], (c) => c !== 0, '[ChanDocLog]');
 step('tools', 'selftest-all.js', [], (c) => c !== 0, '[SelftestLog]');
 
 const bad = steps.filter((s) => s.bad);

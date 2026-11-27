@@ -143,3 +143,7 @@ Template licensed MIT; project license TBD.
 
 All 270 keys (type, default, range, one-line description) are generated from the source:
 see [`docs/CONFIG.md`](docs/CONFIG.md). Regenerate with `node testharness/tools/gen-config-doc.js`.
+
+## Judgement channels
+
+Every `[XxxLog]` channel with its config gate, producers, `/etest` drivers and the window script that asserts it: see [`docs/CHANNELS.md`](docs/CHANNELS.md). Regenerate with `node testharness/tools/gen-channel-doc.js`.

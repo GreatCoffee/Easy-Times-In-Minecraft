@@ -521,3 +521,10 @@ node testharness/tools/selftest-all.js --only coverage   # 只跑名字含 cover
 - 单一真值：说明取字段 javadoc（同组连续声明共享首个 javadoc），范围取注册调用里的 min/max；文档不手改。
 - `--check` 两个失败面：①字段缺 javadoc（新增键必须写说明）②`docs/CONFIG.md` 与源码不一致（改完源码要重新生成）。preflight 第 20 步 `configdoc`。
 - 自检 `node testharness/tools/selftest-configdoc.js`（9 例：生成、键列、组 javadoc 继承、分组计数、新鲜、过期、缺 javadoc 报错、--check 拦截、缺源 exit 2）。
+
+## 判据通道目录 —— `gen-channel-doc.js`
+
+- `node testharness/tools/gen-channel-doc.js` 生成 `docs/CHANNELS.md`：每条 `[XxxLog]` 一行——开关键与段、产出点（前 6 个 + 余量）、窗口脚本用到的 `/etest` 驱动、断言它的脚本；无脚本断言的标 **uncovered**。
+- 数据源：`src/main/java/**`（产出点，跳过注释与 `ETIMConfig.java`）、`ETIMConfig.java`（键→段、布尔默认值取字段初值）、`testharness/player/**.js`（断言与驱动；`f7-wb-lib`/`fmlbot` 不算驱动来源）。
+- `--check` 过期即失败；preflight 第 21 步 `chandoc`。
+- 自检 `node testharness/tools/selftest-chandoc.js`（12 例：生成、通道行、键+段、产出点、驱动、脚本、计数、新鲜/过期、注释不算产出、uncovered、覆盖计数）。
