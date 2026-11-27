@@ -1,6 +1,6 @@
 # 判窗报告索引
 
-> 机制生成（`node testharness/tools/check-reports.js --write-index`）：共 109 份。
+> 机制生成（`node testharness/tools/check-reports.js --write-index`）：共 111 份。
 > 引用方 = 账册 / sessions / census / 其他报告；「无」表示目前没有出处引用（历史留存）。
 > 结论列取文中首个「终判/结论/判决/verdict」行，取不到退回一级标题；正文一字未改。
 
@@ -102,6 +102,8 @@
 | `b70ub-verify-verdict.md` | 3528 | ledger/sessions | 终判：**PASS**（A=0 / B=5 / C=4） |
 | `b70up-verify-receipt.md` | 5875 | 无 | 终判：**PASS**（A=0 / B=0 / C=3） |
 | `b70up-verify-verdict.md` | 3057 | sessions | 终判：**PASS**（A=0 / B=0 / C=3） |
+| `b70uq-verify-receipt.md` | 6159 | ledger/sessions/report | 终判：**PASS**（A=0 / B=0 / C=4） |
+| `b70uq-verify-verdict.md` | 3296 | ledger/sessions | 终判：**PASS**（A=0 / B=0 / C=4） |
 | `c16-verify-verdict.md` | 8667 | ledger/sessions/census | 判决**：**W0 ✓｜W1 ✓｜W2 ✓｜W3 ✓｜W4 ✓**（A 0／B 0／D 0／C 7） |
 | `capend-W49-verdict.md` | 25648 | census | 判决**：**PASS** —— 12 判点 **12 ✓ / 0 ✗**（W1–W6 值域＋回补＋降级钳；W7/W8/W12 挥击计费三段；W9/W10/W11 三负证）；另 **1 条旁证 W10x ✓**（非判点）。零 rebuild |
 | `d1pool-DP-reverify.md` | 13771 | ledger/sessions | 判决**：**PASS**（R1–R5 全 ✓）；新增 **A 0／B 0／C 3**（C-8／C-9／C-10） |
