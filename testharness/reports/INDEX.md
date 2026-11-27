@@ -1,13 +1,13 @@
 # 判窗报告索引
 
-> 机制生成（`node testharness/tools/check-reports.js --write-index`）：共 107 份。
+> 机制生成（`node testharness/tools/check-reports.js --write-index`）：共 109 份。
 > 引用方 = 账册 / sessions / census / 其他报告；「无」表示目前没有出处引用（历史留存）。
 > 结论列取文中首个「终判/结论/判决/verdict」行，取不到退回一级标题；正文一字未改。
 
 | 文件 | 字节 | 引用方 | 结论 |
 |---|---|---|---|
 | `COVERAGE.md` | 15508 | ledger/sessions | 已落地面 ↔ 判据通道覆盖（生成物） |
-| `REGRESSION.md` | 7480 | ledger/sessions | 回归覆盖矩阵（生成物） |
+| `REGRESSION.md` | 9012 | ledger/sessions | 回归覆盖矩阵（生成物） |
 | `b11-verify-verdict.md` | 18227 | sessions | 判决**：**PASS**（R0..R9 含 R3b 共 **11 判点 ✓11／✗0**）｜A 0／B 0／C 10（工装与口径，均不涉判值） |
 | `b12-verify-verdict.md` | 35938 | sessions | 判决**：**R0 ✓／R1 ✗／R2 ✓／R3 ✓／R4 ✗／R5 ✓／R6 ✓**（7 臂，✓5／✗2；子判点 10✓／2✗）｜**A 2／B 1／C 11** |
 | `b14-verify-verdict.md` | 10555 | ledger/sessions | 判决**：**W0 ✓｜W1 ✓｜W2 ✓｜W3 ✓**（4 臂全 ✓） |
@@ -100,6 +100,8 @@
 | `b70ua-verify-verdict.md` | 2507 | ledger/sessions | 终判：**PASS**（A=0 / B=3 / C=7） |
 | `b70ub-verify-receipt.md` | 7282 | ledger | 终判：**PASS**（A=0 / B=5 全为驱动面 / C=4） |
 | `b70ub-verify-verdict.md` | 3528 | ledger/sessions | 终判：**PASS**（A=0 / B=5 / C=4） |
+| `b70up-verify-receipt.md` | 5875 | 无 | 终判：**PASS**（A=0 / B=0 / C=3） |
+| `b70up-verify-verdict.md` | 3057 | sessions | 终判：**PASS**（A=0 / B=0 / C=3） |
 | `c16-verify-verdict.md` | 8667 | ledger/sessions/census | 判决**：**W0 ✓｜W1 ✓｜W2 ✓｜W3 ✓｜W4 ✓**（A 0／B 0／D 0／C 7） |
 | `capend-W49-verdict.md` | 25648 | census | 判决**：**PASS** —— 12 判点 **12 ✓ / 0 ✗**（W1–W6 值域＋回补＋降级钳；W7/W8/W12 挥击计费三段；W9/W10/W11 三负证）；另 **1 条旁证 W10x ✓**（非判点）。零 rebuild |
 | `d1pool-DP-reverify.md` | 13771 | ledger/sessions | 判决**：**PASS**（R1–R5 全 ✓）；新增 **A 0／B 0／C 3**（C-8／C-9／C-10） |
