@@ -21,6 +21,9 @@
  *   R6 cfg-section       `cfg: ['section:key']` names a section the key is not
  *                        registered under in ETIMConfig.java (a bogus section is
  *                        written to the file but never read — B-70TV r4)
+ *   R7 builtin-require   harness script calls path./fs./os./child_process./crypto./
+ *                        url./util. without its own require(); node --check accepts
+ *                        it and the window dies with ReferenceError (B-70TW-3)
  *
  * Exit 0 = no offenders, 1 = at least one, 2 = usage error.
  */
@@ -136,6 +139,20 @@ function checkFile(file, sections) {
         ];
         for (const [re, name] of leftovers) {
             if (re.test(src)) hits.push({ rule: 'R5 leftover-scaffold', detail: name });
+        }
+    }
+
+    // R7: the deleted scaffold carried the builtin requires with it; a surviving
+    // path.join() compiles and only throws when the window runs (B-70TW-3).
+    if (harness) {
+        const BUILTINS = ['path', 'fs', 'os', 'child_process', 'crypto', 'url', 'util'];
+        for (const mod of BUILTINS) {
+            const used = new RegExp('\\b' + mod + '\\.').test(src);
+            const req = new RegExp("require\\(\\s*['\"]" + mod + "['\"]\\s*\\)").test(src)
+                || new RegExp("require\\(\\s*['\"]node:" + mod + "['\"]\\s*\\)").test(src);
+            if (used && !req) {
+                hits.push({ rule: 'R7 builtin-require', detail: mod + ' used without require(' + mod + ')' });
+            }
         }
     }
 

@@ -56,6 +56,13 @@ const cases = [
         code: 0,
     },
     {
+        // R7: the scaffold used to carry the require() lines; without them
+        // path.join() compiles and throws only when the window runs.
+        name: 'no-require.js',
+        src: HEAD + "const h = H.create({ run: 'x' });\nasync function main() { await h.boot('x'); const f = h.mark(); const p = path.join('a', 'b'); await h.waitRow(/x/, f, 1); h.finish({ p }); }\nh.guard(main);\n",
+        code: 1,
+    },
+    {
         // R5: a migrated file that still touches the deleted globals.
         name: 'leftover.js',
         src: HEAD + "const h = H.create({ run: 'x' });\nasync function main() { await h.boot('x'); await bot.activateItem(); const f = h.mark(); await h.waitRow(/a/, f, 1); h.finish({}); }\nh.guard(main);\n",

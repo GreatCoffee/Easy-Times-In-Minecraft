@@ -104,6 +104,23 @@ check('arms MATCH ignores ambient noise', a1.code === 0 && /verdict MATCH/.test(
 const a2 = run(['--mode=arms', '--base', armsBase, '--new', armsDrift]);
 check('arms detects a vanished arm', a2.code === 1 && /arm only-in-base: \[BlockFaceLog\] fall×1/.test(a2.out), a2.out.trim().split('\n').pop());
 
+const undBase = armsTee('und-base.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [UndeadLog] spawn a=1',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [UndeadLog] probe cls=ghoul',
+]);
+const undNoise = armsTee('und-noise.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [UndeadLog] spawn z=9',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [UndeadLog] spawn y=3',
+  '[10:00:00] [Server thread/INFO] [ETIM]: [UndeadLog] probe cls=ghoul',
+]);
+const undDrift = armsTee('und-drift.out', [
+  '[10:00:00] [Server thread/INFO] [ETIM]: [UndeadLog] spawn a=1',
+]);
+const a3 = run(['--mode=arms', '--base', undBase, '--new', undNoise]);
+check('arms filters noisy UndeadLog spawn', a3.code === 0 && /verdict MATCH/.test(a3.out), a3.out.trim().split('\n').pop());
+const a4 = run(['--mode=arms', '--base', undBase, '--new', undDrift]);
+check('arms still catches a vanished probe', a4.code === 1 && /arm only-in-base: \[UndeadLog\] probe/.test(a4.out), a4.out.trim().split('\n').pop());
+
 const usage = run(['--base', 'no-such-file.out', '--new', same.tee]);
 check('missing file exits 2', usage.code === 2, usage.out.trim().split('\n').pop());
 

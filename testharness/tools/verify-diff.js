@@ -212,20 +212,29 @@ function main(argv) {
         // Ambient channels (AI wandering, spawn rolls, ore gen) differ run to run;
         // arms mode only looks at the deterministic channels the driver asserts.
         // C-B70TW-4: StalkerLog rows (spawn/seek) come from explicit summons and are
-        // deterministic; DamageLog/MiningLog depend on the environment (sunburn, dig
-        // arms), so callers pass --channels when they want those compared.
+        // deterministic; DamageLog/MiningLog tokens are stable words (dmg/prot/mine)
+        // even when ambient hits add rows, so set semantics are safe.
         const AUTO = ['BlockFaceLog', 'ItemLog', 'FarmLog', 'FoodR196Log', 'FoodLog',
-            'SparkLog', 'MountLog', 'TestLog', 'VesselLog', 'StalkerLog'];
+            'SparkLog', 'MountLog', 'TestLog', 'VesselLog', 'StalkerLog',
+            'UndeadLog', 'DamageLog', 'MiningLog'];
+        // Tokens that depend on the ambient world rather than on the driver's arms
+        // (mob spawns during the window); drop them before comparing.
+        const NOISY = { UndeadLog: ['spawn'] };
         const keep = new Set(channels || AUTO);
         const pick = (m) => {
             const o = new Map();
             for (const [k, v] of m) {
                 const ch = k.slice(1, k.indexOf(']'));
-                if (keep.has(ch)) o.set(k, strictCounts ? v : 1);
+                if (!keep.has(ch)) continue;
+                const tok = k.slice(k.indexOf('] ') + 2);
+                if (NOISY[ch] && NOISY[ch].includes(tok)) continue;
+                o.set(k, strictCounts ? v : 1);
             }
             return o;
         };
-        console.log('[DiffLog] arms channels=' + [...keep].join(','));
+        console.log('[DiffLog] arms channels=' + [...keep].join(',')
+            + ' noise=' + Object.keys(NOISY).map((c) => c + ':' + NOISY[c].join('/')).join(','));
+
         const ld = mapDiff(pick(base.lines), pick(cur.lines));
         if (ld.onlyA.length) findings.push('arm only-in-base: ' + ld.onlyA.join(' ; '));
         if (ld.onlyB.length) findings.push('arm only-in-new: ' + ld.onlyB.join(' ; '));

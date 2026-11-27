@@ -54,6 +54,11 @@ node testharness/tools/verify-diff.js --base latest --new latest
 ```powershell
 node testharness/tools/verify-diff.js --mode=arms --base <旧窗.out> --new <新窗.out>
 node testharness/tools/verify-diff.js --mode=arms --channels=BlockFaceLog,FarmLog --strict-counts ...
+
+默认通道表：`BlockFaceLog / ItemLog / FarmLog / FoodR196Log / FoodLog / SparkLog / MountLog /
+TestLog / VesselLog / StalkerLog / UndeadLog / DamageLog / MiningLog`。其中 `UndeadLog` 的
+`spawn` 记号依赖窗内环境刷怪，比对前被过滤（`noise=UndeadLog:spawn` 会打印在首行），
+其余记号照常对位；`--channels=` 仍可整体覆盖。
 ```
 
 - 默认纳入：`BlockFaceLog / ItemLog / FarmLog / FoodR196Log / FoodLog / SparkLog / MountLog / TestLog / VesselLog`（`--channels=` 可覆盖）。
@@ -163,10 +168,11 @@ node testharness/tools/check-driver.js --script f13-b70t9-smoke.js
 - **R3 player-missing**：`/etest hungerstate|hungerpools` 从控制台发时必须带玩家（`${A}` / `botName` / 字面名）；
 - **R4 gamerule-missing**：断言回血类行时必须出现 `naturalRegeneration`（不前置则每 tick 清零）。
 - **R5 leftover-scaffold**：已上 harness 的脚本不得再引用被删的旧全局（`startBoot(`/`stopBoot(`/`srv.`/`stops`/`propsBefore`/`cfgBefore`/`EXPECTED_SHA`/裸 `bot.`）——这类残留 `node --check` 查不出，只在跑窗时抛 `ReferenceError`（B-70TV r3/r4 各废掉一整窗）。
+- **R7 builtin-require**：已上 harness 的脚本调用 `path.`/`fs.`/`os.`/`child_process.`/`crypto.`/`url.`/`util.` 时必须自带 `require('<模块>')`——旧脚手架的 require 行随整块被删后，`node --check` 照样通过，只有跑窗才抛 `ReferenceError`（B-B70TW-3）。
 - **R6 cfg-section**：`cfg: ['section:key']` 的段名必须与 `ETIMConfig.java` 的注册段一致——写错段时文件写入器照收、回读也通过，但运行期按真段读的是 false（B-70TV r4 的 W5 因此空转一窗）。
 
 老脚本的 R2/R4 只计 `debt` 不计失败；R3 对所有脚本硬判。已接入 `preflight.js` 第 6 步，
-`selftest-driver.js` 用 8 个 fixture 守住检查器本身（含 `leftover.js` 的 R5 反例与 `cfg-bad-section.js` 的 R6 反例）。另：`lib/harness.js` 的 `boot()` 成功后
+`selftest-driver.js` 用 9 个 fixture 守住检查器本身（含 `leftover.js` 的 R5 反例、`cfg-bad-section.js` 的 R6 反例与 `no-require.js` 的 R7 反例）。另：`lib/harness.js` 的 `boot()` 成功后
 会自动 `stampPin()`（`h.pinStamped`），窗口不会再出现 `pin:false`。
 
 ## 判窗脚本索引 —— `index-scripts.js` / `check-scripts.js`
