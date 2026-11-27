@@ -205,6 +205,13 @@ step('chandoc', 'gen-channel-doc.js', ['--check'], (c) => c !== 0, '[ChanDocLog]
 // name every tool and every preflight step, or a newcomer reads a stale map.
 step('pipeline', 'check-pipeline-doc.js', [], (c) => c !== 0, '[PipelineLog]');
 step('tools', 'selftest-all.js', [], (c) => c !== 0, '[SelftestLog]');
+// B-70UR: run/ worlds and build-logs grow every window. retention.js keeps the
+// newest N per prefix, never moves a log that a report cites, and ratchets the
+// total so growth is a decision, not an accident.
+step('retention', 'retention.js', ['--check'], (c) => c !== 0, '[RetentionLog]');
+// B-70UR: check-coverage says "this face has a channel"; face-assert says
+// "this script asserts it". A face whose channel nobody asserts cannot go red.
+step('assert', 'face-assert.js', ['--check'], (c) => c !== 0, '[AssertLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);

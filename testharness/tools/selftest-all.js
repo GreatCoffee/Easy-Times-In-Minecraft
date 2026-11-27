@@ -45,7 +45,7 @@ for (const f of targets) {
     console.log((ok ? 'PASS' : 'FAIL') + ' ' + f + ' ' + rows[rows.length - 1].ratio
         + ' (' + rows[rows.length - 1].ms + ' ms)');
     if (!ok) {
-        const tail = out.trim().split('\n').slice(-6).join('\n');
+        const tail = out.trim().split('\n').slice(-24).join('\n');
         console.log(tail);
     }
 }

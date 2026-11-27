@@ -541,3 +541,49 @@ node testharness/tools/selftest-all.js --only coverage   # 只跑名字含 cover
 - `docs/PIPELINE.md` 是「一条判据的生命线」：七个阶段、22 步质量闸、目录地图、判据纪律与真实踩坑。属于散文，不能生成。
 - 但它不能腐烂：`node testharness/tools/check-pipeline-doc.js` 要求文档**点名每个工具**（`testharness/tools/*.js`）且**覆盖每个 preflight 步**，漏一个就 exit 1；preflight 第 22 步 `pipeline`。
 - 自检 `node testharness/tools/selftest-pipeline.js`（4 例：干净、漏工具、漏步、缺文档 exit 2）。
+
+
+## 磁盘保留 —— retention.js（B-70UR）
+
+`run/` 的每次判窗都会留下一个世界目录，`build-logs/` 每次构建留一份 tee；两个目录只增不减，到 2026-11-27 已是 2.2 GB + 1.2 GB。
+
+```
+node testharness/tools/retention.js            # 只看：哪些会被归档、多少字节
+node testharness/tools/retention.js --apply    # 真搬（到仓库外）+ 写基线
+node testharness/tools/retention.js --check    # 体积棘轮（preflight 用）
+```
+
+四条政策：
+
+1. **日志是证据** —— 任何 md/报告里出现过的日志文件名，永不被移动。
+2. **世界是派生物** —— `run/w-*` 是一次运行的存档，结论已进回执，重跑可复现。
+3. **同前缀保留最新 N 份**（`--keep`，默认 6），前缀取前两段（`w-b69`、`b69-b70uq`），否则「每个 run 各留 6 份」等于不删。
+4. **只归档不删除** —— 搬到 `<工作区>/archive/etim-retention/`，`retention-manifest.json` 记原路径。
+
+mtime 相同的并列按名字倒序决胜，保证「最新」是唯一解。归档后基线自动写成归档后的实测；此后 `--check` 只在「世界/日志数量上涨或体积超基线 5%」时红。
+
+自检：`node testharness/tools/selftest-retention.js`（7 例：dry-run 不动文件、证据日志保留、旧世界归档、最新世界保留、写基线、增长拦截、重设基线复绿）。
+
+## 面↔断言覆盖图 —— face-assert.js（B-70UR）
+
+`check-coverage` 回答「这个面的载体有没有日志通道」；本工具回答下一个问题：**谁在断言这个通道**。改某个面时，从这张图查出该跑哪个窗口。
+
+```
+node testharness/tools/face-assert.js            # 汇总 + 未断言清单
+node testharness/tools/face-assert.js --list     # 逐面明细
+node testharness/tools/face-assert.js --write-doc
+node testharness/tools/face-assert.js --check    # 文档新鲜度（preflight 用）
+```
+
+三档：
+
+| 档 | 含义 |
+| --- | --- |
+| `ASSERTED` | 至少一个 `testharness/player/*.js` 用**正则字面量**匹配该通道（会判红） |
+| `MENTIONED` | 脚本提到通道名但不在正则里（注释/打印，不作判据） |
+| `NO-CHAN` | 载体无通道（parity / zero-port / `no-log.json` 豁免） |
+| `UNASSERTED` | 有通道但没有任何脚本断言（改它不会红） |
+
+通道识别与 `check-coverage` 同口径：载体自身的 `[XxxLog]`/"XxxLog" 常量 + 指针跨度内的 `SomeClass.row(…)` 委托；脚本侧容忍转义写法 `/\[FarmLog\]/`。
+
+自检：`node testharness/tools/selftest-faceassert.js`（10 例：三档判定、计数行、写文档、新鲜、过期、缺账本 SKIP）。

@@ -117,6 +117,8 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `chandoc` | `gen-channel-doc.js --check` | `docs/CHANNELS.md` 是否过期 |
 | `pipeline` | `check-pipeline-doc.js` | 本文件是否漏掉任何工具或 preflight 步 |
 | `tools` | `selftest-all.js` | 所有 `selftest-*.js` 是否全绿 |
+| `retention` | `retention.js --check` | `run/` 与 `build-logs/` 的体积棘轮（证据日志不动） |
+| `assert` | `face-assert.js --check` | 面↔断言图是否过期 |
 
 ## 4. 目录地图
 
@@ -126,7 +128,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `src/main/java/io/github/etim/etim/mixins/` | Mixin 注入口，方法名 `etim$<面>` |
 | `src/test/java/io/github/etim/etim/` | 纯逻辑单测（196 例） |
 | `testharness/player/` | 窗口脚本（只留 harness 版）+ `f7-wb-lib.js` + `fmlbot.js` + `lib/` |
-| `testharness/tools/` | 27 个工具 + 22 个自检 + sidecar 清单（`no-log.json`、`regression-exempt.json`、`channel-archive.json` …） |
+| `testharness/tools/` | 29 个工具 + 25 个自检 + sidecar 清单（`no-log.json`、`regression-exempt.json`、`channel-archive.json` …） |
 | `testharness/reports/` | 判窗回执、正本、`INDEX.md`、`REGRESSION.md`、`COVERAGE.md`、`archive/` |
 | `testharness/build-logs/` | 每次构建/窗口的 tee（gitignore） |
 | `playground/audit/census/` | 六卷普查 + 总账 + 就绪度 + 批次工单 + 判值表 |
@@ -158,7 +160,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 ## 7. 交接与自查
 
-- 每天开工前：`node testharness/tools/preflight.js`（22 步绿才动码）。
+- 每天开工前：`node testharness/tools/preflight.js`（24 步绿才动码）。
 - 看现状：`node testharness/tools/batch-status.js --all`（60 批，0 风险）、`check-books.js --list`、`regression-plan.js`、`face-readiness.js`。
 - 看通道：`docs/CHANNELS.md`；看配置：`docs/CONFIG.md`；看回归：`testharness/reports/REGRESSION.md`；看覆盖：`testharness/reports/COVERAGE.md`。
 - 装钩子：`node testharness/tools/install-hooks.js`；跳过钩子必须 `--no-verify` 并在提交正文写原因。

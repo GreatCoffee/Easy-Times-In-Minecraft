@@ -32,6 +32,7 @@ const missing = [];
 const stale = [];
 
 const ALIAS = {
+    'face-assert': 'faceassert',
     'extract-values': 'extract',
     'face-readiness': 'readiness',
     'plan-batches': 'plan',
