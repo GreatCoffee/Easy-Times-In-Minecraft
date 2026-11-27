@@ -168,9 +168,15 @@ public final class NutritionSystem {
 
     /** Raw value → threshold band, ignoring any held (lagged) level. */
     public static int rawLevel(int insulinResistance) {
-        if (insulinResistance >= ETIMConfig.insulinThresholdSevere) return LEVEL_SEVERE;
-        if (insulinResistance >= ETIMConfig.insulinThresholdModerate) return LEVEL_MODERATE;
-        if (insulinResistance >= ETIMConfig.insulinThresholdMild) return LEVEL_MILD;
+        return rawLevel(insulinResistance, ETIMConfig.insulinThresholdMild,
+                ETIMConfig.insulinThresholdModerate, ETIMConfig.insulinThresholdSevere);
+    }
+
+    /** The band ladder as a pure function of the three thresholds (unit-test seam). */
+    public static int rawLevel(int insulinResistance, int mild, int moderate, int severe) {
+        if (insulinResistance >= severe) return LEVEL_SEVERE;
+        if (insulinResistance >= moderate) return LEVEL_MODERATE;
+        if (insulinResistance >= mild) return LEVEL_MILD;
         return LEVEL_NONE;
     }
 
@@ -184,10 +190,16 @@ public final class NutritionSystem {
      * keeps the level one band more severe than the raw value's band.
      */
     public static int mirrorLevel(int value, int heldLevel) {
+        return mirrorLevel(value, heldLevel, ETIMConfig.insulinThresholdMild,
+                ETIMConfig.insulinThresholdModerate, ETIMConfig.insulinThresholdSevere);
+    }
+
+    /** The lag mirror as a pure function of the thresholds (unit-test seam). */
+    public static int mirrorLevel(int value, int heldLevel, int mild, int moderate, int severe) {
         if (value <= 0) {
             return LEVEL_NONE;
         }
-        int raw = rawLevel(value);
+        int raw = rawLevel(value, mild, moderate, severe);
         if (raw == LEVEL_NONE) {
             return heldLevel == LEVEL_NONE ? LEVEL_NONE : LEVEL_MILD;
         }

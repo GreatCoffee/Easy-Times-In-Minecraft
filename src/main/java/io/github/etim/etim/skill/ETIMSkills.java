@@ -70,7 +70,12 @@ public final class ETIMSkills {
 
     /** Empty mask is treated as "no requirement" (R196 null skillset = true). */
     public static boolean hasAny(EntityPlayer player, int requiredMask) {
-        return requiredMask == 0 || (mask(player) & requiredMask) != 0;
+        return maskMatches(mask(player), requiredMask);
+    }
+
+    /** The requirement test as a pure function of the mask — the unit-test seam for {@link #hasAny}. */
+    public static boolean maskMatches(int mask, int requiredMask) {
+        return requiredMask == 0 || (mask & requiredMask) != 0;
     }
 
     public static boolean learn(EntityPlayer player, ETIMSkill skill) {
