@@ -476,7 +476,7 @@ node testharness/tools/check-coverage.js --list       # 逐条 silent 面
 node testharness/tools/check-coverage.js --write-doc  # 重建 reports/COVERAGE.md
 node testharness/tools/check-coverage.js --check      # 文档 + 基线（preflight 第 17 步）
 node testharness/tools/check-coverage.js --update-baseline
-node testharness/tools/selftest-coverage.js           # 6 例自检
+node testharness/tools/selftest-coverage.js           # 8 例自检
 ```
 
 - **口径**：每卷 `已落地` 面 → `ETIM位` 里的 Java 指针 → 读载体源码，出现 `[XxxLog]` 字面量即 `logged`；没有任何通道即 `silent`（回归网看不见它）。

@@ -72,7 +72,7 @@
 | `IngestLog` | ETIMConfig.java, ETIMIngestibles.java, MixinBlock.java … | f15-reg-chains.js | COVERED |
 | `ItemLog` | CommandDevTest.java, ETIMItemMelt.java, ETIMItemStacks.java … | f11-b64-smoke.js | COVERED |
 | `MeleeLog` | ETIMMelee.java, ETIMConfig.java | f15-reg-chains.js | COVERED |
-| `MiningLog` | ETIMConfig.java, ETIMMining.java, MixinItem.java … | f14-reg-core.js | COVERED |
+| `MiningLog` | ETIMConfig.java, ETIMMining.java, ETIMMiningEvents.java … | f14-reg-core.js | COVERED |
 | `MobLog` | ETIMConfig.java, ETIMArrowLog.java, ETIMEntityArachnid.java … | f17-reg-fourth.js | COVERED |
 | `MountLog` | CommandDevTest.java, MixinBlockTorchFarmland.java, ETIMMountRules.java | f11-b69-smoke.js | COVERED |
 | `OozeLog` | ETIMOozeSpawn.java | - | GAP |

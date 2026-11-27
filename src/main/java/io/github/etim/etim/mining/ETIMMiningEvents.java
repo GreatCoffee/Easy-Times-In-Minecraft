@@ -1,6 +1,7 @@
 package io.github.etim.etim.mining;
 
 import io.github.etim.etim.Tags;
+import io.github.etim.etim.ETIM;
 import io.github.etim.etim.ETIMConfig;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -34,7 +35,12 @@ public final class ETIMMiningEvents {
         if (!ETIMConfig.miningReform || event.getEntityPlayer().capabilities.isCreativeMode) {
             return;
         }
-        event.setCanHarvest(ETIMMining.canPlayerDamageBlock(event.getEntityPlayer(), event.getTargetBlock()));
+        boolean ok = ETIMMining.canPlayerDamageBlock(event.getEntityPlayer(), event.getTargetBlock());
+        event.setCanHarvest(ok);
+        if (ETIMConfig.miningDebugLog) {
+            ETIM.LOGGER.info("[MiningLog] harvestcheck block=" + event.getTargetBlock().getBlock().getRegistryName()
+                + " ok=" + ok + " player=" + event.getEntityPlayer().getName() + " [server]");
+        }
     }
 
     /**
@@ -44,6 +50,10 @@ public final class ETIMMiningEvents {
      * neighbour plane (up + four horizontal).
      */
     public static void postHarvest(World world, BlockPos pos, IBlockState harvested, EntityPlayerMP player) {
+        if (ETIMConfig.miningDebugLog) {
+            ETIM.LOGGER.info("[MiningLog] postharvest block=" + harvested.getBlock().getRegistryName()
+                + " pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + " player=" + player.getName() + " [server]");
+        }
         // B-44 census A :90: R196 removeBlock's 1% ooze spawn runs at the
         // head of the harvest chain, before drops/tree felling.
         ETIMOozeSpawn.trySpawn(world, pos, harvested, player);

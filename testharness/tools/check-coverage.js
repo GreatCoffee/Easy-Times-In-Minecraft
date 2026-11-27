@@ -66,15 +66,29 @@ function buildIndex(dir) {
 }
 const index = buildIndex(path.join(REPO, 'src', 'main', 'java'));
 const PTR = /([A-Za-z_$][\w$]*\.java):(\d+)(?:\s*-\s*(\d+))?/g;
-const CHAN = /\[([A-Z][A-Za-z0-9]*Log)\]/g;
+// Two producer shapes: a literal row `[XxxLog] …`, or a TAG constant
+// (`private static final String TAG = "XxxLog"`) that row() prints with.
+const CHAN = /\[([A-Z][A-Za-z0-9]*Log)\]|"([A-Z][A-Za-z0-9]*Log)"/g;
+
+const NOLOG = process.env.COVERAGE_NOLOG || path.join(__dirname, 'no-log.json');
+let noLog = {};
+if (fs.existsSync(NOLOG)) {
+    try { noLog = JSON.parse(fs.readFileSync(NOLOG, 'utf8')); } catch { noLog = {}; }
+}
+const noLogKeys = new Set(Object.keys(noLog).filter((k) => !k.startsWith('_')));
+const seenRefs = new Set();
 
 const vols = fs.readdirSync(censusDir)
     .filter((f) => f.startsWith('普查') && f.endsWith('.md'))
     .filter((f) => !VOL || f.startsWith('普查' + VOL))
     .sort();
 
-const rows = [];   // { vol, line, ref, status, kind, chan, where }
-let landed = 0, logged = 0, silent = 0, parity = 0, unresolved = 0;
+function statusOf(parts) {
+    const s = (parts.find((p) => p.startsWith('状态:')) || '').replace('状态:', '');
+    return s;
+}
+const rows = [];   // { vol, line, ref, kind, chan, where }
+let landed = 0, logged = 0, silent = 0, parity = 0, unresolved = 0, exempt = 0;
 
 for (const vol of vols) {
     const lines = fs.readFileSync(path.join(censusDir, vol), 'utf8').split(/\r?\n/);
@@ -83,6 +97,7 @@ for (const vol of vols) {
         if (!s.startsWith('[面]')) continue;
         const parts = s.split('|').map((x) => x.trim());
         const ref = parts[0].replace(/^\[面\]\s*/, '');
+        if (statusOf(parts)) seenRefs.add(ref);
         const status = (parts.find((p) => p.startsWith('状态:')) || '').replace('状态:', '');
         if (!status.includes('已落地')) continue;
         landed++;
@@ -96,21 +111,47 @@ for (const vol of vols) {
             continue;
         }
         const ptrs = [...etim.matchAll(PTR)];
-        let carrier = null;
+        const carriers = [];
         for (const m of ptrs) {
             const hits = index.get(m[1]);
-            if (hits && hits.length) { carrier = hits[0]; break; }
+            if (!hits || !hits.length) continue;
+            const start = +m[2];
+            const end = m[3] ? +m[3] : start;
+            if (!carriers.some((c) => c.file === hits[0])) carriers.push({ file: hits[0], start, end });
         }
-        if (!carrier) {
+        if (!carriers.length) {
             unresolved++;
             rows.push({ vol: volKey, line: i + 1, ref, kind: 'unresolved', chan: '', where });
             continue;
         }
-        const body = fs.readFileSync(carrier, 'utf8');
-        const chans = [...new Set([...body.matchAll(CHAN)].map((m) => m[1]))].sort();
-        if (chans.length) {
+        // A face may be carried by several files (interface + mixin + helper):
+        // one channel anywhere on the face counts, otherwise it is genuinely silent.
+        const chans = [];
+        // Facet 1: the carrier file itself emits (literal row or TAG constant).
+        for (const c of carriers) {
+            for (const m of fs.readFileSync(c.file, 'utf8').matchAll(CHAN)) chans.push(m[1] || m[2]);
+        }
+        // Facet 2: the pointed span delegates to a central logger
+        // (`ETIMVesselEvents.row(...)`, `ETIMFarm.row(...)`, `ETIMExplosion.log(...)`).
+        // This codebase keeps the math in helpers and the rows in event classes,
+        // so a pure helper is still "visible" through its sibling.
+        const DELEGATE = /\b([A-Z][A-Za-z0-9_]*(?:Log|Events))\.([a-z][A-Za-z0-9_]*)\s*\(/g;
+        for (const c of carriers) {
+            const body = fs.readFileSync(c.file, 'utf8').split(/\r?\n/);
+            const span = body.slice(Math.max(0, c.start - 1), c.end).join('\n');
+            for (const m of span.matchAll(DELEGATE)) {
+                const hits = index.get(m[1] + '.java');
+                if (!hits || !hits.length) continue;
+                for (const cm of fs.readFileSync(hits[0], 'utf8').matchAll(CHAN)) chans.push(cm[1] || cm[2]);
+            }
+        }
+        const uniq = [...new Set(chans)].sort();
+        if (uniq.length) {
             logged++;
-            rows.push({ vol: volKey, line: i + 1, ref, kind: 'logged', chan: chans.join(','), where });
+            rows.push({ vol: volKey, line: i + 1, ref, kind: 'logged', chan: uniq.join(','), where });
+        } else if (noLog && Object.prototype.hasOwnProperty.call(noLog, ref)) {
+            exempt++;
+            rows.push({ vol: volKey, line: i + 1, ref, kind: 'exempt', chan: '', where, reason: noLog[ref] });
         } else {
             silent++;
             rows.push({ vol: volKey, line: i + 1, ref, kind: 'silent', chan: '', where });
@@ -133,13 +174,14 @@ const removed = [...baseSet].filter((s) => !curSet.has(s));
 if (LIST) {
     for (const r of rows) {
         if (r.kind === 'silent') console.log('[CoverageLog] silent ' + r.where + ' -> (no [XxxLog] in carrier)');
+        if (r.kind === 'exempt') console.log('[CoverageLog] exempt ' + r.where + ' -> ' + r.reason);
         if (r.kind === 'unresolved') console.log('[CoverageLog] INFO unresolved ' + r.where);
     }
 }
 
 const byVol = {};
 for (const r of rows) {
-    byVol[r.vol] = byVol[r.vol] || { landed: 0, logged: 0, silent: 0, parity: 0, unresolved: 0 };
+    byVol[r.vol] = byVol[r.vol] || { landed: 0, logged: 0, silent: 0, parity: 0, exempt: 0, unresolved: 0 };
     byVol[r.vol].landed++;
     byVol[r.vol][r.kind]++;
 }
@@ -154,13 +196,13 @@ function renderDoc() {
     out.push('');
     out.push('## 汇总');
     out.push('');
-    out.push('| 卷 | 已落地 | 有通道 | silent | parity | unresolved |');
-    out.push('| --- | --- | --- | --- | --- | --- |');
+    out.push('| 卷 | 已落地 | 有通道 | silent | no-log | parity | unresolved |');
+    out.push('| --- | --- | --- | --- | --- | --- | --- |');
     for (const v of Object.keys(byVol).sort()) {
         const x = byVol[v];
-        out.push('| ' + v + ' | ' + x.landed + ' | ' + x.logged + ' | ' + x.silent + ' | ' + x.parity + ' | ' + x.unresolved + ' |');
+        out.push('| ' + v + ' | ' + x.landed + ' | ' + x.logged + ' | ' + x.silent + ' | ' + x.exempt + ' | ' + x.parity + ' | ' + x.unresolved + ' |');
     }
-    out.push('| **合计** | **' + landed + '** | **' + logged + '** | **' + silent + '** | **' + parity + '** | **' + unresolved + '** |');
+    out.push('| **合计** | **' + landed + '** | **' + logged + '** | **' + silent + '** | **' + exempt + '** | **' + parity + '** | **' + unresolved + '** |');
     out.push('');
     out.push('## silent 面（载体无判据通道）');
     out.push('');
@@ -170,6 +212,16 @@ function renderDoc() {
         out.push('### ' + v + ' 卷（' + list.length + ' 面）');
         out.push('');
         for (const r of list) out.push('- `' + r.ref + '`（census ' + r.vol + ':' + r.line + '）');
+        out.push('');
+    }
+    out.push('## no-log 面（人工声明不产日志，带理由）');
+    out.push('');
+    for (const v of Object.keys(byVol).sort()) {
+        const list = rows.filter((r) => r.vol === v && r.kind === 'exempt');
+        if (!list.length) continue;
+        out.push('### ' + v + ' 卷（' + list.length + ' 面）');
+        out.push('');
+        for (const r of list) out.push('- `' + r.ref + '` — ' + (r.reason || ''));
         out.push('');
     }
     out.push('## 说明');
@@ -191,6 +243,7 @@ if (fs.existsSync(DOC)) {
 if (WRITE_DOC) {
     fs.mkdirSync(path.dirname(DOC), { recursive: true });
     fs.writeFileSync(DOC, docBody, 'utf8');
+    fs.writeFileSync(process.env.COVERAGE_SILENT || path.join(__dirname, 'coverage-silent.json'), JSON.stringify({ updated: new Date().toISOString().slice(0, 10), silent: [...curSilent].sort() }, null, 2) + '\n', 'utf8');
     docState = 'fresh';
     console.log('[CoverageLog] wrote ' + path.relative(REPO, DOC).replace(/\\/g, '/') + ' (' + docBody.split('\n').length + ' lines)');
 }
@@ -200,13 +253,18 @@ if (UPDATE_BASELINE) {
 }
 
 console.log('[CoverageLog] vols=' + vols.length + ' landed=' + landed + ' logged=' + logged + ' silent=' + silent
-    + ' parity=' + parity + ' unresolved=' + unresolved + ' newSilent=' + added.length + ' dropped=' + removed.length
+    + ' parity=' + parity + ' exempt=' + exempt + ' unresolved=' + unresolved + ' newSilent=' + added.length + ' dropped=' + removed.length
     + ' doc=' + docState + ' [local]');
 for (const a of added.slice(0, 20)) console.log('[CoverageLog] NEW silent ' + a);
 if (removed.length) console.log('[CoverageLog] NOTE silent 减少 ' + removed.length + ' 条，可跑 --update-baseline 下调');
 
+for (const k of noLogKeys) {
+    if (!seenRefs.has(k)) console.log('[CoverageLog] STALE no-log key not in census: ' + k);
+}
+
 let bad = 0;
 if (added.length) bad = 1;
+for (const k of noLogKeys) if (!seenRefs.has(k) && CHECK) bad = 1;
 if (CHECK && docState === 'stale') bad = 1;
 if (CHECK && !fs.existsSync(DOC)) bad = 1;
 console.log('[CoverageLog] verdict ' + (bad ? 'RISK' : 'OK'));

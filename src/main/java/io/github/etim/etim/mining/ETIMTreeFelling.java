@@ -1,5 +1,7 @@
 package io.github.etim.etim.mining;
 
+import io.github.etim.etim.ETIM;
+import io.github.etim.etim.ETIMConfig;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.block.state.IBlockState;
@@ -25,6 +27,7 @@ public final class ETIMTreeFelling {
             return;
         }
         BlockPos pos = start.up();
+        int felled = 0;
         for (int i = 0; i < level; i++) {
             IBlockState log = world.getBlockState(pos);
             if (!isLog(log)) {
@@ -34,11 +37,16 @@ public final class ETIMTreeFelling {
                 break;
             }
             world.destroyBlock(pos, true);
+            felled++;
             int decay = ETIMMining.getToolDecayFromBreakingBlock(player, log, world, pos);
             if (decay > 0) {
                 held.damageItem(decay, player);
             }
             pos = pos.up();
+        }
+        if (ETIMConfig.miningDebugLog) {
+            ETIM.LOGGER.info("[MiningLog] fell level=" + level + " felled=" + felled + " start=" + start.getX()
+                + "," + start.getY() + "," + start.getZ() + " [server]");
         }
     }
 

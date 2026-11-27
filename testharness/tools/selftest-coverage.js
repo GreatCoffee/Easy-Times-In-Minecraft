@@ -39,10 +39,19 @@ function censusFile(t, faces) {
     fs.writeFileSync(path.join(t.census, '普查T-自检-盘点.md'), body, 'utf8');
 }
 
-function run(t, args) {
+function run(t, args, extraEnv) {
     const r = spawnSync('node', [TOOL, ...args], {
         encoding: 'utf8',
-        env: { ...process.env, COVERAGE_BOOKS_ROOT: t.root, COVERAGE_REPO: t.repo, COVERAGE_BASELINE: path.join(t.root, 'coverage-baseline.json'), COVERAGE_R196: path.join(t.root, 'nope') },
+        env: {
+            ...process.env,
+            COVERAGE_BOOKS_ROOT: t.root,
+            COVERAGE_REPO: t.repo,
+            COVERAGE_BASELINE: path.join(t.root, 'coverage-baseline.json'),
+            COVERAGE_SILENT: path.join(t.root, 'coverage-silent.json'),
+            COVERAGE_NOLOG: path.join(t.root, 'no-log.json'),
+            COVERAGE_R196: path.join(t.root, 'nope'),
+            ...(extraEnv || {}),
+        },
     });
     return { code: r.status === null ? 1 : r.status, out: (r.stdout || '') + (r.stderr || '') };
 }
@@ -100,6 +109,25 @@ function run(t, args) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cov-empty-'));
     const r = spawnSync('node', [TOOL], { encoding: 'utf8', env: { ...process.env, COVERAGE_BOOKS_ROOT: root, COVERAGE_REPO: root } });
     check('census-absent-skip', r.status === 0 && /SKIP/.test((r.stdout || '') + (r.stderr || '')), 'exit=' + r.status);
+}
+
+// 6) no-log sidecar 豁免生效
+{
+    const t = tree();
+    censusFile(t, [{ ref: 'SilentThing.java:1-3', note: 'b', etim: 'SilentThing.java:1-3' }]);
+    fs.writeFileSync(path.join(t.root, 'no-log.json'), JSON.stringify({ 'SilentThing.java:1-3': 'no-log: 纯算术' }), 'utf8');
+    const r = run(t, ['--write-doc', '--update-baseline']);
+    check('exempt-ok', r.code === 0 && /silent=0/.test(r.out) && /exempt=1/.test(r.out), r.out.trim().split('\n').slice(-2, -1)[0]);
+}
+
+// 7) sidecar 里有 census 不存在的键 → --check 失败
+{
+    const t = tree();
+    censusFile(t, [{ ref: 'LoggedThing.java:1-3', note: 'a', etim: 'LoggedThing.java:1-3' }]);
+    fs.writeFileSync(path.join(t.root, 'no-log.json'), JSON.stringify({ 'Ghost.java:1-1': 'no-log: 过期' }), 'utf8');
+    run(t, ['--write-doc', '--update-baseline']);
+    const r = run(t, ['--check']);
+    check('sidecar-stale', r.code === 1 && /STALE no-log key/.test(r.out), 'exit=' + r.code);
 }
 
 const pass = results.filter((x) => x.ok).length;
