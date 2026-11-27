@@ -25,6 +25,8 @@
  *            node testharness/tools/face-readiness.js)
  *   plan     census 批次工单.md freshness (regenerate with
  *            node testharness/tools/plan-batches.js)
+ *   regression  testharness/reports/REGRESSION.md freshness (regenerate with
+ *            node testharness/tools/regression-plan.js)
  */
 'use strict';
 const { execFileSync } = require('child_process');
@@ -87,6 +89,7 @@ step('closeout', 'check-closeout.js', [], (c) => c !== 0, '[CloseoutLog]');
 step('faces', 'check-faces.js', [], (c) => c !== 0, '[FaceLog]');
 step('ready', 'face-readiness.js', ['--check'], (c) => c !== 0, '[ReadyLog]');
 step('plan', 'plan-batches.js', ['--check'], (c) => c !== 0, '[PlanLog]');
+step('regression', 'regression-plan.js', ['--check'], (c) => c !== 0, '[RegLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);

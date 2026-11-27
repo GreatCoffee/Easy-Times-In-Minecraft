@@ -354,3 +354,25 @@ node testharness/tools/selftest-extract.js               # 3/3：四类 / 死端
 
 输出 `playground/audit/census/判值表-<批次|面>.md`，按方法分组；本方法抽不到东西时会明确写「需人工阅读」，
 并汇总「无候选的方法」名单，方便先读有货的方法。`VALUES_ROOT` / `VALUES_R196` 可指向别树（自检用）。
+
+## 回归基线 —— run-regression.js / regression-plan.js
+
+已落地的 489 面里，今天还有脚本能重跑的只有 6 个窗口（覆盖 7 个判据通道，51 个产出通道里 44 个是 GAP）。
+这两个工具把「还能跑的」固化成一条命令，并把「跑不动的」画成矩阵，避免误以为都有回归保护。
+
+```
+node testharness/tools/regression-plan.js           # 重建 testharness/reports/REGRESSION.md
+node testharness/tools/regression-plan.js --check   # preflight 第 12 步用
+node testharness/tools/run-regression.js --list     # 看今天有哪些窗口
+node testharness/tools/run-regression.js --dry-run  # 只打印将跑什么
+node testharness/tools/run-regression.js            # 全跑（会话七执行，主会话不代跑）
+node testharness/tools/run-regression.js --only f11-b69-smoke.js,f13-b70t9-smoke.js
+node testharness/tools/selftest-regression.js       # 3/3：矩阵计数 / stale 检出 / 列表
+```
+
+跑法：每个脚本独立起服、独立 `[done]`，`RUN=reg-<脚本名>`；任一失败不短路，跑完汇总；
+原始输出落 `testharness/build-logs/regression-<run>.out`，汇总落 `regression-<时间戳>.json`。
+退出码 0 全过 / 1 有失败 / 2 无脚本。**主会话不执行**，由会话七按任务书跑。
+
+矩阵表口径：`GAP` 只表示「今天没有脚本能替你重跑」，不代表功能坏了；新窗口上 harness 后重跑工具，GAP 自动减少。
+`REG_REPO` 可指向别树（自检用）。
