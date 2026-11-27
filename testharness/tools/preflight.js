@@ -29,7 +29,7 @@
  *            node testharness/tools/regression-plan.js)
  */
 'use strict';
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -67,7 +67,101 @@ function step(name, script, args, risk, tag) {
 const cfgFile = path.join(ROOT, 'run', 'config', 'etim.cfg');
 const haveCfg = fs.existsSync(cfgFile);
 
+// B-70UF: the hook must never accept code that does not compile or breaks a
+// unit test. `gradlew test` compiles main + test and runs every @Test.
+// PREFLIGHT_SKIP_GRADLE=1 is for CI, which runs the same command itself.
+function gradleStep() {
+    if (process.env.PREFLIGHT_SKIP_GRADLE === '1') {
+        console.log('[PreflightLog] step=gradle code=-1 verdict=SKIP PREFLIGHT_SKIP_GRADLE=1');
+        return;
+    }
+    const win = process.platform === 'win32';
+    const exe = win ? 'cmd.exe' : path.join('.', 'gradlew');
+    const args = win ? ['/d', '/s', '/c', 'gradlew.bat test --console=plain -q'] : ['test', '--console=plain', '-q'];
+    if (!fs.existsSync(path.join(ROOT, win ? 'gradlew.bat' : 'gradlew'))) {
+        console.log('[PreflightLog] step=gradle code=-1 verdict=SKIP gradlew absent');
+        return;
+    }
+    // RetroFuturaGradle needs JDK 25. A git hook inherits the user's JAVA_HOME,
+    // which may be an older JDK (21 here) — so validate the major version and
+    // fall through to the workspace-local JDK named in AGENTS.md.
+    const env = { ...process.env };
+    function javaMajor(home) {
+        try {
+            const r = spawnSync(path.join(home, 'bin', process.platform === 'win32' ? 'java.exe' : 'java'), ['-version'], { encoding: 'utf8' });
+            const text = (r.stderr || '') + (r.stdout || '');
+            const m = /version "(\d+)(?:\.(\d+))?/.exec(text);
+            if (!m) return 0;
+            return +m[1] === 1 ? +(m[2] || 0) : +m[1];
+        } catch { return 0; }
+    }
+    const local = [];
+    for (const base of [path.resolve(ROOT, '..', '..', 'jdk'), path.resolve(ROOT, '..', 'jdk')]) {
+        try {
+            for (const d of fs.readdirSync(base)) {
+                if (/jdk-?25|zulu25/i.test(d)) local.push(path.join(base, d));
+            }
+        } catch { /* absent */ }
+    }
+    const tried = [process.env.ETIM_JDK_HOME, process.env.JAVA_HOME, ...local].filter(Boolean);
+    let jdkFrom = 'none';
+    for (const home of tried) {
+        if (javaMajor(home) >= 25) {
+            env.JAVA_HOME = home;
+            jdkFrom = home === process.env.ETIM_JDK_HOME ? 'etim-env' : home === process.env.JAVA_HOME ? 'env' : 'local';
+            break;
+        }
+    }
+    if (jdkFrom === 'none' && process.env.JAVA_HOME) { env.JAVA_HOME = process.env.JAVA_HOME; }
+    const started = Date.now();
+    let code = 0;
+    let out = '';
+    try {
+        out = execFileSync(exe, args, {
+            cwd: ROOT,
+            encoding: 'utf8',
+            env,
+            timeout: 170000,
+            maxBuffer: 8 * 1024 * 1024,
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+    } catch (e) {
+        code = typeof e.status === 'number' ? e.status : 1;
+        out = (e.stdout || '') + (e.stderr || '');
+    }
+    const elapsed = Date.now() - started;
+
+    // JUnit XML is the stable source of counts; gradle console output varies.
+    let tests = 0, failures = 0, errors = 0;
+    const resDir = path.join(ROOT, 'build', 'test-results', 'test');
+    try {
+        for (const f of fs.readdirSync(resDir)) {
+            if (!f.endsWith('.xml')) continue;
+            const head = fs.readFileSync(path.join(resDir, f), 'utf8').slice(0, 4000);
+            const m = /tests="(\d+)"[^>]*?skipped="\d+"[^>]*?failures="(\d+)"[^>]*?errors="(\d+)"/.exec(head)
+                || /tests="(\d+)"[^>]*?failures="(\d+)"[^>]*?errors="(\d+)"/.exec(head);
+            if (m) {
+                tests += +m[1];
+                failures += +m[2];
+                errors += +m[3];
+            }
+        }
+    } catch { /* first run before any test */ }
+
+    const bad = code !== 0 || failures > 0 || errors > 0;
+    const detail = bad && code !== 0
+        ? `[GradleLog] build=FAILED code=${code} mode=test jdk=${jdkFrom} elapsedMs=${elapsed}`
+        : `[GradleLog] tests=${tests} failures=${failures} errors=${errors} mode=test jdk=${jdkFrom} elapsedMs=${elapsed}`;
+    steps.push({ name: 'gradle', code, bad, detail });
+    console.log(`[PreflightLog] step=gradle code=${code} verdict=${bad ? 'RISK' : 'OK'} ${detail}`);
+    if (bad) {
+        const tailLines = out.split(/\r?\n/).filter((s) => /error:|FAILED|BUILD FAILED|Execution failed/.test(s)).slice(0, 5);
+        for (const l of tailLines) console.log('[PreflightLog] gradle: ' + l.trim());
+    }
+}
+
 step('books', 'check-books.js', [], (c) => c !== 0, '[LedgerLog]');
+gradleStep();
 step('config', 'check-config.js', [], (c) => c !== 0, '[ConfigLog]');
 if (haveCfg) {
     // exit 2 = DRIFT: the on-disk file disagrees with the code defaults.

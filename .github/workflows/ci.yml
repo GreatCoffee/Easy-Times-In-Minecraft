@@ -21,7 +21,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Preflight (books / config / channels / scripts / driver)
+      - name: Preflight (ledgers / config / channels / scripts / driver / coverage)
+        # The next step runs the same `gradlew test`; skip it inside preflight here.
+        env:
+          PREFLIGHT_SKIP_GRADLE: '1'
         run: node testharness/tools/preflight.js
 
       - name: Setup Java 25

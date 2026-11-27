@@ -485,3 +485,16 @@ node testharness/tools/selftest-coverage.js           # 6 例自检
 - **新规矩**：新落地面要么载体里带判据通道，要么写明 `no-log` 理由并同一批下调基线，否则 preflight 拦在提交前。
 - **文档**：`testharness/reports/COVERAGE.md` 是生成物（分卷汇总 + silent 逐面清单），`--write-doc` 重建，手改会被 `--check` 判 stale。
 - **基线覆盖**：`COVERAGE_BASELINE` 可指向别处（自检用），否则默认 `testharness/tools/coverage-baseline.json`。
+
+## 提交前编译 + 单测 —— preflight 的 gradle 步
+
+```
+node testharness/tools/preflight.js                       # 含 gradle test
+PREFLIGHT_SKIP_GRADLE=1 node testharness/tools/preflight.js  # 跳过（CI 自己跑 test 时用）
+```
+
+- **做法**：preflight 第二个步骤跑 `gradlew test --console=plain -q`（Windows 走 `cmd.exe /d /s /c gradlew.bat …`，不启 shell），编译 `src/main` + `src/test` 并执行全部 @Test。
+- **判定**：进程非 0、或 JUnit XML 里 `failures/errors > 0` 即 RISK；输出 `[GradleLog] tests=150 failures=0 errors=0 mode=test elapsedMs=…`。
+- **成本**：热缓存约 1–3 秒；改了产品码约 20–60 秒（AP + jar 之外的编译）。
+- **为什么放在钩子里**：B-70TY 的 `MixinItemFood` 补丁是手工 `build` 才发现的；钩子不编译就等于允许提交不可编译的代码。
+- **CI**：`.github/workflows/ci.yml` 与 `deploy.yml` 的 preflight 步骤设 `PREFLIGHT_SKIP_GRADLE: '1'`，因为下一步就是 `./gradlew test`，不重复跑。
