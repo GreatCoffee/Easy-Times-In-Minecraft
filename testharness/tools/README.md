@@ -133,6 +133,7 @@ node testharness/tools/check-config.js --file run/config/etim.cfg   # 盘上基�
   印错的旧值会被一代代原样还原。改过 cfg 或收批前跑一次 `--file`，`drift=0 stale=0` 才算基线干净。
 
 ## 纯逻辑单测 —— `gradlew test`
+- B-70UJ 起再补三族：月相/血月阶梯（`mob/MoonPhaseTest` 8 例）、生命/饱食上限阶梯（`playerstate/PlayerStatLimitsTest` 10 例）、射线-包围盒求交（`reach/ReachMathTest` 7 例），合计 175 例。
 
 把判定树、刷怪门这类「纯函数」从服务端搬进 JVM 内测，反馈从起服的 ~90 秒降到 ~6 秒。
 

@@ -27,8 +27,16 @@ public final class PlayerStatLimits {
      * negative-level death debt DROPS the growth, never the base 6-point).
      */
     public static int getHealthFoodCap(int level) {
-        int scaled = ETIMConfig.capAtLevel0 + level / 5 * ETIMConfig.capGrowthPerFiveLevels;
-        return Math.min(Math.max(scaled, ETIMConfig.capAtLevel0), ETIMConfig.capMaximum);
+        return capFor(level, ETIMConfig.capAtLevel0, ETIMConfig.capGrowthPerFiveLevels, ETIMConfig.capMaximum);
+    }
+
+    /**
+     * The cap formula as a pure function of its inputs — the unit-test seam for
+     * {@link #getHealthFoodCap(int)}. R196: {@code max(base, min(base + level/5*growth, maximum))}.
+     */
+    public static int capFor(int level, int capAtLevel0, int growthPerFiveLevels, int maximum) {
+        int scaled = capAtLevel0 + level / 5 * growthPerFiveLevels;
+        return Math.min(Math.max(scaled, capAtLevel0), maximum);
     }
 
     /** Number of icons a HUD bar shows for a level (cap/2). */

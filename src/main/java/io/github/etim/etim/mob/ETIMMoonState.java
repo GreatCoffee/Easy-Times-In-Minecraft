@@ -94,7 +94,12 @@ public final class ETIMMoonState {
      * R196's instance isDaytime/getTimeOfDay faces.
      */
     public static boolean isNight(WorldServer w) {
-        long adjusted = (w.getTotalWorldTime() % 24000L + 6000L) % 24000L;
+        return isNightAt(w.getTotalWorldTime());
+    }
+
+    /** The night window as a pure function of totalWorldTime (R196 C17 clock). */
+    public static boolean isNightAt(long totalWorldTime) {
+        long adjusted = (totalWorldTime % 24000L + 6000L) % 24000L;
         return !(adjusted > 5000L && adjusted < 19000L);
     }
 
