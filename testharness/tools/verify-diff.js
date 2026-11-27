@@ -211,8 +211,11 @@ function main(argv) {
     if (mode === 'arms') {
         // Ambient channels (AI wandering, spawn rolls, ore gen) differ run to run;
         // arms mode only looks at the deterministic channels the driver asserts.
+        // C-B70TW-4: StalkerLog rows (spawn/seek) come from explicit summons and are
+        // deterministic; DamageLog/MiningLog depend on the environment (sunburn, dig
+        // arms), so callers pass --channels when they want those compared.
         const AUTO = ['BlockFaceLog', 'ItemLog', 'FarmLog', 'FoodR196Log', 'FoodLog',
-            'SparkLog', 'MountLog', 'TestLog', 'VesselLog'];
+            'SparkLog', 'MountLog', 'TestLog', 'VesselLog', 'StalkerLog'];
         const keep = new Set(channels || AUTO);
         const pick = (m) => {
             const o = new Map();
