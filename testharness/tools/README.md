@@ -376,3 +376,23 @@ node testharness/tools/selftest-regression.js       # 3/3：矩阵计数 / stale
 
 矩阵表口径：`GAP` 只表示「今天没有脚本能替你重跑」，不代表功能坏了；新窗口上 harness 后重跑工具，GAP 自动减少。
 `REG_REPO` 可指向别树（自检用）。
+
+## 资产一致性 —— check-assets.js
+
+```
+node testharness/tools/check-assets.js            # 汇总 + 退出码
+node testharness/tools/check-assets.js --list     # 逐条明细
+node testharness/tools/selftest-assets.js         # 自检 2/2
+```
+
+| 规则 | 判什么 | 级别 |
+| --- | --- | --- |
+| H1 | 模型 `textures` 里的 `etim:` 贴图文件是否存在（跳过 `$` 变量） | 硬 |
+| H2 | blockstate 与模型 `parent/overrides` 引用的模型是否存在（blockstate 的 `etim:x` 先查 `models/block/x`，再查 `models/item/x`） | 硬 |
+| H3 | lang 是否齐全：每个 `models/item/*`、每个 blockstate、代码里的字面量 `setTranslationKey("etim.x")` / `setRegistryName("etim","x")` | 硬 |
+| S1 | 孤儿模型（无人引用且无同名 lang） | 提示 |
+| S2 | 无 `layer0` 的模型（纯父模型） | 提示 |
+
+状态模型白名单：`*_cast`（钓竿投射态）、`*_lit`（熔炉燃烧态）、`gelatinous_sphere_<color>`（按 metadata 换 key）；`*_lit` 的 blockstate 随基名判 lang。
+
+由来：B-70TQ 首跑抓到 `metal/ETIMBlockMantleOrCore.java:36` 的 translationKey 在中英文 lang 里都没有——玩家看到的是裸键名，与紫黑格子同一类硬伤。preflight 第 13 步。

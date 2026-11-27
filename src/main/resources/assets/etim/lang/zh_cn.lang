@@ -352,3 +352,6 @@ item.etim.coin_mithril.name=秘银币
 item.etim.coin_adamantium.name=精金梦币
 item.etim.tooltip.xp_each=每枚 +%d 经验
 tile.etim.spark.name=火花
+tile.etim.mantle_or_core.name=地幔或地核
+tile.etim.mantle_or_core.mantle.name=地幔
+tile.etim.mantle_or_core.core.name=地核
