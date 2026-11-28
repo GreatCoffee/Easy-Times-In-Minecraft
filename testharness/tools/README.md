@@ -453,6 +453,26 @@ node testharness/tools/extract-values.js --face C:137       # 只生成某面
 - **依赖**：先跑 `face-readiness.js`（要 `剩余-就绪度.md`）与 `plan-batches.js`（`--batch` 要 `批次工单.md`）。
 - **环境变量**：`VALUES_ROOT` / `VALUES_R196` 可指向别处树。
 
+## 判决书↔证据一致性 —— `check-evidence.js`
+
+99 份正本与 19 份回执里的「PASS」「锚点 `:行号`」全是人写的散文。本工具把它们回放到真实 tee 上：
+
+| 规则 | 查什么 | 失败示例 |
+| --- | --- | --- |
+| E1 锚点 | 围栏块里 `NNNN: [XxxLog] …` 的行号与原文，必须在被引用的 tee 第 NNNN 行出现（`…` 截断只比前缀） | 回执写 `:3316` 但 tee 里是别的行 |
+| E2 终值 | 文书内联的 `[done] {json}` 必须与该 run 的 driver log 一致（`pass`/`stops`/`bad`/各 `wN`） | 写 `pass:true`，tee 里 `pass:false` |
+| E3 钉值 | 文书声明的 `[PIN] sha=` 必须与 tee 的 `[PIN] sha=` 前缀相容 | 抄了上一批的 sha |
+
+```powershell
+node testharness/tools/check-evidence.js            # 全量；基线内旧账不拦
+node testharness/tools/check-evidence.js --list     # 逐条列出
+node testharness/tools/check-evidence.js --doc b70tw-verify-receipt.md
+node testharness/tools/check-evidence.js --update-baseline   # 只收「确有证据缺口」的旧文书
+```
+
+- 只认「引用过证据」的文书：既无锚点、又无 `[done]`、又无 `[PIN]` 的旧正本会直接跳过（B-44/45/52 这类）。
+- `[PIN]`/`[done]` 落在 `<run>-driver.log`（B-70T2 起），服务端行落在 `<run>-b1.out`，两者都算证据源。
+- 基线 `evidence-baseline.json` 冻结 4 份早期文书；新文书带同类问题直接红。
 ## 报告卫生 —— check-reports.js
 
 ```

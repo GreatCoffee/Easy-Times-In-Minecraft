@@ -91,7 +91,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 新窗口脚本用 `gen-window.js --name fNN-bXX --batch B-XX --faces … --channels …` 生成骨架；骨架默认是红的，不会漏填。
 
-## 3. 质量闸：`preflight.js` 的 31 步
+## 3. 质量闸：`preflight.js` 的 32 步
 
 `node testharness/tools/preflight.js` 是提交钩子（`.githooks/pre-commit`）跑的东西，任何一步红就拒绝提交。
 
@@ -128,6 +128,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `values` | `value-goldens.js`（回归流程内） | `--check` 对金标：行里的数变了即算回归失败；`--capture` 只能在有意改数并拿到新 PASS 窗后执行 |
 | `consist` | `check-batch-consistency.js` | 五份文书（工单/正本/census/账册/sessions）面集与批次标记互相对齐；历史批按 census 标记反推面集。 |
 | `shape` | `check-report-shape.js` | 对照报告/正本/回执的最小结构（终判、分级、A 项锚点、钉值、逐面覆盖） |
+| `evidence` | `check-evidence.js` | 正本/回执里的 `[done]`、`[PIN]` 与围栏 `:NNNN` 锚点必须与真实 tee 对上；写 PASS 而 tee 里 `pass:false` 即失败 |
 | `tests` | `check-tests.js` | 含 ≥2 个 public static 的类必须有测试提及；存量 105 个进基线只拦新增 |
 
 ## 4. 目录地图
@@ -170,7 +171,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 ## 7. 交接与自查
 
-- 每天开工前：`node testharness/tools/preflight.js`（31 步绿才动码）。
+- 每天开工前：`node testharness/tools/preflight.js`（32 步绿才动码）。
 - 看现状：`node testharness/tools/batch-status.js --all`（60 批，0 风险）、`check-books.js --list`、`regression-plan.js`、`face-readiness.js`。
 - 看通道：`docs/CHANNELS.md`；看配置：`docs/CONFIG.md`；看回归：`testharness/reports/REGRESSION.md`；看覆盖：`testharness/reports/COVERAGE.md`。
 - 装钩子：`node testharness/tools/install-hooks.js`；跳过钩子必须 `--no-verify` 并在提交正文写原因。

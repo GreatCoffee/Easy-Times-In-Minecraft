@@ -231,6 +231,10 @@ step('shape', 'check-report-shape.js', [], (c) => c !== 0, '[ShapeLog]');
 step('consist', 'check-batch-consistency.js', ['--all'], (c) => c !== 0, '[ConsistLog]');
 // B-70VA: a class that carries pure logic and gains no test is how the
 // "92 seconds to notice" cost creeps back. Existing gaps are frozen.
+// B-70VH: verdicts and receipts are prose; their PASS claims and `:NNNN`
+// anchors are replayed against the real tee so a pass:false cannot be
+// written up as PASS.
+step('evidence', 'check-evidence.js', [], (c) => c !== 0, '[EvidenceLog]');
 step('tests', 'check-tests.js', [], (c) => c !== 0, '[TestsLog]');
 
 const bad = steps.filter((s) => s.bad);

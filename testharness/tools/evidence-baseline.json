@@ -1,0 +1,9 @@
+{
+  "note": "B-70VH frozen pre-existing evidence gaps",
+  "docs": [
+    "b44-verify-verdict.md",
+    "b45-verify-verdict.md",
+    "b52-verify-verdict.md",
+    "b70t-verify-receipt.md"
+  ]
+}

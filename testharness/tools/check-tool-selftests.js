@@ -48,6 +48,7 @@ const ALIAS = {
     'gen-report': 'genreport',
     'check-batch-consistency': 'consistency', 'check-report-shape': 'shape',
     'check-tests': 'tests',
+    'check-evidence': 'evidence',
 };
 
 for (const t of tools) {
