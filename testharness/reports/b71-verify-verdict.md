@@ -91,4 +91,71 @@ tee :16017  Only players can use /state.
 2. 同步处理 B-B71-1（`genOk` 断言）与 B-B71-2（`place` 期望），避免第二轮再因判据面红；
 3. 四条已绿臂（W2/W2′/W4/W5）的锚已固化在本文件 §六臂表，重跑时可直接对位。
 
-本文件字数规格：7282 B / 94 行。
+## r2（2026-11-28）
+
+> 主会话 m06782 修完 r1 三条 A 后重跑；产品码与 jar 未动（HEAD `6faf4c1`，jar mtime 仍 `2026-11-28T04:16:37.0772Z`）
+> 窗口 `RUN=b71r2`，12:08 起 89 s，EXIT=2
+> **r2 终判：FAIL（A=0 / B=2 / C=2）** —— 红面只剩两条**判据/工装**项，产品行为已由 tee 原文证实
+
+### r1 三条 A 的复核
+
+| r1 项 | 复核点 | r2 实测 | 结论 |
+|---|---|---|---|
+| A-B71-1 `bushgen` 缺玩家 | 命令带第 4 参 + 出 `[BushLog] gen` 行 | `:12071 > etest bushgen -2 -10 ETIM_F7` → `:12077 [BushLog] gen chunk=-2,-10 biome=minecraft:forest patches=0 placed=0 first=none` | **已闭环**（行出现；`patches=0` 另属新发现，见 B-B71-3） |
+| A-B71-3 `bushtick` 缺玩家 | 命令带第 6 参 + 出 `[BushLog] bushtick` 行 | `:13072 [BushLog] bushtick … before=0 after=0 ticks=400 n=400 light=4 sky=1`、`:13617 … before=0 after=3 ticks=400 n=400 light=15 sky=1` | **已闭环** |
+| A-B71-2 `time set midnight|noon` | 日志应为 `time set 18000` / `6000` | 全档无 `'midnight'/'noon' is not a valid number`；夜 probe `light=4`、昼 probe `light=15` | **已闭环** |
+| B-B71-1 `genOk` | 静态十项全真 | `[W6] {"srcOk":true,"dropsOnlySelf":true,"genOk":true,…,"pass":true}` | **已闭环** |
+
+### r2 六臂
+
+| 臂 | 实测 | 判定 |
+|---|---|---|
+| W1 生成 | `gen … patches=0 placed=0 first=none`（产品已执行，本随机轮次抽到 0 个 patch）；`genProbe=null` | **红（B-B71-3 抽样）** |
+| W2 采摘 | `berries->0` / `etim:blueberries:1`，二次 `refused` | 绿 |
+| W2′ 骨粉 | 前后 `growable=0 hand=minecraft:dyex1`，growth 仍 0 | 绿 |
+| W3 生长 | 产品行正确（见 §r2.1），驱动 `darkRows=0` | **红（B-B71-4 解析）** |
+| W4 非法移除 | `player=1 drops=etim:blueberries:1` → air | 绿 |
+| W5 玩家采掘 | `result=berries drops=etim:blueberries:1` → air | 绿 |
+| W6 静态 | 十项全真 | 绿 |
+
+`[done]`：
+```
+{"run":"b71r2","pin":true,"w1":false,"w2":true,"w2b":true,"w3":false,"w4":true,"w5":true,"w6":true,"stops":0,"crashes":0,"pass":false,"bad":2,"badKeys":["w1","w3"]}
+```
+
+### §r2.1 产品侧证据（tee 原文，`b71-b71r2-b1.out`）
+
+```
+:12077 [BushLog] gen chunk=-2,-10 biome=minecraft:forest patches=0 placed=0 first=none
+:12719 [BushLog] growth pos=-26,151,-154 result=dark light=4        （全档 400 条，light 恒 4）
+:13072 [BushLog] bushtick pos=-26,151,-154 before=0 after=0 ticks=400 n=400 light=4 sky=1 rate=0.0250 mult=1.00 master=1
+:13260 [BushLog] growth pos=-26,151,-154 from=0 to=1 light=15 rate=0.025 roll=0.016 temp=0.700 mod=1.000
+:13261 [BushLog] growth pos=-26,151,-154 from=1 to=2 light=15 rate=0.025 roll=0.014 temp=0.700 mod=1.000
+:13262 [BushLog] growth pos=-26,151,-154 from=2 to=3 light=15 rate=0.025 roll=0.019 temp=0.700 mod=1.000
+:13263 [BushLog] growth pos=-26,151,-154 result=ripe growth=3      （全档 354 条）
+:13617 [BushLog] bushtick pos=-26,151,-154 before=0 after=3 ticks=400 n=400 light=15 sky=1 rate=0.0250 mult=1.00 master=1
+```
+⇒ 「夜不长、日必长」的产品语义在 r2 已成立；W3 红是驱动取值错位（见 B-B71-4），不是产品缺陷。
+
+### §r2.2 分级
+
+**A=0**
+
+**B-B71-3 · W1 的抽样设计使 PASS 只有 ~20% 概率**
+- `src/main/java/io/github/etim/etim/farm/ETIMBushGen.java:27` `PATCH_TENTHS = 2`；`:95` `patchesFor = PATCH_TENTHS/10 + (rand.nextInt(10) < 2 ? 1 : 0)` ⇒ **80% 抽到 0 个 patch**。
+- 工单允许 `patches=0|1`，但 W1 又要求 `placed>=1` ⇒ 两条断言在 `patches=0` 时互斥。
+- 建议：驱动改成「最多 10 次 `etest bushgen`（同/异区块）」直到 `placed>=1`（每次 ≈20% 命中；10 次 >89%），或接受 `patches=0` 且只判 gen 行形态、把 `placed>=1` 交一次性强制抽样。
+
+**B-B71-4 · W3 的 growth 行解析取错捕获组**
+- `testharness/player/f11-b71-smoke.js:92-94`：`rows2.map((m) => ({ from: num(m[4]), to: num(m[5]), result: m[10] || null, light: num(m[11]) || num(m[6]) }))`。
+- `GROWTH_RE`（`:44`）里 `result=(\S+)` 是 **第 11 组**、其后的 `light=(\d+)` 是 **第 12 组**；第 10 组是 `mod=`。⇒ `result` 恒 null（`darkRows=0`、`day.row` 也丢 result），`light` 落到 `m[6]`（rate 值）。
+- 建议：改 `result: m[11] || null, light: num(m[12]) || num(m[6])`；改后 `darkRows` 应为 400、`growRows` 3。
+
+**C-B71-5**：`gen force …` 行（`:12078`，`CommandDevTest.java:1042`）与 `gen chunk=…` 行（`:12077`）并出，驱动只认后者（正确，二者语义不同：前者是代表层汇总）。
+**C-B71-6**：本窗 `place` 全为 0（熟果 bush 已占位），与 r1 一致，属字段语义而非缺陷。
+
+### §r2.3 建议
+
+修 B-B71-3（重试）＋ B-B71-4（两处索引）后跑 `RUN=b71r3`；两条都是判据面，不需要新增产品码。W1 重试建议同时保留 `patches=0` 的原始行以便统计抽样分布。
+
+本文件字数规格：12192 B / 161 行。

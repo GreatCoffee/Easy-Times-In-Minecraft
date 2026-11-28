@@ -90,7 +90,8 @@ async function bushtick(x, y, z, n) {
   })).filter((r) => r.x === x && r.y === y && r.z === z)[0] || null;
   const rows2 = await waitRow(GROWTH_RE, from, 1000);
   const ticks = rows2.map((m) => ({
-    from: num(m[4]), to: num(m[5]), result: m[10] || null, light: num(m[11]) || num(m[6]),
+    from: num(m[4]), to: num(m[5]), result: m[11] || null,
+    light: m[12] !== undefined ? Number(m[12]) : num(m[6]),
   }));
   return { hit, ticks };
 }
@@ -128,12 +129,18 @@ async function main() {
     await cmd(`fill ${bx - 5} 151 ${bz - 5} ${bx + 5} 153 ${bz + 5} minecraft:air`, 800);
     await cmd('gamemode 0 ' + A, 300);
     await cmd(`tp ${A} ${bx + 0.5} 151 ${bz + 0.5}`, 1200);
-    const from = mark();
-    await cmd(`etest bushgen ${forest.cx} ${forest.cz} ${A}`, 1200);
-    const rows = await waitRow(GEN_RE, from, 15000);
-    gen = rows.map((m) => ({
-      cx: +m[1], cz: +m[2], biome: m[3], patches: +m[4], placed: +m[5], first: m[6],
-    })).filter((g) => g.cx === forest.cx && g.cz === forest.cz)[0] || null;
+    // R196 tenths=2 gives 0 patches 80% of the time; retry until one places.
+    let attempts = 0;
+    for (; attempts < 10; attempts++) {
+      const from = mark();
+      await cmd(`etest bushgen ${forest.cx} ${forest.cz} ${A}`, 1200);
+      const rows = await waitRow(GEN_RE, from, 15000);
+      gen = rows.map((m) => ({
+        cx: +m[1], cz: +m[2], biome: m[3], patches: +m[4], placed: +m[5], first: m[6],
+      })).filter((g) => g.cx === forest.cx && g.cz === forest.cz)[0] || null;
+      if (gen && gen.placed >= 1) break;
+    }
+    console.log("[W1] attempts=" + (attempts + 1) + " lastGen=" + JSON.stringify(gen));
     if (gen && gen.first !== 'none') {
       const [fx, fy, fz] = gen.first.split(',').map(Number);
       genProbe = await probe(fx, fy, fz);

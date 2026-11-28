@@ -128,4 +128,51 @@ A=3（A-B71-1 `bushgen` 缺玩家 / A-B71-2 `time set midnight|noon` / A-B71-3 `
 - **四条已绿臂可留用**：W2 采摘、W2′ 骨粉无效、W4 非法移除、W5 玩家采掘，锚见 §1.1。
 - **B-68 回归：PASS**（六臂全绿，含本批改动的 `MixinBlockFarmland` 两臂）。
 
-本回执字数规格：6943 B / 131 行。
+## r2（2026-11-28）· 复跑回执（`RUN=b71r2`）
+
+### r2.1 钉值与环境
+
+| 项 | 实测 |
+|---|---|
+| `[PIN]` | `sha=D4D55FE4E735A54F124ECA735B6E59F86A581244A99A2CFB9202208ACF414BF6 shaOk=true sizeOk=true mkOk=true size=1599849` |
+| `[cfg]` | `bushR196=true bushDebugLog=true mobDebugLog=true` |
+| HEAD | `6faf4c1`（窗内 0 提交） |
+| jar | 1,599,849 B，mtime `2026-11-28T04:16:37.0772Z`（窗内未变／0 rebuild） |
+| cfg / props | `C69FC496407F3B722B2921C8B324B87E20A6610B113C6216849EBCB2E5AEC257` / `6784C3EDC73A5B0BB30C2AB2C6C7650F0D72FA55AD49D21FC12DED21322F1EB9`（起收同） |
+| port / crash | 0 → 0 / 0 → 0 |
+| 时长 | 13:08 起 89 s，EXIT=2 |
+| 世界 | `run/w-b71-b71r2-v1`（28 文件 / 6,164,276 B，保留） |
+
+### r2.2 终判
+
+```
+{"run":"b71r2","pin":true,"w1":false,"w2":true,"w2b":true,"w3":false,"w4":true,"w5":true,"w6":true,"stops":0,"crashes":0,"pass":false,"bad":2,"badKeys":["w1","w3"]}
+```
+**FAIL —— A=0 / B=2 / C=2**（红面均为判据面，产品侧有正向证据，见 verdict §r2.1）
+
+### r2.3 逐窗材料
+
+- tee：`testharness/build-logs/b71-b71r2-b1.out`（2,067,068 B / 13,987 行；`:4724 Done (6.043s)!`、`:13985 BUILD SUCCESSFUL in 1m 27s`）
+- driver log：`testharness/build-logs/b71r2-driver.log`
+- stdout：`build-logs/b71r2-node.out`
+
+### r2.4 红面（两条，均判据/工装）
+
+**B-B71-3 · W1 抽样互斥**：`:12071 > etest bushgen -2 -10 ETIM_F7` → `:12077 [BushLog] gen chunk=-2,-10 biome=minecraft:forest patches=0 placed=0 first=none`。`ETIMBushGen.java:27 PATCH_TENTHS = 2`、`:95 patchesFor = 2/10 + (rand.nextInt(10) < 2 ? 1 : 0)` ⇒ 80% 抽 0 patch；工单允许 `patches=0`，而 W1 同时要求 `placed>=1` ⇒ 该随机轮次必红（PASS 概率 ≈20%）。建议驱动最多 10 次 bushgen 直到 `placed>=1`。
+
+**B-B71-4 · W3 解析错位**：产品行齐全（`:12719` 起 400 条 `result=dark light=4`；`:13260/:13261/:13262` `from=0 to=1 / 1→2 / 2→3 light=15`；`:13263` 起 354 条 `result=ripe growth=3`；`:13072` 夜 `after=0 light=4`、`:13617` 昼 `after=3 light=15`），但驱动 `darkRows=0`。因 `f11-b71-smoke.js:92-94` 取 `m[10]`（实为 `mod=`）当 `result`、`m[11]` 当 `light`；正确为 `m[11]` / `m[12]`。
+
+### r2.5 r1 三条 A 复核
+
+| 项 | r2 实测 | 结论 |
+|---|---|---|
+| A-B71-1 | `gen` 行出现（`:12077`） | 闭环 |
+| A-B71-2 | 无 `'midnight'`/`'noon'` 报错；夜 light=4、昼 light=15 | 闭环 |
+| A-B71-3 | 两条 `bushtick` 行出现（`:13072`、`:13617`） | 闭环 |
+| B-B71-1 | `[W6]` 十项全真（`genOk:true`） | 闭环 |
+
+### r2.6 B-68 回归
+
+沿用 r1 的 `RUN=b68r2`：`[done] {"run":"b68r2","pin":true,"w1".."w6":true,"pass":true,"bad":0}`，本窗未重跑（工单仅要求重跑 B-71）。
+
+本回执字数规格：9711 B / 178 行。

@@ -5,13 +5,13 @@
 
 scripts=23 | batches=15 | onHarness=21 | withChannel=18 | undocumented=7 | scratch=0 | pinFollow=1 | pinFrozen=0
 
-fingerprint: `137AD46084F988A975998263FB9E279038B0A143314BB63D5D145C1B199BA8BA`
+fingerprint: `E5E9E6F153EAFC89367FF95915148DF617358CBC776035A079A9EC8DA52ACAF2`
 
 ## B-71（1 份）
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
-| `f11-b71-smoke.js` | 280 | BushLog | none | ✔ | B-71 smoke: R196 berry bush (census F:125). Verdict channel = [BushLog]. |
+| `f11-b71-smoke.js` | 287 | BushLog | none | ✔ | B-71 smoke: R196 berry bush (census F:125). Verdict channel = [BushLog]. |
 
 ## B-70T9（1 份）
 
