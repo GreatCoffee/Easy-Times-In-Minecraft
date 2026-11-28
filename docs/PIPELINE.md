@@ -77,6 +77,7 @@ $env:JAVA_HOME='D:\OpenCodeWorkspace\Easy Times In Minecraft\jdk\zulu25.38.107-c
 - 窗口脚本统一用 `testharness/player/lib/harness.js` 的 `H.create({ run, world, bot, cfg, stage })`；起服前自动强制 cfg 并回读，`[cfg]` 行留证；`h.finish(res)` 输出 `[done] {… pass, bad}` 并以 0/2 退出。
 - 等 `[XxxLog]` 行的写法：先 `mark()` 再发命令，再 `waitRow(RE, from, ms)`；不要先发命令后 mark（行可能已经过去）。
 - 判窗后跑对位：`node testharness/tools/verify-diff.js --base <旧 tee> --new <新 tee>`；窗口里没有 `[MountLog]` 这类计数时用 `--mode=arms`（按「通道 × token」存在性对位）；纯重构批再加一次 `--mode=values`（按「通道 × 字段」比值，`0.0250`≡`0.025`，`--tol` 可放宽）。
+- 一条命令版：`node testharness/tools/run-gate.js <B-xx>`（读 `gate-plan.json`，自动 钉值校验 → 起服跑窗 → arms/values 对位 → 写 `reports/<slug>-gate-report.md` 草稿；未登记批次直接 exit 2）。
 - 老脚本回归：`node testharness/tools/run-regression.js --list` / `--only f11-b69-smoke.js`（起真实服务端，**只能会话七跑**）。
 
 ### 2.7 封批

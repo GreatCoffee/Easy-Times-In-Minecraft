@@ -1,0 +1,61 @@
+{
+    "_comment": "批次 → 判窗窗口。scripts 用相对 mod 仓的路径；base 是 testharness/build-logs 里的 tee 文件名；modes 决定对位模式。新增批次必须在这里登记，run-gate 不猜。",
+    "B-70TW": {
+        "scripts": [
+            "testharness/player/f14-reg-core.js",
+            "testharness/player/f11-b60-smoke.js"
+        ],
+        "base": "b66-b70tc-r1-b1.out",
+        "modes": [
+            "arms"
+        ]
+    },
+    "B-70TY": {
+        "scripts": [
+            "testharness/player/f15-reg-chains.js"
+        ],
+        "base": "b65-b70tc-r3-b1.out",
+        "modes": [
+            "arms",
+            "values"
+        ]
+    },
+    "B-70UA": {
+        "scripts": [
+            "testharness/player/f17-reg-fourth.js"
+        ],
+        "base": "b69-b70t4-r2-b1.out",
+        "modes": [
+            "arms"
+        ]
+    },
+    "B-70UB": {
+        "scripts": [
+            "testharness/player/f18-reg-fifth.js"
+        ],
+        "base": "f18-b70ub-r6-b1.out",
+        "modes": [
+            "arms"
+        ]
+    },
+    "B-70UQ": {
+        "scripts": [
+            "testharness/player/f11-b69-smoke.js"
+        ],
+        "base": "b69-b70t4-r2-b1.out",
+        "modes": [
+            "arms",
+            "values"
+        ]
+    },
+    "B-70UV": {
+        "scripts": [
+            "testharness/player/f15-reg-chains.js"
+        ],
+        "base": "b65-b70tc-r3-b1.out",
+        "modes": [
+            "arms",
+            "values"
+        ]
+    }
+}

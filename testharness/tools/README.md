@@ -761,3 +761,18 @@ node testharness/tools/value-goldens.js --list                 # 金标清单
 - 判定：**V** 工单有面却无正本；**F** 正本正文不含某面键；**L** 工单面在 census 上未落地或未标本批；**B** 账册无 `### 条 N · B-xx` 或 sessions 无 `## B-xx`。
 - 面键口径 = 卷字母 + census 文件内 1-based 行号（`F:126`），与 `check-faces` 同口径；历史批不在工单里时按 census 行内的批次标记反推面集。
 - 自检：`node testharness/tools/selftest-consistency.js`（7 例，各自临时账本树）。
+
+
+## 判窗一键化 —— run-gate.js（B-70VK）
+
+窗口脚本、对位基线与钉值检查原来靠会话七手工拼命令；本工具把它压成一条。
+
+```bash
+node testharness/tools/run-gate.js --list            # 看已登记批次
+node testharness/tools/run-gate.js B-70TY --dry-run  # 只打印会跑什么
+node testharness/tools/run-gate.js B-70TY            # 真跑（会话七执行）
+```
+
+- 批次 → 窗口脚本的对应写在 `gate-plan.json`；**没有条目直接 exit 2，不猜**。
+- 默认判定：钉值 `match=true`、每个窗口打印 `[done]` 且 `pass=true / bad=0 / exit 0`、每个 `modes`（`arms`/`values`）对位 `MATCH`。
+- 产物：`testharness/reports/<slug>-gate-report.md`（草稿）。**正式回执仍由会话七落盘**，本工具只是机器判定与证据汇总。
