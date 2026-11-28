@@ -1,10 +1,10 @@
 {
   "generatedAt": null,
   "summary": {
-    "faces": 489,
+    "faces": 491,
     "asserted": 362,
     "exempt": 107,
-    "other": 20,
+    "other": 22,
     "withChan": 388,
     "withWindow": 362,
     "withGolden": 168
@@ -10986,6 +10986,26 @@
           "tee": "f15-b70uv-r1-b1.out"
         }
       ]
+    },
+    {
+      "vol": "F",
+      "key": "BlockBush.java:1-223",
+      "carrier": "-",
+      "tier": "NO-CHAN",
+      "why": "",
+      "chans": [],
+      "windows": [],
+      "guard": []
+    },
+    {
+      "vol": "F",
+      "key": "BlockBush.java:1-223",
+      "carrier": "-",
+      "tier": "NO-CHAN",
+      "why": "",
+      "chans": [],
+      "windows": [],
+      "guard": []
     },
     {
       "vol": "F",

@@ -1,37 +1,4 @@
 {
   "note": "check-asserts 的豁免表：某条正则在一个窗口里刻意不出现时，登记 script:RE_NAME 并写理由。键必须能被 check-asserts 读到，且理由要写清「为什么这条断言在这类窗口可以 0 命中」。",
-  "scripts": {
-    "f11-b71-smoke.js:PROBE_RE": {
-      "reason": "B-71 新窗口尚未首跑（脚本刚落码，预检先于会话七首跑）：5 份既有 tee 里本来就没有 [BushLog]/[WorldGenSpawnLog] 行。b71-r1 首跑产出 tee 后删除本条。",
-      "since": "2026-11-28"
-    },
-    "f11-b71-smoke.js:GEN_RE": {
-      "reason": "B-71 新窗口尚未首跑（脚本刚落码，预检先于会话七首跑）：5 份既有 tee 里本来就没有 [BushLog]/[WorldGenSpawnLog] 行。b71-r1 首跑产出 tee 后删除本条。",
-      "since": "2026-11-28"
-    },
-    "f11-b71-smoke.js:PICK_RE": {
-      "reason": "B-71 新窗口尚未首跑（脚本刚落码，预检先于会话七首跑）：5 份既有 tee 里本来就没有 [BushLog]/[WorldGenSpawnLog] 行。b71-r1 首跑产出 tee 后删除本条。",
-      "since": "2026-11-28"
-    },
-    "f11-b71-smoke.js:ILLEGAL_RE": {
-      "reason": "B-71 新窗口尚未首跑（脚本刚落码，预检先于会话七首跑）：5 份既有 tee 里本来就没有 [BushLog]/[WorldGenSpawnLog] 行。b71-r1 首跑产出 tee 后删除本条。",
-      "since": "2026-11-28"
-    },
-    "f11-b71-smoke.js:HARVEST_RE": {
-      "reason": "B-71 新窗口尚未首跑（脚本刚落码，预检先于会话七首跑）：5 份既有 tee 里本来就没有 [BushLog]/[WorldGenSpawnLog] 行。b71-r1 首跑产出 tee 后删除本条。",
-      "since": "2026-11-28"
-    },
-    "f11-b71-smoke.js:BUSHTICK_RE": {
-      "reason": "B-71 新窗口尚未首跑（脚本刚落码，预检先于会话七首跑）：5 份既有 tee 里本来就没有 [BushLog]/[WorldGenSpawnLog] 行。b71-r1 首跑产出 tee 后删除本条。",
-      "since": "2026-11-28"
-    },
-    "f11-b71-smoke.js:GROWTH_RE": {
-      "reason": "B-71 新窗口尚未首跑（脚本刚落码，预检先于会话七首跑）：5 份既有 tee 里本来就没有 [BushLog]/[WorldGenSpawnLog] 行。b71-r1 首跑产出 tee 后删除本条。",
-      "since": "2026-11-28"
-    },
-    "f11-b71-smoke.js:WG_BIOME_RE": {
-      "reason": "B-71 新窗口尚未首跑（脚本刚落码，预检先于会话七首跑）：5 份既有 tee 里本来就没有 [BushLog]/[WorldGenSpawnLog] 行。b71-r1 首跑产出 tee 后删除本条。",
-      "since": "2026-11-28"
-    }
-  }
+  "scripts": {}
 }

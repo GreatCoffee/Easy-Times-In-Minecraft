@@ -158,4 +158,44 @@ tee :16017  Only players can use /state.
 
 修 B-B71-3（重试）＋ B-B71-4（两处索引）后跑 `RUN=b71r3`；两条都是判据面，不需要新增产品码。W1 重试建议同时保留 `patches=0` 的原始行以便统计抽样分布。
 
-本文件字数规格：12192 B / 161 行。
+## r3（2026-11-28）
+
+> r2 两条 B 级（B-B71-3 W1 抽样互斥、B-B71-4 W3 捕获组）由主会话修复后重跑；产品码与 jar 未动（HEAD `f8a8672`，jar mtime 仍 `2026-11-28T04:16:37.0772Z`）
+> 窗口 `RUN=b71r3`，13:18 起 103 s，EXIT=0
+> **r3 终判：PASS（A=0 / B=0 / C=3）——可封批**
+
+### r3.1 六臂
+
+| 臂 | 实测 | 判定 |
+|---|---|---|
+| W1 生成 | `[W1] attempts=8 lastGen={"cx":-2,"cz":-10,"biome":"minecraft:forest","patches":1,"placed":4,"first":"-14,67,-145"}`；`genProbe` `block=etim:bush growth=3 berries=true soilOk=true biomeOk=true sky=true light=15 stay=true` | 绿 |
+| W2 采摘 | `:12864 pick pos=-27,151,-155 growth=3 result=berries->0 drops=etim:blueberries:1`；`:12934` 二次 `result=refused` | 绿 |
+| W2′ 骨粉 | 前后 `growable=false`、`hand=minecraft:dyex1`、growth 仍 0 | 绿 |
+| W3 生长 | 夜 `darkRows=400`、`after=0 light=4`；昼 `growRows=3`、`before=0 after=3 light=15`；`dayProbe.growth=3` | 绿 |
+| W4 非法移除 | `illegal growth=3 player=true drops=etim:blueberries:1` → 探针 `block=minecraft:air` | 绿 |
+| W5 玩家采掘 | `harvest growth=3 result=berries drops=etim:blueberries:1` → 探针 `air`、`place=true`（该格已空，占位字段回真） | 绿 |
+| W6 静态 | 十项全真 | 绿 |
+
+`[done]`：
+```
+{"run":"b71r3","pin":true,"w1":true,"w2":true,"w2b":true,"w3":true,"w4":true,"w5":true,"w6":true,"stops":0,"crashes":0,"pass":true,"bad":0,"badKeys":[]}
+```
+
+### r3.2 两条 B 级复核（r2 → r3）
+
+- **B-B71-3（W1 抽样）已闭环**：8 次尝试内第 8 次抽到 `patches=1`（tee `:12645 [BushLog] gen chunk=-2,-10 biome=minecraft:forest patches=1 placed=4 first=-14,67,-145`、`:12646 gen force … placed=4 master=1`）；前 7 次全为 `patches=0 placed=0`（`:12089/:12181/:12240/:12327/:12397/:12499/:12556`），与 `PATCH_TENTHS=2` 的 20% 密度吻合（8 次内命中概率 ≈83%）。
+- **B-B71-4（W3 解析）已闭环**：`darkRows=400`（原为 0），`growRows=3`，`light` 取到 4/15（原落到 rate）。
+
+### r3.3 分级
+
+**A=0 / B=0**
+
+- **C-B71-7**：`ripe` 行数随采摘/重植状态变化（r2 为 354，r3 为 185），属世界状态差异，非判据漂移（W3 只要求 `growRows>=1` 与 `darkRows>0`）。
+- **C-B71-8**：W1 仍以 `place=false` 出（该格已有熟果 bush），与 r1/r2 同义，属字段语义。
+- **C-B71-9**：`[W1]` 行同时打印 `lastGen` 与服务端 `gen` 行，二者字段一致（`:12645`）。
+
+### r3.4 封批
+
+W1–W6 全 true、`bad=0`、`stops=0`、`crashes=0`，产品侧六臂语义与 R196 一手一致，判据面无遗留红面 ⇒ **可封批**。`assert-exempt` 中 8 条 B-71 豁免可在本批删除。
+
+本文件字数规格：14896 B / 201 行。

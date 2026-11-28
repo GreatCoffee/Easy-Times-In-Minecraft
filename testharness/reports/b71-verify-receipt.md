@@ -175,4 +175,58 @@ A=3（A-B71-1 `bushgen` 缺玩家 / A-B71-2 `time set midnight|noon` / A-B71-3 `
 
 沿用 r1 的 `RUN=b68r2`：`[done] {"run":"b68r2","pin":true,"w1".."w6":true,"pass":true,"bad":0}`，本窗未重跑（工单仅要求重跑 B-71）。
 
-本回执字数规格：9711 B / 178 行。
+## r3（2026-11-28）· 封批回执（`RUN=b71r3`）
+
+### r3.1 钉值与环境
+
+| 项 | 实测 |
+|---|---|
+| `[PIN]` | `sha=D4D55FE4E735A54F124ECA735B6E59F86A581244A99A2CFB9202208ACF414BF6 shaOk=true size=1599849 sizeOk=true mkOk=true ok=true` |
+| `[cfg]` | `b71-b71r3-b1 bushR196=true bushDebugLog=true mobDebugLog=true` |
+| HEAD | `f8a8672`（窗内 0 提交） |
+| jar | 1,599,849 B，mtime `2026-11-28T04:16:37.0772Z`（窗内未变／0 rebuild） |
+| cfg / props | `C69FC496407F3B722B2921C8B324B87E20A6610B113C6216849EBCB2E5AEC257` / `6784C3EDC73A5B0BB30C2AB2C6C7650F0D72FA55AD49D21FC12DED21322F1EB9`（起收同） |
+| port / crash | 0 → 0 / 0 → 0 |
+| 时长 | 13:18 起 103 s，EXIT=0 |
+| 世界 | `run/w-b71-b71r3-v1`（28 文件 / 6,154,098 B，保留） |
+
+### r3.2 终判
+
+```
+{"run":"b71r3","pin":true,"w1":true,"w2":true,"w2b":true,"w3":true,"w4":true,"w5":true,"w6":true,"stops":0,"crashes":0,"pass":true,"bad":0,"badKeys":[]}
+```
+**PASS —— A=0 / B=0 / C=3，可封批**
+
+### r3.3 逐臂证据（`testharness/build-logs/b71-b71r3-b1.out`，2,125,481 B / 14,314 行）
+
+```
+:4724  Done (5.638s)! For help, type "help" or "?"
+[:12089 :12181 :12240 :12327 :12397 :12499 :12556]  gen chunk=-2,-10 biome=minecraft:forest patches=0 placed=0 first=none
+:12645 [BushLog] gen chunk=-2,-10 biome=minecraft:forest patches=1 placed=4 first=-14,67,-145
+:12646 [BushLog] gen force chunk=-2,-10 placed=4 master=1
+:12864 [BushLog] pick pos=-27,151,-155 growth=3 result=berries->0 drops=etim:blueberries:1
+:12934 [BushLog] pick pos=-27,151,-155 growth=0 result=refused
+:13218 [BushLog] growth pos=-26,151,-154 result=dark light=4          （全档 400 条）
+:14312 BUILD SUCCESSFUL in 1m 42s
+```
+- W1：`[W1] attempts=8 lastGen={"cx":-2,"cz":-10,"biome":"minecraft:forest","patches":1,"placed":4,"first":"-14,67,-145"}`；`genProbe{block:"etim:bush",growth:3,berries:true,soil:"minecraft:grass",soilOk:true,biomeOk:true,sky:true,light:15,stay:true}`。
+- W2：`:12864`（采摘＋掉落）＋`:12934`（二次拒绝）；W2′ `beforeDye/afterDye` 均 `growth:0 growable:false hand:minecraft:dyex1`。
+- W3：`[W3] {…,"night":{before:0,after:0,ticks:400,light:4},"darkRows":400,"day":{before:0,after:3,ticks:400,light:15},"growRows":3,"dayProbe":{growth:3,berries:true},"pass":true}`；`from=` 生长行 3 条、`result=ripe` 185 条。
+- W4：`illegal{growth:3,player:true,drops:"etim:blueberries:1"}` → `illegalProbe{block:"minecraft:air"}`。
+- W5：`harvest{growth:3,result:"berries",drops:"etim:blueberries:1"}` → `harvestProbe{block:"minecraft:air",place:true}`。
+- W6：`{"srcOk":true,"dropsOnlySelf":true,"genOk":true,"regOk":true,"stackOk":true,"cfgOk":true,"mixOk":true,"stateOk":true,"texOk":true,"langOk":true,"pass":true}`。
+- `[stop] {"exitCode":0,"exited":true}`
+
+### r3.4 两条 B 级闭环
+
+- **B-B71-3**：8 次尝试命中 `patches=1 placed=4`（第 8 次），前 7 次 `patches=0`；与 `PATCH_TENTHS=2`（20%/次）一致。
+- **B-B71-4**：`darkRows=400`（r2 为 0）、`growRows=3`、`light` 读到 4/15（r2 落到 rate 值）。
+
+### r3.5 其他
+
+- C-B71-7 `ripe` 行数 185（r2 为 354）属世界状态差异，判据只取 `growRows>=1`。
+- C-B71-8 W1 `place=false`（该格已有熟果）属字段语义。
+- driver log：`testharness/build-logs/b71r3-driver.log`；stdout：`build-logs/b71r3-node.out`。
+- 本窗未改产品码、未 rebuild；`testharness/player/` 下无新增临时脚本。
+
+本回执字数规格：13158 B / 232 行。

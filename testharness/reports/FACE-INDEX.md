@@ -2,8 +2,8 @@
 
 > 生成：`node testharness/tools/face-index.js`；**不要手改**。
 
-- 已落地面 **489**：有通道 388，有断言窗口 362，有数值金标 168。
-- 分级：ASSERTED 362 / EXEMPT 107 / 其他 20。
+- 已落地面 **491**：有通道 388，有断言窗口 362，有数值金标 168。
+- 分级：ASSERTED 362 / EXEMPT 107 / 其他 22。
 - 读法：`金标` 非空表示该面的通道数值被这些窗口的金标锁住；改代码后跑这些窗口 + `value-goldens --check` 即可知道有没有动数。
 
 | 面 | 载体 | 分级 | 通道 | 断言窗口 | 数值金标 |
@@ -424,6 +424,8 @@
 | `F:BlockBreakInfo.java:350-356` | `src/main/java/io/github/etim/etim/mixins/MixinBlock.java` | ASSERTED | BlockFaceLog, IngestLog | f11-b66-smoke.js, f15-reg-chains.js | — |
 | `F:BlockBreakInfo.java:77-190` | `-` | EXEMPT (zero-port) | — | — | — |
 | `F:BlockBreakInfo.java:99-112/224-226` | `src/main/java/io/github/etim/etim/mixins/MixinItemShears.java` | ASSERTED | MiningLog | f14-reg-core.js | f14-reg-core.js, f15-reg-chains.js |
+| `F:BlockBush.java:1-223` | `-` | NO-CHAN | — | — | — |
+| `F:BlockBush.java:1-223` | `-` | NO-CHAN | — | — | — |
 | `F:BlockCarrot.java:1-38/BlockOnion.java:1-38/BlockPotato.java:1-57` | `src/main/java/io/github/etim/etim/farm/ETIMBlockOnion.java` | ASSERTED | FarmLog | f11-b68-smoke.js, f11-b69-smoke.js | f11-b68-smoke.js, f11-b69-smoke.js, f12-b70t8-smoke.js, f13-b70t9-smoke.js, f16-reg-third.js, f17-reg-fourth.js |
 | `F:BlockCropsDead.java:1-48/BlockCarrotDead.java/BlockOnionDead.java/BlockPotatoDead.java` | `src/main/java/io/github/etim/etim/farm/ETIMBlockDeadPlant.java` | EXEMPT (no-log) | — | — | — |
 | `F:BlockHardness.java:3-106` | `src/main/java/io/github/etim/etim/mining/ETIMMining.java` | ASSERTED | MiningLog | f14-reg-core.js | f14-reg-core.js, f15-reg-chains.js |
