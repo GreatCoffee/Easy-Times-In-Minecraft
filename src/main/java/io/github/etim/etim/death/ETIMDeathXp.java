@@ -47,6 +47,28 @@ public final class ETIMDeathXp {
     @CapabilityInject(IState.class)
     public static Capability<IState> CAPABILITY = null;
 
+    /**
+     * The R196 sub-level settlement (ServerPlayer:953-957): a death whose
+     * total is under {@link #SETTLE_UNIT} settles to {@code total − unit},
+     * clamped at {@link #SETTLE_FLOOR}; an at-or-above death keeps the stale
+     * respawn value untouched.
+     */
+    public static int settleFor(int oldTotal, int staleRespawn) {
+        if (oldTotal < SETTLE_UNIT) {
+            return Math.max(oldTotal - SETTLE_UNIT, SETTLE_FLOOR);
+        }
+        return staleRespawn;
+    }
+
+    /** The negative-branch level of a settled total (R196 {@code total / 20}). */
+    public static int levelForSettle(int total) {
+        if (total >= 0) {
+            return 0;
+        }
+        return Math.max(total / SETTLE_UNIT, SETTLE_FLOOR / SETTLE_UNIT);
+    }
+
+
     /** Registers the capability storage (call from mod preInit, once). */
     public static void register() {
         CapabilityManager.INSTANCE.register(IState.class, new Capability.IStorage<IState>() {

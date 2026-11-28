@@ -103,7 +103,7 @@ public final class ETIMDeathEvents {
                 settle = Integer.MIN_VALUE;
                 log(player, "death settle off (config) → vanilla xp carry");
             } else if (oldTotal < ETIMDeathXp.SETTLE_UNIT) {
-                settle = Math.max(oldTotal - ETIMDeathXp.SETTLE_UNIT, ETIMDeathXp.SETTLE_FLOOR);
+                settle = ETIMDeathXp.settleFor(oldTotal, deathXp.getRespawnTotal());
                 deathXp.setRespawnTotal(settle);
                 log(player, "death settle sub-level: old=" + oldTotal + " → respawn=" + settle
                         + " (unit −" + ETIMDeathXp.SETTLE_UNIT + ", floor " + ETIMDeathXp.SETTLE_FLOOR + ")"

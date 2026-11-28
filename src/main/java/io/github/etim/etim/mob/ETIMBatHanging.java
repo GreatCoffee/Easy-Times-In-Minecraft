@@ -46,10 +46,25 @@ public final class ETIMBatHanging {
 
     /** R196 getNewBlockHangingFromY :170-173; -1 = no valid ceiling. */
     public static int getNewBlockHangingFromY(EntityBat bat) {
-        int y = MathHelper.floor(bat.posY + 0.12D + (double) bat.height);
+        int y = hangingY(bat.posY, bat.height);
         BlockPos pos = new BlockPos(
                 MathHelper.floor(bat.posX), y, MathHelper.floor(bat.posZ));
         return canHangFromBlock(bat, pos) ? y : -1;
+    }
+
+    /** The R196 ceiling snapshot {@code (int)(posY + 0.12 + height)}. */
+    public static int hangingY(double posY, float height) {
+        return MathHelper.floor(posY + 0.12D + (double) height);
+    }
+
+    /** The pinned Y for a hanging bat (block Y minus height minus 1/160). */
+    public static double pinnedY(int blockY, float height) {
+        return (double) blockY - (double) height - HANG_OFFSET;
+    }
+
+    /** The release Y for an unhanging bat (block Y minus height minus 1/100). */
+    public static double unhangY(int blockY, float height) {
+        return (double) blockY - (double) height - UNHANG_OFFSET;
     }
 
     /** R196 setHangingPosition :175-186. */
@@ -57,8 +72,7 @@ public final class ETIMBatHanging {
         bat.motionX = 0.0D;
         bat.motionY = 0.0D;
         bat.motionZ = 0.0D;
-        bat.setPosition(bat.posX,
-                (double) blockY - (double) bat.height - HANG_OFFSET, bat.posZ);
+        bat.setPosition(bat.posX, pinnedY(blockY, bat.height), bat.posZ);
     }
 
     /** R196 updateAITasks release arm :209-215. */
@@ -66,8 +80,7 @@ public final class ETIMBatHanging {
         bat.setIsBatHanging(false);
         bat.world.playEvent(null, TAKEOFF_EVENT, new BlockPos(bat), 0);
         if (blockY >= 0) {
-            bat.setPosition(bat.posX,
-                    (double) blockY - (double) bat.height - UNHANG_OFFSET, bat.posZ);
+            bat.setPosition(bat.posX, unhangY(blockY, bat.height), bat.posZ);
         }
     }
 
