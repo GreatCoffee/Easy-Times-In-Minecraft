@@ -45,7 +45,9 @@ const LOOSE = 'package a;\npublic final class Loose {\n    public static int one
 const TIGHT = 'package a;\npublic final class Tight {\n    public static int one() { return 1; }\n    public static int two() { return 2; }\n}\n';
 const ONE_STATIC = 'package a;\npublic final class Solo {\n    public static int one() { return 1; }\n}\n';
 const CLIENT = 'package a.client;\npublic final class Painted {\n    public static int one() { return 1; }\n    public static int two() { return 2; }\n}\n';
-const TEST = 'package a;\nclass TightTest {\n    void t() { Tight.one(); }\n}\n';
+const TEST = 'package a;\nclass TightTest {\n    void t() {\n        org.junit.jupiter.api.Assertions.assertEquals(1, Tight.one());\n        org.junit.jupiter.api.Assertions.assertEquals(2, Tight.two());\n    }\n}\n';
+const MENTION = 'package a;\nclass TightTest {\n    void t() { Tight.one(); }\n}\n';
+const WET = 'package a;\npublic final class Wet {\n    public static int one(net.minecraft.world.World w) { return 1; }\n    public static int two(net.minecraft.entity.Entity e) { return 2; }\n}\n';
 
 // 1) missing baseline → exit 1 with hint
 const t1 = tree({ 'a/Loose.java': LOOSE });
@@ -61,7 +63,7 @@ check('baseline freezes gap', u2.code === 0 && r2.code === 0 && /gaps=1 .*fresh=
 const t3 = tree({ 'a/Tight.java': TIGHT }, { 'a/TightTest.java': TEST });
 run(t3, ['--update-baseline']);
 const r3 = run(t3, []);
-check('class mentioned by test counts as covered', r3.code === 0 && /covered=1 gaps=0/.test(r3.out), r3.out.trim().split('\n').pop());
+check('class asserted by test counts as covered', r3.code === 0 && /direct=1 .*gaps=0/.test(r3.out), r3.out.trim().split('\n').pop());
 
 // 4) new untested class after baseline → exit 1
 const t4 = tree({ 'a/Loose.java': LOOSE });
@@ -87,9 +89,21 @@ check('client package exempt', r6.code === 0 && /gaps=0/.test(r6.out), r6.out.tr
 const t7 = tree({ 'a/Loose.java': LOOSE }, { 'a/Nothing.java': 'package a;\nclass Nothing {}\n' });
 const b7 = path.join(t7, 'baseline.json');
 run(t7, ['--update-baseline'], b7);
-fs.writeFileSync(path.join(t7, 'src', 'test', 'java', 'a', 'LooseTest.java'), 'package a;\nclass LooseTest { void t() { Loose.one(); } }\n', 'utf8');
+fs.writeFileSync(path.join(t7, 'src', 'test', 'java', 'a', 'LooseTest.java'), 'package a;\nclass LooseTest {\n    void t() {\n        org.junit.jupiter.api.Assertions.assertEquals(1, Loose.one());\n    }\n}\n', 'utf8');
 const r7 = run(t7, [], b7);
 check('shrink hint appears', r7.code === 0 && /baseline shrank by 1/.test(r7.out), r7.out.trim().split('\n').pop());
+
+// 8) mention without assert is still a gap
+const t8 = tree({ 'a/Tight.java': TIGHT }, { 'a/TightTest.java': MENTION });
+run(t8, ['--update-baseline']);
+const r8 = run(t8, []);
+check('mention without assert is still a gap', r8.code === 0 && /gaps=1/.test(r8.out), r8.out.trim().split('\n').pop());
+
+// 9) class with only world-coupled statics is plumbing, not a gap
+const t9 = tree({ 'a/Wet.java': WET });
+run(t9, ['--update-baseline']);
+const r9 = run(t9, []);
+check('world-coupled class is plumbing', r9.code === 0 && /gaps=0 plumbing=1/.test(r9.out), r9.out.trim().split('\n').pop());
 
 console.log(checks.join('\n'));
 console.log(`[Selftest] ${failed === 0 ? 'PASS' : 'FAIL'} checks=${checks.length} failed=${failed}`);

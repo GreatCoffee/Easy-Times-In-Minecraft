@@ -716,6 +716,15 @@ node testharness/tools/check-report-shape.js --update-baseline
 node testharness/tools/check-tests.js            # 棘轮：基线外新增缺口即 exit 1
 node testharness/tools/check-tests.js --list     # 逐条 BASE / NEW
 node testharness/tools/check-tests.js --update-baseline
+
+口径（B-70VI）：
+
+- `direct`：测试方法体里既要 `assert…(`、又要点名该类——「提了名字但没有断言」不再算覆盖。
+- `delegate`：整个类的 `public static` 方法都是到「已覆盖类」的薄包装（`return X.y(...)`），按传递覆盖计。
+- `plumbing`：类里没有任何纯签名静态方法（参数含 `World`/`Entity`/`ItemStack`/`BlockPos` 等），单测无法触达，不计缺口、只列出。
+- 基线只收 actionable 缺口（当前 74 类），`--list` 标签 `OK/DELEG/PLUMB/BASE/NEW`。
+
+```
 ```
 
 规则：`src/main/java` 里声明了 **≥2 个 `public static` 方法**（不含常量与 `main`）的类，必须有测试类在正文里提到它的简单类名；否则记一条缺口。
