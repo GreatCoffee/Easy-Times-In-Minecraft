@@ -234,6 +234,9 @@ step('consist', 'check-batch-consistency.js', ['--all'], (c) => c !== 0, '[Consi
 // B-70VH: verdicts and receipts are prose; their PASS claims and `:NNNN`
 // anchors are replayed against the real tee so a pass:false cannot be
 // written up as PASS.
+// B-70VL: the face -> channel -> window -> golden index is what kickoff and
+// run-gate read. A stale index means a batch plan points at the wrong window.
+step('index', 'face-index.js', ['--check'], (c) => c !== 0, '[IndexLog]');
 step('evidence', 'check-evidence.js', [], (c) => c !== 0, '[EvidenceLog]');
 step('tests', 'check-tests.js', [], (c) => c !== 0, '[TestsLog]');
 

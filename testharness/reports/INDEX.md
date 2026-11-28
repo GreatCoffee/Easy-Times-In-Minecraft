@@ -1,6 +1,6 @@
 # 判窗报告索引
 
-> 机制生成（`node testharness/tools/check-reports.js --write-index`）：共 114 份。
+> 机制生成（`node testharness/tools/check-reports.js --write-index`）：共 115 份。
 > 引用方 = 账册 / sessions / census / 其他报告；「无」表示目前没有出处引用（历史留存）。
 > 结论列取文中首个「终判/结论/判决/verdict」行，取不到退回一级标题；正文一字未改。
 
@@ -8,6 +8,7 @@
 |---|---|---|---|
 | `COVERAGE.md` | 15508 | ledger/sessions | 已落地面 ↔ 判据通道覆盖（生成物） |
 | `FACE-ASSERT.md` | 31774 | ledger | 面↔断言覆盖图 |
+| `FACE-INDEX.md` | 108634 | 无 | 面 → 通道 → 断言窗口 → 数值金标（三向索引） |
 | `REGRESSION.md` | 9012 | ledger/sessions | 回归覆盖矩阵（生成物） |
 | `b11-verify-verdict.md` | 18227 | sessions | 判决**：**PASS**（R0..R9 含 R3b 共 **11 判点 ✓11／✗0**）｜A 0／B 0／C 10（工装与口径，均不涉判值） |
 | `b12-verify-verdict.md` | 35938 | sessions | 判决**：**R0 ✓／R1 ✗／R2 ✓／R3 ✓／R4 ✗／R5 ✓／R6 ✓**（7 臂，✓5／✗2；子判点 10✓／2✗）｜**A 2／B 1／C 11** |

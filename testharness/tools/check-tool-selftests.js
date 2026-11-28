@@ -35,6 +35,7 @@ const ALIAS = {
     'set-pin': 'setpin',
     'gen-window': 'genwindow',
     'face-assert': 'faceassert',
+    'face-index': 'faceindex',
     'extract-values': 'extract',
     'face-readiness': 'readiness',
     'plan-batches': 'plan',

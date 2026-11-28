@@ -152,6 +152,11 @@ function assertCell(key, ref) {
 
 const today = arg('date', new Date().toISOString().slice(0, 10));
 const assertOnlyTable = faces.map((f) => '| `' + f.key + '` | ' + f.ref + ' | ' + assertCell(f.key, f.ref) + ' |').join('\n');
+
+const IDX = require('./face-index.js');
+const idxRows = IDX.buildIndex(require('./face-assert.js').analyze().rows, IDX.loadGoldens(path.join(__dirname, 'goldens')));
+const proposal = IDX.propose(idxRows, faces, IDX.loadGoldens(path.join(__dirname, 'goldens')));
+const planSnippet = JSON.stringify({ [batch]: proposal }, null, 2);
 const faceTable = faces.map((f) => '| `' + f.key + '` | ' + f.ref + ' | ' + f.desc + ' | ' + assertCell(f.key, f.ref) + ' |').join('\n');
 const valuesBlock = faces.map((f) => {
     const v = valueSections.get(f.key);
@@ -280,6 +285,11 @@ ${assertOnlyTable}
 「已断言」只说明有现成窗口覆盖同一通道，不等于本面已验；本轮仍需每面各自的 \`file:line\` 锚点。
 「豁免」的面按 \`regression-exempt.json\` / \`no-log.json\` 登记的理由免验，回执里照抄理由即可。
 
+## gate-plan 建议（B-70VL）
+
+${planSnippet.split('\n').map((l) => '    ' + l).join('\n')}
+
+${proposal.scripts.length ? '' : '本批六个面都是新面（census 里没有现成载体/通道），所以 scripts 为空——先写窗口脚本，再把它登记进 gate-plan。\n'}登记进 testharness/tools/gate-plan.json 后，判窗可一条命令：node testharness/tools/run-gate.js ${batch}（未登记则 exit 2）。base 取自对应窗口的数值金标 tee；没有金标时为空，此时只跑 arms。
 ## 窗口
 
 - 新脚本：\`testharness/player/f??-${batch.toLowerCase()}-smoke.js\`（主会话交）
@@ -319,6 +329,17 @@ for (const [suffix, body] of Object.entries(files)) {
 if (CHECK) {
     console.log('[KickoffLog] check batch=' + batch + ' stale=' + stale + ' verdict=' + (stale ? 'STALE' : 'OK'));
     process.exit(stale ? 1 : 0);
+}
+if (process.argv.includes('--plan')) {
+    const gp = path.join(__dirname, 'gate-plan.json');
+    const plan = fs.existsSync(gp) ? JSON.parse(fs.readFileSync(gp, 'utf8')) : {};
+    if (!plan[batch]) {
+        plan[batch] = proposal;
+        fs.writeFileSync(gp, JSON.stringify(plan, null, 4) + '\n', 'utf8');
+        console.log('[KickoffLog] gate-plan entry added for ' + batch);
+    } else {
+        console.log('[KickoffLog] gate-plan entry already present for ' + batch + ' (left untouched)');
+    }
 }
 console.log('[KickoffLog] batch=' + batch + ' faces=' + faces.length + ' kind=' + kind + ' pin=' + pin + ' out=' + OUT);
 

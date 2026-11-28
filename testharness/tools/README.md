@@ -776,3 +776,18 @@ node testharness/tools/run-gate.js B-70TY            # 真跑（会话七执行�
 - 批次 → 窗口脚本的对应写在 `gate-plan.json`；**没有条目直接 exit 2，不猜**。
 - 默认判定：钉值 `match=true`、每个窗口打印 `[done]` 且 `pass=true / bad=0 / exit 0`、每个 `modes`（`arms`/`values`）对位 `MATCH`。
 - 产物：`testharness/reports/<slug>-gate-report.md`（草稿）。**正式回执仍由会话七落盘**，本工具只是机器判定与证据汇总。
+
+
+## 三向索引 —— face-index.js（B-70VL）
+
+把「面（census）→ 通道 → 断言窗口 → 数值金标」合成一张表，给 kickoff 提供「本批该跑哪些窗、base 用哪份 tee」。
+
+```bash
+node testharness/tools/face-index.js          # 写 reports/FACE-INDEX.md + face-index.json
+node testharness/tools/face-index.js --check  # 只比对（preflight）
+node testharness/tools/face-index.js --list   # 汇总一行
+```
+
+- 面的标识用 R196 引用（`EntityPlayer.java:10-20`），不是 census 行号；两套编号对不上是先前 kickoff 误判「已断言」的原因。
+- 金标列来自 `testharness/tools/goldens/*.json`：值键形如 `[MeleeLog] field`，按通道前缀反查。
+- `kickoff.js` 的 `-4-判窗.md` 会带一段 gate-plan 建议；`kickoff.js B-71 --plan` 可在条目不存在时写进 `gate-plan.json`（已存在则不动）。

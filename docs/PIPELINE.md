@@ -129,6 +129,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `values` | `value-goldens.js`（回归流程内） | `--check` 对金标：行里的数变了即算回归失败；`--capture` 只能在有意改数并拿到新 PASS 窗后执行 |
 | `consist` | `check-batch-consistency.js` | 五份文书（工单/正本/census/账册/sessions）面集与批次标记互相对齐；历史批按 census 标记反推面集。 |
 | `shape` | `check-report-shape.js` | 对照报告/正本/回执的最小结构（终判、分级、A 项锚点、钉值、逐面覆盖） |
+| `index` | `face-index.js` | 面→通道→窗口→金标 三向索引新鲜度（B-70VL）；kickoff/run-gate 读它 |
 | `evidence` | `check-evidence.js` | 正本/回执里的 `[done]`、`[PIN]` 与围栏 `:NNNN` 锚点必须与真实 tee 对上；写 PASS 而 tee 里 `pass:false` 即失败 |
 | `tests` | `check-tests.js` | 单测棘轮（B-70VI 口径）：`direct`=测试方法块内真有 `assert…(` 且点名该类；`delegate`=整类都是到已测类的薄包装；`plumbing`=没有任何纯签名静态方法（只能起服验）不追；只拦新增 actionable 缺口（基线 74 类） |
 
