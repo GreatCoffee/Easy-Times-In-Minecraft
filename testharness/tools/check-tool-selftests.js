@@ -46,7 +46,7 @@ const ALIAS = {
     'check-pipeline-doc': 'pipeline',
     'check-asserts': 'asserts',
     'gen-report': 'genreport',
-    'check-report-shape': 'shape',
+    'check-batch-consistency': 'consistency', 'check-report-shape': 'shape',
     'check-tests': 'tests',
 };
 

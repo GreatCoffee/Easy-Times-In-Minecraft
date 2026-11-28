@@ -91,7 +91,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 新窗口脚本用 `gen-window.js --name fNN-bXX --batch B-XX --faces … --channels …` 生成骨架；骨架默认是红的，不会漏填。
 
-## 3. 质量闸：`preflight.js` 的 29 步
+## 3. 质量闸：`preflight.js` 的 30 步
 
 `node testharness/tools/preflight.js` 是提交钩子（`.githooks/pre-commit`）跑的东西，任何一步红就拒绝提交。
 
@@ -125,6 +125,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `asserts` | `check-asserts.js` | 窗口正则是否还能在最新 tee 里命中；1.13 选择器与未知 `/etest` 子命令即失败 |
 | `draft` | `gen-report.js --check-dir` | 对照报告草稿是否与账本/判值表一致（过期即失败） |
 | `values` | `value-goldens.js`（回归流程内） | `--check` 对金标：行里的数变了即算回归失败；`--capture` 只能在有意改数并拿到新 PASS 窗后执行 |
+| `consist` | `check-batch-consistency.js` | 五份文书（工单/正本/census/账册/sessions）面集与批次标记互相对齐；历史批按 census 标记反推面集。 |
 | `shape` | `check-report-shape.js` | 对照报告/正本/回执的最小结构（终判、分级、A 项锚点、钉值、逐面覆盖） |
 | `tests` | `check-tests.js` | 含 ≥2 个 public static 的类必须有测试提及；存量 105 个进基线只拦新增 |
 
@@ -136,7 +137,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `src/main/java/io/github/etim/etim/mixins/` | Mixin 注入口，方法名 `etim$<面>` |
 | `src/test/java/io/github/etim/etim/` | 纯逻辑单测（196 例） |
 | `testharness/player/` | 窗口脚本（只留 harness 版）+ `f7-wb-lib.js` + `fmlbot.js` + `lib/` |
-| `testharness/tools/` | 29 个工具 + 25 个自检 + sidecar 清单（`no-log.json`、`regression-exempt.json`、`channel-archive.json` …） |
+| `testharness/tools/` | 30 个工具 + 34 个自检 + sidecar 清单（`no-log.json`、`regression-exempt.json`、`channel-archive.json` …） |
 | `testharness/reports/` | 判窗回执、正本、`INDEX.md`、`REGRESSION.md`、`COVERAGE.md`、`archive/` |
 | `testharness/build-logs/` | 每次构建/窗口的 tee（gitignore） |
 | `playground/audit/census/` | 六卷普查 + 总账 + 就绪度 + 批次工单 + 判值表 |
@@ -168,7 +169,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 ## 7. 交接与自查
 
-- 每天开工前：`node testharness/tools/preflight.js`（29 步绿才动码）。
+- 每天开工前：`node testharness/tools/preflight.js`（30 步绿才动码）。
 - 看现状：`node testharness/tools/batch-status.js --all`（60 批，0 风险）、`check-books.js --list`、`regression-plan.js`、`face-readiness.js`。
 - 看通道：`docs/CHANNELS.md`；看配置：`docs/CONFIG.md`；看回归：`testharness/reports/REGRESSION.md`；看覆盖：`testharness/reports/COVERAGE.md`。
 - 装钩子：`node testharness/tools/install-hooks.js`；跳过钩子必须 `--no-verify` 并在提交正文写原因。

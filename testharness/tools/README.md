@@ -721,3 +721,13 @@ node testharness/tools/value-goldens.js --list                 # 金标清单
 - 产品有意改数值时：先跑一窗 PASS，再 `--capture <script>` 重存金标；这是唯一正确的刷新方式。
 
 自检：`node testharness/tools/selftest-value-goldens.js`（6 例：捕获、MATCH、DRIFT、缺金标、FAIL 窗不捕获、清单）。
+
+## 批次一致性校对 —— check-batch-consistency.js
+
+五份文书说的必须是同一件事：工单面集 → 判窗正本 → census 翻面与批次标记 → 账册条 → `sessions.md` 段。
+
+- `node testharness/tools/check-batch-consistency.js --all`：全部批次，有缺口 exit 1。
+- `--batch B-69` 单批；`--list` 打印每个缺口；`--update-baseline` 把既有缺口写进 `batch-consistency-baseline.json`（只拦新增）。
+- 判定：**V** 工单有面却无正本；**F** 正本正文不含某面键；**L** 工单面在 census 上未落地或未标本批；**B** 账册无 `### 条 N · B-xx` 或 sessions 无 `## B-xx`。
+- 面键口径 = 卷字母 + census 文件内 1-based 行号（`F:126`），与 `check-faces` 同口径；历史批不在工单里时按 census 行内的批次标记反推面集。
+- 自检：`node testharness/tools/selftest-consistency.js`（7 例，各自临时账本树）。
