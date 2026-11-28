@@ -103,6 +103,7 @@ public final class ETIM {
         io.github.etim.etim.world.ETIMSpecialBlocks.register();
         io.github.etim.etim.farm.ETIMFarm.registerTile();
         MinecraftForge.EVENT_BUS.register(io.github.etim.etim.farm.ETIMFarmingEvents.class);
+        io.github.etim.etim.farm.ETIMBushGen.register();
         // Batch B5 (butchering — 条 262-265): the zero-mixin LivingDropsEvent face.
         io.github.etim.etim.combat.ETIMButcheringEvents.register();
         // Batch B16 (条 327/328): the chicken num_feathers family — the F-1

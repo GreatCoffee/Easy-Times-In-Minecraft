@@ -147,10 +147,12 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog",
         "HoeLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js",
         "f16-reg-third.js"
@@ -376,6 +378,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -401,6 +404,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -458,6 +462,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -483,6 +488,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -773,10 +779,12 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog",
         "HoeLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js",
         "f16-reg-third.js"
@@ -851,6 +859,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -877,6 +886,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -931,10 +941,12 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog",
         "HoeLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js",
         "f16-reg-third.js"
@@ -6860,9 +6872,11 @@
       "why": "",
       "chans": [
         "AILog",
+        "BushLog",
         "FarmLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js"
       ],
@@ -7034,9 +7048,11 @@
       "why": "",
       "chans": [
         "AILog",
+        "BushLog",
         "FarmLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js"
       ],
@@ -7126,9 +7142,11 @@
       "why": "",
       "chans": [
         "AILog",
+        "BushLog",
         "FarmLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js"
       ],
@@ -9086,6 +9104,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -9111,6 +9130,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -9375,7 +9395,8 @@
         "f11-b60-smoke.js",
         "f11-b61-smoke.js",
         "f11-b62-smoke.js",
-        "f12-b70t8-smoke.js"
+        "f12-b70t8-smoke.js",
+        "f11-b71-smoke.js"
       ],
       "guard": []
     },
@@ -11193,6 +11214,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -11218,6 +11240,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -11444,6 +11467,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -11469,6 +11493,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -11659,6 +11684,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -11684,6 +11710,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -12283,10 +12310,12 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog",
         "FoodR196Log"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js",
         "f11-b65-smoke.js"
@@ -12329,10 +12358,12 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog",
         "FoodR196Log"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js",
         "f11-b65-smoke.js"
@@ -12564,6 +12595,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -12589,6 +12621,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -12646,6 +12679,7 @@
         "AILog",
         "ArrowLog",
         "BlockLog",
+        "BushLog",
         "ButchLog",
         "CapLog",
         "CraftingLog",
@@ -12671,6 +12705,7 @@
       "windows": [
         "f18-reg-fifth.js",
         "f17-reg-fourth.js",
+        "f11-b71-smoke.js",
         "f15-reg-chains.js",
         "f14-reg-core.js",
         "f16-reg-third.js",
@@ -12765,10 +12800,12 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog",
         "FoodLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js",
         "f11-b58-smoke.js",
@@ -12812,10 +12849,12 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog",
         "FoodLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js",
         "f11-b58-smoke.js",
@@ -12899,9 +12938,11 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js"
       ],
@@ -12939,9 +12980,11 @@
       "tier": "ASSERTED",
       "why": "",
       "chans": [
+        "BushLog",
         "FarmLog"
       ],
       "windows": [
+        "f11-b71-smoke.js",
         "f11-b68-smoke.js",
         "f11-b69-smoke.js"
       ],

@@ -4,13 +4,14 @@
 > `src/main/java/io/github/etim/etim/ETIMConfig.java`. Do not edit by hand —
 > change the javadoc in the source, then regenerate (`--check` enforces this).
 
-Keys: **270** across **25** sections.
+Keys: **273** across **25** sections.
 
-## blocks (5)
+## blocks (6)
 
 | Key | Type | Default | Range | Description |
 | --- | --- | --- | --- | --- |
 | `blockR196Face` | Boolean | `true` | — | R196 block-face pack (B-66, census F :82/:83/:85/:87/:88/:89/:90/:91/:92/:96/:97/:99): block items stack 4 (anvil 1), the R196 fall formula (2.5-block safe height, doubled damage, block cushioning), non-full-block dro… |
+| `bushR196` | Boolean | `true` | — | /** B-71 (census F:125): the R196 berry-bush carrier master switch — block registration, the forest patch generator, growth ticks and the farmland-exclusive arm. |
 | `dropR196` | Boolean | `true` | — | R196 explosion drop chain (B-67, census F :100/:101/:102/:103/:104): the rewrite table (stone→cobblestone, wood→stick, cloth→string, brick→brick, cobble→gravel, lapis→dye 4x9@0.5, coal block→coal 9@0.5, hardened clay/… |
 | `explosionR196` | Boolean | `true` | — | R196 explosion semantics (B-67, census F :108/:109/:110/:111/:112/:113): the entity radius is separated from the block radius, entity damage uses MITE's effective-radius x density formula with a 0.5 floor, livestock g… |
 | `mountedR196` | Boolean | `true` | — | R196 mounted-block rejection arms (B-69, census F :127, BlockMounted.java:18-40): torches, ladders, levers, buttons, wall signs, skulls, cocoa, trapdoors and tripwire hooks refuse a jukebox top, leaves/cloth/sponge/no… |
@@ -135,11 +136,13 @@ Keys: **270** across **25** sections.
 | `freeActionMaxLevel` | Int | `4` | 1 … 10 | R196 free_action getNumLevels() = 4（D-C 甲收编）。 |
 | `freeActionShredR196` | Boolean | `true` | — | /** B-15 (free-action effect face, 条 321): R196 Potion :244-249 shred face master switch — SLOWNESS attribute modifiers shred by (1 − L × 0.8F / 4) for the wearer's free_action gear level (divisor 4 = R196 Enchantment… |
 
-## farm (16)
+## farm (18)
 
 | Key | Type | Default | Range | Description |
 | --- | --- | --- | --- | --- |
 | `blightR196` | Boolean | `true` | — | /** B-13 (blight batch, 条 314): the R196 blight family master switch — the blighted arm (1/64 death + 1/2-odds ±1 spread, BlockCrops :75-98), the blood-moon 25% arm (:100-107, judge dice order BEFORE the low-light dic… |
+| `bushDebugLog` | Boolean | `false` | — | B-71 (D-4): the [BushLog] judgment channel (generation/pick/growth/illegal removal). |
+| `bushGrowthRateMultiplier` | Float | `1.0F` | 0.0 … 10.0 | B-71 (D-4): the operator multiplier on top of the R196 composed bush rate (0..10). |
 | `chestWormCompostR196` | Boolean | `true` | — | /** B-7: the R196 chest worm-compost master switch (TileEntityChest.java:303-385 via the chest random-tick lane, BlockChest.java:14/:180-191). |
 | `droughtDeathChance` | Float | `0.05F` | 0.0 … 1.0 | /** B-8: the drought roll per frozen random tick (R196 :67 = 0.05F — 平原干田约 23 分钟 64% 死, moisture-batch survey). |
 | `droughtDeathR196` | Boolean | `true` | — | /** B-8 (D-4 乙补面): the drought-death master switch (R196 BlockCrops.updateTick :66-74 murder arm). |

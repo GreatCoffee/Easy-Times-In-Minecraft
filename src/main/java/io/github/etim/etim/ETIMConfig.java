@@ -551,6 +551,13 @@ public final class ETIMConfig {
     /** B-9: the global MITE growth-rate multiplier family base (R196 BlockGrowingPlant :17-19
      *  = 0.25F — prime wheat plot ~2.9%/tick vs vanilla ~11%).  */
     public static float globalGrowthRateFactor = 0.25F;
+    /** B-71 (census F:125): the R196 berry-bush carrier master switch — block registration,
+     *  the forest patch generator, growth ticks and the farmland-exclusive arm. Off = none of it. */
+    public static boolean bushR196 = true;
+    /** B-71 (D-4): the [BushLog] judgment channel (generation/pick/growth/illegal removal). */
+    public static boolean bushDebugLog = false;
+    /** B-71 (D-4): the operator multiplier on top of the R196 composed bush rate (0..10). */
+    public static float bushGrowthRateMultiplier = 1.0F;
     /** B-13 (blight batch, 条 314): the R196 blight family master switch — the blighted
      *  arm (1/64 death + 1/2-odds ±1 spread, BlockCrops :75-98), the blood-moon 25% arm
      *  (:100-107, judge dice order BEFORE the low-light dice) and the low-light dice
@@ -1374,6 +1381,15 @@ public final class ETIMConfig {
         globalGrowthRateFactor = config.getFloat("globalGrowthRateFactor", "farm", 0.25F, 0.01F, 100.0F,
                 comment("R196 the global growth-rate modifier (BlockGrowingPlant :17-19 = 0.25): multiplies every composed growth chance — prime wheat plot ~2.9%/tick vs vanilla ~11%",
                         "R196 全局增速修饰（BlockGrowingPlant :17-19 = 0.25）：乘在合成的每一次生长概率上——满配湿润田小麦约 2.9%/tick 对原版约 11%"));
+        bushR196 = config.getBoolean("bushR196", "blocks", true,
+                comment("R196 berry bush carrier (B-71, census F:125): the bush block + blueberries, the forest patch generator, the 15..15 growth light gate and the farmland-turns-to-dirt arm. Off = no bush anywhere",
+                        "R196 蓝莓灌木载体（B-71）：灌木方块＋蓝莓物品、森林 patch 生成、15..15 生长光门、耕地上方转泥土臂。关闭则全无"));
+        bushDebugLog = config.getBoolean("bushDebugLog", "farm", false,
+                comment("[BushLog] rows of the B-71 bush batch: generation patch/attempts, pick/unripe refusal, illegal removal, growth rate/roll. Silent when off",
+                        "[BushLog] 判行（B-71 灌木批）：生成 patch/尝试数、采摘/未熟拒绝、非法移除、生长速率与掷值。关闭则静默"));
+        bushGrowthRateMultiplier = config.getFloat("bushGrowthRateMultiplier", "farm", 1.0F, 0.0F, 10.0F,
+                comment("B-71: operator multiplier on the R196 bush growth rate (final rate = 0.1 x tempMod x 1.0 x 0.25 x this). Default 1.0 = R196 exactly; 0 disables growth",
+                        "B-71：R196 灌木生长速率的算子倍率（最终速率 = 0.1 × 温度修饰 × 1.0 × 0.25 × 本值）。默认 1.0 = 完全 R196；0 则停止生长"));
         blightR196 = config.getBoolean("blightR196", "farm", true,
                 comment("R196 blight family master switch (B-13): blighted crops (metadata bit 8) die 1/64 per random tick and spread to a neighboring crop (1/2 odds, \u00b11 offsets); blood-moon nights blight a 25% open-sky crop; low light rolls 5.0E-4 x biome modifier x (1 - light/16). Bone meal only unblights (R196 has no bonemeal growth face); a blighted crop drops nothing. Off = no blight, vanilla bone meal",
                         "R196 枯萎族总开关（B-13）：枯萎作物（meta 第 8 位）每随机 tick 掷 1/64 死签并向邻株 1/2 概率传染（\u00b11 邻域）；血月露天作物 25% 中枯；低光按 5.0E-4 × 生物群系修正 × (1 − 光/16) 掷枯。骨粉只解枯（R196 无骨粉催长道）；枯株断零掉落。关闭则无枯萎、骨粉回原版催长"));

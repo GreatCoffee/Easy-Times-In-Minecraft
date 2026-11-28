@@ -3,9 +3,15 @@
 > 由 `node testharness/tools/index-scripts.js` 生成，请勿手改；`check-scripts.js` 会校验下方 fingerprint。
 > 用途：按批次 / 日志通道检索现成判据，避免重写同面窗口。
 
-scripts=22 | batches=14 | onHarness=20 | withChannel=17 | undocumented=7 | scratch=0 | pinFollow=1 | pinFrozen=0
+scripts=23 | batches=15 | onHarness=21 | withChannel=18 | undocumented=7 | scratch=0 | pinFollow=1 | pinFrozen=0
 
-fingerprint: `04A75BEC04C49D296CFF796BCBAD4BF67F6923008628E1A698C25FC99DE06FE8`
+fingerprint: `137AD46084F988A975998263FB9E279038B0A143314BB63D5D145C1B199BA8BA`
+
+## B-71（1 份）
+
+| 脚本 | 行 | 通道 | pin | harness | 说明 |
+| --- | ---: | --- | :---: | :---: | --- |
+| `f11-b71-smoke.js` | 280 | BushLog | none | ✔ | B-71 smoke: R196 berry bush (census F:125). Verdict channel = [BushLog]. |
 
 ## B-70T9（1 份）
 

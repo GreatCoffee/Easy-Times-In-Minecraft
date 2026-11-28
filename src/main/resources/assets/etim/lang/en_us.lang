@@ -356,3 +356,8 @@ tile.etim.spark.name=Spark
 tile.etim.mantle_or_core.name=Mantle or Core
 tile.etim.mantle_or_core.mantle.name=Mantle
 tile.etim.mantle_or_core.core.name=Core
+commands.etest.bushprobe=Bush state dumped to [BushLog]
+commands.etest.bushgen=Bush patch pass done, placed=%s
+commands.etest.bushtick=§7Bush growth ticks — growth before/after
+tile.etim.bush.name=Blueberry Bush
+item.etim.blueberries.name=Blueberries

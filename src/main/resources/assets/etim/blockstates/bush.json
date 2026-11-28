@@ -1,0 +1,16 @@
+{
+    "variants": {
+        "growth=0": {
+            "model": "etim:blueberry_stage0"
+        },
+        "growth=1": {
+            "model": "etim:blueberry_stage1"
+        },
+        "growth=2": {
+            "model": "etim:blueberry_stage2"
+        },
+        "growth=3": {
+            "model": "etim:blueberry_stage3"
+        }
+    }
+}

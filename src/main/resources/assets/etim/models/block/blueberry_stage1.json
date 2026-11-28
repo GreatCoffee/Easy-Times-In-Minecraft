@@ -1,0 +1,6 @@
+{
+    "parent": "minecraft:block/cross",
+    "textures": {
+        "cross": "etim:blocks/bushes/blueberry_stage1"
+    }
+}

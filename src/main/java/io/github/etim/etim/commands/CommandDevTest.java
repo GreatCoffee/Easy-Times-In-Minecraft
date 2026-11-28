@@ -199,6 +199,15 @@ public class CommandDevTest extends CommandBase {
             case "blockprobe":
                 executeBlockProbe(server, sender, args);
                 break;
+            case "bushprobe":
+                executeBushProbe(server, sender, args);
+                break;
+            case "bushgen":
+                executeBushGen(server, sender, args);
+                break;
+            case "bushtick":
+                executeBushTick(server, sender, args);
+                break;
             case "hurt":
                 executeHurt(server, sender, args);
                 break;
@@ -977,6 +986,104 @@ public class CommandDevTest extends CommandBase {
         ETIMBlockLog.probeDurability(player, held);
         ETIMBlockLog.probeConfig(player);
         respond(player, "commands.etest.blockprobe");
+    }
+
+    /**
+     * {@code /etest bushprobe <x> <y> <z> [player]} — B-71 (census F:125)
+     * verdict-input dump: growth/berries, soil, biome gate, sky, the 15..15
+     * growth light, raw max light (the survival window), stay/place gates and
+     * the composed rate. Never rolls dice.
+     */
+    private static void executeBushProbe(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        EntityPlayerMP player = targetOrSender(server, sender, args, 4);
+        BlockPos pos = args.length >= 4
+                ? new BlockPos(parseInt(args[1]), parseInt(args[2]), parseInt(args[3]))
+                : player.getPosition();
+        World world = player.getServerWorld();
+        net.minecraft.block.state.IBlockState state = world.getBlockState(pos);
+        boolean bush = state.getBlock() instanceof io.github.etim.etim.farm.ETIMBlockBush;
+        int growth = bush ? state.getValue(io.github.etim.etim.farm.ETIMBlockBush.GROWTH) : -1;
+        float temp = world.getBiome(pos).getDefaultTemperature();
+        net.minecraft.block.state.IBlockState probe = bush ? state : io.github.etim.etim.farm.ETIMFarmBlocks.BUSH.getDefaultState();
+        io.github.etim.etim.farm.ETIMFarm.bushRow("probe pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                + " block=" + state.getBlock().getRegistryName()
+                + " growth=" + growth
+                + " berries=" + (bush && io.github.etim.etim.farm.ETIMBlockBush.hasBerries(growth) ? 1 : 0)
+                + " soil=" + world.getBlockState(pos.down()).getBlock().getRegistryName()
+                + " soilOk=" + (io.github.etim.etim.farm.ETIMBlockBush.soilOk(world.getBlockState(pos.down())) ? 1 : 0)
+                + " biome=" + world.getBiome(pos).getRegistryName()
+                + " biomeOk=" + (io.github.etim.etim.farm.ETIMBlockBush.isBushBiome(world.getBiome(pos)) ? 1 : 0)
+                + " sky=" + (world.canSeeSky(pos) ? 1 : 0)
+                + " light=" + world.getLightFromNeighbors(pos.up())
+                + " rawMax=" + Math.max(world.getLightFor(net.minecraft.world.EnumSkyBlock.SKY, pos),
+                        world.getLightFor(net.minecraft.world.EnumSkyBlock.BLOCK, pos))
+                + " stay=" + (io.github.etim.etim.farm.ETIMFarmBlocks.BUSH.canBlockStay(world, pos, probe) ? 1 : 0)
+                + " place=" + (io.github.etim.etim.farm.ETIMFarmBlocks.BUSH.canPlaceBlockAt(world, pos) ? 1 : 0)
+                + " rate=" + String.format(java.util.Locale.ROOT, "%.4f",
+                        io.github.etim.etim.farm.ETIMBlockBush.growthRateFor(temp) * io.github.etim.etim.farm.ETIMFarm.bushGrowthMultiplier())
+                + " temp=" + String.format(java.util.Locale.ROOT, "%.2f", temp)
+                + " mult=" + String.format(java.util.Locale.ROOT, "%.2f", io.github.etim.etim.farm.ETIMFarm.bushGrowthMultiplier())
+                + " master=" + (io.github.etim.etim.ETIMConfig.bushR196 ? 1 : 0)
+                + " growable=" + (state.getBlock() instanceof net.minecraft.block.IGrowable ? 1 : 0)
+                + " hand=" + (player.getHeldItemMainhand().isEmpty() ? "empty"
+                        : player.getHeldItemMainhand().getItem().getRegistryName()
+                        + "x" + player.getHeldItemMainhand().getCount()));
+        respond(player, "commands.etest.bushprobe");
+    }
+
+    /** {@code /etest bushgen <chunkX> <chunkZ> [player]} — one forced forest patch pass. */
+    private static void executeBushGen(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 3) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 3);
+        int placed = io.github.etim.etim.farm.ETIMBushGen.generateChunk(
+                player.getServerWorld(), parseInt(args[1]), parseInt(args[2]));
+        io.github.etim.etim.farm.ETIMFarm.bushRow("gen force chunk=" + parseInt(args[1]) + "," + parseInt(args[2])
+                + " placed=" + placed + " master=" + (io.github.etim.etim.ETIMConfig.bushR196 ? 1 : 0));
+        respond(player, "commands.etest.bushgen", placed);
+    }
+
+    /** {@code /etest bushtick <x> <y> <z> <n>} — up to n real updateTick calls, growth before/after. */
+    private static void executeBushTick(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            throw new WrongUsageException("commands.etest.usage");
+        }
+        EntityPlayerMP player = targetOrSender(server, sender, args, 5);
+        net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(
+                parseInt(args[1]), parseInt(args[2]), parseInt(args[3]));
+        int n = Math.max(1, parseInt(args[4]));
+        net.minecraft.world.World world = player.getServerWorld();
+        net.minecraft.block.state.IBlockState state = world.getBlockState(pos);
+        if (!(state.getBlock() instanceof io.github.etim.etim.farm.ETIMBlockBush)) {
+            io.github.etim.etim.farm.ETIMFarm.bushRow("bushtick pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                    + " result=not-bush block=" + state.getBlock().getRegistryName());
+            respond(player, "commands.etest.bushtick", "not-bush");
+            return;
+        }
+        io.github.etim.etim.farm.ETIMBlockBush bush = (io.github.etim.etim.farm.ETIMBlockBush) state.getBlock();
+        int before = state.getValue(io.github.etim.etim.farm.ETIMBlockBush.GROWTH);
+        int ticks = 0;
+        for (int i = 0; i < n; i++) {
+            net.minecraft.block.state.IBlockState now = world.getBlockState(pos);
+            if (!(now.getBlock() instanceof io.github.etim.etim.farm.ETIMBlockBush)) {
+                break;
+            }
+            bush.updateTick(world, pos, now, world.rand);
+            ticks++;
+        }
+        int after = world.getBlockState(pos).getBlock() instanceof io.github.etim.etim.farm.ETIMBlockBush
+                ? world.getBlockState(pos).getValue(io.github.etim.etim.farm.ETIMBlockBush.GROWTH) : -1;
+        io.github.etim.etim.farm.ETIMFarm.bushRow("bushtick pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                + " before=" + before + " after=" + after + " ticks=" + ticks + " n=" + n
+                + " light=" + world.getLightFromNeighbors(pos.up())
+                + " sky=" + (world.canSeeSky(pos) ? 1 : 0)
+                + " rate=" + String.format(java.util.Locale.ROOT, "%.4f",
+                        io.github.etim.etim.farm.ETIMBlockBush.growthRateFor(world.getBiome(pos).getDefaultTemperature())
+                                * io.github.etim.etim.farm.ETIMFarm.bushGrowthMultiplier())
+                + " mult=" + String.format(java.util.Locale.ROOT, "%.2f", io.github.etim.etim.farm.ETIMFarm.bushGrowthMultiplier())
+                + " master=" + (io.github.etim.etim.ETIMConfig.bushR196 ? 1 : 0));
+        respond(player, "commands.etest.bushtick", after);
     }
 
     /**
@@ -1958,7 +2065,8 @@ public class CommandDevTest extends CommandBase {
         if (item == null) {
             throw new CommandException("commands.etest.hold_bad_item", args[1]);
         }
-        ItemStack stack = new ItemStack(item, 1);
+        int meta = args.length >= 3 && isNumber(args[args.length - 1]) ? parseInt(args[args.length - 1]) : 0;
+        ItemStack stack = new ItemStack(item, 1, meta);
         player.inventory.setInventorySlotContents(player.inventory.currentItem, stack);
         respond(player, "commands.etest.hold_set", stack.getDisplayName());
     }

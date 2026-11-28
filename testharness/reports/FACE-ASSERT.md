@@ -42,7 +42,7 @@
 | A:ItemPickaxe.java:50-57 等 13 类覆写 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:ItemPickaxe.java:55-57 等 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:ItemShears.java:62 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
-| A:ItemHoe.java:75-77 | src/main/java/io/github/etim/etim/mixins/MixinItemHoe.java | AILog,ArrowLog,BlockLog,ButchLog,CapLog,CraftingLog,DamageLog,DeathLog,DimLog,EnchLog,EnchantLog,EquipLog,FarmLog,FishLog,FoodLog,FurnaceLog,HoeLog,IngestLog,MeleeLog,MiningLog,MobLog,OreLog,SleepLog,SoundLog,WeatherLog | f18-reg-fifth.js,f17-reg-fourth.js,f15-reg-chains.js,f14-reg-core.js,f16-reg-third.js,f11-b68-smoke.js,f11-b69-smoke.js,f11-b58-smoke.js,f13-b70t9-smoke.js |
+| A:ItemHoe.java:75-77 | src/main/java/io/github/etim/etim/mixins/MixinItemHoe.java | AILog,ArrowLog,BlockLog,BushLog,ButchLog,CapLog,CraftingLog,DamageLog,DeathLog,DimLog,EnchLog,EnchantLog,EquipLog,FarmLog,FishLog,FoodLog,FurnaceLog,HoeLog,IngestLog,MeleeLog,MiningLog,MobLog,OreLog,SleepLog,SoundLog,WeatherLog | f18-reg-fifth.js,f17-reg-fourth.js,f11-b71-smoke.js,f15-reg-chains.js,f14-reg-core.js,f16-reg-third.js,f11-b68-smoke.js,f11-b69-smoke.js,f11-b58-smoke.js,f13-b70t9-smoke.js |
 | A:EntityPlayer.java:946-961 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:EntityPlayer.java:874-944 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:EntityPlayer.java:892-895 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
@@ -50,8 +50,8 @@
 | A:EntityPlayer.java:888-889 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:EntityPlayer.java:911-920 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:EntityPlayer.java:922-928 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
-| A:EntityPlayer.java:930-940 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | AILog,ArrowLog,BlockLog,ButchLog,CapLog,CraftingLog,DamageLog,DeathLog,DimLog,EnchLog,EnchantLog,EquipLog,FarmLog,FishLog,FoodLog,FurnaceLog,IngestLog,MeleeLog,MiningLog,MobLog,OreLog,SleepLog,SoundLog,WeatherLog | f18-reg-fifth.js,f17-reg-fourth.js,f15-reg-chains.js,f14-reg-core.js,f16-reg-third.js,f11-b68-smoke.js,f11-b69-smoke.js,f11-b58-smoke.js,f13-b70t9-smoke.js |
-| A:EntityPlayer.java:942 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | AILog,ArrowLog,BlockLog,ButchLog,CapLog,CraftingLog,DamageLog,DeathLog,DimLog,EnchLog,EnchantLog,EquipLog,FarmLog,FishLog,FoodLog,FurnaceLog,IngestLog,MeleeLog,MiningLog,MobLog,OreLog,SleepLog,SoundLog,WeatherLog | f18-reg-fifth.js,f17-reg-fourth.js,f15-reg-chains.js,f14-reg-core.js,f16-reg-third.js,f11-b68-smoke.js,f11-b69-smoke.js,f11-b58-smoke.js,f13-b70t9-smoke.js |
+| A:EntityPlayer.java:930-940 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | AILog,ArrowLog,BlockLog,BushLog,ButchLog,CapLog,CraftingLog,DamageLog,DeathLog,DimLog,EnchLog,EnchantLog,EquipLog,FarmLog,FishLog,FoodLog,FurnaceLog,IngestLog,MeleeLog,MiningLog,MobLog,OreLog,SleepLog,SoundLog,WeatherLog | f18-reg-fifth.js,f17-reg-fourth.js,f11-b71-smoke.js,f15-reg-chains.js,f14-reg-core.js,f16-reg-third.js,f11-b68-smoke.js,f11-b69-smoke.js,f11-b58-smoke.js,f13-b70t9-smoke.js |
+| A:EntityPlayer.java:942 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | AILog,ArrowLog,BlockLog,BushLog,ButchLog,CapLog,CraftingLog,DamageLog,DeathLog,DimLog,EnchLog,EnchantLog,EquipLog,FarmLog,FishLog,FoodLog,FurnaceLog,IngestLog,MeleeLog,MiningLog,MobLog,OreLog,SleepLog,SoundLog,WeatherLog | f18-reg-fifth.js,f17-reg-fourth.js,f11-b71-smoke.js,f15-reg-chains.js,f14-reg-core.js,f16-reg-third.js,f11-b68-smoke.js,f11-b69-smoke.js,f11-b58-smoke.js,f13-b70t9-smoke.js |
 | A:EntityPlayer.java:897-901 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:ItemTool.java:54-56 ＋ ItemTool.java:216-234 | src/main/java/io/github/etim/etim/mixins/MixinItem.java | MiningLog,SwingLog | f14-reg-core.js,f16-reg-third.js |
 | A:Damage.java:203-208 ＋ ItemTool.java:173-174 | src/main/java/io/github/etim/etim/combat/ETIMBlocking.java | ArrowLog,BlockLog,DamageLog,MiningLog | f18-reg-fifth.js,f17-reg-fourth.js,f14-reg-core.js |
@@ -68,11 +68,11 @@
 | A:ItemTool.java:143-148 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:ItemCudgel.java:6-14,22-44＋ItemClub.java:3-27 | src/main/java/io/github/etim/etim/mining/ETIMMining.java | MiningLog | f14-reg-core.js |
 | A:ItemShears.java:74-99 | src/main/java/io/github/etim/etim/mixins/MixinItem.java | MiningLog,SwingLog | f14-reg-core.js,f16-reg-third.js |
-| A:ItemHoe.java:54-56 | src/main/java/io/github/etim/etim/mixins/MixinItemHoe.java | FarmLog,HoeLog | f11-b68-smoke.js,f11-b69-smoke.js,f16-reg-third.js |
-| A:Enchantment.java:32 ＋ ItemHoe.java:78-80／ItemMattock.java:46-57／ItemScythe.java:40-53 | src/main/java/io/github/etim/etim/metal/ETIMItemHoe.java | FarmLog,HoeLog | f11-b68-smoke.js,f11-b69-smoke.js,f16-reg-third.js |
+| A:ItemHoe.java:54-56 | src/main/java/io/github/etim/etim/mixins/MixinItemHoe.java | BushLog,FarmLog,HoeLog | f11-b71-smoke.js,f11-b68-smoke.js,f11-b69-smoke.js,f16-reg-third.js |
+| A:Enchantment.java:32 ＋ ItemHoe.java:78-80／ItemMattock.java:46-57／ItemScythe.java:40-53 | src/main/java/io/github/etim/etim/metal/ETIMItemHoe.java | BushLog,FarmLog,HoeLog | f11-b71-smoke.js,f11-b68-smoke.js,f11-b69-smoke.js,f16-reg-third.js |
 | A:Item.java:954-987 | src/main/java/io/github/etim/etim/mixins/MixinItem.java | MiningLog,SwingLog | f14-reg-core.js,f16-reg-third.js |
 | A:ItemMattock.java:34-43 | src/main/java/io/github/etim/etim/metal/ETIMItemMattock.java | HoeLog | f16-reg-third.js |
-| A:ItemHoe.java:86-96 | src/main/java/io/github/etim/etim/mixins/MixinItemHoe.java | FarmLog,HoeLog | f11-b68-smoke.js,f11-b69-smoke.js,f16-reg-third.js |
+| A:ItemHoe.java:86-96 | src/main/java/io/github/etim/etim/mixins/MixinItemHoe.java | BushLog,FarmLog,HoeLog | f11-b71-smoke.js,f11-b68-smoke.js,f11-b69-smoke.js,f16-reg-third.js |
 | B:CraftingManager.java:345-381 | src/main/java/io/github/etim/etim/crafting/ETIMCrafting.java | CraftingLog | f15-reg-chains.js |
 | B:CraftingManager.java:479-507 | src/main/java/io/github/etim/etim/metal/ETIMGear.java | EquipLog,TestLog | f16-reg-third.js,f14-reg-core.js |
 | B:RecipeHelper.java:9-69 | src/main/java/io/github/etim/etim/crafting/ETIMCrafting.java | CraftingLog | f15-reg-chains.js |

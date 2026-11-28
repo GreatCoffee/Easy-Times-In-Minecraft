@@ -1,10 +1,12 @@
 package io.github.etim.etim.mixins;
 
+import io.github.etim.etim.ETIMConfig;
+import io.github.etim.etim.farm.ETIMBlockBush;
 import io.github.etim.etim.farm.ETIMFarm;
 import io.github.etim.etim.weather.ETIMRain;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockFarmland;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -34,6 +36,11 @@ import java.util.Random;
  * blood moon) has been ported first-hand (World :5414-5429 + BiomeGenBase
  * :277-279). The decay face pays the vanilla {@code turnToDirt} (B-14 — the
  * entity lift-up half stays).</p>
+ *
+ * <p>B-71 (census F:125, A-B-71-8): a berry bush standing on farmland turns
+ * it to dirt on BOTH seams — the random tick HEAD (before water/rain can
+ * hydrate it) and {@code neighborChanged} TAIL (the placement itself, which
+ * never waits for a random tick). R196 {@code BlockFarmland.java:132-141}.</p>
  */
 @Mixin(BlockFarmland.class)
 public abstract class MixinBlockFarmland {
@@ -47,6 +54,14 @@ public abstract class MixinBlockFarmland {
     private void etim$r196MoistureTick(World world, BlockPos pos, IBlockState state, Random rand, CallbackInfo ci) {
         if (world.isRemote) {
             return; // vanilla body is server-side only; leave it for the pool-off/正 face
+        }
+        // A-B-71-8 first arm: the bush above wins over hydration (R196 :132-141).
+        if (ETIMConfig.bushR196 && world.getBlockState(pos.up()).getBlock() instanceof ETIMBlockBush) {
+            turnToDirt(world, pos);
+            ETIMFarm.row("moisture decay pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                    + " src=bush-above → dirt");
+            ci.cancel();
+            return;
         }
         int moisture = state.getValue(BlockFarmland.MOISTURE);
         if (ETIMFarm.waterNearbyR196(world, pos)) {
@@ -86,5 +101,19 @@ public abstract class MixinBlockFarmland {
             }
         }
         ci.cancel();
+    }
+
+    /** A-B-71-8 second arm: placement fires neighbourChanged, not a random tick. */
+    @Inject(method = "neighborChanged", at = @At("TAIL"))
+    private void etim$bushAboveNeighbour(IBlockState state, World world, BlockPos pos, Block blockIn,
+                                         BlockPos fromPos, CallbackInfo ci) {
+        if (world.isRemote || !ETIMConfig.bushR196) {
+            return;
+        }
+        if (world.getBlockState(pos.up()).getBlock() instanceof ETIMBlockBush) {
+            turnToDirt(world, pos);
+            ETIMFarm.row("moisture decay pos=" + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                    + " src=bush-above-neighbour → dirt");
+        }
     }
 }

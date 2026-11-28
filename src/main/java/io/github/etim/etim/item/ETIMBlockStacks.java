@@ -53,6 +53,11 @@ public final class ETIMBlockStacks {
         if (anvil != null) {
             anvil.setMaxStackSize(1);
         }
+        // B-71: the R196 berry bush is the stack-8 exception (BlockGrowingPlant :15).
+        Item bush = Item.getItemFromBlock(io.github.etim.etim.farm.ETIMFarmBlocks.BUSH);
+        if (bush != null) {
+            bush.setMaxStackSize(8);
+        }
         // 1.12 does not put ItemBlockSpecial into Block.blockToItemMap, so the
         // block loop above cannot reach cauldron / brewing stand. Sweep items.
         for (Item item : ForgeRegistries.ITEMS) {

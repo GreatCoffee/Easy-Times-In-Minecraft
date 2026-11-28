@@ -84,6 +84,18 @@ public final class ETIMFarm {
         }
     }
 
+    /** B-71 berry-bush judgment channel (D-4, census F:125). */
+    public static void bushRow(String line) {
+        if (ETIMConfig.bushDebugLog) {
+            ETIM.LOGGER.info("[BushLog] " + line + " [server]");
+        }
+    }
+
+    /** B-71: the operator multiplier on top of the R196 composed bush rate. */
+    public static float bushGrowthMultiplier() {
+        return ETIMConfig.bushGrowthRateMultiplier;
+    }
+
     /** preInit face: the fertilized-bit TE carrier registration (D-1, 条 256)
      *  — the farmland-moisture batch (条 283) rides the same seam to register
      *  the manure item; the mushroom stage carrier joins at the B-3 修 TE

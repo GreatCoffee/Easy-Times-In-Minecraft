@@ -7,11 +7,11 @@
 
 | 项 | 数 |
 | --- | --- |
-| 判据通道（有产出点） | 51 |
-| 被 harness 覆盖 | 45 |
+| 判据通道（有产出点） | 52 |
+| 被 harness 覆盖 | 46 |
 | 登记豁免（结构不可覆盖） | 6 |
 | 未处理 GAP | 0 |
-| harness 脚本 | 20 |
+| harness 脚本 | 21 |
 | 已封批（有 verdict） | 72 |
 
 ## 在跑的窗口
@@ -30,6 +30,7 @@
 | `f11-b67-smoke.js` | B-67 | 3 个：BoomLog/DropLog/ExplosionLog | 有 |
 | `f11-b68-smoke.js` | B-68 | 1 个：FarmLog | 有 |
 | `f11-b69-smoke.js` | B-69 | 3 个：FarmLog/MountLog/SparkLog | 有 |
+| `f11-b71-smoke.js` | B-71 | 2 个：BushLog/WorldGenSpawnLog | 无 |
 | `f12-b70t8-smoke.js` | - | 2 个：SpawnLog/WorldGenSpawnLog | 无 |
 | `f13-b70t9-smoke.js` | - | 1 个：FoodLog | 无 |
 | `f14-reg-core.js` | - | 3 个：DamageLog/MiningLog/TestLog | 无 |
@@ -51,6 +52,7 @@
 | `BlockFaceLog` | CommandDevTest.java, ETIMBlockStacks.java, ETIMItemMaterialEvents.java | f11-b66-smoke.js | COVERED |
 | `BlockLog` | ETIMBlockLog.java, ETIMGhost.java, CommandDevTest.java … | f17-reg-fourth.js | COVERED |
 | `BoomLog` | CommandDevTest.java | f11-b67-smoke.js | COVERED |
+| `BushLog` | ETIMConfig.java, ETIMFarm.java | f11-b71-smoke.js | COVERED |
 | `ButchLog` | EnchantmentButchering.java, ETIMButchering.java, ETIMButcheringEvents.java … | f17-reg-fourth.js | COVERED |
 | `CapLog` | ETIMConfig.java, CapLog.java | f17-reg-fourth.js | COVERED |
 | `CraftingLog` | CommandDevTest.java, ETIMCrafting.java, ETIM.java … | f15-reg-chains.js | COVERED |
@@ -93,7 +95,7 @@
 | `TestLog` | ETIMItemModels.java, CommandDevTest.java, TestDriver.java … | f14-reg-core.js | COVERED |
 | `UndeadLog` | CommandDevTest.java, ETIMEntityGhoul.java, ETIMEntityShadow.java … | f11-b59-smoke.js, f11-b60-smoke.js | COVERED |
 | `WeatherLog` | CommandDevTest.java, ETIMConfig.java, MixinWorldServer.java … | f16-reg-third.js | COVERED |
-| `WorldGenSpawnLog` | CommandDevTest.java, MixinWorldEntitySpawner.java, ETIMWorldGenSpawning.java | f12-b70t8-smoke.js | COVERED |
+| `WorldGenSpawnLog` | CommandDevTest.java, MixinWorldEntitySpawner.java, ETIMWorldGenSpawning.java | f11-b71-smoke.js, f12-b70t8-smoke.js | COVERED |
 
 ## 结构上不可覆盖（登记豁免）
 
