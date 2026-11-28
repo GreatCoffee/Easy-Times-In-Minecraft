@@ -27,6 +27,15 @@ const OUT_DIR = path.join(ROOT, 'playground', 'audit', 'draft');
 const MAX_VALUES = 14;
 const MAX_EXCERPT = 26;
 
+/**
+ * 判值表行的「结构化候选」标记：`  - [掉落] L121 ...`（带类别 + 行号）。
+ * 原文窗口行是 `  - [L121] ...`，只有行号没有类别，不算结构化候选。
+ */
+function isStructured(line) {
+    return /\[(?!L\d+\])[^\]]+\]\s*L\d+/.test(line);
+}
+
+
 function arg(name, fallback) {
     const i = process.argv.indexOf('--' + name);
     return i >= 0 ? (process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : true) : fallback;
@@ -171,6 +180,7 @@ function build(batch) {
     const detail = [];
     let noCarrier = 0;
     let noChannel = 0;
+    const hasCandidate = (l) => /\[(?!L\d+\])[^\]]+\]\s*L\d+/.test(l);
     let noValues = 0;
     for (const f of faces) {
         const r = ready.get(f.key) || { state: '?', carrier: null, deps: '-' };
@@ -178,7 +188,7 @@ function build(batch) {
         const v = vals.get(f.key) || [];
         if (!r.carrier) noCarrier++;
         if (r.carrier && !e.channels.length) noChannel++;
-        if (!v.some((l) => l.includes('[L'))) noValues++;
+        if (!v.some(isStructured)) noValues++;
         out.push(`| \`${f.key}\` | ${f.ref} | ${r.state} | ${r.carrier ? '`' + r.carrier + '`' : '—'} | ${e.channels.length ? e.channels.map((c) => '`[' + c + ']`').join(' ') : '—'} |`);
         detail.push({ f, r, e, v });
     }
@@ -195,7 +205,7 @@ function build(batch) {
         if (d.e.file) out.push(`- ETIM 载体：\`${d.e.file}\`（${d.e.lines} 行）${d.e.channels.length ? '，通道 ' + d.e.channels.map((c) => '`[' + c + ']`').join(' ') : '，**无判据通道**'}`);
         else out.push('- ETIM 载体：**未找到同名类**（NEW 面需新建）');
         out.push('');
-        const structured = d.v.some((l) => l.includes('[L'));
+        const structured = d.v.some(isStructured);
         if (structured) {
             out.push('R196 判值候选（判值表，最多 ' + MAX_VALUES + ' 条，其余见判值表）：', '');
             for (const line of d.v.slice(0, MAX_VALUES)) out.push(line.startsWith('-') ? line : '- ' + line);

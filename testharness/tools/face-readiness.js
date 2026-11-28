@@ -195,7 +195,9 @@ L.push('');
 L.push('| 卷:行 | R196 引用 | 状态 | 载体 / 依赖 | 说明 |');
 L.push('| --- | --- | --- | --- | --- |');
 for (const f of faces) {
-    const ref = f.refs.length ? f.refs.map((r) => `${r.name}:${r.start}`).slice(0, 2).join(' + ') : f.ref.slice(0, 40);
+    const ref = f.refs.length
+        ? f.refs.map((r) => `${r.name}:${r.start}${r.end !== r.start ? '-' + r.end : ''}`).slice(0, 2).join(' + ')
+        : f.ref.slice(0, 40);
     const carrier = f.state === 'WIRE' ? f.carriers.named.slice(0, 2).join(', ')
         : (f.state === 'CITE' ? f.carriers.cited.slice(0, 2).join(', ') : '-');
     const deps = f.deps.join(',') || '-';

@@ -348,11 +348,15 @@ node testharness/tools/selftest-readiness.js      # 2/2：四档分类 + stale �
 node testharness/tools/plan-batches.js                    # 重建 playground/audit/census/批次工单.md
 node testharness/tools/plan-batches.js --check            # 只比对，陈旧 exit 1
 node testharness/tools/plan-batches.js --start B-71 --max 8
-node testharness/tools/selftest-plan.js                   # 3/3：均分切块 / BIOME 阻断 / stale 检出
+node testharness/tools/selftest-plan.js                   # 6/6：均分切块 / BIOME 阻断 / stale 检出 / 钉号保号 / 钉面已落地占号 / 重钉拒绝
 ```
 
 切分口径：WIRE 按载体簇、CITE 按被引文件、NEW 按卷；簇超过 `--max` 时**均分**（17 面 / 8 → 6/6/5，不留单面尾巴）。
-顺序：卷 B→C→E→F，同卷内 WIRE 优先、簇大的在前。批次号从 `--start` 起顺序编号，只作建议，实际开工时可在账册改号。
+顺序：卷 B→C→E→F，同卷内 WIRE 优先、簇大的在前。
+
+**钉号**（`testharness/tools/plan-pins.json`）：用户裁定过编号的批次（如「灌木 = B-71」「保险箱/符文石 = B-72」）
+在文件里点名面集，生成器固定其编号、不参与自动分组；自动批次从 `--start` 顺延、跳过被钉编号并填补空号。
+被钉面落地后该编号降为空批继续占号，后续编号不漂移。同一面钉两次 exit 1。`PLAN_PINS` 可指向别的钉号文件（自检用）。
 生成物 `playground/audit/census/批次工单.md` 不要手改；preflight 第 11 步用 `--check` 拦陈旧。
 `PLAN_BOOKS_ROOT` 可指向别树（自检就用这个）。
 

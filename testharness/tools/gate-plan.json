@@ -57,5 +57,26 @@
             "arms",
             "values"
         ]
+    },
+    "B-71": {
+        "scripts": [],
+        "base": "",
+        "modes": [
+            "arms"
+        ]
+    },
+    "B-72": {
+        "scripts": [],
+        "base": "",
+        "modes": [
+            "arms"
+        ]
+    },
+    "B-73": {
+        "scripts": [],
+        "base": "",
+        "modes": [
+            "arms"
+        ]
     }
 }
