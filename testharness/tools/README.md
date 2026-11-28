@@ -689,3 +689,18 @@ node testharness/tools/check-report-shape.js --update-baseline
 旧文书格式不一（53 份进了 `report-shape-baseline.json`），棘轮只拦**新增**失败；修好一份就从基线删一份，工具会提示可收缩项。`draft/` 与 `archive/` 不参与检查。
 
 自检：`node testharness/tools/selftest-shape.js`（7 例：三类全好、A 缺锚点、缺分级、回执缺钉值、报告缺面、基线冻结、基线外新增）。
+## 单测缺口棘轮 —— check-tests.js（B-70VA）
+
+```
+node testharness/tools/check-tests.js            # 棘轮：基线外新增缺口即 exit 1
+node testharness/tools/check-tests.js --list     # 逐条 BASE / NEW
+node testharness/tools/check-tests.js --update-baseline
+```
+
+规则：`src/main/java` 里声明了 **≥2 个 `public static` 方法**（不含常量与 `main`）的类，必须有测试类在正文里提到它的简单类名；否则记一条缺口。
+
+- 豁免：`client/`（渲染需 GL）、`mixins/`（改字节码，靠判窗）；`ETIMConfig` 由 `check-config` 管。
+- 存量 **105** 个缺口冻结在 `test-baseline.json`，只拦新增；补上测试后工具会报「baseline shrank by N」，把对应条目删掉即可。
+- 实测：`classes=127 covered=22 gaps=105 baseline=105 fresh=0 verdict OK`。
+
+自检：`node testharness/tools/selftest-tests.js`（7 例：缺基线提示、基线冻结、测试提及算覆盖、新增缺口拒绝、单 static 不要求、client 豁免、补测试后提示收缩）。

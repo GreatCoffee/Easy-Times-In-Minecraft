@@ -225,6 +225,9 @@ step('draft', 'gen-report.js', ['--check-dir'], (c) => c !== 0, '[DraftLog]');
 // B-70UZ: the three paper documents (comparison / verdict / receipt) are what
 // the next session reads. Shape drift is how a batch gets re-opened.
 step('shape', 'check-report-shape.js', [], (c) => c !== 0, '[ShapeLog]');
+// B-70VA: a class that carries pure logic and gains no test is how the
+// "92 seconds to notice" cost creeps back. Existing gaps are frozen.
+step('tests', 'check-tests.js', [], (c) => c !== 0, '[TestsLog]');
 
 const bad = steps.filter((s) => s.bad);
 console.log(`[PreflightLog] summary steps=${steps.length} risk=${bad.length} verdict=${bad.length ? 'FAIL' : 'PASS'}`);

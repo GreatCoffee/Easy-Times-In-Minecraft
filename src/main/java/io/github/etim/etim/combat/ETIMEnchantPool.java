@@ -308,25 +308,7 @@ public final class ETIMEnchantPool {
      * point up to 2E, +0.25 up to 3E, Math.round.
      */
     public static int altered(int levels, Item item) {
-        int e = item.getItemEnchantability();
-        if (e < 1) {
-            return 0;
-        }
-        if (levels <= e) {
-            return levels;
-        }
-        float altered = e;
-        for (int i = e + 1; i <= levels; i++) {
-            if (i <= e * 2) {
-                altered += 0.5F;
-            } else {
-                if (i > e * 3) {
-                    break;
-                }
-                altered += 0.25F;
-            }
-        }
-        return Math.round(altered);
+        return EnchantGates.altered(levels, item.getItemEnchantability());
     }
 
     // ------------------------------------------------------- G1 装配九步

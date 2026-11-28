@@ -47,6 +47,7 @@ const ALIAS = {
     'check-asserts': 'asserts',
     'gen-report': 'genreport',
     'check-report-shape': 'shape',
+    'check-tests': 'tests',
 };
 
 for (const t of tools) {

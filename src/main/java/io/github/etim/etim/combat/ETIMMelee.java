@@ -112,13 +112,13 @@ public final class ETIMMelee {
             return;
         }
         float roll = (float) (Math.random() * ETIMConfig.stunChanceDivisor);
-        if (!(level > roll)) {
+        if (!MeleeGates.stunPasses(level, roll)) {
             row("stun lvl=" + level + " roll=" + String.format("%.3f", roll)
                     + " need=" + level + " amp=0 dur=0");
             return;
         }
-        int amp = ETIMConfig.stunAmplifierPerLevel * level;
-        int dur = ETIMConfig.stunDurationPerLevel * level;
+        int amp = MeleeGates.stunAmplitude(level, ETIMConfig.stunAmplifierPerLevel);
+        int dur = MeleeGates.stunDuration(level, ETIMConfig.stunDurationPerLevel);
         target.addPotionEffect(new PotionEffect(MobEffects.SLOWNESS, dur, amp));
         row("stun lvl=" + level + " roll=" + String.format("%.3f", roll)
                 + " need=" + level + " amp=" + amp + " dur=" + dur);
@@ -140,10 +140,8 @@ public final class ETIMMelee {
                     + " dmg=" + String.format("%.3f", damage) + " transfer=0");
             return;
         }
-        int transfer = (int) (damage * ETIMConfig.vampiricTransferFactor * Math.random());
-        if (transfer < ETIMConfig.vampiricMinTransfer) {
-            transfer = ETIMConfig.vampiricMinTransfer;
-        }
+        int transfer = MeleeGates.vampiricTransfer(damage, ETIMConfig.vampiricTransferFactor,
+                (float) Math.random(), ETIMConfig.vampiricMinTransfer);
         attacker.heal(transfer);
         row("vampiric lvl=" + level + " gate=" + String.format("%.3f", gateRoll)
                 + " dmg=" + String.format("%.3f", damage)
@@ -167,8 +165,8 @@ public final class ETIMMelee {
             return;
         }
         float roll = attacker.getRNG().nextFloat(); // R196 this.rand.nextFloat() :1235
-        float threshold = (float) level / ETIMConfig.disarmingMaxLevel; // C-注4: divisor 复用 maxLevel
-        if (roll >= threshold) {
+        // C-注4: divisor 复用 maxLevel
+        if (!MeleeGates.disarmPasses(level, roll, ETIMConfig.disarmingMaxLevel)) {
             row("disarm lvl=" + level + " roll=" + String.format("%.3f", roll)
                     + " held=" + held.getItem().getRegistryName() + " dropped=false");
             return;
