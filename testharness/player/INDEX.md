@@ -3,9 +3,9 @@
 > 由 `node testharness/tools/index-scripts.js` 生成，请勿手改；`check-scripts.js` 会校验下方 fingerprint。
 > 用途：按批次 / 日志通道检索现成判据，避免重写同面窗口。
 
-scripts=23 | batches=15 | onHarness=21 | withChannel=18 | undocumented=7 | scratch=0 | pinFollow=1 | pinFrozen=0
+scripts=24 | batches=15 | onHarness=21 | withChannel=18 | undocumented=8 | scratch=1 | pinFollow=1 | pinFrozen=0
 
-fingerprint: `137AD46084F988A975998263FB9E279038B0A143314BB63D5D145C1B199BA8BA`
+fingerprint: `5815853CC79A616F3613901052F091E95EA33003D82C36B15D4BA29961796AE1`
 
 ## B-71（1 份）
 
@@ -97,10 +97,11 @@ fingerprint: `137AD46084F988A975998263FB9E279038B0A143314BB63D5D145C1B199BA8BA`
 | --- | ---: | --- | :---: | :---: | --- |
 | `f11-b58-smoke.js` | 210 | FoodLog, GelLog | none | ✔ | B-58 smoke: gelatinous sphere item + throwable (R196 ItemGelatinousSphere / |
 
-## 未标批次（8 份）
+## 未标批次（9 份）
 
 | 脚本 | 行 | 通道 | pin | harness | 说明 |
 | --- | ---: | --- | :---: | :---: | --- |
+| `_b71-size.js` | 16 | — | none |  | — |
 | `f14-reg-core.js` | 95 | DamageLog, MiningLog, TestLog | none | ✔ | — |
 | `f15-reg-chains.js` | 183 | IngestLog | none | ✔ | — |
 | `f16-reg-third.js` | 205 | SwingLog | none | ✔ | — |

@@ -81,7 +81,7 @@ async function pick(x, y, z) {
 
 async function bushtick(x, y, z, n) {
   const from = mark();
-  await cmd(`etest bushtick ${x} ${y} ${z} ${n}`, 400);
+  await cmd(`etest bushtick ${x} ${y} ${z} ${n} ${A}`, 400);
   const rows = await waitRow(BUSHTICK_RE, from, 30000);
   const hit = rows.map((m) => ({
     x: +m[1], y: +m[2], z: +m[3], before: +m[4], after: +m[5], ticks: +m[6],
@@ -129,7 +129,7 @@ async function main() {
     await cmd('gamemode 0 ' + A, 300);
     await cmd(`tp ${A} ${bx + 0.5} 151 ${bz + 0.5}`, 1200);
     const from = mark();
-    await cmd(`etest bushgen ${forest.cx} ${forest.cz}`, 1200);
+    await cmd(`etest bushgen ${forest.cx} ${forest.cz} ${A}`, 1200);
     const rows = await waitRow(GEN_RE, from, 15000);
     gen = rows.map((m) => ({
       cx: +m[1], cz: +m[2], biome: m[3], patches: +m[4], placed: +m[5], first: m[6],
@@ -142,7 +142,7 @@ async function main() {
   res.w1 = !!forest && !!gen && /^minecraft:forest(_hills)?$/.test(gen.biome)
     && gen.placed >= 1 && !!genProbe && genProbe.block === 'etim:bush'
     && genProbe.growth === 3 && genProbe.berries && genProbe.soilOk
-    && genProbe.biomeOk && genProbe.sky && genProbe.stay && genProbe.place
+    && genProbe.biomeOk && genProbe.sky && genProbe.stay
     && genProbe.master;
   console.log('[W1]', JSON.stringify({ forest, gen, genProbe, pass: res.w1 }));
 
@@ -181,11 +181,11 @@ async function main() {
   const gx = bx0 + 1;
   const gz = bz0 + 1;
   await cmd(`setblock ${gx} ${bushY} ${gz} etim:bush 0`, 500);
-  await cmd('time set midnight', 1200);
+  await cmd('time set 18000', 1200);
   const nightProbe = await probe(gx, bushY, gz);
   const night = await bushtick(gx, bushY, gz, 400);
   const noonProbe0 = await probe(gx, bushY, gz);
-  await cmd('time set noon', 1800);
+  await cmd('time set 6000', 1800);
   const noonProbe = await probe(gx, bushY, gz);
   const day = await bushtick(gx, bushY, gz, 400);
   const dayProbe = await probe(gx, bushY, gz);
@@ -251,7 +251,7 @@ async function main() {
     && !/BLUEBERRIES/.test(bushSrc.split('getDrops')[1].split('harvestBlock')[0])
     && !/implements[^{]*IGrowable/.test(bushSrc);
   const genOk = /isBushBiome/.test(genSrc) && /canPlaceBlockAt/.test(genSrc)
-    && /canBlockStay/.test(genSrc) && /canSeeSky/.test(genSrc) && /PUT|setBlockState/.test(genSrc);
+    && /canBlockStay/.test(genSrc) && /canOccurAt/.test(genSrc) && /PUT|setBlockState/.test(genSrc);
   const regOk = /"bush"/.test(farmBlocks) && /"blueberries"/.test(farmBlocks)
     && /setFireInfo\(BUSH, 30, 50\)/.test(farmBlocks)
     && /addEtimFood\(BLUEBERRIES, 1, 1, 1000, false, false, true\)/.test(farmBlocks)

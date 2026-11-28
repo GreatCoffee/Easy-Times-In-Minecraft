@@ -12,7 +12,7 @@
 | 登记豁免（结构不可覆盖） | 6 |
 | 未处理 GAP | 0 |
 | harness 脚本 | 21 |
-| 已封批（有 verdict） | 72 |
+| 已封批（有 verdict） | 73 |
 
 ## 在跑的窗口
 
@@ -30,7 +30,7 @@
 | `f11-b67-smoke.js` | B-67 | 3 个：BoomLog/DropLog/ExplosionLog | 有 |
 | `f11-b68-smoke.js` | B-68 | 1 个：FarmLog | 有 |
 | `f11-b69-smoke.js` | B-69 | 3 个：FarmLog/MountLog/SparkLog | 有 |
-| `f11-b71-smoke.js` | B-71 | 2 个：BushLog/WorldGenSpawnLog | 无 |
+| `f11-b71-smoke.js` | B-71 | 2 个：BushLog/WorldGenSpawnLog | 有 |
 | `f12-b70t8-smoke.js` | - | 2 个：SpawnLog/WorldGenSpawnLog | 无 |
 | `f13-b70t9-smoke.js` | - | 1 个：FoodLog | 无 |
 | `f14-reg-core.js` | - | 3 个：DamageLog/MiningLog/TestLog | 无 |
