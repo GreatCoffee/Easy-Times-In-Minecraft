@@ -91,7 +91,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 新窗口脚本用 `gen-window.js --name fNN-bXX --batch B-XX --faces … --channels …` 生成骨架；骨架默认是红的，不会漏填。
 
-## 3. 质量闸：`preflight.js` 的 30 步
+## 3. 质量闸：`preflight.js` 的 31 步
 
 `node testharness/tools/preflight.js` 是提交钩子（`.githooks/pre-commit`）跑的东西，任何一步红就拒绝提交。
 
@@ -119,6 +119,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `configdoc` | `gen-config-doc.js --check` | `docs/CONFIG.md` 是否与 `ETIMConfig.java` 一致；字段缺 javadoc 即失败 |
 | `chandoc` | `gen-channel-doc.js --check` | `docs/CHANNELS.md` 是否过期 |
 | `pipeline` | `check-pipeline-doc.js` | 本文件是否漏掉任何工具或 preflight 步 |
+| `toolcov` | `check-tool-selftests.js` | 每个工具都要有自检或在 `tool-manual.json` 登记理由 |
 | `tools` | `selftest-all.js` | 所有 `selftest-*.js` 是否全绿 |
 | `retention` | `retention.js --check` | `run/` 与 `build-logs/` 的体积棘轮（证据日志不动） |
 | `assert` | `face-assert.js --check` | 面↔断言图是否过期 |
@@ -169,10 +170,10 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 
 ## 7. 交接与自查
 
-- 每天开工前：`node testharness/tools/preflight.js`（30 步绿才动码）。
+- 每天开工前：`node testharness/tools/preflight.js`（31 步绿才动码）。
 - 看现状：`node testharness/tools/batch-status.js --all`（60 批，0 风险）、`check-books.js --list`、`regression-plan.js`、`face-readiness.js`。
 - 看通道：`docs/CHANNELS.md`；看配置：`docs/CONFIG.md`；看回归：`testharness/reports/REGRESSION.md`；看覆盖：`testharness/reports/COVERAGE.md`。
 - 装钩子：`node testharness/tools/install-hooks.js`；跳过钩子必须 `--no-verify` 并在提交正文写原因。
 - 脚本清单：`node testharness/tools/index-scripts.js` 重建 `testharness/player/INDEX.md`（脚本、通道、PIN 分类与指纹）；改过 `player/` 里任何 `.js` 都要重建，且**先删后建**。
-- 工具棘轮：`node testharness/tools/check-tool-selftests.js` —— 每个工具要么有 `selftest-<tool>.js`，要么在 `tool-manual.json` 里带理由登记（目前 5 个：`install-hooks`、`preflight`、`run-regression`、`close-batch`、它自己）。
+- 工具棘轮：`node testharness/tools/check-tool-selftests.js` —— 每个工具要么有 `selftest-<tool>.js`，要么在 `tool-manual.json` 里带理由登记（目前 5 个：`install-hooks`、`preflight`、`run-regression`、`close-batch`、它自己）；该棘轮即 preflight 的 `toolcov` 步，新工具不带自检会直接红。
 - 版本：`check-version.js` 要求 tag 与 `mod_version` 一致；仓库不写 `org.gradle.java.home`（用环境变量或仓库外 gradle.properties）。

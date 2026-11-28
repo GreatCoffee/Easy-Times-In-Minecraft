@@ -531,7 +531,8 @@ node testharness/tools/selftest-all.js --only coverage   # 只跑名字含 cover
 - **登记表防腐**：`tool-manual.json` 里的键必须在 `tools/` 真实存在，否则报 `STALE-MANUAL`（工具删了、登记没删）。
 - **人工工具**：`install-hooks`（改 .git 配置）、`preflight`（编排器）、`run-regression`（起真实服务端，按纪律只能会话七跑）、`close-batch`（封批写入器）、`check-tool-selftests`（自引用）。
 - **环境覆盖**：自检一律用临时树 + 环境变量指向（`CONFIG_REPO` / `HARNESS_PLAYER` / `SCRIPTS_REPO` / `VERSION_REPO` / `REG_REPO` / `BATCH_ROOT`+\`BATCH_REPO\` / `TOOLS_DIR`），不写真实仓库。
-- **preflight**：第 19 步 `tools` 跑 `selftest-all.js`，任一自检红即拦提交。
+- **preflight**：`toolcov` 步跑 `check-tool-selftests.js`，`tools` 步紧接着跑 `selftest-all.js`，任一红即拦提交。
+- **为什么两步都要**：`selftest-all` 只跑「已经存在的」自检——新加一个工具却不写自检，它会全绿；`toolcov` 补的就是这个洞（B-70VG 实测：塞 `_vg-probe.js` 进去 → `missing=1`、exit 1）。
 
 ## 配置文档 —— `gen-config-doc.js`
 

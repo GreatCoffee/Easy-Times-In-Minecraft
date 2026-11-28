@@ -207,6 +207,9 @@ step('chandoc', 'gen-channel-doc.js', ['--check'], (c) => c !== 0, '[ChanDocLog]
 // B-70UO: docs/PIPELINE.md is prose, so it cannot be generated — but it must
 // name every tool and every preflight step, or a newcomer reads a stale map.
 step('pipeline', 'check-pipeline-doc.js', [], (c) => c !== 0, '[PipelineLog]');
+// B-70VG: selftest-all runs the selftests that exist; nothing forced a new
+// tool to have one. This ratchet makes that a red preflight.
+step('toolcov', 'check-tool-selftests.js', [], (c) => c !== 0, '[ToolsLog]');
 step('tools', 'selftest-all.js', [], (c) => c !== 0, '[SelftestLog]');
 // B-70UR: run/ worlds and build-logs grow every window. retention.js keeps the
 // newest N per prefix, never moves a log that a report cites, and ratchets the
