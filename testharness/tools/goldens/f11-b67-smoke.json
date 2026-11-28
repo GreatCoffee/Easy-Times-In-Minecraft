@@ -1,0 +1,38 @@
+{
+  "script": "f11-b67-smoke.js",
+  "tee": "b67-b70tu2-r2-b1.out",
+  "at": "2026-11-28T00:12:02.647Z",
+  "fields": 10,
+  "values": {
+    "[SparkLog] hardness": {
+      "n:0": 1
+    },
+    "[SparkLog] light": {
+      "n:1": 1
+    },
+    "[SparkLog] render": {
+      "s:invisible": 1
+    },
+    "[SparkLog] item": {
+      "s:none": 1
+    },
+    "[ItemLog] default": {
+      "n:16": 1
+    },
+    "[ItemLog] r196Table": {
+      "n:9": 1
+    },
+    "[ItemLog] etimPinned": {
+      "n:29": 1
+    },
+    "[TestLog] removed": {
+      "s:true": 1
+    },
+    "[TestLog] ancientMetal": {
+      "n:0": 1
+    },
+    "[TestLog] rustedRows": {
+      "n:8": 1
+    }
+  }
+}

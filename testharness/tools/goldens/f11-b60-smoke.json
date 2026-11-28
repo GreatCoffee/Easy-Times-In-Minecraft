@@ -1,0 +1,103 @@
+{
+  "script": "f11-b60-smoke.js",
+  "tee": "b60-b70uq-r3-b1.out",
+  "at": "2026-11-28T00:12:02.280Z",
+  "fields": 31,
+  "values": {
+    "[SparkLog] hardness": {
+      "n:0": 1
+    },
+    "[SparkLog] light": {
+      "n:1": 1
+    },
+    "[SparkLog] render": {
+      "s:invisible": 1
+    },
+    "[SparkLog] item": {
+      "s:none": 1
+    },
+    "[ItemLog] default": {
+      "n:16": 1
+    },
+    "[ItemLog] r196Table": {
+      "n:9": 1
+    },
+    "[ItemLog] etimPinned": {
+      "n:29": 1
+    },
+    "[TestLog] removed": {
+      "s:true": 1
+    },
+    "[TestLog] ancientMetal": {
+      "n:0": 1
+    },
+    "[TestLog] rustedRows": {
+      "n:8": 1
+    },
+    "[UndeadLog] kind": {
+      "s:stalker": 1,
+      "s:minecraft:torch": 1
+    },
+    "[UndeadLog] hp": {
+      "n:20": 1
+    },
+    "[UndeadLog] max": {
+      "n:20": 1
+    },
+    "[UndeadLog] follow": {
+      "n:40": 1
+    },
+    "[UndeadLog] attack": {
+      "n:4": 1
+    },
+    "[UndeadLog] speed": {
+      "n:0.23": 1
+    },
+    "[UndeadLog] xp": {
+      "n:10": 1
+    },
+    "[UndeadLog] undead": {
+      "s:false": 1
+    },
+    "[StalkerLog] kind": {
+      "s:stalker": 5
+    },
+    "[StalkerLog] hp": {
+      "n:20": 5
+    },
+    "[StalkerLog] max": {
+      "n:20": 5
+    },
+    "[StalkerLog] follow": {
+      "n:40": 4,
+      "n:42.815047": 1
+    },
+    "[StalkerLog] attack": {
+      "n:4": 5
+    },
+    "[StalkerLog] speed": {
+      "n:0.23": 5
+    },
+    "[StalkerLog] xp": {
+      "n:10": 5
+    },
+    "[StalkerLog] undead": {
+      "s:false": 5
+    },
+    "[StalkerLog] invisible": {
+      "s:false": 5
+    },
+    "[UndeadLog] l": {
+      "s:'w-b60-b70uq-r3-v1',": 1
+    },
+    "[StalkerLog] cls": {
+      "s:ETIMEntityInvisibleStalker": 1
+    },
+    "[StalkerLog] torch": {
+      "s:BlockPos{x=12,": 1
+    },
+    "[StalkerLog] dist": {
+      "n:12": 1
+    }
+  }
+}

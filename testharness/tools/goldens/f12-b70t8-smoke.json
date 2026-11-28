@@ -1,0 +1,172 @@
+{
+  "script": "f12-b70t8-smoke.js",
+  "tee": "b69-b70t8-r4-b1.out",
+  "at": "2026-11-28T00:12:02.744Z",
+  "fields": 32,
+  "values": {
+    "[SparkLog] hardness": {
+      "n:0": 1
+    },
+    "[SparkLog] light": {
+      "n:1": 1
+    },
+    "[SparkLog] render": {
+      "s:invisible": 1
+    },
+    "[SparkLog] item": {
+      "s:none": 1
+    },
+    "[ItemLog] default": {
+      "n:16": 1
+    },
+    "[ItemLog] r196Table": {
+      "n:9": 1
+    },
+    "[ItemLog] etimPinned": {
+      "n:29": 1
+    },
+    "[TestLog] removed": {
+      "s:true": 1
+    },
+    "[TestLog] ancientMetal": {
+      "n:0": 1
+    },
+    "[TestLog] rustedRows": {
+      "n:8": 1
+    },
+    "[FarmLog] src": {
+      "s:sheep": 6
+    },
+    "[FarmLog] add": {
+      "n:0.5": 6
+    },
+    "[FarmLog] face": {
+      "s:eatGrassBonus": 6
+    },
+    "[FarmLog] food": {
+      "n:1": 6
+    },
+    "[SparkLog] portal": {
+      "s:false": 4
+    },
+    "[SparkLog] update": {
+      "n:2": 4
+    },
+    "[SparkLog] kind": {
+      "s:snuff": 1,
+      "s:ignite": 3
+    },
+    "[SparkLog] fuel": {
+      "s:false": 1,
+      "s:true": 3
+    },
+    "[FarmLog] block": {
+      "s:minecraft:air": 8,
+      "s:minecraft:fire": 3,
+      "s:minecraft:torch": 7,
+      "s:minecraft:skull": 1,
+      "s:minecraft:trapdoor": 1,
+      "s:minecraft:standing_sign": 2
+    },
+    "[FarmLog] age": {
+      "n:-1": 19,
+      "n:0": 3
+    },
+    "[FarmLog] below": {
+      "s:minecraft:stone": 3,
+      "s:minecraft:planks": 2,
+      "s:minecraft:netherrack": 1,
+      "s:minecraft:leaves": 2,
+      "s:minecraft:jukebox": 1,
+      "s:minecraft:sponge": 1,
+      "s:minecraft:farmland": 1,
+      "s:minecraft:fence": 1,
+      "s:minecraft:wool": 1,
+      "s:minecraft:mob_spawner": 1,
+      "s:minecraft:air": 6,
+      "s:minecraft:stone_slab": 2
+    },
+    "[FarmLog] dry": {
+      "n:0": 22
+    },
+    "[FarmLog] water": {
+      "n:0": 22
+    },
+    "[FarmLog] master": {
+      "n:1": 22
+    },
+    "[FarmLog] chance": {
+      "n:0.05": 22
+    },
+    "[TestLog] step": {
+      "s:useblock": 19
+    },
+    "[TestLog] face": {
+      "s:up": 13,
+      "s:east": 5,
+      "s:north": 1
+    },
+    "[MountLog] rule": {
+      "s:torch-flat-top": 5,
+      "s:leaves": 2,
+      "s:tilled-field": 2,
+      "s:tilled-field-grant": 3,
+      "s:torch-fence-top": 1,
+      "s:front-face": 3,
+      "s:geometry": 3,
+      "s:never-hides": 3,
+      "s:torch-stairs-back": 1,
+      "s:torch-slab-bottom": 1,
+      "s:torch-snow-side": 1,
+      "s:skull-fence-top": 1,
+      "s:skull-cloth": 1,
+      "s:trapdoor-material": 2,
+      "s:trapdoor-shape-defer": 3,
+      "s:skull-face": 1,
+      "s:trapdoor-shape": 1,
+      "s:trapdoor-wrong-half": 1,
+      "s:skull-not-flat": 1,
+      "s:sponge": 1,
+      "s:trapdoor-thin-snow": 1,
+      "s:sign-face": 1,
+      "s:trapdoor-vertical": 2,
+      "s:sign-flat-top": 2,
+      "s:sign-not-flat": 1
+    },
+    "[MountLog] face": {
+      "s:up": 23,
+      "s:north": 13,
+      "s:south": 2,
+      "s:east": 24,
+      "s:down": 4
+    },
+    "[MountLog] support": {
+      "s:minecraft:stone": 6,
+      "s:minecraft:leaves": 2,
+      "s:minecraft:jukebox": 1,
+      "s:minecraft:sponge": 2,
+      "s:minecraft:farmland": 6,
+      "s:minecraft:fence": 2,
+      "s:minecraft:wool": 2,
+      "s:minecraft:mob_spawner": 4,
+      "s:minecraft:furnace": 3,
+      "s:minecraft:dispenser": 1,
+      "s:minecraft:oak_stairs": 1,
+      "s:minecraft:stone_slab": 8,
+      "s:minecraft:snow_layer": 4,
+      "s:minecraft:enchanting_table": 1,
+      "s:minecraft:dirt": 1
+    },
+    "[MountLog] block": {
+      "s:minecraft:torch": 26,
+      "s:torch": 3,
+      "s:minecraft:skull": 11,
+      "s:minecraft:trapdoor": 16,
+      "s:minecraft:standing_sign": 10
+    },
+    "[MountLog] result": {
+      "s:allow": 35,
+      "s:reject": 31
+    }
+  }
+}

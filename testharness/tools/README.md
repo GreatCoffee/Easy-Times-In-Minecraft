@@ -704,3 +704,20 @@ node testharness/tools/check-tests.js --update-baseline
 - 实测：`classes=127 covered=22 gaps=105 baseline=105 fresh=0 verdict OK`。
 
 自检：`node testharness/tools/selftest-tests.js`（7 例：缺基线提示、基线冻结、测试提及算覆盖、新增缺口拒绝、单 static 不要求、client 豁免、补测试后提示收缩）。
+## 回归数值金标 —— value-goldens.js（B-70VB）
+
+```
+node testharness/tools/value-goldens.js --capture all          # 从最近一次 PASS 窗口抽快照
+node testharness/tools/value-goldens.js --capture f11-b69-smoke.js
+node testharness/tools/value-goldens.js --check all            # 对金标，漂移 exit 1
+node testharness/tools/value-goldens.js --list                 # 金标清单
+```
+
+回归网原来只验证「行还在发」（`--mode=arms`）。本工具给每个窗口存一份数值快照（`testharness/tools/goldens/<script>.json`），`run-regression.js` 每次跑完自动对位——某个数变了（例如咬钩时间 1500→1450）直接算 FAIL。
+
+- 窗口选择：脚本名里的批次 token（`b69` / `b70t8` / `f14`）匹配 tee，取 mtime 最新的 PASS 窗口；`[done]` 在 driver log 里时按时间就近关联（B-70T2 起）。
+- `f19-reg-explosion.js` 没有批次 token，靠 `EXTRA_TOKENS` 手工映射到 `b70up`。
+- 归一与忽略表沿用 `verify-diff --mode=values`（坐标、实体 id、时间等不入比）。
+- 产品有意改数值时：先跑一窗 PASS，再 `--capture <script>` 重存金标；这是唯一正确的刷新方式。
+
+自检：`node testharness/tools/selftest-value-goldens.js`（6 例：捕获、MATCH、DRIFT、缺金标、FAIL 窗不捕获、清单）。

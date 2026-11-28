@@ -1,0 +1,128 @@
+{
+  "script": "f11-b64-smoke.js",
+  "tee": "b64-b70tc-r2-b1.out",
+  "at": "2026-11-28T00:12:02.494Z",
+  "fields": 39,
+  "values": {
+    "[SparkLog] hardness": {
+      "n:0": 1
+    },
+    "[SparkLog] light": {
+      "n:1": 1
+    },
+    "[SparkLog] render": {
+      "s:invisible": 1
+    },
+    "[SparkLog] item": {
+      "s:none": 1
+    },
+    "[ItemLog] default": {
+      "n:16": 1
+    },
+    "[ItemLog] r196Table": {
+      "n:9": 1
+    },
+    "[ItemLog] etimPinned": {
+      "n:29": 1
+    },
+    "[TestLog] removed": {
+      "s:true": 1
+    },
+    "[TestLog] ancientMetal": {
+      "n:0": 1
+    },
+    "[TestLog] rustedRows": {
+      "n:8": 1
+    },
+    "[UndeadLog] kind": {
+      "s:ghoul": 1
+    },
+    "[UndeadLog] hp": {
+      "n:20": 1
+    },
+    "[UndeadLog] follow": {
+      "n:41.855861": 1
+    },
+    "[UndeadLog] attack": {
+      "n:5": 1
+    },
+    "[UndeadLog] xp": {
+      "n:10": 1
+    },
+    "[UndeadLog] undead": {
+      "s:false": 1
+    },
+    "[UndeadLog] l": {
+      "s:'w-b64-b70tc-r2-v1',": 1
+    },
+    "[ItemLog] stick": {
+      "n:32": 1
+    },
+    "[ItemLog] flint": {
+      "n:16": 1
+    },
+    "[ItemLog] reeds": {
+      "n:16": 1
+    },
+    "[ItemLog] paper": {
+      "n:64": 1
+    },
+    "[ItemLog] quartz": {
+      "n:16": 1
+    },
+    "[ItemLog] cake": {
+      "n:8": 1
+    },
+    "[ItemLog] cauldron": {
+      "n:4": 1
+    },
+    "[ItemLog] pie": {
+      "n:8": 1
+    },
+    "[ItemLog] book": {
+      "n:1": 1
+    },
+    "[ItemLog] bucket": {
+      "n:1": 1
+    },
+    "[ItemLog] dirt": {
+      "n:4": 1
+    },
+    "[ItemLog] sword": {
+      "n:1": 1
+    },
+    "[ItemLog] etim16": {
+      "n:55": 1
+    },
+    "[ItemLog] kind": {
+      "s:snowball": 1,
+      "s:ice": 1
+    },
+    "[ItemLog] count": {
+      "n:200": 2
+    },
+    "[ItemLog] temp": {
+      "n:20": 2
+    },
+    "[ItemLog] chance": {
+      "n:0.0019": 1
+    },
+    "[ItemLog] lost": {
+      "n:66": 1,
+      "n:55": 1
+    },
+    "[ItemLog] left": {
+      "n:134": 1,
+      "n:145": 1
+    },
+    "[ItemLog] face": {
+      "s:north": 2
+    },
+    "[ItemLog] block": {
+      "s:minecraft:stone": 1
+    },
+    "[ItemLog] placed": {
+      "s:minecraft:stone": 1
+    }
+  }
+}

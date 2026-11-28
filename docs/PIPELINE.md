@@ -124,6 +124,7 @@ node testharness/tools/close-batch.js --batch B-71 --scope "…" --verdict testh
 | `assert` | `face-assert.js --check` | 面↔断言图是否过期 |
 | `asserts` | `check-asserts.js` | 窗口正则是否还能在最新 tee 里命中；1.13 选择器与未知 `/etest` 子命令即失败 |
 | `draft` | `gen-report.js --check-dir` | 对照报告草稿是否与账本/判值表一致（过期即失败） |
+| `values` | `value-goldens.js`（回归流程内） | `--check` 对金标：行里的数变了即算回归失败；`--capture` 只能在有意改数并拿到新 PASS 窗后执行 |
 | `shape` | `check-report-shape.js` | 对照报告/正本/回执的最小结构（终判、分级、A 项锚点、钉值、逐面覆盖） |
 | `tests` | `check-tests.js` | 含 ≥2 个 public static 的类必须有测试提及；存量 105 个进基线只拦新增 |
 

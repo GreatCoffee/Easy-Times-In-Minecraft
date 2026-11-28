@@ -1,0 +1,173 @@
+{
+  "script": "f11-b65-smoke.js",
+  "tee": "b65-b70uv-r2-b1.out",
+  "at": "2026-11-28T00:12:02.543Z",
+  "fields": 37,
+  "values": {
+    "[SparkLog] hardness": {
+      "n:0": 1
+    },
+    "[SparkLog] light": {
+      "n:1": 1
+    },
+    "[SparkLog] render": {
+      "s:invisible": 1
+    },
+    "[SparkLog] item": {
+      "s:none": 1
+    },
+    "[ItemLog] default": {
+      "n:16": 1
+    },
+    "[ItemLog] r196Table": {
+      "n:9": 1
+    },
+    "[ItemLog] etimPinned": {
+      "n:29": 1
+    },
+    "[TestLog] removed": {
+      "s:true": 1
+    },
+    "[TestLog] ancientMetal": {
+      "n:0": 1
+    },
+    "[TestLog] rustedRows": {
+      "n:8": 1
+    },
+    "[FoodR196Log] contents": {
+      "s:MUSHROOM_STEW": 1,
+      "s:MILK": 1,
+      "s:WATER": 1,
+      "s:BEEF_STEW": 1,
+      "s:CHICKEN_SOUP": 1,
+      "s:VEGETABLE_SOUP": 1,
+      "s:ICE_CREAM": 1,
+      "s:SALAD": 1,
+      "s:CREAM_OF_MUSHROOM_SOUP": 1,
+      "s:CREAM_OF_VEGETABLE_SOUP": 1,
+      "s:PUMPKIN_SOUP": 1,
+      "s:MASHED_POTATO": 1,
+      "s:SORBET": 1,
+      "s:PORRIDGE": 1,
+      "s:CEREAL": 1
+    },
+    "[FoodR196Log] item": {
+      "s:etim:bowl_mushroom_stew": 1,
+      "s:etim:bowl_milk": 1,
+      "s:etim:bowl_water": 1,
+      "s:etim:bowl_beef_stew": 1,
+      "s:etim:bowl_chicken_soup": 1,
+      "s:etim:bowl_vegetable_soup": 1,
+      "s:etim:bowl_ice_cream": 1,
+      "s:etim:bowl_salad": 1,
+      "s:etim:bowl_cream_of_mushroom_soup": 1,
+      "s:etim:bowl_cream_of_vegetable_soup": 1,
+      "s:etim:bowl_pumpkin_soup": 1,
+      "s:etim:bowl_mashed_potato": 1,
+      "s:etim:bowl_sorbet": 1,
+      "s:etim:bowl_porridge": 1,
+      "s:etim:bowl_cereal": 1
+    },
+    "[FoodR196Log] sat": {
+      "n:2": 1,
+      "n:0": 2,
+      "n:16": 1,
+      "n:10": 1,
+      "n:6": 1,
+      "n:5": 1,
+      "n:1": 2,
+      "n:3": 1,
+      "n:7": 1,
+      "n:12": 1,
+      "n:4": 3
+    },
+    "[FoodR196Log] nut": {
+      "n:4": 2,
+      "n:1": 2,
+      "n:0": 1,
+      "n:16": 1,
+      "n:10": 1,
+      "n:6": 1,
+      "n:5": 1,
+      "n:7": 1,
+      "n:2": 4,
+      "n:8": 1
+    },
+    "[FoodR196Log] metal": {
+      "s:copper": 2,
+      "s:gold": 2
+    },
+    "[FoodR196Log] count": {
+      "n:3": 4,
+      "n:1": 2
+    },
+    "[FoodR196Log] xpValue": {
+      "n:5": 1,
+      "n:100": 1
+    },
+    "[FoodR196Log] xpBefore": {
+      "n:0": 1,
+      "n:-15": 1
+    },
+    "[FoodR196Log] xpAfter": {
+      "n:-15": 1,
+      "n:-115": 1
+    },
+    "[FoodR196Log] xp_before": {
+      "n:0": 1,
+      "n:-15": 1
+    },
+    "[FoodR196Log] xp_after": {
+      "n:-15": 1,
+      "n:-115": 1
+    },
+    "[FoodR196Log] meta": {
+      "n:1": 2
+    },
+    "[FoodR196Log] src": {
+      "s:cmd": 1
+    },
+    "[FoodR196Log] cured": {
+      "s:true": 1
+    },
+    "[FoodR196Log] converting": {
+      "s:true": 1
+    },
+    "[FoodR196Log] raw": {
+      "s:minecraft:beef": 1
+    },
+    "[FoodR196Log] cooked": {
+      "s:minecraft:cooked_beef": 1
+    },
+    "[FoodR196Log] before": {
+      "s:minecraft:beef": 1
+    },
+    "[FoodR196Log] after": {
+      "s:minecraft:cooked_beef": 1
+    },
+    "[FoodR196Log] alive": {
+      "s:true": 1
+    },
+    "[FoodR196Log] kind": {
+      "s:fire_elemental": 1
+    },
+    "[FoodR196Log] damage": {
+      "n:5": 1
+    },
+    "[FoodR196Log] volume": {
+      "n:1": 1
+    },
+    "[FoodR196Log] from": {
+      "s:cmd": 1
+    },
+    "[FoodR196Log] hit": {
+      "s:true": 1
+    },
+    "[FoodR196Log] fire_hp": {
+      "n:15": 1
+    },
+    "[FoodR196Log] held": {
+      "s:minecraft:bowl": 1
+    }
+  }
+}

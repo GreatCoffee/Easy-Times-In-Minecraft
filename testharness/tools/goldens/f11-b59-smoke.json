@@ -1,0 +1,167 @@
+{
+  "script": "f11-b59-smoke.js",
+  "tee": "b59-b70tv2-r3-b1.out",
+  "at": "2026-11-28T00:12:02.223Z",
+  "fields": 48,
+  "values": {
+    "[SparkLog] hardness": {
+      "n:0": 1
+    },
+    "[SparkLog] light": {
+      "n:1": 1
+    },
+    "[SparkLog] render": {
+      "s:invisible": 1
+    },
+    "[SparkLog] item": {
+      "s:none": 1
+    },
+    "[ItemLog] default": {
+      "n:16": 1
+    },
+    "[ItemLog] r196Table": {
+      "n:9": 1
+    },
+    "[ItemLog] etimPinned": {
+      "n:29": 1
+    },
+    "[TestLog] removed": {
+      "s:true": 1
+    },
+    "[TestLog] ancientMetal": {
+      "n:0": 1
+    },
+    "[TestLog] rustedRows": {
+      "n:8": 1
+    },
+    "[StalkerLog] kind": {
+      "s:stalker": 1
+    },
+    "[StalkerLog] hp": {
+      "n:20": 1
+    },
+    "[StalkerLog] max": {
+      "n:20": 1
+    },
+    "[StalkerLog] follow": {
+      "n:40.625566": 1
+    },
+    "[StalkerLog] attack": {
+      "n:4": 1
+    },
+    "[StalkerLog] speed": {
+      "n:0.23": 1
+    },
+    "[StalkerLog] xp": {
+      "n:10": 1
+    },
+    "[StalkerLog] undead": {
+      "s:false": 1
+    },
+    "[StalkerLog] invisible": {
+      "s:false": 1
+    },
+    "[UndeadLog] kind": {
+      "s:ghoul": 7,
+      "s:wight": 6,
+      "s:shadow": 6,
+      "s:minecraft:torch": 1
+    },
+    "[UndeadLog] hp": {
+      "n:20": 19
+    },
+    "[UndeadLog] max": {
+      "n:20": 11
+    },
+    "[UndeadLog] follow": {
+      "n:40": 12,
+      "n:38.794388": 1,
+      "n:39.645507": 1
+    },
+    "[UndeadLog] attack": {
+      "n:5": 14
+    },
+    "[UndeadLog] speed": {
+      "n:0.28": 2,
+      "n:0.25": 2,
+      "n:0.23": 2
+    },
+    "[UndeadLog] xp": {
+      "n:10": 14
+    },
+    "[UndeadLog] undead": {
+      "s:false": 5,
+      "s:true": 9
+    },
+    "[UndeadLog] l": {
+      "s:'w-b59-b70tv2-r3-v1',": 25
+    },
+    "[UndeadLog] aspect": {
+      "s:none": 3
+    },
+    "[UndeadLog] source": {
+      "s:player": 2,
+      "s:magic": 4,
+      "s:outOfWorld": 2
+    },
+    "[UndeadLog] found": {
+      "n:1": 4,
+      "n:2": 1
+    },
+    "[UndeadLog] killed": {
+      "n:0": 2,
+      "n:1": 3
+    },
+    "[UndeadLog] flesh": {
+      "s:false": 2
+    },
+    "[UndeadLog] nugget": {
+      "s:false": 2
+    },
+    "[UndeadLog] hit": {
+      "s:false": 2
+    },
+    "[UndeadLog] rare_roll": {
+      "n:-1": 2
+    },
+    "[UndeadLog] looting": {
+      "n:0": 2
+    },
+    "[UndeadLog] brightness": {
+      "n:0.083333": 4
+    },
+    "[UndeadLog] heal": {
+      "n:3": 4
+    },
+    "[UndeadLog] alive": {
+      "s:true": 5
+    },
+    "[UndeadLog] sun": {
+      "s:false": 5
+    },
+    "[UndeadLog] ghoul": {
+      "n:1": 2
+    },
+    "[UndeadLog] wight": {
+      "n:1": 2
+    },
+    "[UndeadLog] shadow": {
+      "n:1": 1,
+      "n:0": 1
+    },
+    "[UndeadLog] amp": {
+      "n:5": 2
+    },
+    "[UndeadLog] lost": {
+      "s:true": 2
+    },
+    "[TestLog] override": {
+      "s:none": 2,
+      "s:blood": 1
+    },
+    "[TestLog] totaltime": {
+      "n:1000": 1,
+      "n:14000": 1
+    }
+  }
+}

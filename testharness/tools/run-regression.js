@@ -15,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const GOLD = require('./value-goldens.js');
 
 const argv = process.argv.slice(2);
 const arg = (name, dflt) => {
@@ -80,16 +81,30 @@ for (const s of scripts) {
     let done = null;
     try { done = doneLine ? JSON.parse(doneLine) : null; } catch { done = null; }
     const pinOk = /\[PIN\][^\n]*\bok=true\b/.test(out);
-    const ok = r.status === 0 && !!done && done.pass === true && pinOk;
+    // B-70VB: 数值金标 —— 「行还在发」之外，再确认行里的数没变。
+    let values = null;
+    const tee = GOLD.newestTeeSince(s, t0);
+    if (tee) {
+        const cmp = GOLD.compare(s, tee.path);
+        if (cmp.checked) {
+            values = { drift: cmp.drift, tee: tee.file };
+            if (cmp.drift) {
+                console.log(`[RegLog]   values DRIFT ${s} diffs=${cmp.drift} vs ${cmp.golden.tee}`);
+            }
+        }
+    }
+    const ok = r.status === 0 && !!done && done.pass === true && pinOk
+        && (!values || values.drift === 0);
     results.push({
         script: s, run, ok, exit: r.status,
         pin: pinOk,
         pass: done ? done.pass : null,
         bad: done ? done.bad : null,
         badKeys: done ? done.badKeys : null,
+        values,
         secs: Math.round((Date.now() - t0) / 1000),
     });
-    console.log(`[RegLog] ${ok ? 'PASS' : 'FAIL'} ${s} exit=${r.status} pin=${pinOk} pass=${done ? done.pass : 'null'} bad=${done ? done.bad : '-'} ${Math.round((Date.now() - t0) / 1000)}s`);
+    console.log(`[RegLog] ${ok ? 'PASS' : 'FAIL'} ${s} exit=${r.status} pin=${pinOk} pass=${done ? done.pass : 'null'} bad=${done ? done.bad : '-'} values=${values ? (values.drift ? 'DRIFT(' + values.drift + ')' : 'MATCH') : 'none'} ${Math.round((Date.now() - t0) / 1000)}s`);
     if (!ok && done && done.badKeys && done.badKeys.length) console.log(`[RegLog]   badKeys=${done.badKeys.join(',')}`);
 }
 

@@ -447,6 +447,15 @@ function main(argv) {
     return findings.length ? 1 : 0;
 }
 
+module.exports = {
+    parseAll, normToken, valueTable, valuesDiff, newestTee,
+    VALUE_IGNORE, VALUE_CHANNELS,
+};
+
+if (require.main !== module) {
+    return;
+}
+
 try {
     process.exit(main(process.argv));
 } catch (e) {
